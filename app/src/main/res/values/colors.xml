@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Primary brand color - Red (AuraMusic theme) -->
-    <color name="primary">#FFED5564</color>
-    <color name="on_primary">#FFFFFFFF</color>
-    <color name="primary_container">#FFFFDAD6</color>
-    <color name="on_primary_container">#FF410002</color>
+    <!-- Primary brand color - White for light mode -->
+    <color name="primary">#FFFFFFFF</color>
+    <color name="on_primary">#FF000000</color>
+    <color name="primary_container">#FFE0E0E0</color>
+    <color name="on_primary_container">#FF1A1A1A</color>
     
     <!-- Secondary Colors -->
     <color name="secondary">#FF755654</color>
@@ -33,10 +33,10 @@
     <color name="on_error_container">#FF410002</color>
     
     <!-- Legacy colors for compatibility -->
-    <color name="colorPrimary">#FFED5564</color>
-    <color name="colorPrimaryVariant">#FF3700B3</color>
-    <color name="colorOnPrimary">#FFFFFFFF</color>
-    <color name="colorAccent">#FFED5564</color>
+    <color name="colorPrimary">#FFFFFFFF</color>
+    <color name="colorPrimaryVariant">#FFE0E0E0</color>
+    <color name="colorOnPrimary">#FF000000</color>
+    <color name="colorAccent">#FFFFFFFF</color>
     
     <!-- Legacy colors -->
     <color name="purple_200">#FFBB86FC</color>

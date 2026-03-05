@@ -2,11 +2,11 @@
 <resources>
     <!-- Material 3 Dark Theme Colors - Using Dark/Black theme -->
 
-    <!-- Primary Colors - Red for dark mode -->
-    <color name="primary">#FFFFB4AB</color>
-    <color name="on_primary">#FF690005</color>
-    <color name="primary_container">#FF93000A</color>
-    <color name="on_primary_container">#FFFFDAD6</color>
+    <!-- Primary Colors - Dark for dark mode -->
+    <color name="primary">#FF333333</color>
+    <color name="on_primary">#FFFFFFFF</color>
+    <color name="primary_container">#FF1A1A1A</color>
+    <color name="on_primary_container">#FFE0E0E0</color>
 
     <!-- Secondary Colors -->
     <color name="secondary">#FFD7C3BE</color>
@@ -39,13 +39,13 @@
     <color name="outline_variant">#FF333333</color>
 
     <!-- Legacy colors for compatibility -->
-    <color name="colorPrimary">#FFFFB4AB</color>
-    <color name="colorPrimaryVariant">#FF93000A</color>
-    <color name="colorOnPrimary">#FF690005</color>
+    <color name="colorPrimary">#FF333333</color>
+    <color name="colorPrimaryVariant">#FF1A1A1A</color>
+    <color name="colorOnPrimary">#FFFFFFFF</color>
     <color name="colorSecondary">#FFD7C3BE</color>
     <color name="colorSecondaryVariant">#FF594942</color>
     <color name="colorOnSecondary">#FF41332C</color>
-    <color name="colorAccent">#FFFFB4AB</color>
+    <color name="colorAccent">#FF333333</color>
     <color name="colorError">#FFFFB4AB</color>
     <color name="colorOnError">#FF690005</color>
 </resources>
