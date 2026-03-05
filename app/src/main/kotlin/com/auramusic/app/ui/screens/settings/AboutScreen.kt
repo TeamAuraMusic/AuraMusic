@@ -80,7 +80,7 @@ fun AboutScreen(
                 contentDescription = "AuraMusic Icon",
                 colorFilter = ColorFilter.tint(
                     Color.White,
-                    ColorFilter.SrcIn
+                    BlendMode.SrcIn
                 ),
                 modifier = Modifier.size(72.dp)
             )
@@ -283,9 +283,9 @@ fun AboutScreen(
     TopAppBar(
         title = { Text(stringResource(R.string.about)) },
         navigationIcon = {
-            IconButton(
-                onClick = navController::navigateUp,
-                onLongClick = navController::backToMain,
+            com.auramusic.app.ui.component.IconButton(
+                onClick = { navController.navigateUp() },
+                onLongClick = { navController.backToMain() },
             ) {
                 Icon(
                     painter = painterResource(R.drawable.arrow_back),
