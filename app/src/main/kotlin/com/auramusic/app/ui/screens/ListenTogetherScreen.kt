@@ -642,7 +642,7 @@ private fun RoomStatusCard(
             if (isHost) {
                 Spacer(modifier = Modifier.height(16.dp))
                 val inviteLink = remember(roomCode) {
-                    "https://metrolist.meowery.eu/listen?code=$roomCode"
+                    "https://github.com/chila254/Auramusic-v1/releases?code=$roomCode"
                 }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,

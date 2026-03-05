@@ -186,7 +186,7 @@ fun AboutScreen(
                 }
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.buymeacoffee),
+                    painter = painterResource(R.drawable.link),
                     contentDescription = null
                 )
             }
