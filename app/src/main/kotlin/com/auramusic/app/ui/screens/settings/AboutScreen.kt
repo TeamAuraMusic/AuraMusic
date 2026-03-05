@@ -77,7 +77,7 @@ fun AboutScreen(
         Spacer(Modifier.height(4.dp))
 
         Image(
-            painter = painterResource(R.drawable.app_logo),
+            painter = painterResource(R.drawable.ic_launcher_foreground),
             contentDescription = null,
             colorFilter = ColorFilter.tint(
                 MaterialTheme.colorScheme.onBackground,
@@ -186,7 +186,7 @@ fun AboutScreen(
                 }
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.link),
+                    painter = painterResource(R.drawable.paypal),
                     contentDescription = null
                 )
             }
