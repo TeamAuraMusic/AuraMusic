@@ -81,7 +81,7 @@ import com.auramusic.app.ui.utils.backToMain
 import com.auramusic.app.utils.SuperProperties
 import com.auramusic.app.utils.makeTimeString
 import com.auramusic.app.utils.rememberPreference
-import com.my.kizzy.rpc.KizzyRPC
+import com.auramusic.kizzy.rpc.KizzyRPC
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive

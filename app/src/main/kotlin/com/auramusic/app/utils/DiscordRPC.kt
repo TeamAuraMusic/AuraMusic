@@ -8,8 +8,8 @@ package com.auramusic.app.utils
 import android.content.Context
 import com.auramusic.app.R
 import com.auramusic.app.db.entities.Song
-import com.my.kizzy.rpc.KizzyRPC
-import com.my.kizzy.rpc.RpcImage
+import com.auramusic.kizzy.rpc.KizzyRPC
+import com.auramusic.kizzy.rpc.RpcImage
 
 class DiscordRPC(
     val context: Context,

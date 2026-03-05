@@ -6,7 +6,7 @@
 package com.auramusic.app.lyrics
 
 import android.content.Context
-import com.auramusic.app.betterlyrics.BetterLyrics
+import com.metrolist.music.betterlyrics.BetterLyrics
 import com.auramusic.app.constants.EnableBetterLyricsKey
 import com.auramusic.app.utils.dataStore
 import com.auramusic.app.utils.get
