@@ -70,14 +70,14 @@ fun AboutScreen(
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(120.dp)
+                .size(140.dp)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.primary)
         ) {
             Image(
                 painter = painterResource(R.drawable.ic_launcher_foreground),
                 contentDescription = "AuraMusic Icon",
-                modifier = Modifier.size(80.dp)
+                modifier = Modifier.size(100.dp)
             )
         }
 
