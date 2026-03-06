@@ -5,6 +5,8 @@
 # Ignore missing service warnings
 -dontwarn javax.script.**
 -dontwarn META-INF/services/**
+-dontwarn com.google.re2j.**
+-dontwarn java.beans.**
 
 # Keep Kotlin metadata
 -keepattributes *Annotation*, InnerClasses
