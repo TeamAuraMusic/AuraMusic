@@ -124,6 +124,7 @@ import com.auramusic.innertube.models.SongItem
 import com.auramusic.innertube.models.WatchEndpoint
 import com.auramusic.app.constants.AppBarHeight
 import com.auramusic.app.constants.AppLanguageKey
+import com.auramusic.app.constants.LastSeenVersionKey
 import com.auramusic.app.constants.CheckForUpdatesKey
 import com.auramusic.app.constants.DarkModeKey
 import com.auramusic.app.constants.DefaultOpenTabKey
@@ -187,6 +188,9 @@ import com.auramusic.app.viewmodels.HomeViewModel
 import com.valentinilk.shimmer.LocalShimmerTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import androidx.datastore.preferences.core.edit
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -359,6 +363,7 @@ class MainActivity : ComponentActivity() {
         downloadUtil: DownloadUtil,
         syncUtils: SyncUtils,
     ) {
+        val changelogState = remember { mutableStateOf(false) }
         val checkForUpdates by rememberPreference(CheckForUpdatesKey, defaultValue = true)
 
         LaunchedEffect(checkForUpdates) {
@@ -371,7 +376,22 @@ class MainActivity : ComponentActivity() {
                     Updater.checkForUpdate().onSuccess { (releaseInfo, hasUpdate) ->
                         if (releaseInfo != null) {
                             onLatestVersionNameChange(releaseInfo.versionName)
-                            if (hasUpdate && notifEnabled) {
+                            
+                            // Check if app was just updated
+                            var lastSeenVersion: String? = null
+                            runBlocking {
+                                lastSeenVersion = dataStore.data.map { it[LastSeenVersionKey] }.first()
+                            }
+                            val currentVersion = BuildConfig.VERSION_NAME
+                            val isAppUpdated = lastSeenVersion != null && lastSeenVersion != currentVersion
+                            
+                            // If app was updated, show changelog
+                            if (isAppUpdated) {
+                                changelogState.value = true
+                            }
+                            
+                            // If there's a new version available (and not just updated), show notification
+                            if (hasUpdate && !isAppUpdated && notifEnabled) {
                                 val downloadUrl = Updater.getDownloadUrlForCurrentVariant(releaseInfo)
                                 if (downloadUrl != null) {
                                     val intent = Intent(Intent.ACTION_VIEW, downloadUrl.toUri())
@@ -394,6 +414,11 @@ class MainActivity : ComponentActivity() {
                                         NotificationManagerCompat.from(this@MainActivity).notify(1001, notif)
                                     }
                                 }
+                            }
+                            
+                            // Update last seen version
+                            runBlocking {
+                                dataStore.edit { it[LastSeenVersionKey] = currentVersion }
                             }
                         }
                     }

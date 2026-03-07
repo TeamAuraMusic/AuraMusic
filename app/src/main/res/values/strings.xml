@@ -759,7 +759,7 @@
     <string name="wrapped_intro_button">See my %s</string>
     <string name="wrapped_logo_content_description">AuraMusic Wrapped</string>
     <string name="wrapped_thank_you">Thank you for listening</string>
-    <string name="wrapped_special_thanks">Special thanks to</string>
+    <string name="wrapped_special_thanks">Special thanks to you for supporting AuraMusic!</string>
     <string name="wrapped_close">Close</string>
     <string name="wrapped_total_songs_title">Total songs listened</string>
     <string name="wrapped_total_songs_subtitle">%d songs</string>
