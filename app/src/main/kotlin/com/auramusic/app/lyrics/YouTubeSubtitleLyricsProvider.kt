@@ -19,5 +19,10 @@ object YouTubeSubtitleLyricsProvider : LyricsProvider {
         artist: String,
         duration: Int,
         album: String?,
-    ): Result<String> = YouTube.transcript(id)
+        setVideoId: String?,
+    ): Result<String> {
+        // Prefer setVideoId (YouTube video ID) if available, otherwise use id
+        val videoId = setVideoId ?: id
+        return YouTube.transcript(videoId)
+    }
 }

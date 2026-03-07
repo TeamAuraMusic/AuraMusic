@@ -20,9 +20,12 @@ object YouTubeLyricsProvider : LyricsProvider {
         artist: String,
         duration: Int,
         album: String?,
+        setVideoId: String?,
     ): Result<String> =
         runCatching {
-            val nextResult = YouTube.next(WatchEndpoint(videoId = id)).getOrThrow()
+            // Prefer setVideoId (YouTube video ID) if available, otherwise use id
+            val videoId = setVideoId ?: id
+            val nextResult = YouTube.next(WatchEndpoint(videoId = videoId)).getOrThrow()
             YouTube
                 .lyrics(
                     endpoint = nextResult.lyricsEndpoint
