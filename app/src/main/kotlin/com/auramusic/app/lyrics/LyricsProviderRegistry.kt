@@ -43,9 +43,9 @@ object LyricsProviderRegistry {
 
     suspend fun getProviderOrder(context: Context): List<String> {
         val stored = context.dataStore.data
-        return stored.collect { data ->
+        return stored.map { data ->
             val serialized = data[LyricsProviderOrderKey]
-            return@collect deserializeProviderOrder(serialized)
-        }
+            deserializeProviderOrder(serialized)
+        }.first()
     }
 }
