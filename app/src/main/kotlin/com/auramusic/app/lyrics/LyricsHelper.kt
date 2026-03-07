@@ -35,23 +35,14 @@ constructor(
     @ApplicationContext private val context: Context,
     private val networkConnectivity: NetworkConnectivityObserver,
 ) {
-    private var lyricsProviders =
-        listOf(
-            BetterLyricsProvider,
-            SimpMusicLyricsProvider,
-            LrcLibLyricsProvider,
-            KuGouLyricsProvider,
-            LyricsPlusProvider,
-            YouTubeSubtitleLyricsProvider,
-            YouTubeLyricsProvider
-        )
+    // Initialize with default providers - will be updated by the Flow when preferences are loaded
+    private var lyricsProviders: List<LyricsProvider> = emptyList()
 
-    init {
-        // Collect the provider order from preferences
-        kotlinx.coroutines.GlobalScope.launch {
-            context.dataStore.data.collect { preferences ->
+    val preferred =
+        context.dataStore.data
+            .map { preferences ->
                 val providerOrder = preferences[LyricsProviderOrderKey] ?: ""
-                lyricsProviders = if (providerOrder.isNotBlank()) {
+                if (providerOrder.isNotBlank()) {
                     // Use custom order from drag-and-drop
                     LyricsProviderRegistry.getOrderedProviders(providerOrder)
                 } else {
@@ -106,7 +97,16 @@ constructor(
                         )
                     }
                 }
+            }.distinctUntilChanged()
+            .map { providers ->
+                lyricsProviders = providers
             }
+
+    init {
+        // Trigger the Flow to start collecting
+        // This ensures lyricsProviders gets updated from preferences
+        kotlinx.coroutines.GlobalScope.launch {
+            preferred.collect { }
         }
     }
 
