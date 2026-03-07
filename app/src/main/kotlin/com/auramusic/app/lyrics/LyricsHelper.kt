@@ -38,6 +38,7 @@ constructor(
             SimpMusicLyricsProvider,
             LrcLibLyricsProvider,
             KuGouLyricsProvider,
+            LyricsPlusProvider,
             YouTubeSubtitleLyricsProvider,
             YouTubeLyricsProvider
         )
@@ -54,6 +55,7 @@ constructor(
                         LrcLibLyricsProvider,
                         SimpMusicLyricsProvider,
                         KuGouLyricsProvider,
+                        LyricsPlusProvider,
                         YouTubeSubtitleLyricsProvider,
                         YouTubeLyricsProvider
                     )
@@ -62,6 +64,7 @@ constructor(
                         KuGouLyricsProvider,
                         SimpMusicLyricsProvider,
                         LrcLibLyricsProvider,
+                        LyricsPlusProvider,
                         YouTubeSubtitleLyricsProvider,
                         YouTubeLyricsProvider
                     )
@@ -70,6 +73,7 @@ constructor(
                         SimpMusicLyricsProvider,
                         LrcLibLyricsProvider,
                         KuGouLyricsProvider,
+                        LyricsPlusProvider,
                         YouTubeSubtitleLyricsProvider,
                         YouTubeLyricsProvider
                     )
@@ -78,6 +82,7 @@ constructor(
                         SimpMusicLyricsProvider,
                         LrcLibLyricsProvider,
                         KuGouLyricsProvider,
+                        LyricsPlusProvider,
                         YouTubeSubtitleLyricsProvider,
                         YouTubeLyricsProvider
                     )

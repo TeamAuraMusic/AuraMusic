@@ -62,7 +62,9 @@ import com.auramusic.app.constants.EnableBetterLyricsKey
 import com.auramusic.app.constants.EnableKugouKey
 import com.auramusic.app.constants.EnableLrcLibKey
 import com.auramusic.app.constants.EnableSimpMusicKey
+import com.auramusic.app.constants.EnableLyricsPlusKey
 import com.auramusic.app.constants.HideExplicitKey
+import com.auramusic.app.constants.LyricsProviderOrderKey
 import com.auramusic.app.constants.HideVideoSongsKey
 import com.auramusic.app.constants.LanguageCodeToName
 import com.auramusic.app.constants.PreferredLyricsProvider
@@ -84,6 +86,9 @@ import com.auramusic.app.ui.component.EnumDialog
 import com.auramusic.app.ui.component.IconButton
 import com.auramusic.app.ui.component.Material3SettingsGroup
 import com.auramusic.app.ui.component.Material3SettingsItem
+import com.auramusic.app.ui.component.DraggableLyricsProviderItem
+import com.auramusic.app.ui.component.DraggableLyricsProviderList
+import com.auramusic.app.lyrics.LyricsProviderRegistry
 import com.auramusic.app.ui.utils.backToMain
 import com.auramusic.app.utils.rememberEnumPreference
 import com.auramusic.app.utils.rememberPreference
@@ -117,6 +122,11 @@ fun ContentSettings(
     val (enableLrclib, onEnableLrclibChange) = rememberPreference(key = EnableLrcLibKey, defaultValue = true)
     val (enableBetterLyrics, onEnableBetterLyricsChange) = rememberPreference(key = EnableBetterLyricsKey, defaultValue = true)
     val (enableSimpMusic, onEnableSimpMusicChange) = rememberPreference(key = EnableSimpMusicKey, defaultValue = true)
+    val (enableLyricsPlus, onEnableLyricsPlusChange) = rememberPreference(key = EnableLyricsPlusKey, defaultValue = false)
+    val (lyricsProviderOrder, onLyricsProviderOrderChange) = rememberPreference(
+        key = LyricsProviderOrderKey,
+        defaultValue = LyricsProviderRegistry.serializeProviderOrder(LyricsProviderRegistry.getDefaultProviderOrder())
+    )
     val (preferredProvider, onPreferredProviderChange) =
         rememberEnumPreference(
             key = PreferredLyricsProviderKey,
@@ -149,7 +159,7 @@ fun ContentSettings(
     }
 
     // Calculate enabled providers count for UI logic
-    val enabledProvidersCount = listOf(enableLrclib, enableKugou, enableBetterLyrics, enableSimpMusic).count { it }
+    val enabledProvidersCount = listOf(enableLrclib, enableKugou, enableBetterLyrics, enableSimpMusic, enableLyricsPlus).count { it }
 
     var showProxyConfigurationDialog by rememberSaveable {
         mutableStateOf(false)
@@ -338,6 +348,10 @@ fun ContentSettings(
         mutableStateOf(false)
     }
 
+    var showProviderPriorityDialog by rememberSaveable {
+        mutableStateOf(false)
+    }
+
     if (showPreferredProviderDialog) {
         EnumDialog(
             onDismiss = { showPreferredProviderDialog = false },
@@ -361,6 +375,65 @@ fun ContentSettings(
                     PreferredLyricsProvider.KUGOU -> "KuGou"
                     PreferredLyricsProvider.BETTER_LYRICS -> "Better Lyrics"
                     PreferredLyricsProvider.SIMPMUSIC -> "SimpMusic"
+                }
+            }
+        )
+    }
+
+    if (showProviderPriorityDialog) {
+        val currentOrder = LyricsProviderRegistry.deserializeProviderOrder(lyricsProviderOrder)
+        val enabledProviders = setOf(
+            "LrcLib".takeIf { enableLrclib },
+            "KuGou".takeIf { enableKugou },
+            "BetterLyrics".takeIf { enableBetterLyrics },
+            "SimpMusic".takeIf { enableSimpMusic },
+            "LyricsPlus".takeIf { enableLyricsPlus },
+        ).filterNotNull().toSet()
+        val lyricsIcon = painterResource(R.drawable.lyrics)
+        val draggableItems = remember { mutableStateListOf<DraggableLyricsProviderItem>() }
+
+        LaunchedEffect(currentOrder, enableLrclib, enableKugou, enableBetterLyrics, enableSimpMusic, enableLyricsPlus) {
+            val orderedEnabledProviders = currentOrder.filter { it in enabledProviders }
+            val orderedDisabledProviders = currentOrder.filter { it !in enabledProviders }
+            draggableItems.clear()
+            draggableItems.addAll(
+                orderedEnabledProviders.mapNotNull { providerName ->
+                    LyricsProviderRegistry.getProviderByName(providerName) ?: return@mapNotNull null
+                    DraggableLyricsProviderItem(
+                        id = providerName,
+                        name = providerName,
+                        icon = lyricsIcon,
+                    )
+                }
+            )
+        }
+
+        AlertDialog(
+            onDismissRequest = { showProviderPriorityDialog = false },
+            title = { Text(stringResource(R.string.lyrics_provider_priority)) },
+            text = {
+                Column {
+                    Text(
+                        stringResource(R.string.lyrics_provider_priority_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    DraggableLyricsProviderList(
+                        items = draggableItems,
+                        onItemsReordered = { reorderedItems ->
+                            val enabledOrder = reorderedItems.map { it.id }
+                            val disabledOrder = currentOrder.filter { it !in enabledProviders }
+                            onLyricsProviderOrderChange(
+                                LyricsProviderRegistry.serializeProviderOrder(enabledOrder + disabledOrder)
+                            )
+                        },
+                        modifier = Modifier.height(300.dp)
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showProviderPriorityDialog = false }) {
+                    Text(stringResource(R.string.confirm))
                 }
             }
         )
@@ -728,6 +801,27 @@ fun ContentSettings(
                 ),
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.lyrics),
+                    title = { Text(stringResource(R.string.enable_lyricsplus)) },
+                    description = { Text(stringResource(R.string.enable_lyricsplus_desc)) },
+                    trailingContent = {
+                        Switch(
+                            checked = enableLyricsPlus,
+                            onCheckedChange = onEnableLyricsPlusChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (enableLyricsPlus) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = { onEnableLyricsPlusChange(!enableLyricsPlus) }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.lyrics),
                     title = { Text(stringResource(R.string.set_first_lyrics_provider)) },
                     description = {
                         Text(
@@ -745,6 +839,12 @@ fun ContentSettings(
                         }
                     },
                     enabled = enabledProvidersCount >= 2
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.lyrics),
+                    title = { Text(stringResource(R.string.lyrics_provider_priority)) },
+                    description = { Text(stringResource(R.string.lyrics_provider_priority_desc)) },
+                    onClick = { showProviderPriorityDialog = true }
                 ),
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.language_korean_latin),

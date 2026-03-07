@@ -28,11 +28,14 @@ import com.auramusic.app.constants.LyricsRomanizeBelarusianKey
 import com.auramusic.app.constants.LyricsRomanizeBulgarianKey
 import com.auramusic.app.constants.LyricsRomanizeChineseKey
 import com.auramusic.app.constants.LyricsRomanizeCyrillicByLineKey
+import com.auramusic.app.constants.LyricsRomanizeHindiKey
 import com.auramusic.app.constants.LyricsRomanizeJapaneseKey
 import com.auramusic.app.constants.LyricsRomanizeKoreanKey
 import com.auramusic.app.constants.LyricsRomanizeKyrgyzKey
 import com.auramusic.app.constants.LyricsRomanizeMacedonianKey
+import com.auramusic.app.constants.LyricsRomanizePunjabiKey
 import com.auramusic.app.constants.LyricsRomanizeRussianKey
+import com.auramusic.app.constants.LyricsRomanizeAsMainKey
 import com.auramusic.app.constants.LyricsRomanizeSerbianKey
 import com.auramusic.app.constants.LyricsRomanizeUkrainianKey
 import com.auramusic.app.ui.component.ActionPromptDialog
@@ -53,6 +56,9 @@ fun RomanizationSettings(
     val (lyricsRomanizeJapanese, onLyricsRomanizeJapaneseChange) = rememberPreference(LyricsRomanizeJapaneseKey, defaultValue = true)
     val (lyricsRomanizeKorean, onLyricsRomanizeKoreanChange) = rememberPreference(LyricsRomanizeKoreanKey, defaultValue = true)
     val (lyricsRomanizeChinese, onLyricsRomanizeChineseChange) = rememberPreference(LyricsRomanizeChineseKey, defaultValue = true)
+    val (lyricsRomanizeHindi, onLyricsRomanizeHindiChange) = rememberPreference(LyricsRomanizeHindiKey, defaultValue = true)
+    val (lyricsRomanizePunjabi, onLyricsRomanizePunjabiChange) = rememberPreference(LyricsRomanizePunjabiKey, defaultValue = true)
+    val (lyricsRomanizeAsMain, onLyricsRomanizeAsMainChange) = rememberPreference(LyricsRomanizeAsMainKey, defaultValue = false)
     val (lyricsRomanizeRussian, onLyricsRomanizeRussianChange) = rememberPreference(LyricsRomanizeRussianKey, defaultValue = true)
     val (lyricsRomanizeUkrainian, onLyricsRomanizeUkrainianChange) = rememberPreference(LyricsRomanizeUkrainianKey, defaultValue = true)
     val (lyricsRomanizeSerbian, onLyricsRomanizeSerbianChange) = rememberPreference(LyricsRomanizeSerbianKey, defaultValue = true)
@@ -69,6 +75,13 @@ fun RomanizationSettings(
             .verticalScroll(rememberScrollState()),
     ) {
         PreferenceGroupTitle(title = stringResource(R.string.general))
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.lyrics_romanize_as_main)) },
+            icon = { Icon(painterResource(R.drawable.lyrics), null) },
+            checked = lyricsRomanizeAsMain,
+            onCheckedChange = onLyricsRomanizeAsMainChange,
+        )
 
         SwitchPreference(
             title = { Text(stringResource(R.string.lyrics_romanize_japanese)) },
@@ -89,6 +102,20 @@ fun RomanizationSettings(
             icon = { Icon(painterResource(R.drawable.language), null) },
             checked = lyricsRomanizeChinese,
             onCheckedChange = onLyricsRomanizeChineseChange,
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.lyrics_romanize_hindi)) },
+            icon = { Icon(painterResource(R.drawable.language), null) },
+            checked = lyricsRomanizeHindi,
+            onCheckedChange = onLyricsRomanizeHindiChange,
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.lyrics_romanize_punjabi)) },
+            icon = { Icon(painterResource(R.drawable.language), null) },
+            checked = lyricsRomanizePunjabi,
+            onCheckedChange = onLyricsRomanizePunjabiChange,
         )
 
         PreferenceGroupTitle(title = stringResource(R.string.lyrics_romanization_cyrillic))

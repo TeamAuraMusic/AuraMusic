@@ -501,6 +501,11 @@
     <string name="enable_better_lyrics_desc">Enable Better Lyrics provider (requires separate installation)</string>
     <string name="enable_simpmusic">Enable SimpMusic lyrics</string>
     <string name="enable_simpmusic_desc">Enable SimpMusic lyrics provider</string>
+    <string name="enable_lyricsplus">Enable LyricsPlus</string>
+    <string name="enable_lyricsplus_desc">Use LyricsPlus as a lyrics source (aggregates multiple providers)</string>
+    <string name="lyrics_provider_priority">Provider priority</string>
+    <string name="lyrics_provider_priority_desc">Drag to reorder providers</string>
+    <string name="confirm">Confirm</string>
     <string name="show_wrapped_card">Show Wrapped card</string>
 
     <!-- Player and audio -->
@@ -807,9 +812,13 @@
 
     <!-- Romanization -->
     <string name="lyrics_romanize_title">Romanize lyrics</string>
+    <string name="lyrics_romanize_as_main">Use romanization as main lyrics</string>
+    <string name="lyrics_romanize_as_main_desc">Show romanized lyrics instead of original script</string>
     <string name="lyrics_romanize_japanese">Romanize Japanese</string>
     <string name="lyrics_romanize_korean">Romanize Korean</string>
     <string name="lyrics_romanize_chinese">Romanize Chinese</string>
+    <string name="lyrics_romanize_hindi">Romanize Hindi</string>
+    <string name="lyrics_romanize_punjabi">Romanize Punjabi</string>
     <string name="lyrics_romanization_cyrillic">Cyrillic romanization</string>
     <string name="lyrics_romanize_russian">Romanize Russian</string>
     <string name="lyrics_romanize_ukrainian">Romanize Ukrainian</string>
