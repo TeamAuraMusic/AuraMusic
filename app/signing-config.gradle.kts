@@ -16,36 +16,25 @@ android {
     signingConfigs {
         // Debug signing config
         create("persistentDebug") {
-            storeFile = file("${System.getProperty("user.home")}/.android/debug.keystore")
-            storePassword = System.getenv("DEBUG_KEYSTORE_PASSWORD") ?: "android"
+            storeFile = file("persistent-debug.keystore")
+            storePassword = "android"
             keyAlias = "androiddebugkey"
-            keyPassword = System.getenv("DEBUG_KEY_PASSWORD") ?: "android"
+            keyPassword = "android"
         }
 
         // Release signing config
         create("release") {
-            val keystorePath = localProperties.getProperty("release.keystore.path") ?: 
-                System.getenv("RELEASE_KEYSTORE_PATH") ?: ""
-            val keystorePassword = localProperties.getProperty("release.keystore.password") ?: 
-                System.getenv("RELEASE_KEYSTORE_PASSWORD") ?: ""
-            val keyAlias = localProperties.getProperty("release.key.alias") ?: 
-                System.getenv("RELEASE_KEY_ALIAS") ?: "auramusic-release"
-            val keyPassword = localProperties.getProperty("release.key.password") ?: 
-                System.getenv("RELEASE_KEY_PASSWORD") ?: ""
+            storeFile = file("release.keystore")
+            storePassword = "auramusic123"
+            keyAlias = "auramusic"
+            keyPassword = "auramusic123"
+        }
 
-            if (keystorePath.isNotEmpty() && keystorePassword.isNotEmpty()) {
-                storeFile = file(keystorePath)
-                storePassword = keystorePassword
-                this.keyAlias = keyAlias
-                this.keyPassword = keyPassword
-                
-                println("✓ Release signing config loaded from: $keystorePath")
-                println("✓ Key alias: $keyAlias")
-            } else {
-                println("⚠ Release signing config not found. Ensure local.properties or environment variables are set.")
-                println("  Required: release.keystore.path, release.keystore.password, release.key.alias, release.key.password")
-                storeFile = null
-            }
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "auramusicdebug"
+            keyPassword = "android"
         }
     }
 }
