@@ -127,7 +127,7 @@ fun ContentSettings(
     val (enableLyricsPlus, onEnableLyricsPlusChange) = rememberPreference(key = EnableLyricsPlusKey, defaultValue = false)
     val (lyricsProviderOrder, onLyricsProviderOrderChange) = rememberPreference(
         key = LyricsProviderOrderKey,
-        defaultValue = LyricsProviderRegistry.serializeProviderOrder(LyricsProviderRegistry.getDefaultProviderOrder())
+        defaultValue = LyricsProviderRegistry.serializeProviderOrder(LyricsProviderRegistry.getProviderOrder())
     )
     val (preferredProvider, onPreferredProviderChange) =
         rememberEnumPreference(
