@@ -36,7 +36,16 @@ constructor(
     private val networkConnectivity: NetworkConnectivityObserver,
 ) {
     // Initialize with default providers - will be updated by the Flow when preferences are loaded
-    private var lyricsProviders: List<LyricsProvider> = emptyList()
+    private var lyricsProviders: List<LyricsProvider> =
+        listOf(
+            BetterLyricsProvider,
+            SimpMusicLyricsProvider,
+            LrcLibLyricsProvider,
+            KuGouLyricsProvider,
+            LyricsPlusProvider,
+            YouTubeSubtitleLyricsProvider,
+            YouTubeLyricsProvider
+        )
 
     val preferred =
         context.dataStore.data
