@@ -992,12 +992,9 @@ fun Lyrics(
                         animationSpec = tween(durationMillis = 400)
                     )
 
-                    // Determine alignment based on agent for multi-singer support
+                    // Use user's alignment setting, but center background vocals
                     val agentAlignment = when {
-                        item.isBackground -> Alignment.CenterHorizontally // Background always centered
-                        item.agent == "v1" -> Alignment.Start // First vocalist - left
-                        item.agent == "v2" -> Alignment.End // Second vocalist - right
-                        item.agent == "v1000" -> Alignment.CenterHorizontally // Group/chorus - center
+                        item.isBackground -> Alignment.CenterHorizontally
                         else -> when (lyricsTextPosition) {
                             LyricsPosition.LEFT -> Alignment.Start
                             LyricsPosition.CENTER -> Alignment.CenterHorizontally
@@ -1007,9 +1004,6 @@ fun Lyrics(
                     
                     val agentTextAlign = when {
                         item.isBackground -> TextAlign.Center
-                        item.agent == "v1" -> TextAlign.Left
-                        item.agent == "v2" -> TextAlign.Right
-                        item.agent == "v1000" -> TextAlign.Center
                         else -> when (lyricsTextPosition) {
                             LyricsPosition.LEFT -> TextAlign.Left
                             LyricsPosition.CENTER -> TextAlign.Center
