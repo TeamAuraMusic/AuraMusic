@@ -14,6 +14,9 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+// Load signing configuration from local.properties
+apply(from = "signing-config.gradle.kts")
+
 android {
     namespace = "com.auramusic.app"
     compileSdk = 36
@@ -94,24 +97,8 @@ android {
     }
 
     signingConfigs {
-        create("persistentDebug") {
-            storeFile = file("keystore/persistent-debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
-        }
-        create("release") {
-            storeFile = file("keystore/release.keystore")
-            storePassword = "auramusic123"
-            keyAlias = "auramusic"
-            keyPassword = "auramusic123"
-        }
-        getByName("debug") {
-            storeFile = file("keystore/debug.keystore")
-            storePassword = "android"
-            keyAlias = "auramusicdebug"
-            keyPassword = "android"
-        }
+        // Signing config is now loaded from signing-config.gradle.kts
+        // Credentials are read from local.properties
     }
 
     buildTypes {

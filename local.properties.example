@@ -40,6 +40,8 @@ firebase.android.client.id=YOUR_ANDROID_CLIENT_ID.apps.googleusercontent.com
 # Optional: Debug Keystore (overrides default Android debug keystore)
 # ============================================================================
 
-# debug.keystore.path=/path/to/debug.keystore
-# debug.keystore.password=android
-# debug.key.password=android
+# Debug Keystore Configuration (optional - uses Android default if not set)
+debug.storeFile=keystore/debug.keystore
+debug.storePassword=android
+debug.keyAlias=auramusicdebug
+debug.keyPassword=android

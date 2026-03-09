@@ -136,8 +136,7 @@ If you'd like to support my work, you can donate via PayPal:
 <h1>Join our community</h1>
 </div>
 
-[![Discord](https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white&labelColor=1c1917)](https://dsc.gg/auramusic)
-[![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white&labelColor=1c1917)](https://t.me/auramusicapp)
+Join our community on social media - more platforms coming soon!
 
 <div align="center">
 <h1>Special Thanks</h1>
