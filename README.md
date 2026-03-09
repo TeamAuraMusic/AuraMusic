@@ -4,6 +4,17 @@
 
 <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png" width="200" alt="Auramusic Logo"/>
 
+## Screenshots
+
+<div align="center">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.jpg" width="180" alt="Screenshot 1"/>
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2.jpg" width="180" alt="Screenshot 2"/>
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3.jpg" width="180" alt="Screenshot 3"/>
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4.jpg" width="180" alt="Screenshot 4"/>
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/5.jpg" width="180" alt="Screenshot 5"/>
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/6.jpg" width="180" alt="Screenshot 6"/>
+</div>
+
 A modern Android music player with YouTube Music integration, powerful audio features, and a beautiful Material 3 interface.
 
 ![Android](https://img.shields.io/badge/Android-26%2B-2?style=for-the-badge&logo=android)
@@ -12,6 +23,8 @@ A modern Android music player with YouTube Music integration, powerful audio fea
 ![License](https://img.shields.io/badge/License-GPL--3.0-4CAF50?style=for-the-badge)
 
 </div>
+
+<div align="center">
 
 ## Features
 
@@ -23,7 +36,7 @@ A modern Android music player with YouTube Music integration, powerful audio fea
 | **Audio** | Equalizer, audio focus handling |
 | **Social** | Discord Rich Presence, Listen Together (collaborative) |
 | **Search** | Multi-source search across platforms |
-| **Lyrics** | Live lyrics from Kugou, LRCLib, YouTube |
+| **Lyrics** | Live lyrics from BetterLyrics, Kugou, LRCLib, RushLyrics |
 
 ## Tech Stack
 
@@ -70,6 +83,14 @@ GNU General Public License v3.0 (GPL-3.0) - see [LICENSE](LICENSE) file
 
 ---
 
+## Support
+
+If you like my work, you can support me via PayPal:
+
+[![PayPal](https://img.shields.io/badge/PayPal-003087?style=for-the-badge&logo=paypal&logoColor=white)](https://paypal.me/franklinfinyange)
+
+---
+
 ## Special thanks
 
 **InnerTune**
@@ -81,6 +102,8 @@ GNU General Public License v3.0 (GPL-3.0) - see [LICENSE](LICENSE) file
 **Credits:**
 
 [**Kizzy**](https://github.com/dead8309/Kizzy) – for the Discord Rich Presence implementation and inspiration.
+
+[**RushLyrics**](https://github.com/RushKirana/RushLyrics) – for providing additional lyrics data.
 
 [**Better Lyrics**](https://better-lyrics.boidu.dev) – for beautiful time-synced lyrics with word-by-word highlighting, and seamless YouTube Music integration.
 
@@ -95,3 +118,5 @@ The open-source community for tools, libraries, and APIs that make this project 
 ---
 
 **Developed by [chila254](https://github.com/chila254)**
+
+</div>

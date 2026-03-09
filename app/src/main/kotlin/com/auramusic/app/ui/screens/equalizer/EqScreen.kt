@@ -220,11 +220,7 @@ private fun EqScreenContent(
                         style = MaterialTheme.typography.headlineSmall
                     )
                     Text(
-                        text = pluralStringResource(
-                            id = R.string.profiles_count,
-                            count = profiles.size,
-                            profiles.size
-                        ),
+                        text = if (profiles.size == 1) "${profiles.size} profile" else "${profiles.size} profiles",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -357,11 +353,7 @@ private fun EQProfileItem(
         },
         supportingContent = {
             Text(
-                pluralStringResource(
-                    id = R.string.band_count,
-                    count = profile.bands.size,
-                    profile.bands.size
-                )
+                if (profile.bands.size == 1) "${profile.bands.size} band" else "${profile.bands.size} bands"
             )
         },
         leadingContent = {

@@ -17,24 +17,24 @@ android {
         // Debug signing config
         create("persistentDebug") {
             storeFile = file("keystore/persistent-debug.keystore")
-            storePassword = " "
-            keyAlias = " "
-            keyPassword = " "
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
         }
 
         // Release signing config
         create("release") {
             storeFile = file("keystore/release.keystore")
-            storePassword = " "
-            keyAlias = " "
-            keyPassword = " "
+            storePassword = "auramusic123"
+            keyAlias = "auramusic"
+            keyPassword = "auramusic123"
         }
 
         getByName("debug") {
             storeFile = file("keystore/debug.keystore")
-            storePassword = " "
-            keyAlias = " "
-            keyPassword = " "
+            storePassword = "android"
+            keyAlias = "auramusicdebug"
+            keyPassword = "android"
         }
     }
 }

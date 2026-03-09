@@ -374,11 +374,21 @@ class MainActivity : ComponentActivity() {
                     val notifEnabled = dataStore.get(UpdateNotificationsEnabledKey, true)
                     if (!updatesEnabled) return@withContext
                     
-                    Updater.checkForUpdate().onSuccess { (releaseInfo, hasUpdate) ->
+                    Updater.checkForUpdate(forceRefresh = true).onSuccess { (releaseInfo, hasUpdate) ->
                         if (releaseInfo != null) {
-                            onLatestVersionNameChange(releaseInfo.versionName)
+                            // Normalize version name - extract version from formats like "AuraMusic v1.0.4" or "v1.0.4"
+                            val rawVersion = releaseInfo.versionName
+                            val normalizedVersion = try {
+                                // Try to find version pattern (e.g., 1.0.4, 1.0.4.5)
+                                val versionRegex = Regex("(\\d+\\.\\d+(\\.\\d+)?)")
+                                versionRegex.find(rawVersion)?.groupValues?.get(1) ?: rawVersion
+                            } catch (e: Exception) {
+                                rawVersion
+                            }
+                            // Always show badge if there's a new version available
+                            onLatestVersionNameChange(normalizedVersion)
                             
-                            // Check if app was just updated
+                            // Check if app was just updated for changelog
                             var lastSeenVersion: String? = null
                             var changelogShownForVersion: String? = null
                             runBlocking {
@@ -388,18 +398,13 @@ class MainActivity : ComponentActivity() {
                             val currentVersion = BuildConfig.VERSION_NAME
                             val isAppUpdated = lastSeenVersion != currentVersion
                             
-                            // If app was updated, reset latest version to current to clear badges/notifications
-                            // and show changelog if not already shown for this version
-                            if (isAppUpdated) {
-                                onLatestVersionNameChange(currentVersion)
-                                // Show changelog only if not already shown for this version
-                                if (changelogShownForVersion != currentVersion) {
-                                    changelogState.value = true
-                                }
+                            // If app was updated, show changelog if not already shown for this version
+                            if (isAppUpdated && changelogShownForVersion != currentVersion) {
+                                changelogState.value = true
                             }
                             
-                            // If there's a new version available (and not just updated), show notification
-                            if (hasUpdate && !isAppUpdated && notifEnabled) {
+                            // If there's a new version available, show notification
+                            if (hasUpdate && notifEnabled) {
                                 val downloadUrl = Updater.getDownloadUrlForCurrentVariant(releaseInfo)
                                 if (downloadUrl != null) {
                                     val intent = Intent(Intent.ACTION_VIEW, downloadUrl.toUri())
@@ -424,7 +429,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                             
-                            // Update last seen version (and mark changelog as shown only if app was updated)
+                            // Update last seen version
                             runBlocking {
                                 dataStore.edit { 
                                     it[LastSeenVersionKey] = currentVersion

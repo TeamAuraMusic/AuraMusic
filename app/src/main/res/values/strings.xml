@@ -516,8 +516,14 @@
     <string name="google_cast_description">Enable Google Cast support</string>
     <string name="audio_quality">Audio quality</string>
     <string name="audio_quality_auto">Auto</string>
-    <string name="profiles_count">%d profiles</string>
-    <string name="band_count">%d bands</string>
+    <plurals name="profiles_count">
+        <item quantity="one">%d profile</item>
+        <item quantity="other">%d profiles</item>
+    </plurals>
+    <plurals name="band_count">
+        <item quantity="one">%d band</item>
+        <item quantity="other">%d bands</item>
+    </plurals>
     <string name="audio_quality_high">High</string>
     <string name="audio_quality_low">Low</string>
     <string name="crossfade">Crossfade</string>

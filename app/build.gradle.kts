@@ -21,7 +21,7 @@ android {
 
     defaultConfig {
         applicationId = "com.auramusic.app"
-        minSdk = 26
+        minSdk = 23
         targetSdk = 36
         versionCode = 5
         versionName = "1.0.4"
@@ -96,21 +96,21 @@ android {
     signingConfigs {
         create("persistentDebug") {
             storeFile = file("keystore/persistent-debug.keystore")
-            storePassword = " "
-            keyAlias = " "
-            keyPassword = " "
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
         }
         create("release") {
             storeFile = file("keystore/release.keystore")
-            storePassword = " "
-            keyAlias = " "
-            keyPassword = " "
+            storePassword = "auramusic123"
+            keyAlias = "auramusic"
+            keyPassword = "auramusic123"
         }
         getByName("debug") {
             storeFile = file("keystore/debug.keystore")
-            storePassword = " "
-            keyAlias = " "
-            keyPassword = " "
+            storePassword = "android"
+            keyAlias = "auramusicdebug"
+            keyPassword = "android"
         }
     }
 
