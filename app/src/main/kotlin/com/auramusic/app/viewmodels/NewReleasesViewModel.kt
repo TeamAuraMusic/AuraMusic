@@ -45,31 +45,54 @@ class NewReleasesViewModel @Inject constructor() : ViewModel() {
             _isLoading.value = true
             _error.value = null
             try {
-                // Browse new releases using YouTube Music's browse endpoint
+                // Get new release albums using the specific endpoint
+                YouTube.newReleaseAlbums()
+                    .onSuccess { albums ->
+                        Timber.d("New release albums: ${albums.size}")
+                        _albumReleases.value = albums
+                    }
+                    .onFailure { throwable ->
+                        Timber.e(throwable, "Failed to load new release albums")
+                        _error.value = throwable.message
+                    }
+                
+                // Also try the general new releases browse endpoint for songs and videos
                 YouTube.browse("FEmusic_new_releases", null)
                     .onSuccess { browseResult ->
-                        val albums = mutableListOf<AlbumItem>()
+                        Timber.d("New releases browse result: title=${browseResult.title}, sections=${browseResult.items.size}")
+                        
                         val songs = mutableListOf<SongItem>()
                         val videos = mutableListOf<YTItem>()
 
                         // Parse the browse result and separate by type
                         browseResult.items.forEach { section ->
+                            Timber.d("Section: ${section.title}, items=${section.items.size}")
                             section.items.forEach { item ->
                                 when (item) {
-                                    is AlbumItem -> albums.add(item)
-                                    is SongItem -> songs.add(item)
-                                    else -> videos.add(item)
+                                    is SongItem -> {
+                                        Timber.d("Song: ${item.title}")
+                                        songs.add(item)
+                                    }
+                                    else -> {
+                                        Timber.d("Video/Other: ${item.title}, type=${item::class.simpleName}")
+                                        videos.add(item)
+                                    }
                                 }
                             }
                         }
 
-                        _albumReleases.value = albums
-                        _songReleases.value = songs
-                        _videoReleases.value = videos
+                        Timber.d("Parsed results - Songs: ${songs.size}, Videos: ${videos.size}")
+                        
+                        // Only update if we have data, otherwise keep existing
+                        if (songs.isNotEmpty()) {
+                            _songReleases.value = songs
+                        }
+                        if (videos.isNotEmpty()) {
+                            _videoReleases.value = videos
+                        }
                     }
                     .onFailure { throwable ->
-                        _error.value = throwable.message ?: "Unknown error"
-                        Timber.e(throwable, "Failed to load new releases")
+                        Timber.e(throwable, "Failed to load new releases browse")
                     }
             } catch (e: Exception) {
                 _error.value = e.message ?: "Unknown error"

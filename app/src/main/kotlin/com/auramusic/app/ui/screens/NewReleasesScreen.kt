@@ -7,15 +7,17 @@ package com.auramusic.app.ui.screens
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -28,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -46,6 +49,7 @@ import com.auramusic.app.R
 import com.auramusic.app.models.toMediaMetadata
 import com.auramusic.app.playback.queues.YouTubeQueue
 import com.auramusic.app.ui.component.LocalMenuState
+import com.auramusic.app.ui.component.YouTubeGridItem
 import com.auramusic.app.ui.component.YouTubeListItem
 import com.auramusic.app.ui.menu.YouTubeSongMenu
 import com.auramusic.app.viewmodels.NewReleasesViewModel
@@ -71,12 +75,11 @@ fun NewReleasesScreen(
     val isLoading by viewModel.isLoading.collectAsState()
 
     var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
-    val lazyListState = rememberLazyListState()
+    val lazyGridState = rememberLazyGridState()
+    val coroutineScope = rememberCoroutineScope()
 
     val tabs = listOf(
-        stringResource(R.string.albums),
-        stringResource(R.string.songs),
-        stringResource(R.string.filter_videos)
+        stringResource(R.string.albums)
     )
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -117,25 +120,28 @@ fun NewReleasesScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     } else {
-                        LazyColumn(
-                            state = lazyListState,
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(2),
+                            state = lazyGridState,
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(
-                                horizontal = 0.dp,
+                                horizontal = 8.dp,
                                 vertical = 8.dp
-                            )
+                            ),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             items(
                                 items = albumReleases.distinctBy { it.id },
                                 key = { it.id }
                             ) { album ->
-                                YouTubeListItem(
+                                YouTubeGridItem(
                                     item = album,
                                     isActive = album.id == mediaMetadata?.album?.id,
                                     isPlaying = isPlaying,
+                                    fillMaxWidth = true,
+                                    coroutineScope = coroutineScope,
                                     modifier = Modifier
-                                        .padding(horizontal = 0.dp, vertical = 4.dp)
-                                        .fillMaxWidth()
                                         .combinedClickable(
                                             onClick = {
                                                 navController.navigate("album/${album.id}")
@@ -143,126 +149,7 @@ fun NewReleasesScreen(
                                             onLongClick = {
                                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                                 menuState.show {
-                                                    // Cannot show menu without song context
                                                     menuState.dismiss()
-                                                }
-                                            }
-                                        )
-                                )
-                            }
-                        }
-                    }
-                }
-
-                selectedTabIndex == 1 -> {
-                    if (songReleases.isEmpty()) {
-                        Text(
-                            stringResource(R.string.no_results),
-                            modifier = Modifier
-                                .align(Alignment.Center)
-                                .padding(16.dp),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    } else {
-                        LazyColumn(
-                            state = lazyListState,
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(
-                                horizontal = 0.dp,
-                                vertical = 8.dp
-                            )
-                        ) {
-                            items(
-                                items = songReleases.distinctBy { it.id },
-                                key = { it.id }
-                            ) { song ->
-                                YouTubeListItem(
-                                    item = song,
-                                    isActive = song.id == mediaMetadata?.id,
-                                    isPlaying = isPlaying,
-                                    modifier = Modifier
-                                        .padding(horizontal = 0.dp, vertical = 4.dp)
-                                        .fillMaxWidth()
-                                        .combinedClickable(
-                                            onClick = {
-                                                if (song.id == mediaMetadata?.id) {
-                                                    playerConnection.togglePlayPause()
-                                                } else {
-                                                    playerConnection.playQueue(
-                                                        YouTubeQueue.radio(song.toMediaMetadata()),
-                                                    )
-                                                }
-                                            },
-                                            onLongClick = {
-                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                menuState.show {
-                                                    YouTubeSongMenu(
-                                                        song = song,
-                                                        navController = navController,
-                                                        onDismiss = menuState::dismiss,
-                                                    )
-                                                }
-                                            }
-                                        )
-                                )
-                            }
-                        }
-                    }
-                }
-
-                else -> {
-                    if (videoReleases.isEmpty()) {
-                        Text(
-                            stringResource(R.string.no_results),
-                            modifier = Modifier
-                                .align(Alignment.Center)
-                                .padding(16.dp),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    } else {
-                        LazyColumn(
-                            state = lazyListState,
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(
-                                horizontal = 0.dp,
-                                vertical = 8.dp
-                            )
-                        ) {
-                            items(
-                                items = videoReleases.distinctBy { it.id },
-                                key = { it.id }
-                            ) { video ->
-                                YouTubeListItem(
-                                    item = video,
-                                    isActive = video.id == mediaMetadata?.id,
-                                    isPlaying = isPlaying,
-                                    modifier = Modifier
-                                        .padding(horizontal = 0.dp, vertical = 4.dp)
-                                        .fillMaxWidth()
-                                        .combinedClickable(
-                                            onClick = {
-                                                if (video.id == mediaMetadata?.id) {
-                                                    playerConnection.togglePlayPause()
-                                                } else {
-                                                    (video as? SongItem)?.let { songItem ->
-                                                        playerConnection.playQueue(
-                                                            YouTubeQueue.radio(songItem.toMediaMetadata()),
-                                                        )
-                                                    }
-                                                }
-                                            },
-                                            onLongClick = {
-                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                (video as? SongItem)?.let { songItem ->
-                                                    menuState.show {
-                                                        YouTubeSongMenu(
-                                                            song = songItem,
-                                                            navController = navController,
-                                                            onDismiss = menuState::dismiss,
-                                                        )
-                                                    }
                                                 }
                                             }
                                         )

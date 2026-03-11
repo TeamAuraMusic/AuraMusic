@@ -17,9 +17,9 @@
 <h1>Release numbers</h1>
 </div>
 
-[![Latest release](https://img.shields.io/github/v/release/chila254/Auramusic-v1?style=for-the-badge)](https://github.com/chila254/Auramusic-v1/releases)
-[![GitHub license](https://img.shields.io/github/license/chila254/Auramusic-v1?style=for-the-badge)](https://github.com/chila254/Auramusic-v1/blob/main/LICENSE)
-[![Downloads](https://img.shields.io/github/downloads/chila254/Auramusic-v1/total?style=for-the-badge)](https://github.com/chila254/Auramusic-v1/releases)
+[![Latest release](https://img.shields.io/github/v/release/chila254/AuraMusic?style=for-the-badge)](https://github.com/chila254/AuraMusic/releases)
+[![GitHub license](https://img.shields.io/github/license/chila254/AuraMusic?style=for-the-badge)](https://github.com/chila254/AuraMusic/blob/main/LICENSE)
+[![Downloads](https://img.shields.io/github/downloads/chila254/AuraMusic/total?style=for-the-badge)](https://github.com/chila254/AuraMusic/releases)
 
 </div>
 
@@ -29,7 +29,7 @@
 <table>
 <tr>
 <td align="center">
-<a href="https://github.com/chila254/Auramusic-v1/releases/latest/download/AuraMusic.apk"><img src="https://github.com/machiav3lli/oandbackupx/blob/034b226cea5c1b30eb4f6a6f313e4dadcbb0ece4/badge_github.png" alt="Get it on GitHub" height="82"></a>
+<a href="https://github.com/chila254/AuraMusic/releases/latest/download/AuraMusic.apk"><img src="https://github.com/machiav3lli/oandbackupx/blob/034b226cea5c1b30eb4f6a6f313e4dadcbb0ece4/badge_github.png" alt="Get it on GitHub" height="82"></a>
 </td>
 </tr>
 </table>
@@ -101,8 +101,8 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/chila254/Auramusic-v1.git
-cd Auramusic-v1
+git clone https://github.com/chila254/AuraMusic.git
+cd AuraMusic
 
 # Setup API keys (optional)
 cp local.properties.example local.properties

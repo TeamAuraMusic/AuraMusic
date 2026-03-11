@@ -22,5 +22,6 @@ data class WrappedState(
     val totalAlbums: Int = 0,
     val isDataReady: Boolean = false,
     val trackMap: Map<WrappedScreenType, String?> = emptyMap(),
-    val playlistCreationState: PlaylistCreationState = PlaylistCreationState.Idle
+    val playlistCreationState: PlaylistCreationState = PlaylistCreationState.Idle,
+    val topArtistAlbums: List<Album> = emptyList()
 )

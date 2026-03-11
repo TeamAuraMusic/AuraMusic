@@ -47,6 +47,7 @@ import com.auramusic.app.ui.screens.wrapped.pages.WrappedMinutesScreen
 import com.auramusic.app.ui.screens.wrapped.pages.WrappedMinutesTease
 import com.auramusic.app.ui.screens.wrapped.pages.WrappedTop5AlbumsScreen
 import com.auramusic.app.ui.screens.wrapped.pages.WrappedTop5ArtistsScreen
+import com.auramusic.app.ui.screens.wrapped.pages.WrappedTopArtistAlbumsScreen
 import com.auramusic.app.ui.screens.wrapped.pages.WrappedTop5SongsScreen
 import com.auramusic.app.ui.screens.wrapped.pages.WrappedTopAlbumScreen
 import com.auramusic.app.ui.screens.wrapped.pages.WrappedTopArtistScreen
@@ -71,6 +72,7 @@ sealed class WrappedScreenType {
     object TotalArtists : WrappedScreenType()
     object TopArtistReveal : WrappedScreenType()
     object Top5Artists : WrappedScreenType()
+    object TopArtistAlbums : WrappedScreenType()
     object Playlist : WrappedScreenType()
     object Conclusion : WrappedScreenType()
 }
@@ -145,6 +147,7 @@ fun WrappedScreenContent(navController: NavController) {
             WrappedScreenType.TotalArtists,
             WrappedScreenType.TopArtistReveal,
             WrappedScreenType.Top5Artists,
+            WrappedScreenType.TopArtistAlbums,
             WrappedScreenType.Playlist,
             WrappedScreenType.Conclusion
         )
@@ -239,6 +242,11 @@ fun WrappedScreenContent(navController: NavController) {
                 is WrappedScreenType.Top5Artists -> WrappedTop5ArtistsScreen(
                     topArtists = state.topArtists,
                     isVisible = pagerState.currentPage == screens.indexOf(WrappedScreenType.Top5Artists)
+                )
+                is WrappedScreenType.TopArtistAlbums -> WrappedTopArtistAlbumsScreen(
+                    topArtistName = state.topArtists.firstOrNull()?.artist?.name,
+                    topArtistAlbums = state.topArtistAlbums,
+                    isVisible = pagerState.currentPage == screens.indexOf(WrappedScreenType.TopArtistAlbums)
                 )
                 is WrappedScreenType.Playlist -> PlaylistPage()
                 is WrappedScreenType.Conclusion -> ConclusionPage(onClose = onClose)

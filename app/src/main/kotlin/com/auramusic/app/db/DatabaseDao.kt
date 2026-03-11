@@ -461,6 +461,28 @@ interface DatabaseDao {
         toTimeStamp: Long? = LocalDateTime.now().toInstant(ZoneOffset.UTC).toEpochMilli(),
     ): Flow<List<Album>>
 
+    /**
+     * Get albums played for a specific artist within a time range
+     */
+    @Query("""
+        SELECT DISTINCT album.*
+        FROM album
+        JOIN album_artist_map ON album.id = album_artist_map.albumId
+        JOIN song ON album.id = song.albumId
+        JOIN event ON song.id = event.songId
+        WHERE album_artist_map.artistId = :artistId
+        AND event.timestamp >= :fromTimeStamp
+        AND event.timestamp <= :toTimeStamp
+        ORDER BY event.timestamp DESC
+        LIMIT :limit
+    """)
+    fun getAlbumsPlayedByArtist(
+        artistId: String,
+        fromTimeStamp: Long,
+        toTimeStamp: Long,
+        limit: Int = 10
+    ): Flow<List<Album>>
+
     @Query("SELECT SUM(playTime) FROM event WHERE timestamp >= :fromTimeStamp AND timestamp <= :toTimeStamp")
     fun getTotalPlayTimeInRange(fromTimeStamp: Long, toTimeStamp: Long): Flow<Long?>
 

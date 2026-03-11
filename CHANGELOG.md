@@ -1,3 +1,61 @@
+# AuraMusic v1.0.6 (Build 7) Changelog
+
+## New Features
+
+### Music Recognition (Shazam)
+- **Fixed SSL/TLS Recognition Error**: Resolved the "Recognition error: Domain specific configurations require that hostname aware checkServerTrusted" issue
+- Switched Shazam HTTP client from CIO engine to OkHttp engine for better SSL/TLS handling
+- Added pure Kotlin fallback for Shazam signature generation (VibraSignature)
+
+### New Releases Screen
+- Redesigned New Releases screen to display albums in grid/card format
+- Now uses `YouTubeGridItem` for better visual presentation
+- Shows only albums tab (simplified from songs/videos)
+
+### Monthly Wrapped Card
+- Added "Top Artist Albums" feature to the Wrapped card
+- Displays all unique albums listened to from your #1 most played artist
+- New screen shows horizontal scrollable album list with cover art, title, and year
+
+### Repository Update
+- Updated repository URL from `chila254/Auramusic-v1` to `chila254/AuraMusic`
+- Updated all internal links and references:
+  - Settings > About screen GitHub link
+  - Updater (GitHub API base)
+  - Discord integration links
+  - Listen Together invite links
+  - OpenRouter service HTTP-Referer header
+
+### UI Improvements
+- Changed "Play on app" text to "Play on AuraMusic" in recognition screen
+- Updated notification icon to use white music note design
+
+## Bug Fixes
+
+- Fixed SSL certificate validation in Shazam music recognition
+- Fixed repository URL references throughout the app
+
+---
+
+## Comparison with v1.0.5
+
+### Added in v1.0.6:
+- Music recognition SSL/TLS fix
+- New Releases grid layout
+- Top Artist Albums in Wrapped card
+- Repository URL updates (Auramusic-v1 → AuraMusic)
+- UI text and icon improvements
+
+### From v1.0.5 (carried forward):
+- Listen Together server with AuraMusicServer
+- Improved build system with local.properties signing
+
+---
+
+**Full Changelog**: https://github.com/chila254/AuraMusic/compare/v1.0.5...v1.0.6
+
+---
+
 # AuraMusic v1.0.5 (Build 6) Changelog
 
 ## New Features
@@ -28,4 +86,4 @@
 
 ---
 
-**Full Changelog**: https://github.com/chila254/Auramusic-v1/compare/v1.0.4...v1.0.5
+**Full Changelog**: https://github.com/chila254/AuraMusic/compare/v1.0.4...v1.0.5

@@ -177,7 +177,7 @@ fun AboutScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable {
-                    uriHandler.openUri("https://github.com/chila254/Auramusic-v1")
+                    uriHandler.openUri("https://github.com/chila254/AuraMusic")
                 },
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface

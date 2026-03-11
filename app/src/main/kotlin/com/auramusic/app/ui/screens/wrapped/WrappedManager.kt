@@ -167,6 +167,13 @@ class WrappedManager(
             playlistMap[WrappedScreenType.TotalArtists] = artistSong
             playlistMap[WrappedScreenType.TopArtistReveal] = artistSong
             playlistMap[WrappedScreenType.Top5Artists] = artistSong
+            
+            // Top Artist Albums Part: Use a song from top artist albums
+            val topArtistAlbumSong = _state.value.topArtistAlbums.firstOrNull()?.let { album ->
+                val albumSongs = databaseDao.albumSongs(album.id).first()
+                albumSongs.randomOrNull()?.id
+            } ?: artistSong // Fallback to artist song
+            playlistMap[WrappedScreenType.TopArtistAlbums] = topArtistAlbumSong
 
             // End Part
             val endSongPool = topSongs.subList(2, 5)
@@ -223,6 +230,18 @@ class WrappedManager(
             val topAlbumsResult = results[3] as List<com.auramusic.app.db.entities.Album>
             @Suppress("UNCHECKED_CAST")
             val topArtistsResult = results[2] as List<Artist>
+            
+            // Get albums for top artist
+            val topArtistId = topArtistsResult.firstOrNull()?.id
+            val topArtistAlbumsDeferred = async {
+                if (topArtistId != null) {
+                    databaseDao.getAlbumsPlayedByArtist(topArtistId, fromTimestamp, toTimestamp, 10).first()
+                } else {
+                    emptyList()
+                }
+            }
+            val topArtistAlbumsResult = topArtistAlbumsDeferred.await()
+            
             _state.update {
                 it.copy(
                     accountInfo = results[0] as AccountInfo?,
@@ -233,7 +252,8 @@ class WrappedManager(
                     uniqueSongCount = results[4] as Int,
                     uniqueArtistCount = results[5] as Int,
                     totalAlbums = results[6] as Int,
-                    totalMinutes = (results[7] as Long) / 1000 / 60
+                    totalMinutes = (results[7] as Long) / 1000 / 60,
+                    topArtistAlbums = topArtistAlbumsResult
                 )
             }
         }
