@@ -214,6 +214,50 @@ fun AboutScreen(
             }
         }
 
+        Spacer(Modifier.height(8.dp))
+
+        // Website Link Card
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                    uriHandler.openUri("https://www.auramusic.site")
+                },
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            shape = RoundedCornerShape(12.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.link),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(28.dp)
+                )
+                Spacer(Modifier.width(16.dp))
+                Column {
+                    Text(
+                        text = "Website",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Visit our website",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
         // PayPal Link Card
         Card(
             modifier = Modifier
