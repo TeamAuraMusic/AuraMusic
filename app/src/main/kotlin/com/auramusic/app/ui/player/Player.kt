@@ -282,8 +282,15 @@ fun BottomSheetPlayer(
     LaunchedEffect(mediaMetadata?.id) {
         playerConnection.enableVideoMode(false)
         mediaMetadata?.id?.let { videoId ->
-            val available = playerConnection.service.checkVideoAvailability(videoId)
-            playerConnection.updateVideoAvailability(available)
+            timber.log.Timber.d("VideoToggle: Checking availability for videoId: $videoId")
+            try {
+                val available = playerConnection.service.checkVideoAvailability(videoId)
+                timber.log.Timber.d("VideoToggle: Video available = $available")
+                playerConnection.updateVideoAvailability(available)
+            } catch (e: Exception) {
+                timber.log.Timber.e(e, "VideoToggle: Error checking video availability")
+                playerConnection.updateVideoAvailability(false)
+            }
         }
     }
     
@@ -978,6 +985,7 @@ fun BottomSheetPlayer(
                             targetState = isVideoAvailable,
                             label = "VideoToggle"
                         ) { available ->
+                            timber.log.Timber.d("VideoToggle: AnimatedContent available = $available")
                             if (available) {
                                 FilledIconButton(
                                     onClick = { playerConnection.toggleVideoMode() },
