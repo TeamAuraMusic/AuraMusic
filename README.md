@@ -148,6 +148,9 @@ Join our community on social media - more platforms coming soon!
 **OuterTune**
 [Davide Garberi](https://github.com/DD3Boh) • [Michael Zh](https://github.com/mikooomich)
 
+**Metrolist**
+[MetrolistGroup](https://github.com/MetrolistGroup/Metrolist) – Original project this is based on
+
 **Credits:**
 
 - [**Kizzy**](https://github.com/dead8309/Kizzy) – Discord Rich Presence implementation
