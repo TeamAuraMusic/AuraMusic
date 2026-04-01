@@ -49,8 +49,11 @@ object Updater {
      * Returns: 1 if v1 > v2, -1 if v1 < v2, 0 if equal
      */
     fun compareVersions(v1: String, v2: String): Int {
-        val v1Parts = v1.removePrefix("v").split(".").map { it.toIntOrNull() ?: 0 }
-        val v2Parts = v2.removePrefix("v").split(".").map { it.toIntOrNull() ?: 0 }
+        val cleanV1 = extractVersionNumber(v1)
+        val cleanV2 = extractVersionNumber(v2)
+        
+        val v1Parts = cleanV1.split(".").map { it.toIntOrNull() ?: 0 }
+        val v2Parts = cleanV2.split(".").map { it.toIntOrNull() ?: 0 }
         val maxLength = maxOf(v1Parts.size, v2Parts.size)
         
         for (i in 0 until maxLength) {
@@ -62,6 +65,17 @@ object Updater {
             }
         }
         return 0
+    }
+    
+    /**
+     * Extracts version number from a string like "AuraMusic v1.0.7" or "v1.0.7"
+     * Returns just the version number part (e.g., "1.0.7")
+     */
+    private fun extractVersionNumber(versionString: String): String {
+        // Try to find a pattern like "v1.0.7" or "1.0.7" at the end of the string
+        val regex = Regex("""(?:v|ver|version)?(\d+\.\d+(?:\.\d+)?)""", RegexOption.IGNORE_CASE)
+        val match = regex.find(versionString)
+        return match?.groupValues?.getOrNull(1) ?: versionString.trimStart('v')
     }
 
     /**
