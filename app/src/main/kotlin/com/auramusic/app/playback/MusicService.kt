@@ -2933,11 +2933,15 @@ class MusicService :
                                 .build()
 
                             player.replaceMediaItem(index, videoMediaItem)
-                            player.seekTo(index, position)
+                            // Use seekToDefaultPosition to force reload, then seek to position
+                            player.seekToDefaultPosition(index)
+                            if (position > 0) {
+                                player.seekTo(index, position)
+                            }
                             player.playWhenReady = wasPlaying
                             isVideoMode = true
                             _videoModeEnabled.value = true
-                            Timber.d("setVideoMode: Video stream ready with mimeType: $mimeType")
+                            Timber.d("setVideoMode: Video stream ready with mimeType: $mimeType, player state: ${player.playbackState}, playWhenReady: $wasPlaying")
                         } else {
                             Timber.w("setVideoMode: Video URL was null")
                             _videoFetchError.value = "Video URL not found"
