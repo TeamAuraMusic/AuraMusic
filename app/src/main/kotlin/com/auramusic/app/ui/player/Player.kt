@@ -289,9 +289,8 @@ fun BottomSheetPlayer(
         }
     }
 
-    // Check video availability when song changes
+    // Check video availability when song changes (but don't disable video mode automatically)
     LaunchedEffect(mediaMetadata?.id) {
-        playerConnection.enableVideoMode(false)
         mediaMetadata?.id?.let { videoId ->
             timber.log.Timber.d("VideoToggle: Checking availability for videoId: $videoId")
             try {

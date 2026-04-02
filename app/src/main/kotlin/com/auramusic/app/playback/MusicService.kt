@@ -1656,8 +1656,8 @@ class MusicService :
         mediaItem: MediaItem?,
         reason: Int,
     ) {
-        // Reset video mode when track changes
-        resetVideoMode()
+        // Don't reset video mode automatically - let user toggle it
+        // resetVideoMode()
 
         lastPlaybackSpeed = -1.0f // force update song
 
@@ -2035,7 +2035,25 @@ class MusicService :
         }
         
         val mediaId = player.currentMediaItem?.mediaId
-        Timber.tag(TAG).w(error, "Player error occurred for $mediaId: errorCode=${error.errorCode}, message=${error.message}")
+        Timber.tag(TAG).w(error, "Player error occurred for $mediaId: errorCode=${error.errorCode}, message=${error.message}, isVideoMode=$isVideoMode")
+        
+        // If in video mode and error occurs, try to switch back to audio instead of skipping
+        if (isVideoMode && mediaId != null) {
+            Timber.tag(TAG).d("Video mode error - switching back to audio instead of skipping")
+            val original = originalAudioMediaItem
+            if (original != null) {
+                val index = player.currentMediaItemIndex
+                val position = player.currentPosition
+                player.replaceMediaItem(index, original)
+                player.seekTo(index, position)
+            }
+            isVideoMode = false
+            _videoModeEnabled.value = false
+            currentVideoUrl = null
+            originalAudioMediaItem = null
+            return
+        }
+        
         reportException(error)
 
         // Check if this song has failed too many times
