@@ -428,6 +428,29 @@ class MusicService :
         )
         player = createExoPlayer()
         player.addListener(this@MusicService)
+
+        // Add video error listener for automatic fallback
+        player.addListener(object : Player.Listener {
+            override fun onPlayerError(error: PlaybackException) {
+                // If we're in video mode and get a playback error, try to fallback to audio
+                if (isVideoMode && (error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED ||
+                    error.errorCode == PlaybackException.ERROR_CODE_IO_INVALID_HTTP_CONTENT_TYPE ||
+                    error.errorCode == PlaybackException.ERROR_CODE_IO_UNSPECIFIED ||
+                    error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED ||
+                    error.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS)) {
+                    Timber.w("Video playback failed, attempting fallback to audio: ${error.message}")
+                    scope.launch {
+                        try {
+                            switchToAudioMode()
+                            player.prepare()
+                        } catch (e: Exception) {
+                            Timber.e(e, "Failed to fallback to audio mode")
+                            resetVideoMode()
+                        }
+                    }
+                }
+            }
+        })
         sleepTimer = SleepTimer(scope, player)
         player.addListener(sleepTimer)
         player.addAnalyticsListener(PlaybackStatsListener(false, this@MusicService))
@@ -2879,6 +2902,8 @@ class MusicService :
     val isVideoSwitching: StateFlow<Boolean> = _isVideoSwitching.asStateFlow()
     private val _videoFetchError = MutableStateFlow<String?>(null)
     val videoFetchError: StateFlow<String?> = _videoFetchError.asStateFlow()
+    private val _isVideoAvailable = MutableStateFlow(false)
+    val isVideoAvailable: StateFlow<Boolean> = _isVideoAvailable.asStateFlow()
 
     private fun resetVideoMode() {
         videoSwitchJob?.cancel()
@@ -2887,6 +2912,34 @@ class MusicService :
         isVideoMode = false
         currentVideoUrl = null
         originalAudioMediaItem = null
+        _videoFetchError.value = null
+    }
+
+    /**
+     * Safely switch to audio mode, restoring original audio stream
+     */
+    private suspend fun switchToAudioMode() {
+        if (!isVideoMode) return
+
+        try {
+            val index = player.currentMediaItemIndex
+            val position = player.currentPosition
+            val wasPlaying = player.playWhenReady
+
+            val original = originalAudioMediaItem
+            if (original != null) {
+                player.replaceMediaItem(index, original)
+                player.seekTo(index, position)
+                player.playWhenReady = wasPlaying
+                Timber.d("switchToAudioMode: Successfully switched back to audio")
+            } else {
+                Timber.w("switchToAudioMode: No original audio item to restore")
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "switchToAudioMode: Failed to switch to audio")
+        } finally {
+            resetVideoMode()
+        }
     }
 
     /**
@@ -2921,10 +2974,14 @@ class MusicService :
                         val videoData = videoResult.getOrNull()
                         if (videoData != null) {
                             // Parse URL|mimeType format
-                            val parts = videoData.split("|")
-                            val videoUrl = parts[0]
-                            val mimeType = if (parts.size > 1) parts[1] else "video/mp4"
+                            val parts = videoData.split("|", limit = 2)
+                            val videoUrl = parts[0].trim()
+                            val mimeType = if (parts.size > 1) parts[1].trim() else "video/mp4"
                             currentVideoUrl = videoUrl
+
+                            Timber.d("setVideoMode: Video URL: $videoUrl, MIME type: $mimeType")
+                            Timber.d("setVideoMode: Full video data: $videoData")
+
                             val currentItem = player.getMediaItemAt(index)
                             val videoMediaItem = currentItem.buildUpon()
                                 .setUri(videoUrl)
@@ -2932,12 +2989,15 @@ class MusicService :
                                 .setCustomCacheKey(mediaId + "_video")
                                 .build()
 
-                            // Clear the current media and set the new one
-                            player.clearMediaItems()
-                            player.setMediaItem(videoMediaItem)
+                            // Replace current item with video item without clearing the queue
+                            player.replaceMediaItem(index, videoMediaItem)
+
+                            // Stop and prepare to ensure clean video transition
+                            player.stop()
                             player.prepare()
+
                             if (position > 0) {
-                                player.seekTo(position)
+                                player.seekTo(index, position)
                             }
                             player.playWhenReady = wasPlaying
                             isVideoMode = true
@@ -2946,15 +3006,20 @@ class MusicService :
                         } else {
                             Timber.w("setVideoMode: Video URL was null")
                             _videoFetchError.value = "Video URL not found"
+                            // Auto-fallback to audio mode if video URL is null
+                            resetVideoMode()
                         }
                     } else {
                         Timber.e(videoResult.exceptionOrNull(), "setVideoMode: Failed to get video URL")
                         _videoFetchError.value = videoResult.exceptionOrNull()?.message ?: "Failed to fetch video"
+                        // Auto-fallback to audio mode if video fetch fails
+                        resetVideoMode()
                     }
                 } else {
                     // Switch back to audio
                     val original = originalAudioMediaItem
                     if (original != null) {
+                        // Replace current item with original audio item without clearing queue
                         player.replaceMediaItem(index, original)
                         player.seekTo(index, position)
                         player.playWhenReady = wasPlaying
@@ -2981,7 +3046,16 @@ class MusicService :
      */
     suspend fun checkVideoAvailability(mediaId: String): Boolean {
         return withContext(Dispatchers.IO) {
-            FlowPlayerUtils.hasVideoPlayback(mediaId)
+            try {
+                val available = FlowPlayerUtils.hasVideoPlayback(mediaId)
+                _isVideoAvailable.value = available
+                Timber.d("checkVideoAvailability: Video available for $mediaId = $available")
+                available
+            } catch (e: Exception) {
+                Timber.e(e, "checkVideoAvailability: Error checking availability for $mediaId")
+                _isVideoAvailable.value = false
+                false
+            }
         }
     }
 

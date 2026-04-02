@@ -158,7 +158,7 @@ class PlayerConnection(
 
     val videoModeEnabled = service.videoModeEnabled
     val isVideoSwitching = service.isVideoSwitching
-    val isVideoAvailable = MutableStateFlow(false)
+    val isVideoAvailable = service.isVideoAvailable
     val videoFetchError = service.videoFetchError
 
     fun toggleVideoMode() {
@@ -169,9 +169,7 @@ class PlayerConnection(
         service.setVideoMode(enabled)
     }
 
-    fun updateVideoAvailability(available: Boolean) {
-        isVideoAvailable.value = available
-    }
+
 
     fun clearVideoError() {
         service.clearVideoError()

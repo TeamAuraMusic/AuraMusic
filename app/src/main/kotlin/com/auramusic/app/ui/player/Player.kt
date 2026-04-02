@@ -296,8 +296,7 @@ fun BottomSheetPlayer(
             try {
                 val available = playerConnection.service.checkVideoAvailability(videoId)
                 timber.log.Timber.d("VideoToggle: Video available = $available, isVideoSong = ${mediaMetadata?.isVideoSong}")
-                playerConnection.updateVideoAvailability(available)
-                
+
                 // Auto-enable video mode for video songs if video is available and user has video mode enabled
                 if (videoModeToggleEnabled && mediaMetadata?.isVideoSong == true && available && !videoModeEnabled) {
                     timber.log.Timber.d("VideoToggle: Auto-enabling video mode for video song")
@@ -305,7 +304,7 @@ fun BottomSheetPlayer(
                 }
             } catch (e: Exception) {
                 timber.log.Timber.e(e, "VideoToggle: Error checking video availability")
-                playerConnection.updateVideoAvailability(false)
+                // Error is already handled in checkVideoAvailability
             }
         }
     }
@@ -820,8 +819,14 @@ fun BottomSheetPlayer(
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
+                            val videoText = when {
+                                videoModeEnabled -> "VIDEO"
+                                isVideoSong && !isVideoAvailable -> "VIDEO UNAVAILABLE"
+                                isVideoSong -> "VIDEO SONG"
+                                else -> "AUDIO ONLY"
+                            }
                             Text(
-                                text = if (videoModeEnabled) "VIDEO" else "AUDIO ONLY",
+                                text = videoText,
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = if (videoModeEnabled) FontWeight.Bold else FontWeight.Normal
                                 ),
@@ -1030,6 +1035,22 @@ fun BottomSheetPlayer(
                                     ContainedLoadingIndicator(
                                         modifier = Modifier.size(24.dp)
                                     )
+                                } else if (!isVideoAvailable && !videoModeEnabled) {
+                                    // Show disabled state when video is not available
+                                    OutlinedIconButton(
+                                        onClick = {
+                                            Toast.makeText(context, "Video not available for this song", Toast.LENGTH_SHORT).show()
+                                        },
+                                        shape = middleShape,
+                                        enabled = false,
+                                        modifier = Modifier.size(42.dp),
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.slow_motion_video),
+                                            contentDescription = stringResource(R.string.switch_to_video),
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
                                 } else {
                                     FilledIconButton(
                                         onClick = {
@@ -1037,22 +1058,22 @@ fun BottomSheetPlayer(
                                         },
                                         shape = middleShape,
                                         colors = IconButtonDefaults.filledIconButtonColors(
-                                            containerColor = if (videoModeEnabled) 
-                                                MaterialTheme.colorScheme.primary 
-                                            else 
+                                            containerColor = if (videoModeEnabled)
+                                                MaterialTheme.colorScheme.primary
+                                            else
                                                 textButtonColor,
-                                            contentColor = if (videoModeEnabled) 
-                                                MaterialTheme.colorScheme.onPrimary 
-                                            else 
+                                            contentColor = if (videoModeEnabled)
+                                                MaterialTheme.colorScheme.onPrimary
+                                            else
                                                 iconButtonColor,
                                         ),
                                         modifier = Modifier.size(42.dp),
                                     ) {
                                         Icon(
                                             painter = painterResource(R.drawable.slow_motion_video),
-                                            contentDescription = if (videoModeEnabled) 
-                                                stringResource(R.string.switch_to_audio) 
-                                            else 
+                                            contentDescription = if (videoModeEnabled)
+                                                stringResource(R.string.switch_to_audio)
+                                            else
                                                 stringResource(R.string.switch_to_video),
                                             modifier = Modifier.size(24.dp)
                                         )

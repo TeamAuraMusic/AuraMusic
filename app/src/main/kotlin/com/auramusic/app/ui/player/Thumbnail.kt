@@ -6,6 +6,7 @@
 package com.auramusic.app.ui.player
 
 import android.view.ViewGroup
+import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -642,21 +643,74 @@ private fun ThumbnailImage(
             .background(MaterialTheme.colorScheme.surfaceVariant)
     ) {
         if (videoModeEnabled) {
-            // Video player view
+            // Video player view with improved configuration
             AndroidView(
                 factory = { context ->
                     PlayerView(context).apply {
                         this.player = player
                         useController = false
+                        resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                        setBackgroundColor(android.graphics.Color.BLACK)
                         layoutParams = ViewGroup.LayoutParams(
                             ViewGroup.LayoutParams.MATCH_PARENT,
                             ViewGroup.LayoutParams.MATCH_PARENT
                         )
+                        // Ensure video surface is properly configured
+                        setShutterBackgroundColor(android.graphics.Color.BLACK)
+
+                        // Enable video rendering with proper surface setup
+                        keepScreenOn = true
+
+                        // Ensure video rendering is enabled
+                        // PlayerView will automatically create the appropriate surface
+
+                        // Add error listener for video debugging
+                        player.addListener(object : androidx.media3.common.Player.Listener {
+                            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                                android.util.Log.e("VideoPlayer", "Video playback error: ${error.message}", error)
+                            }
+
+                            override fun onPlaybackStateChanged(playbackState: Int) {
+                                android.util.Log.d("VideoPlayer", "Playback state changed: $playbackState")
+                            }
+
+                            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                                android.util.Log.d("VideoPlayer", "Is playing changed: $isPlaying")
+                            }
+
+                            override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
+                                android.util.Log.d("VideoPlayer", "Video size changed: ${videoSize.width}x${videoSize.height}")
+                            }
+
+                            override fun onRenderedFirstFrame() {
+                                android.util.Log.d("VideoPlayer", "First frame rendered")
+                            }
+                        })
                     }
                 },
                 modifier = Modifier.fillMaxSize(),
                 update = { playerView ->
                     playerView.player = player
+                    // Force layout update when player changes
+                    playerView.requestLayout()
+                    playerView.invalidate()
+                    playerView.postInvalidate()
+
+                    // Ensure video surface is properly set up
+                    // PlayerView handles surface creation automatically
+
+                    // Log current media item for debugging
+                    player.currentMediaItem?.let { mediaItem ->
+                        android.util.Log.d("VideoPlayer", "Current media item URI: ${mediaItem.localConfiguration?.uri}")
+                        android.util.Log.d("VideoPlayer", "Current media item MIME: ${mediaItem.localConfiguration?.mimeType}")
+                        android.util.Log.d("VideoPlayer", "Player playback state: ${player.playbackState}")
+                        android.util.Log.d("VideoPlayer", "Player is playing: ${player.isPlaying}")
+                    }
+
+                    // Force player to prepare if needed
+                    if (player.playbackState == androidx.media3.common.Player.STATE_IDLE) {
+                        player.prepare()
+                    }
                 }
             )
         } else {
