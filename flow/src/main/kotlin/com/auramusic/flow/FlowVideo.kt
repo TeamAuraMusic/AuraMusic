@@ -87,24 +87,7 @@ object FlowVideo {
     }
 
     suspend fun getVideoStreamUrl(videoId: String): Result<VideoStreamResult> = runCatching {
-        val streamInfo = NewPipeExtractor.getStreamInfo(videoId)
-        
-        if (streamInfo != null) {
-            val videoStreams = streamInfo.videoStreams + streamInfo.videoOnlyStreams
-            
-            if (videoStreams.isNotEmpty()) {
-                val bestStream = videoStreams.firstOrNull()
-                
-                if (bestStream != null) {
-                    val url = bestStream.content ?: bestStream.url
-                    val mimeType = bestStream.format?.mimeType ?: "video/mp4"
-                    if (url != null) {
-                        return@runCatching VideoStreamResult(url, mimeType)
-                    }
-                }
-            }
-        }
-
+        // Skip NewPipe and go directly to YouTube player API for better quality control
         val playerResponse = YouTube.player(videoId, client = WEB_REMIX).getOrThrow()
         
         if (playerResponse.playabilityStatus.status != "OK") {
@@ -113,18 +96,48 @@ object FlowVideo {
 
         val streamingData = playerResponse.streamingData ?: throw Exception("No streaming data")
 
+        // Try NewPipe for signature deobfuscation if needed
+        val needsDeobfuscation = streamingData.formats?.any { it.signatureCipher != null || it.cipher != null } == true ||
+                streamingData.adaptiveFormats.any { it.signatureCipher != null || it.cipher != null }
+
         val muxedFormats = streamingData.formats ?: emptyList()
-        val videoMuxed = muxedFormats.filter { it.isVideo }.maxByOrNull { it.bitrate }
-        val muxedUrl = videoMuxed?.url
+        // Prefer 720p muxed videos (height between 720 and 1080)
+        val preferred720pMuxed = muxedFormats.filter { it.isVideo && (it.height ?: 0) in 720..1080 }
+        val videoMuxed = if (preferred720pMuxed.isNotEmpty()) {
+            preferred720pMuxed.maxByOrNull { it.bitrate }
+        } else {
+            muxedFormats.filter { it.isVideo }.maxByOrNull { it.bitrate }
+        }
+        
+        var muxedUrl = videoMuxed?.url
         val muxedMimeType = videoMuxed?.mimeType
+        
+        // If URL is missing and we have signature cipher, try to deobfuscate
+        if (muxedUrl == null && videoMuxed != null && needsDeobfuscation) {
+            muxedUrl = NewPipeExtractor.getStreamUrl(videoMuxed, videoId)
+        }
+        
         if (muxedUrl != null) {
             return@runCatching VideoStreamResult(muxedUrl, muxedMimeType ?: "video/mp4")
         }
 
         val adaptiveFormats = streamingData.adaptiveFormats
-        val adaptiveVideo = adaptiveFormats.filter { it.isVideo }.maxByOrNull { it.bitrate }
-        val adaptiveUrl = adaptiveVideo?.url
+        // Prefer 720p adaptive videos
+        val preferred720pAdaptive = adaptiveFormats.filter { it.isVideo && (it.height ?: 0) in 720..1080 }
+        val adaptiveVideo = if (preferred720pAdaptive.isNotEmpty()) {
+            preferred720pAdaptive.maxByOrNull { it.bitrate }
+        } else {
+            adaptiveFormats.filter { it.isVideo }.maxByOrNull { it.bitrate }
+        }
+        
+        var adaptiveUrl = adaptiveVideo?.url
         val adaptiveMimeType = adaptiveVideo?.mimeType
+        
+        // If URL is missing and we have signature cipher, try to deobfuscate
+        if (adaptiveUrl == null && adaptiveVideo != null && needsDeobfuscation) {
+            adaptiveUrl = NewPipeExtractor.getStreamUrl(adaptiveVideo, videoId)
+        }
+        
         if (adaptiveUrl != null) {
             return@runCatching VideoStreamResult(adaptiveUrl, adaptiveMimeType ?: "video/mp4")
         }
