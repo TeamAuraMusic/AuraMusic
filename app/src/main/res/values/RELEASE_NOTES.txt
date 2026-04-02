@@ -1,0 +1,53 @@
+# AuraMusic v1.0.8 Release Notes
+
+## 🎬 New Features
+
+### Video Playback Support (Experimental)
+- **New Flow Module**: Integrated New PipeExtractor for video streaming
+- **Video Toggle UI**: Added video mode toggle button in the player screen
+- **Settings Option**: Enable/disable video mode from player settings
+- **Auto-enable for Video Songs**: Video songs automatically play with video when available
+- **YouTube Music-like Behavior**: Seamless switching between audio and video playback
+
+### Video Mode Features:
+- Toggle button in player to switch between audio and video
+- Visual indicator showing current mode (VIDEO / AUDIO)
+- Automatic fallback handling when video is unavailable
+- Proper MIME type handling for video rendering
+
+## 🔧 Improvements
+
+### Video Playback Fixes:
+- MIME type explicitly set on MediaItem for proper video rendering
+- Improved error handling with toast messages when video unavailable
+- Video mode now enabled by default for new installations
+- Marked as "Experimental" feature in settings
+
+### Lyrics Provider:
+- Fixed respect of lyrics provider selection
+- System now properly honors user's chosen lyrics provider
+
+### Settings & About:
+- Added website link in settings about section
+- Fixed notification showing when new release is available
+
+## 🐛 Bug Fixes
+
+- Fixed video playback issues for regular (non-video) songs
+- Improved video mode state management to prevent unwanted resets
+- Fixed auto-reset issue that caused black screen flicker
+- Video mode now persists correctly during playback
+
+## 📝 Notes
+
+- Video mode is marked as **Experimental** - may have some issues with certain songs
+- Not all songs have video available on YouTube
+- If video fails to play, users can manually toggle back to audio mode
+
+## 🔄 Upgrading
+
+This update includes significant changes to video playback. Please report any issues encountered.
+
+---
+
+**Full Changelog**: [GitHub Releases](https://github.com/chila254/AuraMusic/releases)
