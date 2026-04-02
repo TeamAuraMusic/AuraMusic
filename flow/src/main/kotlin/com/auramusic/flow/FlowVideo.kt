@@ -87,7 +87,33 @@ object FlowVideo {
     }
 
     suspend fun getVideoStreamUrl(videoId: String): Result<VideoStreamResult> = runCatching {
-        // Skip NewPipe and go directly to YouTube player API for better quality control
+        // First try NewPipeExtractor which gives us working stream URLs
+        val streamInfo = NewPipeExtractor.getStreamInfo(videoId)
+        
+        if (streamInfo != null) {
+            val videoStreams = streamInfo.videoStreams + streamInfo.videoOnlyStreams
+            
+            if (videoStreams.isNotEmpty()) {
+                // Prefer 720p quality - check if quality label contains "720"
+                val preferred720p = videoStreams.filter { it.resolution?.contains("720") == true }
+                val bestStream = if (preferred720p.isNotEmpty()) {
+                    preferred720p.maxByOrNull { it.bitrate }
+                } else {
+                    // Fall back to highest bitrate if no 720p available
+                    videoStreams.maxByOrNull { it.bitrate }
+                }
+                
+                if (bestStream != null) {
+                    val url = bestStream.content ?: bestStream.url
+                    val mimeType = bestStream.format?.mimeType ?: "video/mp4"
+                    if (url != null) {
+                        return@runCatching VideoStreamResult(url, mimeType)
+                    }
+                }
+            }
+        }
+
+        // Fallback to YouTube player API
         val playerResponse = YouTube.player(videoId, client = WEB_REMIX).getOrThrow()
         
         if (playerResponse.playabilityStatus.status != "OK") {
@@ -96,10 +122,11 @@ object FlowVideo {
 
         val streamingData = playerResponse.streamingData ?: throw Exception("No streaming data")
 
-        // Try NewPipe for signature deobfuscation if needed
+        // Check if we need signature deobfuscation
         val needsDeobfuscation = streamingData.formats?.any { it.signatureCipher != null || it.cipher != null } == true ||
                 streamingData.adaptiveFormats.any { it.signatureCipher != null || it.cipher != null }
 
+        // Try muxed formats first
         val muxedFormats = streamingData.formats ?: emptyList()
         // Prefer 720p muxed videos (height between 720 and 1080)
         val preferred720pMuxed = muxedFormats.filter { it.isVideo && (it.height ?: 0) in 720..1080 }
@@ -121,6 +148,7 @@ object FlowVideo {
             return@runCatching VideoStreamResult(muxedUrl, muxedMimeType ?: "video/mp4")
         }
 
+        // Try adaptive formats
         val adaptiveFormats = streamingData.adaptiveFormats
         // Prefer 720p adaptive videos
         val preferred720pAdaptive = adaptiveFormats.filter { it.isVideo && (it.height ?: 0) in 720..1080 }
@@ -147,12 +175,14 @@ object FlowVideo {
 
     suspend fun hasVideoPlayback(videoId: String): Boolean {
         return try {
+            // First try NewPipeExtractor
             val streamInfo = NewPipeExtractor.getStreamInfo(videoId)
             if (streamInfo != null) {
                 val hasVideo = streamInfo.videoStreams.isNotEmpty() || streamInfo.videoOnlyStreams.isNotEmpty()
                 if (hasVideo) return true
             }
 
+            // Fallback to YouTube player API
             val playerResponse = YouTube.player(videoId, client = WEB_REMIX).getOrNull()
             val streamingData = playerResponse?.streamingData
             
