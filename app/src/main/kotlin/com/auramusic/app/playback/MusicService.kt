@@ -2932,11 +2932,12 @@ class MusicService :
                                 .setCustomCacheKey(mediaId + "_video")
                                 .build()
 
-                            player.replaceMediaItem(index, videoMediaItem)
-                            // Use seekToDefaultPosition to force reload, then seek to position
-                            player.seekToDefaultPosition(index)
+                            // Clear the current media and set the new one
+                            player.clearMediaItems()
+                            player.setMediaItem(videoMediaItem)
+                            player.prepare()
                             if (position > 0) {
-                                player.seekTo(index, position)
+                                player.seekTo(position)
                             }
                             player.playWhenReady = wasPlaying
                             isVideoMode = true
