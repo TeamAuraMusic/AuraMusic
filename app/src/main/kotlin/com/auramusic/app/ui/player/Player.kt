@@ -289,14 +289,20 @@ fun BottomSheetPlayer(
         }
     }
 
-    // Check video availability when song changes (but don't disable video mode automatically)
-    LaunchedEffect(mediaMetadata?.id) {
+    // Check video availability when song changes and auto-enable for video songs
+    LaunchedEffect(mediaMetadata?.id, mediaMetadata?.isVideoSong) {
         mediaMetadata?.id?.let { videoId ->
             timber.log.Timber.d("VideoToggle: Checking availability for videoId: $videoId")
             try {
                 val available = playerConnection.service.checkVideoAvailability(videoId)
-                timber.log.Timber.d("VideoToggle: Video available = $available")
+                timber.log.Timber.d("VideoToggle: Video available = $available, isVideoSong = ${mediaMetadata?.isVideoSong}")
                 playerConnection.updateVideoAvailability(available)
+                
+                // Auto-enable video mode for video songs if video is available and user has video mode enabled
+                if (videoModeToggleEnabled && mediaMetadata?.isVideoSong == true && available && !videoModeEnabled) {
+                    timber.log.Timber.d("VideoToggle: Auto-enabling video mode for video song")
+                    playerConnection.enableVideoMode(true)
+                }
             } catch (e: Exception) {
                 timber.log.Timber.e(e, "VideoToggle: Error checking video availability")
                 playerConnection.updateVideoAvailability(false)
@@ -800,6 +806,30 @@ fun BottomSheetPlayer(
                 Column(
                     modifier = Modifier.weight(1f)
                 ) {
+                    // Video indicator
+                    val isVideoSong = mediaMetadata.isVideoSong
+                    if (isVideoSong || videoModeEnabled) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.slow_motion_video),
+                                contentDescription = null,
+                                tint = if (videoModeEnabled) MaterialTheme.colorScheme.primary else TextBackgroundColor.copy(alpha = 0.7f),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = if (videoModeEnabled) "VIDEO" else "AUDIO ONLY",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = if (videoModeEnabled) FontWeight.Bold else FontWeight.Normal
+                                ),
+                                color = if (videoModeEnabled) MaterialTheme.colorScheme.primary else TextBackgroundColor.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+
                     AnimatedContent(
                         targetState = mediaMetadata.title,
                         transitionSpec = { fadeIn() togetherWith fadeOut() },
