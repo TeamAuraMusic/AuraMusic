@@ -648,10 +648,14 @@ private fun ThumbnailImage(
             .background(MaterialTheme.colorScheme.surfaceVariant)
     ) {
         if (videoModeEnabled) {
-            // Video player view - Log for debugging
-            android.util.Log.d("Thumbnail", "Rendering video player, player state: ${player.playbackState}, isPlaying: ${player.isPlaying}")
+            // Video player view
+            android.util.Log.d("Thumbnail", ">>> Video mode ENABLED, rendering PlayerView")
+            android.util.Log.d("Thumbnail", ">>> Player state: ${player.playbackState}, isPlaying: ${player.isPlaying}")
+            android.util.Log.d("Thumbnail", ">>> Player current media: ${player.currentMediaItem?.localConfiguration?.uri}")
+            
             AndroidView(
                 factory = { context ->
+                    android.util.Log.d("Thumbnail", ">>> Creating PlayerView")
                     PlayerView(context).apply {
                         this.player = player
                         useController = false
@@ -667,11 +671,11 @@ private fun ThumbnailImage(
                 },
                 modifier = Modifier.fillMaxSize(),
                 update = { playerView ->
-                    // Always ensure player is set
                     playerView.player = player
-                    // Force update
                     playerView.requestLayout()
-                    android.util.Log.d("Thumbnail", "PlayerView updated, player: ${player != null}, playbackState: ${player?.playbackState}")
+                    android.util.Log.d("Thumbnail", ">>> PlayerView updated, player: ${player != null}")
+                    android.util.Log.d("Thumbnail", ">>> PlayerView playbackState: ${player?.playbackState}, isPlaying: ${player?.isPlaying}")
+                    android.util.Log.d("Thumbnail", ">>> PlayerView media: ${player?.currentMediaItem?.localConfiguration?.uri}")
                 }
             )
         } else {

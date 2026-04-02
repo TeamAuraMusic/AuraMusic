@@ -2945,12 +2945,19 @@ class MusicService :
      * Enable or disable video mode for current playback
      */
     fun setVideoMode(enabled: Boolean) {
-        if (enabled == isVideoMode) return
+        Timber.d("setVideoMode: Called with enabled = $enabled, current isVideoMode = $isVideoMode")
+        
+        if (enabled == isVideoMode) {
+            Timber.d("setVideoMode: Already in requested mode, skipping")
+            return
+        }
 
         val mediaId = currentMediaMetadata.value?.id ?: run {
             Timber.d("setVideoMode: No current media, skipping")
             return
         }
+
+        Timber.d("setVideoMode: Current mediaId: $mediaId")
 
         videoSwitchJob?.cancel()
         _isVideoSwitching.value = true
@@ -2971,6 +2978,8 @@ class MusicService :
 
                     if (videoResult.isSuccess) {
                         val videoData = videoResult.getOrNull()
+                        Timber.d("setVideoMode: videoResult.isSuccess, data = ${videoData?.take(100)}")
+                        
                         if (videoData != null && videoData.isNotBlank()) {
                             // Parse URL|mimeType format
                             val parts = videoData.split("|", limit = 2)
@@ -2979,7 +2988,7 @@ class MusicService :
                             currentVideoUrl = videoUrl
 
                             Timber.d("setVideoMode: Video URL: $videoUrl, MIME type: $mimeType")
-                            Timber.d("setVideoMode: Full video data: $videoData")
+                            Timber.d("setVideoMode: Full video data length: ${videoData.length}")
 
                             if (videoUrl.isBlank()) {
                                 Timber.e("setVideoMode: Video URL is blank after parsing")
@@ -2989,27 +2998,33 @@ class MusicService :
                             }
 
                             val currentItem = player.getMediaItemAt(index)
+                            Timber.d("setVideoMode: Current media item URI: ${currentItem.localConfiguration?.uri}")
+                            
                             val videoMediaItem = currentItem.buildUpon()
                                 .setUri(videoUrl)
                                 .setMimeType(mimeType)
                                 .setCustomCacheKey(mediaId + "_video")
                                 .build()
 
+                            Timber.d("setVideoMode: Replacing media item at index $index")
                             // Replace current item with video item without clearing the queue
                             player.replaceMediaItem(index, videoMediaItem)
                             // IMPORTANT: Must call prepare() to load the new video stream
                             player.prepare()
+                            Timber.d("setVideoMode: Called prepare(), player state: ${player.playbackState}")
+                            
                             // Seek to position after prepare
                             if (position > 0) {
                                 player.seekTo(index, position)
+                                Timber.d("setVideoMode: Seeked to position $position")
                             }
                             // Ensure playback starts - video mode should auto-play
                             player.playWhenReady = true
                             isVideoMode = true
                             _videoModeEnabled.value = true
-                            Timber.d("setVideoMode: Video stream prepared with mimeType: $mimeType, player state: ${player.playbackState}, playWhenReady: true")
+                            Timber.d("setVideoMode: SUCCESS - Video stream prepared with mimeType: $mimeType, player state: ${player.playbackState}, playWhenReady: true")
                         } else {
-                            Timber.w("setVideoMode: Video URL was null")
+                            Timber.w("setVideoMode: Video URL was null or blank")
                             _videoFetchError.value = "Video URL not found"
                             // Auto-fallback to audio mode if video URL is null
                             resetVideoMode()
