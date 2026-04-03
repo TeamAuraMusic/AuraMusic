@@ -1786,7 +1786,7 @@ fun BottomSheetPlayer(
                                     modifier = Modifier.animateContentSize(),
                                     isPlayerExpanded = isExpandedProvider,
                                     isLandscape = true,
-                                    isListenTogetherGuest = isListenTogetherGuest
+                                    isListenTogetherGuest = isListenTogetherGuest,
                                 )
                             }
                         }
@@ -1847,7 +1847,7 @@ fun BottomSheetPlayer(
                                     sliderPositionProvider = sliderPositionProvider,
                                     modifier = Modifier.nestedScroll(state.preUpPostDownNestedScrollConnection),
                                     isPlayerExpanded = isExpandedProvider,
-                                    isListenTogetherGuest = isListenTogetherGuest
+                                    isListenTogetherGuest = isListenTogetherGuest,
                                 )
                             }
                         }

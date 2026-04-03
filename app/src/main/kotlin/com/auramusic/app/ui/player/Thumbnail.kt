@@ -13,6 +13,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
@@ -48,6 +49,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -88,12 +90,22 @@ import com.auramusic.app.constants.SeekExtraSeconds
 import com.auramusic.app.constants.SwipeThumbnailKey
 import com.auramusic.app.constants.ThumbnailCornerRadius
 import com.auramusic.app.constants.VideoQuality
+import com.auramusic.app.constants.VideoQualityKey
+import com.auramusic.app.db.entities.LyricsEntity
+import com.auramusic.app.di.LyricsHelperEntryPoint
 import com.auramusic.app.listentogether.RoomRole
+import com.auramusic.app.LocalDatabase
 import com.auramusic.app.ui.component.CastButton
-import com.auramusic.app.utils.dataStore
+import com.auramusic.app.utils.FlowPlayerUtils
 import com.auramusic.app.utils.rememberEnumPreference
 import com.auramusic.app.utils.rememberPreference
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import dagger.hilt.android.EntryPointAccessors
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 /**
  * Pre-calculated thumbnail dimensions to avoid repeated calculations during recomposition.
@@ -415,7 +427,7 @@ fun Thumbnail(
                                 isListenTogetherGuest = isListenTogetherGuest,
                                 currentMediaId = mediaMetadata?.id,
                                 currentMediaThumbnail = mediaMetadata?.thumbnailUrl,
-                                videoModeEnabled = videoModeEnabled
+                                videoModeEnabled = videoModeEnabled,
                             )
                         }
                     }
@@ -594,7 +606,7 @@ private fun ThumbnailItem(
                 ThumbnailImage(
                     artworkUri = artworkUriToUse,
                     cropArtwork = cropAlbumArt,
-                    videoModeEnabled = videoModeEnabled && item.mediaId == currentMediaId
+                    videoModeEnabled = videoModeEnabled && item.mediaId == currentMediaId,
                 )
             }
             
@@ -658,14 +670,8 @@ private fun ThumbnailImage(
             .background(MaterialTheme.colorScheme.surfaceVariant)
     ) {
         if (videoModeEnabled) {
-            // Video player view
-            android.util.Log.d("Thumbnail", ">>> Video mode ENABLED, rendering PlayerView")
-            android.util.Log.d("Thumbnail", ">>> Player state: ${player.playbackState}, isPlaying: ${player.isPlaying}")
-            android.util.Log.d("Thumbnail", ">>> Player current media: ${player.currentMediaItem?.localConfiguration?.uri}")
-            
             AndroidView(
                 factory = { context ->
-                    android.util.Log.d("Thumbnail", ">>> Creating PlayerView")
                     PlayerView(context).apply {
                         this.player = player
                         useController = true
@@ -683,18 +689,17 @@ private fun ThumbnailImage(
                 update = { playerView ->
                     playerView.player = player
                     playerView.requestLayout()
-                    android.util.Log.d("Thumbnail", ">>> PlayerView updated, player: ${player != null}")
-                    android.util.Log.d("Thumbnail", ">>> PlayerView playbackState: ${player?.playbackState}, isPlaying: ${player?.isPlaying}")
-                    android.util.Log.d("Thumbnail", ">>> PlayerView media: ${player?.currentMediaItem?.localConfiguration?.uri}")
                 }
             )
             
-            // Video settings overlay - top right corner
-            VideoSettingsOverlay(
-                modifier = Modifier.align(Alignment.TopEnd)
+            // Single settings button (top right) with quality
+            VideoSettingsButton(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
             )
             
-            // Video lyrics overlay at bottom (like YouTube subtitles)
+            // Always-on lyrics overlay at bottom (like YouTube subtitles)
             VideoLyricsOverlay(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -718,120 +723,66 @@ private fun ThumbnailImage(
 }
 
 /**
- * Video settings overlay with quality selector
+ * Single settings button for video controls.
+ * Contains video quality selection in a dropdown menu.
  */
 @Composable
-private fun VideoSettingsOverlay(
+private fun VideoSettingsButton(
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-    
-    var showMenu by remember { mutableStateOf(false) }
-    val dataStore = remember { context.dataStore }
-    val qualityKey = androidx.datastore.preferences.core.stringPreferencesKey("videoQuality")
-    
-    var currentQuality by remember { mutableStateOf("QUALITY_720P") }
-    
-    LaunchedEffect(Unit) {
-        dataStore.data.collect { prefs ->
-            currentQuality = prefs[qualityKey] ?: "QUALITY_720P"
-        }
-    }
-    
-    Box(modifier = modifier.padding(8.dp)) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+    var expanded by remember { mutableStateOf(false) }
+    val (videoQuality, onVideoQualityChange) = rememberEnumPreference(
+        VideoQualityKey,
+        defaultValue = VideoQuality.QUALITY_720P
+    )
+
+    Box(modifier = modifier) {
+        IconButton(
+            onClick = { expanded = true },
+            modifier = Modifier
+                .size(36.dp)
+                .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(18.dp))
         ) {
-            // Lyrics toggle button
-            IconButton(
-                onClick = { /* Toggle lyrics - handled by Player */ },
-                modifier = Modifier
-                    .size(36.dp)
-                    .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(18.dp))
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.lyrics),
-                    contentDescription = "Toggle lyrics",
-                    tint = Color.White,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            
-            // Settings button
-            IconButton(
-                onClick = { showMenu = !showMenu },
-                modifier = Modifier
-                    .size(36.dp)
-                    .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(18.dp))
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.more_horiz),
-                    contentDescription = "Video settings",
-                    tint = Color.White,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        }
-        
-        if (showMenu) {
-            // Click outside to close menu
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .pointerInput(showMenu) {
-                        if (showMenu) {
-                            detectTapGestures(
-                                onTap = { showMenu = false }
-                            )
-                        }
-                    }
+            Icon(
+                painter = painterResource(R.drawable.settings),
+                contentDescription = "Video settings",
+                tint = Color.White,
+                modifier = Modifier.size(20.dp)
             )
-            
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .background(Color.Black.copy(alpha = 0.95f), RoundedCornerShape(8.dp))
-                    .padding(12.dp)
-            ) {
-                Column {
-                    Text(
-                        text = "Video Quality",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
-                    Text(
-                        text = "Set in Settings > Player",
-                        color = Color.White.copy(alpha = 0.6f),
-                        fontSize = 10.sp,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    
-                    VideoQuality.entries.forEach { quality ->
-                        val label = when (quality) {
-                            VideoQuality.QUALITY_360P -> "360p"
-                            VideoQuality.QUALITY_480P -> "480p"
-                            VideoQuality.QUALITY_720P -> "720p"
-                            VideoQuality.QUALITY_1080P -> "1080p"
-                        }
-                        val isSelected = currentQuality == quality.name
-                        
-                        Text(
-                            text = if (isSelected) "✓ $label" else label,
-                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.White,
-                            fontSize = 12.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 6.dp, horizontal = 8.dp)
-                                .background(
-                                    if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.Transparent,
-                                    RoundedCornerShape(4.dp)
-                                )
-                        )
-                    }
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            // Quality header
+            Text(
+                text = "Video Quality",
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.sp,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+
+            VideoQuality.entries.forEach { quality ->
+                val label = when (quality) {
+                    VideoQuality.QUALITY_360P -> "360p"
+                    VideoQuality.QUALITY_480P -> "480p"
+                    VideoQuality.QUALITY_720P -> "720p"
+                    VideoQuality.QUALITY_1080P -> "1080p"
                 }
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = if (quality == videoQuality) "✓ $label" else "   $label",
+                            color = if (quality == videoQuality) MaterialTheme.colorScheme.primary else Color.Unspecified
+                        )
+                    },
+                    onClick = {
+                        onVideoQualityChange(quality)
+                        FlowPlayerUtils.setPreferredVideoQuality(quality)
+                        expanded = false
+                    }
+                )
             }
         }
     }
@@ -858,7 +809,9 @@ private fun SeekEffectOverlay(
 }
 
 /**
- * Video lyrics overlay displayed at bottom like YouTube subtitles
+ * Video lyrics overlay displayed at bottom like YouTube subtitles.
+ * Always enabled when video is playing. Fetches lyrics from providers
+ * if not in DB, and updates position in real-time.
  */
 @Composable
 private fun VideoLyricsOverlay(
@@ -866,15 +819,82 @@ private fun VideoLyricsOverlay(
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
-    
-    val lyricsData = currentLyrics
-    val lyricsText = remember(lyricsData) {
-        if (lyricsData != null && !lyricsData.lyrics.isNullOrEmpty()) {
-            lyricsData.lyrics
-        } else null
+    val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
+    val player = playerConnection.player
+    val context = LocalContext.current
+    val database = LocalDatabase.current
+    val coroutineScope = rememberCoroutineScope()
+
+    // Fetch lyrics from providers if not in DB
+    LaunchedEffect(mediaMetadata?.id, currentLyrics) {
+        val meta = mediaMetadata ?: return@LaunchedEffect
+        if (currentLyrics != null) return@LaunchedEffect
+        delay(300)
+        coroutineScope.launch(Dispatchers.IO) {
+            try {
+                val entryPoint = EntryPointAccessors.fromApplication(
+                    context.applicationContext,
+                    LyricsHelperEntryPoint::class.java
+                )
+                val lyricsHelper = entryPoint.lyricsHelper()
+                val fetched = lyricsHelper.getLyrics(meta)
+                database.query {
+                    upsert(LyricsEntity(meta.id, fetched.lyrics, fetched.provider))
+                }
+            } catch (_: Exception) {}
+        }
     }
-    
-    if (lyricsText != null) {
+
+    val lyricsText = remember(currentLyrics) {
+        val text = currentLyrics?.lyrics
+        if (!text.isNullOrEmpty() && text != LyricsEntity.LYRICS_NOT_FOUND) text else null
+    }
+
+    // Parse synced lyrics timestamps and text
+    data class LyricLine(val timeMs: Long, val text: String)
+
+    val parsedLines = remember(lyricsText) {
+        if (lyricsText == null || !lyricsText.startsWith("[")) return@remember emptyList<LyricLine>()
+        val result = mutableListOf<LyricLine>()
+        val regex = Regex("""\[(\d{1,2}):(\d{2})(?:\.(\d{1,3}))?\](.*)""")
+        for (line in lyricsText.lines()) {
+            val match = regex.find(line.trim()) ?: continue
+            val minutes = match.groupValues[1].toLongOrNull() ?: 0
+            val seconds = match.groupValues[2].toLongOrNull() ?: 0
+            val millis = match.groupValues[3].padEnd(3, '0').toLongOrNull() ?: 0
+            val timeMs = minutes * 60_000 + seconds * 1000 + millis
+            val text = match.groupValues[4].trim()
+            if (text.isNotEmpty()) {
+                result.add(LyricLine(timeMs, text))
+            }
+        }
+        result.sortedBy { it.timeMs }
+    }
+
+    // Real-time player position tracking
+    var playerPosition by remember { mutableLongStateOf(player.currentPosition) }
+    LaunchedEffect(mediaMetadata?.id) {
+        while (isActive) {
+            playerPosition = player.currentPosition
+            delay(200)
+        }
+    }
+
+    // Find current lyric line based on player position
+    val currentLine = remember(parsedLines, playerPosition) {
+        if (parsedLines.isEmpty()) return@remember null
+        var best: LyricLine? = null
+        for (line in parsedLines) {
+            if (playerPosition >= line.timeMs) {
+                best = line
+            } else {
+                break
+            }
+        }
+        best?.text
+    }
+
+    if (currentLine != null) {
         Box(
             modifier = modifier
                 .fillMaxWidth()
@@ -885,7 +905,7 @@ private fun VideoLyricsOverlay(
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
             Text(
-                text = lyricsText.take(150),
+                text = currentLine,
                 color = Color.White,
                 fontSize = 14.sp,
                 textAlign = TextAlign.Center,

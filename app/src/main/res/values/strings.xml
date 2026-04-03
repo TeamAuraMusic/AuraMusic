@@ -952,4 +952,6 @@
     <string name="enable_video_mode_desc">Enable video playback for songs - tap the video icon in the player to switch</string>
     <string name="video_not_available">Video not available for this track</string>
     <string name="video_quality">Video Quality</string>
+    <string name="video_lyrics_offset">Video Lyrics Offset</string>
+    <string name="video_lyrics_offset_description">Adjust to sync lyrics with video (for intro/talk before music)</string>
 </resources>

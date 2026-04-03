@@ -31,6 +31,7 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.ProvideTextStyle
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -38,8 +39,10 @@ import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -392,6 +395,77 @@ fun TextFieldDialog(
             }
 
             extraContent?.invoke()
+        }
+    }
+}
+
+@Composable
+fun VideoLyricsOffsetDialog(
+    currentOffset: Int,
+    onOffsetChange: (Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var offsetValue by remember { mutableStateOf(currentOffset.toFloat()) }
+    var sliderPosition by remember { mutableStateOf(currentOffset.toFloat()) }
+    
+    DefaultDialog(
+        onDismiss = onDismiss,
+        title = { Text(stringResource(R.string.video_lyrics_offset)) },
+        buttons = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(android.R.string.cancel))
+            }
+            TextButton(
+                onClick = { onOffsetChange(sliderPosition.toInt()) }
+            ) {
+                Text(stringResource(android.R.string.ok))
+            }
+        }
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(vertical = 16.dp)
+        ) {
+            Text(
+                text = if (sliderPosition >= 0) "+${sliderPosition.toInt()}s" else "${sliderPosition.toInt()}s",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.video_lyrics_offset_description),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Slider(
+                value = sliderPosition,
+                onValueChange = { sliderPosition = it },
+                onValueChangeFinished = { offsetValue = sliderPosition },
+                valueRange = -60f..60f,
+                steps = 119,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "-60s",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "0s",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "+60s",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }

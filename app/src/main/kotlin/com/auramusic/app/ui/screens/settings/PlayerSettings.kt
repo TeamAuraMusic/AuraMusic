@@ -63,8 +63,6 @@ import com.auramusic.app.constants.SkipSilenceInstantKey
 import com.auramusic.app.constants.SkipSilenceKey
 import com.auramusic.app.constants.StopMusicOnTaskClearKey
 import com.auramusic.app.constants.VideoModeEnabledKey
-import com.auramusic.app.constants.VideoQualityKey
-import com.auramusic.app.constants.VideoQuality
 import com.auramusic.app.ui.component.DefaultDialog
 import com.auramusic.app.ui.component.EnumDialog
 import com.auramusic.app.ui.component.IconButton
@@ -169,10 +167,6 @@ fun PlayerSettings(
         VideoModeEnabledKey,
         defaultValue = true
     )
-    val (videoQuality, onVideoQualityChange) = rememberEnumPreference(
-        VideoQualityKey,
-        defaultValue = VideoQuality.QUALITY_720P
-    )
     val (pauseOnMute, onPauseOnMuteChange) = rememberPreference(
         PauseOnMute,
         defaultValue = false
@@ -205,31 +199,6 @@ fun PlayerSettings(
                     AudioQuality.AUTO -> stringResource(R.string.audio_quality_auto)
                     AudioQuality.HIGH -> stringResource(R.string.audio_quality_high)
                     AudioQuality.LOW -> stringResource(R.string.audio_quality_low)
-                }
-            }
-        )
-    }
-
-    var showVideoQualityDialog by remember {
-        mutableStateOf(false)
-    }
-
-    if (showVideoQualityDialog) {
-        EnumDialog(
-            onDismiss = { showVideoQualityDialog = false },
-            onSelect = {
-                onVideoQualityChange(it)
-                showVideoQualityDialog = false
-            },
-            title = stringResource(R.string.video_quality),
-            current = videoQuality,
-            values = VideoQuality.values().toList(),
-            valueText = {
-                when (it) {
-                    VideoQuality.QUALITY_360P -> "360p"
-                    VideoQuality.QUALITY_480P -> "480p"
-                    VideoQuality.QUALITY_720P -> "720p"
-                    VideoQuality.QUALITY_1080P -> "1080p"
                 }
             }
         )
@@ -489,29 +458,6 @@ fun PlayerSettings(
                     },
                     onClick = { onVideoModeEnabledChange(!videoModeEnabled) }
                 ))
-                // Video Quality option (only shown when video mode is enabled)
-                if (videoModeEnabled) {
-                    add(Material3SettingsItem(
-                        icon = painterResource(R.drawable.slow_motion_video),
-                        title = { Text(stringResource(R.string.video_quality)) },
-                        description = { 
-                            val qualityText = when (videoQuality) {
-                                VideoQuality.QUALITY_360P -> "360p"
-                                VideoQuality.QUALITY_480P -> "480p"
-                                VideoQuality.QUALITY_720P -> "720p"
-                                VideoQuality.QUALITY_1080P -> "1080p"
-                            }
-                            Text(qualityText)
-                        },
-                        trailingContent = {
-                            Icon(
-                                painter = painterResource(R.drawable.arrow_forward),
-                                contentDescription = null
-                            )
-                        },
-                        onClick = { showVideoQualityDialog = true }
-                    ))
-                }
                 // Only show Cast setting in GMS builds (not in F-Droid/FOSS)
                 if (BuildConfig.CAST_AVAILABLE) {
                     add(Material3SettingsItem(
