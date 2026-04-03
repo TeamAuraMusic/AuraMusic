@@ -33,6 +33,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -85,8 +86,10 @@ import com.auramusic.app.constants.PlayerHorizontalPadding
 import com.auramusic.app.constants.SeekExtraSeconds
 import com.auramusic.app.constants.SwipeThumbnailKey
 import com.auramusic.app.constants.ThumbnailCornerRadius
+import com.auramusic.app.constants.VideoQuality
 import com.auramusic.app.listentogether.RoomRole
 import com.auramusic.app.ui.component.CastButton
+import com.auramusic.app.utils.dataStore
 import com.auramusic.app.utils.rememberEnumPreference
 import com.auramusic.app.utils.rememberPreference
 import kotlinx.coroutines.delay
@@ -684,6 +687,11 @@ private fun ThumbnailImage(
                     android.util.Log.d("Thumbnail", ">>> PlayerView media: ${player?.currentMediaItem?.localConfiguration?.uri}")
                 }
             )
+            
+            // Video settings overlay - top right corner
+            VideoSettingsOverlay(
+                modifier = Modifier.align(Alignment.TopEnd)
+            )
         } else {
             // Album art image
             AsyncImage(
@@ -697,6 +705,94 @@ private fun ThumbnailImage(
                 contentScale = if (cropArtwork) ContentScale.Crop else ContentScale.Fit,
                 modifier = Modifier.fillMaxSize()
             )
+        }
+    }
+}
+
+/**
+ * Video settings overlay with quality selector
+ */
+@Composable
+private fun VideoSettingsOverlay(
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    
+    var showMenu by remember { mutableStateOf(false) }
+    val dataStore = remember { context.dataStore }
+    val qualityKey = androidx.datastore.preferences.core.stringPreferencesKey("videoQuality")
+    
+    var currentQuality by remember { mutableStateOf("QUALITY_720P") }
+    
+    LaunchedEffect(Unit) {
+        dataStore.data.collect { prefs ->
+            currentQuality = prefs[qualityKey] ?: "QUALITY_720P"
+        }
+    }
+    
+    Box(modifier = modifier.padding(8.dp)) {
+        IconButton(
+            onClick = { showMenu = !showMenu },
+            modifier = Modifier
+                .size(36.dp)
+                .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(18.dp))
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.more_horiz),
+                contentDescription = "Video settings",
+                tint = Color.White,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        
+        if (showMenu) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .background(Color.Black.copy(alpha = 0.95f), RoundedCornerShape(8.dp))
+                    .padding(12.dp)
+            ) {
+                Column {
+                    Text(
+                        text = "Video Quality",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                    Text(
+                        text = "Set in Settings > Player",
+                        color = Color.White.copy(alpha = 0.6f),
+                        fontSize = 10.sp,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    
+                    VideoQuality.entries.forEach { quality ->
+                        val label = when (quality) {
+                            VideoQuality.QUALITY_360P -> "360p"
+                            VideoQuality.QUALITY_480P -> "480p"
+                            VideoQuality.QUALITY_720P -> "720p"
+                            VideoQuality.QUALITY_1080P -> "1080p"
+                            else -> "720p"
+                        }
+                        val isSelected = currentQuality == quality.name
+                        
+                        Text(
+                            text = if (isSelected) "✓ $label" else label,
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.White,
+                            fontSize = 12.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 6.dp, horizontal = 8.dp)
+                                .background(
+                                    if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.Transparent,
+                                    RoundedCornerShape(4.dp)
+                                )
+                        )
+                    }
+                }
+            }
         }
     }
 }
