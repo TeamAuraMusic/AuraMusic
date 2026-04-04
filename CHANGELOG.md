@@ -1,3 +1,42 @@
+# AuraMusic v1.0.9 (Build 10) Changelog
+
+## New Features
+
+### Complete Video Player Overhaul
+- **Animated Lyrics**: Lyrics slide up and fade in smoothly with transitions when changing lines
+- **Next Lyric Preview**: Dimmed smaller text shows the upcoming line below the current lyric
+- **Lyrics Glow Effect**: Double-render with primary color glow shadow for maximum readability
+- **Auto-hide Controls**: Settings button fades out after 3s, tap video to toggle
+- **Double-tap Seek**: Expanding circle ripple animation + arrow icon on seek
+- **Video Fit Mode Selector**: Fit/Fill/Stretch options in YouTube-style settings menu
+- **Progress Gradient Bar**: Thin animated gradient bar at the top of the video
+- **Brightness/Volume Gestures**: Swipe left side for brightness, right side for volume with vertical indicator
+
+### Music Video Improvements
+- **Regular song video fallback**: All songs can now play music videos automatically
+- **⚠️ Note**: Some songs might show other videos - we are working on improving matching accuracy
+- **Video quality selector directly on thumbnail**: No more going through settings menus
+- **Improved video search matching**: Better filtering and scoring for official music videos
+
+## Bug Fixes
+
+- Fixed duplicate lyrics showing (removed small text lyrics when video is playing)
+- Fixed lyrics sync issues in video mode
+- Fixed quality selection algorithm to properly respect user preferences
+- Fixed video not filling properly on different screen sizes
+- Fixed lyrics offset calculation direction
+
+## Build Updates
+
+- Version bump: 1.0.8 (Build 9) → 1.0.9 (Build 10)
+- Repository moved to Team AuraMusic organization: https://github.com/Team-AuraMusic/AuraMusic
+
+---
+
+**Full Changelog**: https://github.com/Team-AuraMusic/AuraMusic/compare/v1.0.8...v1.0.9
+
+---
+
 # AuraMusic v1.0.8 (Build 9) Changelog
 
 ## New Features
