@@ -43,8 +43,8 @@ This release brings a complete refresh of the video player experience with YouTu
 
 ### Repository Update
 AuraMusic is now officially hosted at the Team AuraMusic organization:
-**https://github.com/Team-AuraMusic/AuraMusic**
+**https://github.com/TeamAuraMusic/AuraMusic**
 
 ---
 
-**Full Changelog**: https://github.com/Team-AuraMusic/AuraMusic/compare/v1.0.8...v1.0.9
+**Full Changelog**: https://github.com/TeamAuraMusic/AuraMusic/compare/v1.0.8...v1.0.9
