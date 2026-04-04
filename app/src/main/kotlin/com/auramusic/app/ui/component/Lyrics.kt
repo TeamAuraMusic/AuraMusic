@@ -623,7 +623,7 @@ fun Lyrics(
             val position = sliderPosition ?: playerConnection.player.currentPosition
             currentPlaybackPosition = position
             val lyricsOffset = currentSong?.song?.lyricsOffset ?: 0
-            currentLineIndex = findCurrentLineIndex(lines, position + lyricsOffset)
+            currentLineIndex = findCurrentLineIndex(lines, position - lyricsOffset)
         }
     }
 
@@ -890,7 +890,7 @@ fun Lyrics(
                 }
             } else {
                 val lyricsOffset = currentSong?.song?.lyricsOffset?.toLong() ?: 0L
-                val effectivePlaybackPosition = currentPlaybackPosition + lyricsOffset
+                val effectivePlaybackPosition = currentPlaybackPosition - lyricsOffset
 
                 itemsIndexed(
                     items = lines,

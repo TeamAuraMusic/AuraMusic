@@ -1831,12 +1831,16 @@ fun BottomSheetPlayer(
                         val currentSliderPosition by rememberUpdatedState(sliderPosition)
                         val sliderPositionProvider = remember { { currentSliderPosition } }
                         val isExpandedProvider = remember(state) { { state.isExpanded } }
+                        // Get video mode state
+                        val playerConnection = LocalPlayerConnection.current
+                        val videoModeEnabled by playerConnection?.videoModeEnabled?.collectAsState() ?: remember { mutableStateOf(false) }
+                        
                         AnimatedContent(
-                            targetState = showInlineLyrics,
+                            targetState = if (videoModeEnabled) false else showInlineLyrics,
                             label = "Lyrics",
                             transitionSpec = { fadeIn() togetherWith fadeOut() }
                         ) { showLyrics ->
-                            if (showLyrics) {
+                            if (showLyrics && !videoModeEnabled) {
                                 InlineLyricsView(
                                     mediaMetadata = mediaMetadata,
                                     showLyrics = showLyrics,
@@ -1901,6 +1905,7 @@ fun InlineLyricsView(
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
+    val videoModeEnabled by playerConnection.videoModeEnabled.collectAsState()
     val lyrics = remember(currentLyrics) { currentLyrics?.lyrics?.trim() }
     val context = LocalContext.current
     val database = LocalDatabase.current
@@ -1947,11 +1952,13 @@ fun InlineLyricsView(
             }
             else -> {
                 val lyricsContent: @Composable () -> Unit = {
-                    Lyrics(
-                        sliderPositionProvider = positionProvider,
-                        modifier = Modifier.padding(horizontal = 24.dp),
-                        showLyrics = showLyrics
-                    )
+                    if (!videoModeEnabled) {
+                        Lyrics(
+                            sliderPositionProvider = positionProvider,
+                            modifier = Modifier.padding(horizontal = 24.dp),
+                            showLyrics = showLyrics
+                        )
+                    }
                 }
                 ProvideTextStyle(
                     value = MaterialTheme.typography.bodyMedium.copy(

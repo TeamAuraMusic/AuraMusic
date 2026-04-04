@@ -5,15 +5,25 @@
 
 package com.auramusic.app.ui.player
 
+import android.provider.Settings
 import android.view.ViewGroup
+import android.view.WindowManager
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
@@ -22,9 +32,11 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -33,9 +45,13 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,6 +62,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -54,9 +71,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -64,9 +87,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -99,13 +124,13 @@ import com.auramusic.app.ui.component.CastButton
 import com.auramusic.app.utils.FlowPlayerUtils
 import com.auramusic.app.utils.rememberEnumPreference
 import com.auramusic.app.utils.rememberPreference
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlin.math.absoluteValue
+import kotlin.math.roundToInt
 
 /**
  * Pre-calculated thumbnail dimensions to avoid repeated calculations during recomposition.
@@ -646,7 +671,7 @@ private fun HiddenThumbnailPlaceholder(
 
 /**
  * Actual thumbnail image with caching and hardware layer rendering.
- * Also displays video when video mode is enabled.
+ * Also displays video when video mode is enabled with enhanced controls.
  */
 @Composable
 private fun ThumbnailImage(
@@ -657,6 +682,55 @@ private fun ThumbnailImage(
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val player = playerConnection.player
+    val context = LocalContext.current
+    
+    // [4] Auto-hide controls state
+    var showControls by remember { mutableStateOf(true) }
+    var lastInteractionTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    
+    // [6] Pinch-to-zoom resize mode
+    var resizeMode by remember { mutableIntStateOf(AspectRatioFrameLayout.RESIZE_MODE_FIT) }
+    
+    // [8] Brightness/Volume gesture state
+    var showBrightnessOverlay by remember { mutableStateOf(false) }
+    var showVolumeOverlay by remember { mutableStateOf(false) }
+    var brightnessLevel by remember { mutableFloatStateOf(0.5f) }
+    var volumeLevel by remember { mutableFloatStateOf(1f) }
+    
+    // Initialize brightness from system
+    LaunchedEffect(Unit) {
+        try {
+            val systemBrightness = Settings.System.getInt(
+                context.contentResolver,
+                Settings.System.SCREEN_BRIGHTNESS, 128
+            )
+            brightnessLevel = systemBrightness / 255f
+        } catch (_: Exception) {}
+        volumeLevel = player.volume
+    }
+    
+    // [4] Auto-hide controls after 3 seconds
+    LaunchedEffect(showControls, lastInteractionTime) {
+        if (showControls && videoModeEnabled) {
+            delay(3000)
+            if (System.currentTimeMillis() - lastInteractionTime >= 2900) {
+                showControls = false
+            }
+        }
+    }
+    
+    // [7] Progress tracking for gradient bar
+    var playerPosition by remember { mutableLongStateOf(0L) }
+    var playerDuration by remember { mutableLongStateOf(1L) }
+    LaunchedEffect(videoModeEnabled) {
+        if (videoModeEnabled) {
+            while (isActive) {
+                playerPosition = player.currentPosition
+                playerDuration = player.duration.coerceAtLeast(1L)
+                delay(200)
+            }
+        }
+    }
     
     Box(
         modifier = modifier
@@ -667,15 +741,16 @@ private fun ThumbnailImage(
                     compositingStrategy = CompositingStrategy.Offscreen
                 }
             )
-            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .background(if (videoModeEnabled) Color.Black else MaterialTheme.colorScheme.surfaceVariant)
     ) {
         if (videoModeEnabled) {
+            // Video player view - fix: use RESIZE_MODE_ZOOM for full fill
             AndroidView(
-                factory = { context ->
-                    PlayerView(context).apply {
+                factory = { ctx ->
+                    PlayerView(ctx).apply {
                         this.player = player
-                        useController = true
-                        resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FILL
+                        useController = false // We use our own controls
+                        this.resizeMode = resizeMode
                         setBackgroundColor(android.graphics.Color.BLACK)
                         layoutParams = ViewGroup.LayoutParams(
                             ViewGroup.LayoutParams.MATCH_PARENT,
@@ -688,22 +763,147 @@ private fun ThumbnailImage(
                 modifier = Modifier.fillMaxSize(),
                 update = { playerView ->
                     playerView.player = player
+                    playerView.resizeMode = resizeMode
                     playerView.requestLayout()
                 }
             )
             
-            // Single settings button (top right) with quality
-            VideoSettingsButton(
+            // [4] Tap to show/hide controls + [8] Brightness/Volume swipe gestures
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onTap = {
+                                showControls = !showControls
+                                lastInteractionTime = System.currentTimeMillis()
+                            }
+                        )
+                    }
+                    .pointerInput(Unit) {
+                        detectDragGestures(
+                            onDragStart = { offset ->
+                                lastInteractionTime = System.currentTimeMillis()
+                                showControls = true
+                                val isLeftSide = offset.x < size.width / 2
+                                if (isLeftSide) showBrightnessOverlay = true
+                                else showVolumeOverlay = true
+                            },
+                            onDragEnd = {
+                                showBrightnessOverlay = false
+                                showVolumeOverlay = false
+                            },
+                            onDragCancel = {
+                                showBrightnessOverlay = false
+                                showVolumeOverlay = false
+                            },
+                            onDrag = { change, dragAmount ->
+                                change.consume()
+                                val delta = -dragAmount.y / size.height
+                                if (showBrightnessOverlay) {
+                                    brightnessLevel = (brightnessLevel + delta).coerceIn(0.01f, 1f)
+                                    val window = (context as? android.app.Activity)?.window
+                                    window?.let {
+                                        val params = it.attributes
+                                        params.screenBrightness = brightnessLevel
+                                        it.attributes = params
+                                    }
+                                } else if (showVolumeOverlay) {
+                                    volumeLevel = (volumeLevel + delta).coerceIn(0f, 1f)
+                                    player.volume = volumeLevel
+                                }
+                            }
+                        )
+                    }
+            )
+            
+            // [8] Brightness overlay (left side)
+            AnimatedVisibility(
+                visible = showBrightnessOverlay,
+                enter = fadeIn(tween(150)),
+                exit = fadeOut(tween(300)),
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = 16.dp)
+            ) {
+                GestureIndicator(
+                    icon = R.drawable.contrast,
+                    level = brightnessLevel,
+                    label = "${(brightnessLevel * 100).roundToInt()}%"
+                )
+            }
+            
+            // [8] Volume overlay (right side)
+            AnimatedVisibility(
+                visible = showVolumeOverlay,
+                enter = fadeIn(tween(150)),
+                exit = fadeOut(tween(300)),
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 16.dp)
+            ) {
+                GestureIndicator(
+                    icon = R.drawable.volume_up,
+                    level = volumeLevel,
+                    label = "${(volumeLevel * 100).roundToInt()}%"
+                )
+            }
+            
+            // [7] Video progress gradient bar at top
+            val progress by animateFloatAsState(
+                targetValue = if (playerDuration > 0) playerPosition.toFloat() / playerDuration.toFloat() else 0f,
+                animationSpec = tween(250, easing = LinearEasing),
+                label = "progress"
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .align(Alignment.TopCenter)
+            ) {
+                // Background track
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.White.copy(alpha = 0.2f))
+                )
+                // Progress with gradient
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(progress)
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(
+                                    MaterialTheme.colorScheme.primary,
+                                    MaterialTheme.colorScheme.tertiary
+                                )
+                            )
+                        )
+                )
+            }
+            
+            // [4] Auto-hide settings button
+            AnimatedVisibility(
+                visible = showControls,
+                enter = fadeIn(tween(200)),
+                exit = fadeOut(tween(400)),
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(8.dp)
-            )
+                    .padding(top = 8.dp, end = 8.dp)
+            ) {
+                VideoSettingsButton(
+                    resizeMode = resizeMode,
+                    onResizeModeChange = { resizeMode = it },
+                    onInteraction = { lastInteractionTime = System.currentTimeMillis() }
+                )
+            }
             
             // Always-on lyrics overlay at bottom (like YouTube subtitles)
             VideoLyricsOverlay(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 50.dp)
+                    .padding(bottom = 12.dp)
             )
         } else {
             // Album art image
@@ -723,14 +923,67 @@ private fun ThumbnailImage(
 }
 
 /**
+ * [8] Gesture indicator for brightness/volume swipe
+ */
+@Composable
+private fun GestureIndicator(
+    icon: Int,
+    level: Float,
+    label: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+            .background(Color.Black.copy(alpha = 0.7f), RoundedCornerShape(12.dp))
+            .padding(12.dp)
+    ) {
+        Icon(
+            painter = painterResource(icon),
+            contentDescription = null,
+            tint = Color.White,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(Modifier.height(8.dp))
+        // Vertical progress bar
+        Box(
+            modifier = Modifier
+                .width(4.dp)
+                .height(80.dp)
+                .background(Color.White.copy(alpha = 0.3f), RoundedCornerShape(2.dp))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(level)
+                    .align(Alignment.BottomCenter)
+                    .background(Color.White, RoundedCornerShape(2.dp))
+            )
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = label,
+            color = Color.White,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium
+        )
+    }
+}
+
+/**
  * Single settings button for video controls.
- * Contains video quality selection in a dropdown menu.
+ * Contains video quality, resize mode (pinch-to-zoom) options.
+ * YouTube-style compact menu design
  */
 @Composable
 private fun VideoSettingsButton(
+    resizeMode: Int,
+    onResizeModeChange: (Int) -> Unit,
+    onInteraction: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
+    var showQualityMenu by remember { mutableStateOf(false) }
     val (videoQuality, onVideoQualityChange) = rememberEnumPreference(
         VideoQualityKey,
         defaultValue = VideoQuality.QUALITY_720P
@@ -738,7 +991,11 @@ private fun VideoSettingsButton(
 
     Box(modifier = modifier) {
         IconButton(
-            onClick = { expanded = true },
+            onClick = {
+                expanded = true
+                showQualityMenu = false
+                onInteraction()
+            },
             modifier = Modifier
                 .size(36.dp)
                 .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(18.dp))
@@ -751,67 +1008,225 @@ private fun VideoSettingsButton(
             )
         }
 
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            // Quality header
-            Text(
-                text = "Video Quality",
-                fontWeight = FontWeight.Bold,
-                fontSize = 13.sp,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
-
-            VideoQuality.entries.forEach { quality ->
-                val label = when (quality) {
-                    VideoQuality.QUALITY_360P -> "360p"
-                    VideoQuality.QUALITY_480P -> "480p"
-                    VideoQuality.QUALITY_720P -> "720p"
-                    VideoQuality.QUALITY_1080P -> "1080p"
-                }
+        if (!showQualityMenu) {
+            // Main menu - YouTube style
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                // Quality option
                 DropdownMenuItem(
                     text = {
-                        Text(
-                            text = if (quality == videoQuality) "✓ $label" else "   $label",
-                            color = if (quality == videoQuality) MaterialTheme.colorScheme.primary else Color.Unspecified
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    painter = painterResource(R.drawable.settings),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(24.dp).padding(end = 12.dp),
+                                    tint = Color.White
+                                )
+                                Text("Quality")
+                            }
+                            Text(
+                                text = when (videoQuality) {
+                                    VideoQuality.QUALITY_360P -> "360p"
+                                    VideoQuality.QUALITY_480P -> "480p"
+                                    VideoQuality.QUALITY_720P -> "720p"
+                                    VideoQuality.QUALITY_1080P -> "1080p"
+                                },
+                                color = Color.Gray,
+                                fontSize = 13.sp
+                            )
+                        }
                     },
                     onClick = {
-                        onVideoQualityChange(quality)
-                        FlowPlayerUtils.setPreferredVideoQuality(quality)
+                        showQualityMenu = true
+                    }
+                )
+                
+                // Video fit option
+                DropdownMenuItem(
+                    text = {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    painter = painterResource(R.drawable.fullscreen),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(24.dp).padding(end = 12.dp),
+                                    tint = Color.White
+                                )
+                                Text("Video fit")
+                            }
+                            Text(
+                                text = when (resizeMode) {
+                                    AspectRatioFrameLayout.RESIZE_MODE_FIT -> "Fit"
+                                    AspectRatioFrameLayout.RESIZE_MODE_ZOOM -> "Fill"
+                                    AspectRatioFrameLayout.RESIZE_MODE_FILL -> "Stretch"
+                                    else -> "Fit"
+                                },
+                                color = Color.Gray,
+                                fontSize = 13.sp
+                            )
+                        }
+                    },
+                    onClick = {
+                        // Cycle through modes like YouTube
+                        val nextMode = when (resizeMode) {
+                            AspectRatioFrameLayout.RESIZE_MODE_FIT -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                            AspectRatioFrameLayout.RESIZE_MODE_ZOOM -> AspectRatioFrameLayout.RESIZE_MODE_FILL
+                            else -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+                        }
+                        onResizeModeChange(nextMode)
                         expanded = false
                     }
                 )
+            }
+        } else {
+            // Quality submenu
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { 
+                    expanded = false
+                    showQualityMenu = false
+                }
+            ) {
+                // Back button
+                DropdownMenuItem(
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                painter = painterResource(R.drawable.arrow_back),
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp).padding(end = 12.dp),
+                                tint = Color.White
+                            )
+                            Text("Quality")
+                        }
+                    },
+                    onClick = {
+                        showQualityMenu = false
+                    }
+                )
+                
+                VideoQuality.entries.forEach { quality ->
+                    val label = when (quality) {
+                        VideoQuality.QUALITY_360P -> "360p"
+                        VideoQuality.QUALITY_480P -> "480p"
+                        VideoQuality.QUALITY_720P -> "720p"
+                        VideoQuality.QUALITY_1080P -> "1080p"
+                    }
+                    DropdownMenuItem(
+                        text = {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(label)
+                                if (quality == videoQuality) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.check),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        },
+                        onClick = {
+                            onVideoQualityChange(quality)
+                            FlowPlayerUtils.setPreferredVideoQuality(quality)
+                            expanded = false
+                            showQualityMenu = false
+                        }
+                    )
+                }
             }
         }
     }
 }
 
 /**
- * Seek effect overlay showing seek direction.
+ * [5] Enhanced seek effect overlay with ripple circles and seek arrows
  */
 @Composable
 private fun SeekEffectOverlay(
     seekDirection: String,
+    isForward: Boolean = true,
     modifier: Modifier = Modifier
 ) {
-    Text(
-        text = seekDirection,
-        color = Color.White,
-        fontSize = 16.sp,
-        fontWeight = FontWeight.Bold,
-        textAlign = TextAlign.Center,
+    val rippleAlpha = remember { Animatable(0.6f) }
+    val rippleScale = remember { Animatable(0.5f) }
+    
+    LaunchedEffect(seekDirection) {
+        rippleScale.snapTo(0.5f)
+        rippleAlpha.snapTo(0.6f)
+        launch { rippleScale.animateTo(1.5f, tween(600)) }
+        rippleAlpha.animateTo(0f, tween(600))
+    }
+    
+    Box(
+        contentAlignment = Alignment.Center,
         modifier = modifier
-            .background(Color.Black.copy(alpha = 0.7f), RoundedCornerShape(8.dp))
-            .padding(8.dp)
-    )
+    ) {
+        // Ripple circle
+        Canvas(
+            modifier = Modifier
+                .size(80.dp)
+                .graphicsLayer {
+                    scaleX = rippleScale.value
+                    scaleY = rippleScale.value
+                    alpha = rippleAlpha.value
+                }
+        ) {
+            drawCircle(
+                color = Color.White.copy(alpha = 0.3f),
+                radius = size.minDimension / 2
+            )
+        }
+        // Seek info
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            Icon(
+                painter = painterResource(
+                    if (isForward) R.drawable.fast_forward else R.drawable.fast_forward
+                ),
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier
+                    .size(28.dp)
+                    .graphicsLayer { if (!isForward) scaleX = -1f }
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = seekDirection,
+                color = Color.White,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
 }
 
 /**
  * Video lyrics overlay displayed at bottom like YouTube subtitles.
- * Always enabled when video is playing. Fetches lyrics from providers
- * if not in DB, and updates position in real-time.
+ * Always enabled when video is playing. Features:
+ * [1] Animated fade transitions between lyric lines
+ * [2] Next lyric line preview
+ * [3] Glow/shadow effect for readability
  */
 @Composable
 private fun VideoLyricsOverlay(
@@ -850,7 +1265,6 @@ private fun VideoLyricsOverlay(
         if (!text.isNullOrEmpty() && text != LyricsEntity.LYRICS_NOT_FOUND) text else null
     }
 
-    // Parse synced lyrics timestamps and text
     data class LyricLine(val timeMs: Long, val text: String)
 
     val parsedLines = remember(lyricsText) {
@@ -871,46 +1285,110 @@ private fun VideoLyricsOverlay(
         result.sortedBy { it.timeMs }
     }
 
-    // Real-time player position tracking
+    // Real-time player position tracking with lyrics offset
     var playerPosition by remember { mutableLongStateOf(player.currentPosition) }
+    val currentSong by playerConnection.currentSong.collectAsState(initial = null)
+    val lyricsOffset = currentSong?.song?.lyricsOffset ?: 0
+    
     LaunchedEffect(mediaMetadata?.id) {
         while (isActive) {
-            playerPosition = player.currentPosition
-            delay(200)
+            playerPosition = player.currentPosition - lyricsOffset
+            delay(150)
         }
     }
 
-    // Find current lyric line based on player position
-    val currentLine = remember(parsedLines, playerPosition) {
-        if (parsedLines.isEmpty()) return@remember null
-        var best: LyricLine? = null
-        for (line in parsedLines) {
-            if (playerPosition >= line.timeMs) {
-                best = line
-            } else {
-                break
-            }
+    // Find current and next lyric line index
+    val currentIndex = remember(parsedLines, playerPosition) {
+        if (parsedLines.isEmpty()) return@remember -1
+        var bestIdx = -1
+        for (i in parsedLines.indices) {
+            if (playerPosition >= parsedLines[i].timeMs) {
+                bestIdx = i
+            } else break
         }
-        best?.text
+        bestIdx
     }
+
+    val currentLine = if (currentIndex >= 0) parsedLines[currentIndex].text else null
+    // [2] Next lyric line preview
+    val nextLine = if (currentIndex >= 0 && currentIndex + 1 < parsedLines.size) parsedLines[currentIndex + 1].text else null
+
+    // [3] Glow text style with shadow
+    val glowStyle = TextStyle(
+        color = Color.White,
+        fontSize = 15.sp,
+        fontWeight = FontWeight.SemiBold,
+        textAlign = TextAlign.Center,
+        shadow = Shadow(
+            color = Color.Black,
+            offset = Offset(0f, 0f),
+            blurRadius = 12f
+        )
+    )
 
     if (currentLine != null) {
-        Box(
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = modifier
                 .fillMaxWidth()
-                .background(
-                    Color.Black.copy(alpha = 0.6f),
-                    RoundedCornerShape(4.dp)
-                )
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .padding(horizontal = 12.dp)
         ) {
-            Text(
-                text = currentLine,
-                color = Color.White,
-                fontSize = 14.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
+            // [1] Current line with animated fade transition
+            AnimatedVisibility(
+                visible = true,
+                enter = fadeIn(tween(300)) + slideInVertically(tween(300)) { it / 2 },
+                exit = fadeOut(tween(200)) + slideOutVertically(tween(200)) { -it / 2 }
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            Color.Black.copy(alpha = 0.55f),
+                            RoundedCornerShape(8.dp)
+                        )
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    // [3] Double-render for glow effect
+                    Text(
+                        text = currentLine,
+                        style = glowStyle.copy(
+                            shadow = Shadow(
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                                offset = Offset(0f, 0f),
+                                blurRadius = 20f
+                            )
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text(
+                        text = currentLine,
+                        style = glowStyle,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+
+            // [2] Next line preview - dimmed, smaller
+            if (nextLine != null) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = nextLine,
+                    color = Color.White.copy(alpha = 0.45f),
+                    fontSize = 12.sp,
+                    textAlign = TextAlign.Center,
+                    style = TextStyle(
+                        shadow = Shadow(
+                            color = Color.Black,
+                            offset = Offset(0f, 0f),
+                            blurRadius = 8f
+                        )
+                    ),
+                    maxLines = 1,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp)
+                )
+            }
         }
     }
 }

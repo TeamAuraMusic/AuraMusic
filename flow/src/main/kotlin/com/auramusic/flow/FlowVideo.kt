@@ -76,14 +76,13 @@ object FlowVideo {
             streams
         }
 
-        // Quality preference order: try exact match first, then fall back to lower qualities
-        val qualityOrder = listOf(
-            currentPreferredQuality,
-            VideoQuality.QUALITY_1080P,
-            VideoQuality.QUALITY_720P,
-            VideoQuality.QUALITY_480P,
-            VideoQuality.QUALITY_360P
-        )
+        // Quality preference order: try exact match first, then fall back to lower qualities only
+        val qualityOrder = when (currentPreferredQuality) {
+            VideoQuality.QUALITY_1080P -> listOf(VideoQuality.QUALITY_1080P, VideoQuality.QUALITY_720P, VideoQuality.QUALITY_480P, VideoQuality.QUALITY_360P)
+            VideoQuality.QUALITY_720P -> listOf(VideoQuality.QUALITY_720P, VideoQuality.QUALITY_480P, VideoQuality.QUALITY_360P)
+            VideoQuality.QUALITY_480P -> listOf(VideoQuality.QUALITY_480P, VideoQuality.QUALITY_360P)
+            VideoQuality.QUALITY_360P -> listOf(VideoQuality.QUALITY_360P)
+        }
 
         // First pass: try to find exact or closest match at or below preferred quality
         for (quality in qualityOrder) {
@@ -170,15 +169,18 @@ object FlowVideo {
                 }
                 if (hasPreferredChannel) score += 20
                 
-                // Title matching - check if song title is in video title
+                // Title matching - check if song title is in video title (exact match first)
                 val titleHasSongName = title.contains(songTitleLower) || 
                     songTitleLower.contains(title.take(minOf(30, title.length)))
-                if (titleHasSongName) score += 25
+                if (titleHasSongName) score += 40
                 
-                // Check if artist name is mentioned (in title or channel)
+                // Check if artist name is mentioned (in title or channel) - EXACT match required
                 val artistInTitle = title.contains(artistNameLower) || 
                     artistNameLower.split(" ").any { it.length > 2 && title.contains(it) }
-                if (artistInTitle) score += 15
+                if (artistInTitle) score += 35
+                
+                // Penalize if artist name not found at all
+                if (!artistInTitle) score -= 20
                 
                 // Check for "official" keyword
                 if (title.contains("official")) score += 10
@@ -428,23 +430,32 @@ object FlowVideo {
         if (formats.isEmpty()) return null
 
         // Filter to video formats
-        val videoFormats = formats.filter { it.isVideo }
+        val videoFormats = formats.filter { it.isVideo && it.height != null }
 
-        // Try to find exact quality match
+        // Try to find exact quality match first
         val targetHeight = quality.height
-        val exactMatch = videoFormats.find { (it.height ?: 0) == targetHeight }
+        val exactMatch = videoFormats.find { it.height == targetHeight }
         if (exactMatch != null) {
             return exactMatch
         }
 
-        // Try to find close quality (within range)
-        val closeMatch = videoFormats.find { (it.height ?: 0) in (targetHeight - 120)..(targetHeight + 60) }
-        if (closeMatch != null) {
-            return closeMatch
+        // Quality preference order: try lower qualities first before higher ones
+        val qualityOrder = when (quality) {
+            VideoQuality.QUALITY_1080P -> listOf(1080, 720, 480, 360)
+            VideoQuality.QUALITY_720P -> listOf(720, 480, 360, 1080)
+            VideoQuality.QUALITY_480P -> listOf(480, 360, 720, 1080)
+            VideoQuality.QUALITY_360P -> listOf(360, 480, 720, 1080)
         }
 
-        // Fallback to highest bitrate video format
-        return videoFormats.maxByOrNull { it.bitrate }
+        for (height in qualityOrder) {
+            val match = videoFormats.find { it.height == height }
+            if (match != null) {
+                return match
+            }
+        }
+
+        // Last fallback: highest quality available
+        return videoFormats.maxByOrNull { it.height ?: 0 }
     }
 
     suspend fun hasVideoPlayback(videoId: String): Boolean {
