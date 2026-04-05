@@ -17,7 +17,7 @@
 - **Updater**: Added automatic redirect following for GitHub API requests
 
 ## Changes
-- Repository moved to Team AuraMusic organization: https://github.com/Team-AuraMusic/AuraMusic
+- Repository moved to Team AuraMusic organization: https://github.com/TeamAuraMusic/AuraMusic
 - All repository URLs updated across entire codebase (settings, API, Discord RPC, README, etc.)
 - Build version bump: 1.0.9 (Build 10) → 1.0.10 (Build 11)
 
@@ -63,7 +63,7 @@
 ## Build Updates
 
 - Version bump: 1.0.8 (Build 9) → 1.0.9 (Build 10)
-- Repository moved to Team AuraMusic organization: https://github.com/Team-AuraMusic/AuraMusic
+- Repository moved to Team AuraMusic organization: https://github.com/TeamAuraMusic/AuraMusic
 
 ---
 
