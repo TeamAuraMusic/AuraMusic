@@ -159,6 +159,7 @@ Join our community on social media - more platforms coming soon!
 - [**SimpMusic Lyrics**](https://github.com/maxrave-dev/SimpMusic) – Lyrics data via SimpMusic API
 - [**AuraMusicServer**](https://github.com/TeamAuraMusic/AuraMusicServer) – Listen together implementation
 - [**MusicRecognizer**](https://github.com/aleksey-saenko/MusicRecognizer) – Music recognition and Shazam API
+- [**Flow**](https://github.com/A-EDev/Flow) - Extract videos from YouTube 
 
 The open-source community for tools, libraries, and APIs that make this project possible.
 
