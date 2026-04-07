@@ -602,7 +602,7 @@ object YouTube {
                     }.filterNotNull()
                     if (items.isEmpty()) null else PodcastsPage.PodcastSection(title, items)
                 }
-            }.filterNotNull().orEmpty()
+            }?.filterNotNull()?.orEmpty() ?: emptyList()
         )
     }
 
@@ -618,7 +618,7 @@ object YouTube {
                         if (items.isEmpty()) null else MixesPage.MixSection(title, items)
                     }
                 }
-            }.filterNotNull().orEmpty()
+            }?.filterNotNull()?.orEmpty() ?: emptyList()
         )
     }
 
@@ -775,24 +775,24 @@ object YouTube {
         ).body<BrowseResponse>()
 
         val sections = mutableListOf<ChartsPage.ChartSection>()
-    
+
         response.contents?.singleColumnBrowseResultsRenderer?.tabs?.firstOrNull()
             ?.tabRenderer?.content?.sectionListRenderer?.contents?.forEach { content ->
-            
+
                 content.musicCarouselShelfRenderer?.let { renderer ->
                     val title = renderer.header?.musicCarouselShelfBasicHeaderRenderer?.title?.runs?.firstOrNull()?.text
                         ?: return@forEach
-            
+
                     val items = renderer.contents.mapNotNull { item ->
                         when {
-                            item.musicResponsiveListItemRenderer != null -> 
+                            item.musicResponsiveListItemRenderer != null ->
                                 convertToChartItem(item.musicResponsiveListItemRenderer)
-                            item.musicTwoRowItemRenderer != null -> 
+                            item.musicTwoRowItemRenderer != null ->
                                 convertMusicTwoRowItem(item.musicTwoRowItemRenderer)
                             else -> null
                         }
                     }.filterNotNull()
-            
+
                     if (items.isNotEmpty()) {
                         sections.add(ChartsPage.ChartSection(title, items))
                     }
@@ -814,39 +814,16 @@ object YouTube {
             ?.tabRenderer?.content?.sectionListRenderer?.contents?.firstOrNull()
             ?.musicCarouselShelfRenderer?.contents?.mapNotNull { item ->
                 when {
-                    item.musicResponsiveListItemRenderer != null -> 
+                    item.musicResponsiveListItemRenderer != null ->
                         convertToChartItem(item.musicResponsiveListItemRenderer)
-                    item.musicTwoRowItemRenderer != null -> 
+                    item.musicTwoRowItemRenderer != null ->
                         convertMusicTwoRowItem(item.musicTwoRowItemRenderer)
                     else -> null
                 }
-            }.filterNotNull().take(100).orEmpty()
+            }?.filterNotNull()?.take(100)?.orEmpty() ?: emptyList()
 
         Top100ChartsPage(countryCode, topItems)
     }
-
-        val sections = mutableListOf<ChartsPage.ChartSection>()
-    
-        response.contents?.singleColumnBrowseResultsRenderer?.tabs?.firstOrNull()
-            ?.tabRenderer?.content?.sectionListRenderer?.contents?.forEach { content ->
-            
-                content.musicCarouselShelfRenderer?.let { renderer ->
-                    val title = renderer.header?.musicCarouselShelfBasicHeaderRenderer?.title?.runs?.firstOrNull()?.text
-                        ?: return@forEach
-                
-                    val items = renderer.contents.mapNotNull { item ->
-                        when {
-                            item.musicResponsiveListItemRenderer != null -> 
-                                convertToChartItem(item.musicResponsiveListItemRenderer)
-                            item.musicTwoRowItemRenderer != null -> 
-                                convertMusicTwoRowItem(item.musicTwoRowItemRenderer)
-                            else -> null
-                        }
-                    }.filterNotNull()
-                
-                    if (items.isNotEmpty()) {
-                        sections.add(
-                            ChartsPage.ChartSection(
                                 title = title,
                                 items = items,
                                 chartType = determineChartType(title)
