@@ -1,5 +1,7 @@
 package com.auramusic.innertube.pages
 
+import com.auramusic.innertube.MixesPage
+import com.auramusic.innertube.PodcastsPage
 import com.auramusic.innertube.models.AlbumItem
 
 data class ExplorePage(

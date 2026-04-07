@@ -6,6 +6,7 @@ import com.auramusic.innertube.models.AlbumItem
 import com.auramusic.innertube.models.Artist
 import com.auramusic.innertube.models.ArtistItem
 import com.auramusic.innertube.models.BrowseEndpoint
+import com.auramusic.innertube.models.EpisodeItem
 import com.auramusic.innertube.models.GridRenderer
 import com.auramusic.innertube.models.MediaInfo
 import com.auramusic.innertube.models.MusicResponsiveListItemRenderer
@@ -14,6 +15,7 @@ import com.auramusic.innertube.models.MusicCarouselShelfRenderer
 import com.auramusic.innertube.models.MusicShelfRenderer
 import com.auramusic.innertube.models.SectionListRenderer
 import com.auramusic.innertube.models.PlaylistItem
+import com.auramusic.innertube.models.PodcastItem
 import com.auramusic.innertube.models.SearchSuggestions
 import com.auramusic.innertube.models.Run
 import com.auramusic.innertube.models.Runs
@@ -1014,6 +1016,8 @@ object YouTube {
                     is AlbumItem -> albums.add(item)
                     is ArtistItem -> artists.add(item)
                     is PlaylistItem -> playlists.add(item)
+                    is PodcastItem -> {}
+                    is EpisodeItem -> {}
                     null -> {}
                 }
             }
