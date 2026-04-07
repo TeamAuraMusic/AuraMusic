@@ -1060,7 +1060,7 @@ fun BottomSheetPlayer(
                         }
 
                         // Video mode toggle button - only show for video songs (not regular songs)
-                        if (videoModeToggleEnabled && isVideoSong == true) {
+                        if (videoModeToggleEnabled && mediaMetadata?.isVideoSong == true) {
                             Box(
                                 contentAlignment = Alignment.Center,
                                 modifier = Modifier.size(42.dp)
@@ -1069,10 +1069,6 @@ fun BottomSheetPlayer(
                                     ContainedLoadingIndicator(
                                         modifier = Modifier.size(24.dp)
                                     )
-                                } else if (!isVideoAvailable) {
-                                    // Hide video button completely for songs without video
-                                    // Video songs auto-enable when available, no manual toggle needed
-                                }
                                 } else {
                                     FilledIconButton(
                                         onClick = {
