@@ -77,9 +77,40 @@ jobs:
 
       - name: Build FossUniversalRelease APK
         run: |
-          sed -i 's|maven.aliyun.com/repository/public|maven.google.com/repository/public|g' build.gradle.kts settings.gradle.kts 2>/dev/null || true
-          sed -i 's|maven.aliyun.com/repository/google|dl.google.com/dl/android/maven|g' build.gradle.kts settings.gradle.kts 2>/dev/null || true
-          sed -i 's|maven.aliyun.com/repository/central|repo.maven.apache.org/maven2|g' build.gradle.kts settings.gradle.kts 2>/dev/null || true
+          cat > settings.gradle.kts << 'KOTLIN'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          plugins {
+              id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  mavenCentral()
+                  google()
+                  maven { url = uri("https://jitpack.io") }
+                  maven { url = uri("https://s01.oss.sonatype.org/content/repositories/snapshots/") }
+                  maven { url = uri("https://s01.oss.sonatype.org/content/repositories/releases/") }
+              }
+          }
+          rootProject.name = "AuraMusic"
+          include(":app")
+          include(":innertube")
+          include(":flow")
+          include(":kugou")
+          include(":lrclib")
+          include(":kizzy")
+          include(":lastfm")
+          include(":betterlyrics")
+          include(":simpmusic")
+          include(":shazamkit")
+          include(":rush")
+          KOTLIN
           ./gradlew assembleFossUniversalRelease --no-daemon --no-configuration-cache
 
       - name: Upload APK
