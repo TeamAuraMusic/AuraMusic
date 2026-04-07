@@ -8,7 +8,7 @@ package com.auramusic.app.ui.screens
 import android.content.Context
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,9 +20,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
+import coil3.compose.AsyncImage
 import com.auramusic.app.R
 import com.auramusic.innertube.YouTube
 import com.auramusic.innertube.pages.RelatedPage
+import com.auramusic.innertube.models.SongItem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -80,11 +82,14 @@ fun TopChartsScreen(
                 CircularProgressIndicator()
             }
         } else {
+            val items = topChartsPage?.items ?: emptyList()
             LazyColumn(
                 contentPadding = PaddingValues(vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(0.dp)
             ) {
-                itemsIndexed(topChartsPage?.items.orEmpty()) { index, item ->
+                items(items.size) { index ->
+                    val item = items[index]
+                    val song = item.asSongItem
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -96,22 +101,22 @@ fun TopChartsScreen(
                             style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier.width(32.dp)
                         )
-                        item.thumbnailUrl?.let { url ->
-                            CoilImage(
-                                url = url,
+                        item.thumbnail?.let { url ->
+                            AsyncImage(
+                                model = url,
                                 modifier = Modifier.size(56.dp),
                                 shape = MaterialTheme.shapes.small
                             )
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
-                            item.title?.let {
+                            song?.title?.let {
                                 Text(
                                     text = it,
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                             }
-                            item.artists?.firstOrNull()?.name?.let {
+                            song?.artists?.firstOrNull()?.name?.let {
                                 Text(
                                     text = it,
                                     style = MaterialTheme.typography.bodySmall,

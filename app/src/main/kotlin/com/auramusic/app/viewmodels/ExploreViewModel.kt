@@ -11,6 +11,9 @@ import androidx.lifecycle.viewModelScope
 import com.auramusic.innertube.YouTube
 import com.auramusic.innertube.models.filterExplicit
 import com.auramusic.innertube.pages.ExplorePage
+import com.auramusic.innertube.YouTube.MixesPage
+import com.auramusic.innertube.YouTube.PodcastsPage
+import com.auramusic.innertube.YouTube.Top100ChartsPage
 import com.auramusic.app.constants.HideExplicitKey
 import com.auramusic.app.db.MusicDatabase
 import com.auramusic.app.utils.dataStore
@@ -32,9 +35,9 @@ constructor(
     val database: MusicDatabase,
 ) : ViewModel() {
     val explorePage = MutableStateFlow<ExplorePage?>(null)
-    val podcastsPage = MutableStateFlow<com.auramusic.innertube.YouTube.PodcastsPage?>(null)
-    val mixesPage = MutableStateFlow<com.auramusic.innertube.YouTube.MixesPage?>(null)
-    val top100ChartsPage = MutableStateFlow<com.auramusic.innertube.YouTube.Top100ChartsPage?>(null)
+    val podcastsPage = MutableStateFlow<PodcastsPage?>(null)
+    val mixesPage = MutableStateFlow<MixesPage?>(null)
+    val top100ChartsPage = MutableStateFlow<Top100ChartsPage?>(null)
 
     private suspend fun loadPodcasts() {
         YouTube.podcasts().onSuccess { page ->

@@ -177,9 +177,10 @@ fun ExploreScreen(
                                                 .height(12.dp)
                                                 .width(80.dp)
                                                 .background(MaterialTheme.colorScheme.onSurface),
-                                        )
+            )
+        }
+    }
 }
-                }
             }
 
             // Podcasts section
