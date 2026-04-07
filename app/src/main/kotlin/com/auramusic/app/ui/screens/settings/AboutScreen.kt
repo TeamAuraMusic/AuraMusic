@@ -59,18 +59,6 @@ fun AboutScreen(
 ) {
     val uriHandler = LocalUriHandler.current
 
-    // Animated logo - infinite pulse animation
-    val infiniteTransition = rememberInfiniteTransition(label = "logo")
-    val scale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.08f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1500, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "scale"
-    )
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -81,11 +69,10 @@ fun AboutScreen(
     ) {
         Spacer(Modifier.height(72.dp))
 
-        // App Logo with pulse animation
+        // App Logo
         Box(
             modifier = Modifier
                 .size(100.dp)
-                .scale(scale)
                 .clip(CircleShape)
                 .background(Color.Black),
             contentAlignment = Alignment.Center
