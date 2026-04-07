@@ -37,16 +37,14 @@ jobs:
           echo "$RELEASE_KEYSTORE" | base64 -d > app/keystore/release.keystore
 
       - name: Copy google-services.json
-        run: cp app/google-services.json.example app/google-services.json
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
-        shell: python
         run: |
-          import os
-          content = os.environ.get('GOOGLE_SERVICES_JSON', '')
-          if content:
-              with open('app/google-services.json', 'w') as f:
-                  f.write(content)
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" > app/google-services.json
+          else
+            cp app/google-services.json.example app/google-services.json
+          fi
 
       - name: Create local.properties
         run: |
