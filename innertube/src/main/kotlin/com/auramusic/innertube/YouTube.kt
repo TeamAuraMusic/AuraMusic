@@ -786,20 +786,20 @@ object YouTube {
                     val items = renderer.contents.mapNotNull { item ->
                         when {
                             item.musicResponsiveListItemRenderer != null ->
-                                convertToChartItem(item.musicResponsiveListItemRenderer)
+                                RelatedPage.fromMusicResponsiveListItemRenderer(item.musicResponsiveListItemRenderer)
                             item.musicTwoRowItemRenderer != null ->
-                                convertMusicTwoRowItem(item.musicTwoRowItemRenderer)
+                                RelatedPage.fromMusicTwoRowItemRenderer(item.musicTwoRowItemRenderer)
                             else -> null
                         }
                     }.filterNotNull()
 
                     if (items.isNotEmpty()) {
-                        sections.add(ChartsPage.ChartSection(title, items))
+                        sections.add(ChartsPage.ChartSection(title, items, ChartsPage.ChartType.GENRE))
                     }
                 }
             }
 
-        ChartsPage(sections)
+        ChartsPage(sections, response.continuationContents?.sectionListContinuation?.continuations?.getContinuation())
     }
 
     suspend fun getTop100Charts(countryCode: String = "US"): Result<Top100ChartsPage> = runCatching {
@@ -815,153 +815,14 @@ object YouTube {
             ?.musicCarouselShelfRenderer?.contents?.mapNotNull { item ->
                 when {
                     item.musicResponsiveListItemRenderer != null ->
-                        convertToChartItem(item.musicResponsiveListItemRenderer)
+                        RelatedPage.fromMusicResponsiveListItemRenderer(item.musicResponsiveListItemRenderer)
                     item.musicTwoRowItemRenderer != null ->
-                        convertMusicTwoRowItem(item.musicTwoRowItemRenderer)
+                        RelatedPage.fromMusicTwoRowItemRenderer(item.musicTwoRowItemRenderer)
                     else -> null
                 }
             }?.filterNotNull()?.take(100)?.orEmpty() ?: emptyList()
 
         Top100ChartsPage(countryCode, topItems)
-    }
-                                title = title,
-                                items = items,
-                                chartType = determineChartType(title)
-                            )
-                        )
-                    }
-                }
-            
-                content.gridRenderer?.let { renderer ->
-                    val title = renderer.header?.gridHeaderRenderer?.title?.runs?.firstOrNull()?.text
-                        ?: return@let
-                
-                    val items = renderer.items.mapNotNull { item ->
-                        item.musicTwoRowItemRenderer?.let { renderer ->
-                            convertMusicTwoRowItem(renderer)
-                        }
-                    }.filterNotNull()
-                
-                    if (items.isNotEmpty()) {
-                        sections.add(
-                            ChartsPage.ChartSection(
-                                title = title,
-                                items = items,
-                                chartType = ChartsPage.ChartType.NEW_RELEASES
-                            )
-                        )
-                    }
-                }
-            }
-
-        ChartsPage(
-            sections = sections,
-            continuation = response.continuationContents?.sectionListContinuation?.continuations?.getContinuation()
-        )
-    }
-
-    private fun determineChartType(title: String): ChartsPage.ChartType {
-        return when {
-            title.contains("Trending", ignoreCase = true) -> ChartsPage.ChartType.TRENDING
-            title.contains("Top", ignoreCase = true) -> ChartsPage.ChartType.TOP
-            else -> ChartsPage.ChartType.GENRE
-        }
-    }
-
-    private fun convertToChartItem(renderer: MusicResponsiveListItemRenderer): YTItem? {
-        return try {
-            when {
-                renderer.flexColumns.size >= 3 && renderer.playlistItemData?.videoId != null -> {
-                    val firstColumn = renderer.flexColumns.getOrNull(0)
-                        ?.musicResponsiveListItemFlexColumnRenderer
-                        ?.text ?: return null
-                
-                    val secondColumn = renderer.flexColumns.getOrNull(1)
-                        ?.musicResponsiveListItemFlexColumnRenderer
-                        ?.text ?: return null
-
-                    val titleRun = firstColumn.runs?.firstOrNull() ?: return null
-                    val title = titleRun.text.takeIf { it.isNotBlank() } ?: return null
-
-                    val artists = secondColumn.runs?.mapNotNull { run ->
-                        run.text.takeIf { it.isNotBlank() }?.let { name ->
-                            Artist(
-                                name = name,
-                                id = run.navigationEndpoint?.browseEndpoint?.browseId
-                            )
-                        }
-                    } ?: emptyList()
-
-                    val thirdColumn = renderer.flexColumns.getOrNull(2)
-                        ?.musicResponsiveListItemFlexColumnRenderer
-                        ?.text
-
-                    SongItem(
-                        id = renderer.playlistItemData.videoId,
-                        title = title,
-                        artists = artists,
-                        thumbnail = renderer.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
-                        musicVideoType = renderer.musicVideoType,
-                        explicit = renderer.badges?.any { 
-                            it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE" 
-                        } == true,
-                        chartPosition = thirdColumn?.runs?.firstOrNull()?.text?.toIntOrNull(),
-                        chartChange = thirdColumn?.runs?.getOrNull(1)?.text
-                    )
-                }
-                else -> null
-            }
-        } catch (e: Exception) {
-            println("Error converting chart item: ${e.message}\n${Json.encodeToString(renderer)}")
-            null
-        }
-    }
-
-    private fun convertMusicTwoRowItem(renderer: MusicTwoRowItemRenderer): YTItem? {
-        return try {
-            when {
-                renderer.isSong -> {
-                    val subtitle = renderer.subtitle?.runs ?: return null
-                    SongItem(
-                        id = renderer.navigationEndpoint.watchEndpoint?.videoId ?: return null,
-                        title = renderer.title.runs?.firstOrNull()?.text ?: return null,
-                        artists = subtitle.mapNotNull {
-                            it.navigationEndpoint?.browseEndpoint?.browseId?.let { id ->
-                                Artist(name = it.text, id = id)
-                            }
-                        },
-                        thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
-                        musicVideoType = renderer.musicVideoType,
-                        explicit = renderer.subtitleBadges?.any {
-                            it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
-                        } == true
-                    )
-                }
-                renderer.isAlbum -> {
-                    AlbumItem(
-                        browseId = renderer.navigationEndpoint.browseEndpoint?.browseId ?: return null,
-                        playlistId = renderer.thumbnailOverlay?.musicItemThumbnailOverlayRenderer?.content
-                            ?.musicPlayButtonRenderer?.playNavigationEndpoint
-                            ?.watchPlaylistEndpoint?.playlistId ?: return null,
-                        title = renderer.title.runs?.firstOrNull()?.text ?: return null,
-                        artists = renderer.subtitle?.runs?.oddElements()?.drop(1)?.mapNotNull {
-                            it.navigationEndpoint?.browseEndpoint?.browseId?.let { id ->
-                                Artist(name = it.text, id = id)
-                            }
-                        },
-                        year = renderer.subtitle?.runs?.lastOrNull()?.text?.toIntOrNull(),
-                        thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
-                        explicit = renderer.subtitleBadges?.any {
-                            it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
-                        } == true
-                    )
-                }
-                else -> null
-            }
-        } catch (e: Exception) {
-            println("Error converting two row item: ${e.message}\n${Json.encodeToString(renderer)}")
-            null
-        }
     }
 
     suspend fun musicHistory() = runCatching {
@@ -1296,7 +1157,7 @@ data class PodcastsPage(
 ) {
     data class PodcastSection(
         val title: String,
-        val items: List<RelatedPage>
+        val items: List<YTItem>
     )
 }
 
@@ -1305,11 +1166,11 @@ data class MixesPage(
 ) {
     data class MixSection(
         val title: String,
-        val items: List<RelatedPage>
+        val items: List<YTItem>
     )
 }
 
 data class Top100ChartsPage(
     val countryCode: String,
-    val items: List<ChartItem>
+    val items: List<YTItem>
 )
