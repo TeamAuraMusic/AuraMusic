@@ -263,7 +263,7 @@ fun AboutScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable {
-                    uriHandler.openUri("https://www.paypal.com/paypalme/franklinfinyage")
+                    uriHandler.openUri("https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=franklinfinyage%40gmail.com")
                 },
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
