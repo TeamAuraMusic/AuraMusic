@@ -34,6 +34,7 @@ import com.auramusic.app.R
 import com.auramusic.app.ui.utils.backToMain
 import kotlin.math.sin
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AboutScreen(
     navController: NavController,
