@@ -38,7 +38,9 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.auramusic.innertube.models.AlbumItem
 import com.auramusic.innertube.models.ArtistItem
+import com.auramusic.innertube.models.EpisodeItem
 import com.auramusic.innertube.models.PlaylistItem
+import com.auramusic.innertube.models.PodcastItem
 import com.auramusic.innertube.models.SongItem
 import com.auramusic.innertube.models.WatchEndpoint
 import com.auramusic.app.LocalPlayerAwareWindowInsets
@@ -162,6 +164,18 @@ fun ArtistItemsScreen(
                                                 coroutineScope = coroutineScope,
                                                 onDismiss = menuState::dismiss,
                                             )
+                                        is PodcastItem ->
+                                            YouTubePlaylistMenu(
+                                                playlist = item.asPlaylistItem(),
+                                                coroutineScope = coroutineScope,
+                                                onDismiss = menuState::dismiss,
+                                            )
+                                        is EpisodeItem ->
+                                            YouTubeSongMenu(
+                                                song = item.asSongItem(),
+                                                navController = navController,
+                                                onDismiss = menuState::dismiss,
+                                            )
                                     }
                                 }
                             },
@@ -192,6 +206,10 @@ fun ArtistItemsScreen(
                                 is AlbumItem -> navController.navigate("album/${item.id}")
                                 is ArtistItem -> navController.navigate("artist/${item.id}")
                                 is PlaylistItem -> navController.navigate("online_playlist/${item.id}")
+                                is PodcastItem -> navController.navigate("online_podcast/${item.id}")
+                                is EpisodeItem -> playerConnection.playQueue(
+                                    YouTubeQueue.radio(item.toMediaMetadata())
+                                )
                             }
                         },
                 )

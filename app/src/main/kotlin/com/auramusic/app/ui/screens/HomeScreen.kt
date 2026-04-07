@@ -1131,6 +1131,10 @@ fun HomeScreen(
                             is PlaylistItem -> luckyItem.playEndpoint?.let {
                                 playerConnection.playQueue(YouTubeQueue(it))
                             }
+                            is PodcastItem -> luckyItem.playEndpoint?.let {
+                                playerConnection.playQueue(YouTubeQueue(it))
+                            }
+                            is EpisodeItem -> playerConnection.playQueue(YouTubeQueue.radio(luckyItem.toMediaMetadata()))
                         }
                     }
                 }
