@@ -5,6 +5,7 @@
 
 package com.auramusic.app.ui.screens.settings
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -33,10 +34,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -57,6 +62,18 @@ fun AboutScreen(
 ) {
     val uriHandler = LocalUriHandler.current
 
+    // Animated logo - infinite pulse animation
+    val infiniteTransition = rememberInfiniteTransition(label = "logo")
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.08f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "scale"
+    )
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -65,16 +82,59 @@ fun AboutScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Spacer(Modifier.height(96.dp))
+        Spacer(Modifier.height(72.dp))
 
-        // App Name
+        // App Logo with pulse animation
+        Box(
+            modifier = Modifier
+                .size(120.dp)
+                .scale(scale),
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                painter = painterResource(R.drawable.ic_launcher_foreground),
+                contentDescription = "AuraMusic Logo",
+                modifier = Modifier
+                    .size(100.dp)
+                    .clip(CircleShape)
+            )
+        }
+
+        // App Name with gradient-like effect
         Text(
             text = "AURAMUSIC",
             style = MaterialTheme.typography.headlineLarge.copy(
                 fontFamily = FontFamily.Serif,
                 fontWeight = FontWeight.Bold
             ),
-            color = MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.primary
+        )
+
+        // Tagline
+        Text(
+            text = "Your Music, Your Way",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+            textAlign = TextAlign.Center
+        )
+
+        // Rotating music note icon
+        val rotation by infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(8000, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "rotate"
+        )
+        Icon(
+            painter = painterResource(R.drawable.music_note),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+            modifier = Modifier
+                .size(32.dp)
+                .rotate(rotation)
         )
 
         // Version and Architecture
