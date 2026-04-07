@@ -178,9 +178,28 @@ fun ExploreScreen(
                                                 .width(80.dp)
                                                 .background(MaterialTheme.colorScheme.onSurface),
                                         )
-                                    }
-                                }
-                            }
+}
+                }
+            }
+
+            // Podcasts section
+            NavigationTitle(
+                title = stringResource(R.string.podcasts),
+                onClick = {
+                    navController.navigate("podcasts")
+                },
+            )
+
+            // Top 100 Charts section
+            NavigationTitle(
+                title = "Top 100 Charts",
+                onClick = {
+                    navController.navigate("top_charts")
+                },
+            )
+        }
+    }
+}
                         }
                     }
 
@@ -195,7 +214,7 @@ fun ExploreScreen(
                             GridItemPlaceHolder()
                         }
                     }
-
+ 
                     TextPlaceholder(
                         height = 36.dp,
                         modifier = Modifier

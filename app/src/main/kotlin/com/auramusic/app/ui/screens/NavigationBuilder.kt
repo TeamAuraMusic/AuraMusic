@@ -114,6 +114,14 @@ fun NavGraphBuilder.navigationBuilder(
         MoodAndGenresScreen(navController, scrollBehavior)
     }
 
+    composable("podcasts") {
+        PodcastsScreen(navController, scrollBehavior)
+    }
+
+    composable("top_charts") {
+        TopChartsScreen(navController, scrollBehavior)
+    }
+
     composable("account") {
         AccountScreen(navController, scrollBehavior)
     }
