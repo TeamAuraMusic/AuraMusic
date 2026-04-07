@@ -34,8 +34,9 @@ jobs:
           RELEASE_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE }}
         run: |
           mkdir -p app/keystore
-          echo "$DEBUG_KEYSTORE" | base64 -d > app/keystore/debug.keystore
-          echo "$RELEASE_KEYSTORE" | base64 -d > app/keystore/release.keystore
+          printf '%s' "$DEBUG_KEYSTORE" | base64 -d > app/keystore/debug.keystore
+          printf '%s' "$RELEASE_KEYSTORE" | base64 -d > app/keystore/release.keystore
+          ls -la app/keystore/
 
       - name: Copy google-services.json
         env:
