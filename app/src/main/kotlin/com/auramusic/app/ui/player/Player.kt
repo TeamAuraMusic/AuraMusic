@@ -1059,8 +1059,8 @@ fun BottomSheetPlayer(
                             }
                         }
 
-                        // Video mode toggle button
-                        if (videoModeToggleEnabled) {
+                        // Video mode toggle button - only show for video songs (not regular songs)
+                        if (videoModeToggleEnabled && isVideoSong == true) {
                             Box(
                                 contentAlignment = Alignment.Center,
                                 modifier = Modifier.size(42.dp)
@@ -1069,22 +1069,10 @@ fun BottomSheetPlayer(
                                     ContainedLoadingIndicator(
                                         modifier = Modifier.size(24.dp)
                                     )
-                                } else if (!isVideoAvailable && !videoModeEnabled) {
-                                    // Show disabled state when video is not available
-                                    OutlinedIconButton(
-                                        onClick = {
-                                            Toast.makeText(context, "Video not available for this song", Toast.LENGTH_SHORT).show()
-                                        },
-                                        shape = middleShape,
-                                        enabled = false,
-                                        modifier = Modifier.size(42.dp),
-                                    ) {
-                                        Icon(
-                                            painter = painterResource(R.drawable.slow_motion_video),
-                                            contentDescription = stringResource(R.string.switch_to_video),
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                    }
+                                } else if (!isVideoAvailable) {
+                                    // Hide video button completely for songs without video
+                                    // Video songs auto-enable when available, no manual toggle needed
+                                }
                                 } else {
                                     FilledIconButton(
                                         onClick = {

@@ -948,8 +948,8 @@
     <!-- Video mode -->
     <string name="switch_to_video">Switch to video</string>
     <string name="switch_to_audio">Switch to audio</string>
-    <string name="enable_video_mode">Video Mode (Experimental)</string>
-    <string name="enable_video_mode_desc">Enable video playback for songs - tap the video icon in the player to switch</string>
+    <string name="enable_video_mode">Video Mode</string>
+    <string name="enable_video_mode_desc">Enable automatic video playback for video songs</string>
     <string name="video_not_available">Video not available for this track</string>
     <string name="video_quality">Video Quality</string>
     <string name="video_lyrics_offset">Video Lyrics Offset</string>
