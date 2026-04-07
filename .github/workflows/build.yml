@@ -93,7 +93,7 @@ jobs:
               repositories {
                   mavenCentral()
                   google()
-                  maven { url = uri("https://jitpack.io") }
+                  maven { url = uri("https://jitpack.io") { authentication { credentials { username = project.findProperty("jitpack.user") as? String; password = project.findProperty("jitpack.key") as? String } } } }
                   maven { url = uri("https://s01.oss.sonatype.org/content/repositories/snapshots/") }
                   maven { url = uri("https://s01.oss.sonatype.org/content/repositories/releases/") }
               }
@@ -111,6 +111,7 @@ jobs:
           include(":shazamkit")
           include(":rush")
           KOTLIN
+          sed -i 's|tinypinyin = "2.0.3"|tinypinyin = "2.0.1"|g' gradle/libs.versions.toml
           ./gradlew assembleFossUniversalRelease --no-daemon --no-configuration-cache
 
       - name: Upload APK
