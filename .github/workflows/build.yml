@@ -52,6 +52,10 @@ jobs:
         run: |
           mkdir -p app/keystore
           cp app/keystore/*.keystore keystore/ 2>/dev/null || true
+          # Replace Aliyun mirrors in build.gradle.kts
+          sed -i 's|maven.aliyun.com/repository/public|maven.google.com/repository/public|g' build.gradle.kts
+          sed -i 's|maven.aliyun.com/repository/google|dl.google.com/dl/android/maven|g' build.gradle.kts
+          sed -i 's|maven.aliyun.com/repository/central|repo.maven.apache.org/maven2|g' build.gradle.kts
           cat > local.properties << EOF
           sdk.dir=$ANDROID_HOME
    
