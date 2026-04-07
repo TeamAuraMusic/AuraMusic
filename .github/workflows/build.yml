@@ -1,0 +1,86 @@
+name: Build
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+env:
+  JAVA_VERSION: '21'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v2
+
+      - name: Decode keystores
+        env:
+          DEBUG_KEYSTORE: ${{ secrets.DEBUG_KEYSTORE }}
+          RELEASE_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE }}
+        run: |
+          echo "$DEBUG_KEYSTORE" | base64 -d > app/keystore/debug.keystore
+          echo "$RELEASE_KEYSTORE" | base64 -d > app/keystore/release.keystore
+
+      - name: Copy google-services.json
+        run: cp app/google-services.json.example app/google-services.json
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        shell: python
+        run: |
+          import os
+          content = os.environ.get('GOOGLE_SERVICES_JSON', '')
+          if content:
+              with open('app/google-services.json', 'w') as f:
+                  f.write(content)
+
+      - name: Create local.properties
+        run: |
+          cat > local.properties << EOF
+          sdk.dir=$ANDROID_HOME
+  
+          # LastFM API Keys
+          LASTFM_API_KEY=${{ secrets.LASTFM_API_KEY }}
+          LASTFM_SECRET=${{ secrets.LASTFM_SECRET }}
+  
+          # Debug keystore
+          debug.storeFile=app/keystore/debug.keystore
+          debug.storePassword=${{ secrets.DEBUG_STORE_PASSWORD }}
+          debug.keyAlias=${{ secrets.DEBUG_KEY_ALIAS }}
+          debug.keyPassword=${{ secrets.DEBUG_KEY_PASSWORD }}
+  
+          # Release keystore
+          release.storeFile=app/keystore/release.keystore
+          release.storePassword=${{ secrets.RELEASE_STORE_PASSWORD }}
+          release.keyAlias=${{ secrets.RELEASE_KEY_ALIAS }}
+          release.keyPassword=${{ secrets.RELEASE_KEY_PASSWORD }}
+  
+          # Persistent Debug keystore
+          debug.persistent.storeFile=app/keystore/debug.keystore
+          debug.persistent.storePassword=${{ secrets.DEBUG_STORE_PASSWORD }}
+          debug.persistent.keyAlias=${{ secrets.DEBUG_KEY_ALIAS }}
+          debug.persistent.keyPassword=${{ secrets.DEBUG_KEY_PASSWORD }}
+          EOF
+
+      - name: Build FossUniversalRelease APK
+        run: ./gradlew assembleFossUniversalRelease --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: FossUniversalRelease
+          path: app/build/outputs/apk/foss/Universal/release/*.apk
