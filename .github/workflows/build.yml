@@ -50,6 +50,8 @@ jobs:
 
       - name: Create local.properties
         run: |
+          mkdir -p app/keystore
+          cp app/keystore/*.keystore keystore/ 2>/dev/null || true
           cat > local.properties << EOF
           sdk.dir=$ANDROID_HOME
    
@@ -57,20 +59,20 @@ jobs:
           LASTFM_API_KEY=${{ secrets.LASTFM_API_KEY }}
           LASTFM_SECRET=${{ secrets.LASTFM_SECRET }}
     
-          # Debug keystore
-          debug.storeFile=app/keystore/debug.keystore
+          # Debug keystore (root level)
+          debug.storeFile=keystore/debug.keystore
           debug.storePassword=${{ secrets.DEBUG_STORE_PASSWORD }}
           debug.keyAlias=${{ secrets.DEBUG_KEY_ALIAS }}
           debug.keyPassword=${{ secrets.DEBUG_KEY_PASSWORD }}
     
-          # Release keystore
-          release.storeFile=app/keystore/release.keystore
+          # Release keystore (root level)
+          release.storeFile=keystore/release.keystore
           release.storePassword=${{ secrets.RELEASE_STORE_PASSWORD }}
           release.keyAlias=${{ secrets.RELEASE_KEY_ALIAS }}
           release.keyPassword=${{ secrets.RELEASE_KEY_PASSWORD }}
     
           # Persistent Debug keystore
-          debug.persistent.storeFile=app/keystore/debug.keystore
+          debug.persistent.storeFile=keystore/debug.keystore
           debug.persistent.storePassword=${{ secrets.DEBUG_STORE_PASSWORD }}
           debug.persistent.keyAlias=${{ secrets.DEBUG_KEY_ALIAS }}
           debug.persistent.keyPassword=${{ secrets.DEBUG_KEY_PASSWORD }}
