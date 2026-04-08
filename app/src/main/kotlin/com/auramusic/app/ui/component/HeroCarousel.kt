@@ -248,7 +248,7 @@ private fun HeroCarouselCard(
                 .crossfade(true)
                 .build(),
             contentDescription = item.title,
-            contentScale = ContentScale.Crop,
+            contentScale = ContentScale.Fit,
             modifier = Modifier.fillMaxSize(),
         )
 
