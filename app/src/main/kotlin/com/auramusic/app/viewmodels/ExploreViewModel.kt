@@ -107,9 +107,12 @@ constructor(
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
-            load()
+            // Load podcasts and mixes first so they're available when load() merges them into explorePage
             loadPodcastsInternal()
             loadMixesInternal()
+            load()
+        }
+        viewModelScope.launch(Dispatchers.IO) {
             loadTop100ChartsInternal()
         }
     }
