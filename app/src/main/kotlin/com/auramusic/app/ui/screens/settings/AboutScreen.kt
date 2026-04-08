@@ -52,7 +52,6 @@ import androidx.navigation.NavController
 import com.auramusic.app.BuildConfig
 import com.auramusic.app.R
 import com.auramusic.app.ui.utils.backToMain
-import com.auramusic.app.LocalPlayerConnection
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -415,7 +414,7 @@ fun AboutScreen(
     TopAppBar(
         title = { Text(stringResource(R.string.about)) },
         navigationIcon = {
-            IconButton(
+            com.auramusic.app.ui.component.IconButton(
                 onClick = { navController.navigateUp() },
                 onLongClick = { navController.backToMain() },
             ) {
