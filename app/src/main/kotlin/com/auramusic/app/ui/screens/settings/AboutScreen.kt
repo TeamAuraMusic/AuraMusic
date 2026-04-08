@@ -60,7 +60,6 @@ fun AboutScreen(
     scrollBehavior: TopAppBarScrollBehavior,
 ) {
     val uriHandler = LocalUriHandler.current
-    val playerConnection = LocalPlayerConnection.current
     
     val configuration = LocalConfiguration.current
     val isTablet = configuration.screenWidthDp >= 600
