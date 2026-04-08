@@ -792,7 +792,7 @@ fun PlaylistListItem(
             placeHolder = {
                 val painter = when (playlist.playlist.name) {
                     stringResource(R.string.liked) -> R.drawable.favorite_border
-                    stringResource(R.string.offline) -> R.drawable.downloaded
+                    stringResource(R.string.offline) -> R.drawable.offline
                     stringResource(R.string.cached_playlist) -> R.drawable.cached
                     // R.drawable.backup as placeholder
                     stringResource(R.string.uploaded_playlist) -> R.drawable.backup
@@ -1717,7 +1717,7 @@ object Icon {
     fun Download(state: Int?) {
         when (state) {
             STATE_COMPLETED -> Icon(
-                painter = painterResource(R.drawable.downloaded),
+                painter = painterResource(R.drawable.offline),
                 contentDescription = null,
                 modifier = Modifier
                     .size(18.dp)

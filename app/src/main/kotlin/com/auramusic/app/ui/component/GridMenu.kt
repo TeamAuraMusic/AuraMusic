@@ -127,7 +127,7 @@ fun LazyGridScope.DownloadGridMenu(
     when (state) {
         Download.STATE_COMPLETED -> {
             GridMenuItem(
-                icon = R.drawable.downloaded,
+                icon = R.drawable.offline,
                 title = R.string.remove_download,
                 onClick = onRemoveDownload
             )
