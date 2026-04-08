@@ -48,8 +48,8 @@ fun ChangelogScreen(
 
     LaunchedEffect(Unit) {
         Updater.getAllReleases().onSuccess { allReleases ->
-            // Show all releases - sort by version (newest first)
-            releases = allReleases.sortedByDescending { it.tagName }
+            // GitHub API already returns releases in reverse chronological order (newest first)
+            releases = allReleases
             isLoading = false
         }.onFailure {
             isLoading = false
