@@ -43,6 +43,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
@@ -50,6 +51,78 @@ import coil3.request.crossfade
 import com.auramusic.app.R
 import com.auramusic.innertube.models.YTItem
 import kotlinx.coroutines.delay
+
+private data class CarouselDimens(
+    val height: Dp,
+    val horizontalPadding: Dp,
+    val cornerRadius: Dp,
+    val contentPadding: Dp,
+    val playButtonSize: Dp,
+    val playIconSize: Dp,
+    val pageSpacing: Dp,
+    val indicatorWidth: Dp,
+    val indicatorDot: Dp,
+    val indicatorSpacing: Dp,
+)
+
+@Composable
+private fun rememberCarouselDimens(screenWidth: Dp): CarouselDimens {
+    val isSmallScreen = screenWidth < 360.dp
+    val isTablet = screenWidth >= 600.dp
+    return CarouselDimens(
+        height = when {
+            isTablet -> 420.dp
+            isSmallScreen -> 220.dp
+            else -> 280.dp
+        },
+        horizontalPadding = when {
+            isTablet -> 24.dp
+            isSmallScreen -> 12.dp
+            else -> 16.dp
+        },
+        cornerRadius = when {
+            isTablet -> 20.dp
+            isSmallScreen -> 12.dp
+            else -> 16.dp
+        },
+        contentPadding = when {
+            isTablet -> 24.dp
+            isSmallScreen -> 10.dp
+            else -> 16.dp
+        },
+        playButtonSize = when {
+            isTablet -> 56.dp
+            isSmallScreen -> 36.dp
+            else -> 44.dp
+        },
+        playIconSize = when {
+            isTablet -> 28.dp
+            isSmallScreen -> 16.dp
+            else -> 22.dp
+        },
+        pageSpacing = if (isTablet) 16.dp else 12.dp,
+        indicatorWidth = if (isTablet) 24.dp else 20.dp,
+        indicatorDot = if (isTablet) 8.dp else 6.dp,
+        indicatorSpacing = if (isTablet) 14.dp else 10.dp,
+    )
+}
+
+@Composable
+fun HeroCarouselShimmer(
+    modifier: Modifier = Modifier,
+) {
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val dimens = rememberCarouselDimens(maxWidth)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = dimens.horizontalPadding)
+                .height(dimens.height)
+                .clip(RoundedCornerShape(dimens.cornerRadius))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+        )
+    }
+}
 
 @Composable
 fun HeroCarousel(
@@ -76,40 +149,10 @@ fun HeroCarousel(
     BoxWithConstraints(
         modifier = modifier.fillMaxWidth(),
     ) {
-        val screenWidth = maxWidth
-        val isSmallScreen = screenWidth < 360.dp
-        val isTablet = screenWidth >= 600.dp
+        val dimens = rememberCarouselDimens(maxWidth)
+        val isSmallScreen = maxWidth < 360.dp
+        val isTablet = maxWidth >= 600.dp
 
-        val carouselHeight = when {
-            isTablet -> 340.dp
-            isSmallScreen -> 180.dp
-            else -> 240.dp
-        }
-        val horizontalPadding = when {
-            isTablet -> 24.dp
-            isSmallScreen -> 12.dp
-            else -> 16.dp
-        }
-        val cornerRadius = when {
-            isTablet -> 20.dp
-            isSmallScreen -> 12.dp
-            else -> 16.dp
-        }
-        val contentPadding = when {
-            isTablet -> 20.dp
-            isSmallScreen -> 10.dp
-            else -> 14.dp
-        }
-        val playButtonSize = when {
-            isTablet -> 52.dp
-            isSmallScreen -> 36.dp
-            else -> 40.dp
-        }
-        val playIconSize = when {
-            isTablet -> 26.dp
-            isSmallScreen -> 16.dp
-            else -> 20.dp
-        }
         val titleStyle = when {
             isTablet -> MaterialTheme.typography.titleLarge
             isSmallScreen -> MaterialTheme.typography.titleSmall
@@ -124,32 +167,32 @@ fun HeroCarousel(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = horizontalPadding),
+                .padding(horizontal = dimens.horizontalPadding),
         ) {
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(carouselHeight)
-                    .clip(RoundedCornerShape(cornerRadius)),
-                pageSpacing = if (isTablet) 16.dp else 12.dp,
+                    .height(dimens.height)
+                    .clip(RoundedCornerShape(dimens.cornerRadius)),
+                pageSpacing = dimens.pageSpacing,
             ) { page ->
                 val item = items[page]
                 HeroCarouselCard(
                     item = item,
                     onClick = { onItemClick(item) },
                     onPlayClick = { onPlayClick(item) },
-                    cornerRadius = cornerRadius,
-                    contentPadding = contentPadding,
-                    playButtonSize = playButtonSize,
-                    playIconSize = playIconSize,
+                    cornerRadius = dimens.cornerRadius,
+                    contentPadding = dimens.contentPadding,
+                    playButtonSize = dimens.playButtonSize,
+                    playIconSize = dimens.playIconSize,
                     titleStyle = titleStyle,
                     subtitleStyle = subtitleStyle,
                 )
             }
 
             if (items.size > 1) {
-                Spacer(modifier = Modifier.height(if (isTablet) 14.dp else 10.dp))
+                Spacer(modifier = Modifier.height(dimens.indicatorSpacing))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -158,17 +201,15 @@ fun HeroCarousel(
                 ) {
                     items.forEachIndexed { index, _ ->
                         val isSelected = pagerState.currentPage == index
-                        val indicatorWidth = if (isTablet) 24.dp else 20.dp
-                        val indicatorDot = if (isTablet) 8.dp else 6.dp
                         val width by animateDpAsState(
-                            targetValue = if (isSelected) indicatorWidth else indicatorDot,
+                            targetValue = if (isSelected) dimens.indicatorWidth else dimens.indicatorDot,
                             animationSpec = tween(300),
                             label = "indicator_width"
                         )
                         Box(
                             modifier = Modifier
                                 .padding(horizontal = 3.dp)
-                                .height(indicatorDot)
+                                .height(dimens.indicatorDot)
                                 .width(width)
                                 .clip(CircleShape)
                                 .background(
@@ -188,10 +229,10 @@ private fun HeroCarouselCard(
     item: YTItem,
     onClick: () -> Unit,
     onPlayClick: () -> Unit,
-    cornerRadius: androidx.compose.ui.unit.Dp,
-    contentPadding: androidx.compose.ui.unit.Dp,
-    playButtonSize: androidx.compose.ui.unit.Dp,
-    playIconSize: androidx.compose.ui.unit.Dp,
+    cornerRadius: Dp,
+    contentPadding: Dp,
+    playButtonSize: Dp,
+    playIconSize: Dp,
     titleStyle: androidx.compose.ui.text.TextStyle,
     subtitleStyle: androidx.compose.ui.text.TextStyle,
 ) {
