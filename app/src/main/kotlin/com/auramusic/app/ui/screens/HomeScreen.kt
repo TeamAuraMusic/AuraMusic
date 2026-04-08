@@ -117,6 +117,7 @@ import com.auramusic.app.ui.component.YouTubeListItem
 import com.auramusic.app.ui.component.AlbumGridItem
 import com.auramusic.app.ui.component.ArtistGridItem
 import com.auramusic.app.ui.component.ChipsRow
+import com.auramusic.app.ui.component.HeroCarousel
 import com.auramusic.app.ui.component.HideOnScrollFAB
 import com.auramusic.app.ui.component.LocalBottomSheetPageState
 import com.auramusic.app.ui.component.LocalMenuState
@@ -502,6 +503,65 @@ fun HomeScreen(
                         }
                     }
                 }
+
+                // Hero Carousel Banner
+                homePage?.sections?.flatMap { it.items }
+                    ?.distinctBy { it.id }
+                    ?.take(6)
+                    ?.takeIf { it.isNotEmpty() }
+                    ?.let { heroItems ->
+                        item(key = "hero_carousel") {
+                            HeroCarousel(
+                                items = heroItems,
+                                onItemClick = { item ->
+                                    when (item) {
+                                        is SongItem -> playerConnection.playQueue(
+                                            YouTubeQueue(
+                                                item.endpoint ?: WatchEndpoint(videoId = item.id),
+                                                item.toMediaMetadata()
+                                            )
+                                        )
+                                        is AlbumItem -> navController.navigate("album/${item.id}")
+                                        is ArtistItem -> navController.navigate("artist/${item.id}")
+                                        is PlaylistItem -> navController.navigate("online_playlist/${item.id}")
+                                        is PodcastItem -> navController.navigate("online_podcast/${item.id}")
+                                        is EpisodeItem -> playerConnection.playQueue(
+                                            YouTubeQueue.radio(item.toMediaMetadata())
+                                        )
+                                    }
+                                },
+                                onPlayClick = { item ->
+                                    when (item) {
+                                        is SongItem -> playerConnection.playQueue(
+                                            YouTubeQueue(
+                                                item.endpoint ?: WatchEndpoint(videoId = item.id),
+                                                item.toMediaMetadata()
+                                            )
+                                        )
+                                        is AlbumItem -> playerConnection.playQueue(
+                                            YouTubeAlbumRadio(item.playlistId)
+                                        )
+                                        is PlaylistItem -> item.playEndpoint?.let {
+                                            playerConnection.playQueue(YouTubeQueue(it))
+                                        }
+                                        is ArtistItem -> item.radioEndpoint?.let {
+                                            playerConnection.playQueue(YouTubeQueue(it))
+                                        }
+                                        is PodcastItem -> item.playEndpoint?.let {
+                                            playerConnection.playQueue(YouTubeQueue(it))
+                                        }
+                                        is EpisodeItem -> playerConnection.playQueue(
+                                            YouTubeQueue.radio(item.toMediaMetadata())
+                                        )
+                                    }
+                                },
+                                modifier = Modifier
+                                    .padding(top = 8.dp)
+                                    .animateItem()
+                            )
+                        }
+                    }
+
                 quickPicks?.takeIf { it.isNotEmpty() }?.let { quickPicks ->
                     item(key = "quick_picks_title") {
                         val quickPicksTitle = stringResource(R.string.quick_picks)
