@@ -37,7 +37,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -227,10 +226,11 @@ private fun HeroCarouselCard(
     titleStyle: androidx.compose.ui.text.TextStyle,
     subtitleStyle: androidx.compose.ui.text.TextStyle,
 ) {
-    Column {
+    Column(modifier = Modifier.fillMaxSize()) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .weight(1f)
                 .clip(RoundedCornerShape(cornerRadius))
                 .clickable(onClick = onClick),
         ) {
@@ -241,9 +241,7 @@ private fun HeroCarouselCard(
                     .build(),
                 contentDescription = item.title,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(16f / 9f),
+                modifier = Modifier.fillMaxSize(),
             )
 
             IconButton(

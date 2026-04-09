@@ -45,6 +45,7 @@
     <string name="wrapped_artist_listening_time">%d min</string>
     <string name="charts">Charts</string>
     <string name="trending">Trending</string>
+    <string name="trending_now">Trending Now</string>
     <string name="top_music_videos">Top music videos</string>
 
     <!-- History -->

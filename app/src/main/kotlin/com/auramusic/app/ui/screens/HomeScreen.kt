@@ -510,6 +510,11 @@ fun HomeScreen(
                     ?.take(6)
                     ?.takeIf { it.isNotEmpty() }
                     ?.let { heroItems ->
+                        item(key = "hero_carousel_title") {
+                            NavigationTitle(
+                                title = stringResource(R.string.trending_now),
+                            )
+                        }
                         item(key = "hero_carousel") {
                             HeroCarousel(
                                 items = heroItems,
