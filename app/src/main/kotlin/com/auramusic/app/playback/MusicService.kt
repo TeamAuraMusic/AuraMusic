@@ -2995,6 +2995,9 @@ class MusicService :
                 val wasPlaying = player.playWhenReady
 
                 if (enabled) {
+                    // Pause audio immediately so it doesn't play while video loads
+                    player.playWhenReady = false
+                    
                     // Save original item before switching
                     originalAudioMediaItem = player.getMediaItemAt(index)
 
