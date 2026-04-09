@@ -1,3 +1,40 @@
+# AuraMusic v1.0.12 (Build 13) Changelog
+
+## Features
+- Added Hero Carousel banner to Home Screen
+- Added "Trending Now" header with carousel on Home Screen
+- Added thumbnail cropping on small screens for carousel
+- Added shimmer placeholder for carousel loading
+- Added title and artist below thumbnail instead of overlay
+- Added full-cover carousel thumbnails
+- Added build type display in About screen
+- Animated About screen icon
+- Improved video lyrics sync timing
+- Fixed video autoplay timing
+
+## UI/UX Improvements
+- Moved carousel text below thumbnail for better readability
+- Improved PayPal icon/ logo
+- Removed video fill mode for cleaner UI
+- Made hero carousel responsive for tablets and small screens
+- Increased carousel heights for better visibility
+- Fixed carousel thumbnail fit (ContentScale.Fit)
+
+## Bug Fixes
+- Fixed Explore screen not displaying mixes, podcasts, or albums
+- Fixed duplicate "Music Videos for You" sections
+- Fixed missing import for toMediaMetadata in YouTube grid items
+- Fixed incorrect import (androidx.compose.ui.layout.aspectRatio → androidx.compose.foundation.layout.aspectRatio)
+- Fixed video mode autoplay issues
+
+## Build
+- Bumped versionCode to 13
+- Bumped versionName to 1.0.12
+
+
+**Full Changelog**: https://github.com/TeamAuraMusic/AuraMusic/compare/v1.0.11...v1.0.12
+
+
 # AuraMusic v1.0.11 (Build 12) Changelog
 
 ## Features
@@ -5,7 +42,7 @@
 - Added Top 100 charts with extended sections
 - Improved video mode with auto-enable and simplified UI
 - Remove video mode for Regular Songs 
-  
+
 ## Improvements
 - Enhanced About screen (icon, tablet layout, animations)
 - Updated Explore, Search, and Top Charts UI

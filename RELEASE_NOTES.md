@@ -1,52 +1,63 @@
-# AuraMusic v1.0.10 (Build 11) Release Notes
+# AuraMusic v1.0.12 (Build 13) Release Notes
 
 ## What's New in This Update
 
-### Video Player Improvements
-This release improves the video player experience with better loading states and performance:
+### Hero Carousel Redesign
+This release brings major improvements to the Home Screen with a brand new carousel experience:
 
-1. **Video Switching Loading Indicator**
-   - Smooth loading animation while video is being fetched
-   - Prevents black screen flash when switching between audio/video modes
+1. **New Carousel Layout**
+   - Title and artist now displayed below thumbnail instead of overlay
+   - Full-cover carousel thumbnails for better visual appeal
+   - Shimmer placeholder during loading for smoother UX
+   - Increased carousel heights for better visibility
 
-2. **Improved Video Lyrics Sync**
-   - Reduced polling interval from 150ms to 50ms
-   - Lyrics are now perfectly synchronized with video playback
+2. **Trending Now Section**
+   - Added "Trending Now" header with carousel on Home Screen
+   - Thumbnail cropping on small screens for optimal display
+   - Responsive design for tablets and small screens
 
-3. **Music Video Search Algorithm Overhaul**
-   - Completely rewritten video search with much higher accuracy
-   - Normalized title comparison with automatic bracketed content stripping
-   - Artist token matching for more reliable artist detection
-   - Multi-query search with cross-query result comparison
-   - Expanded exclusion list for non-official videos (karaoke, sped up, slowed, nightcore, etc.)
-   - Early exit for high-confidence matches
-   - Minimum confidence threshold for more reliable results
+### UI/UX Improvements
+- Improved PayPal icon/logo across the app
+- Removed video fill mode for cleaner interface
+- Animated About screen icon
+- Added build type display in About screen
 
-### General Improvements
-- Updater now automatically follows redirects for GitHub API requests
-- All repository URLs updated across entire codebase
+### Video Improvements
+- Fixed video autoplay timing issues
+- Improved video lyrics sync timing
 
-### Bug Fixes & Improvements
-- Fixed black screen flash when switching between audio/video modes
-- Fixed lyrics offset not being properly applied in video mode
-- Fixed video background during loading state
-- Fixed repository URL references throughout the app
+### Bug Fixes
+- Fixed Explore screen not displaying mixes, podcasts, or albums
+- Fixed duplicate "Music Videos for You" sections in HomeViewModel
+- Fixed missing import for toMediaMetadata in YouTube grid item click handlers
+- Fixed incorrect import (androidx.compose.ui.layout.aspectRatio → androidx.compose.foundation.layout.aspectRatio)
+- Fixed video mode autoplay issues
 
 ---
 
 ## 💻 Technical Details
 
 ### Full Changelog (Commits since last release):
-- [`a6b3f72`](https://github.com/TeamAuraMusic/AuraMusic/commit/a6b3f72) Fix repository URL spelling
-- [`251f8ed`](https://github.com/TeamAuraMusic/AuraMusic/commit/251f8ed) Bump version to v1.0.10 (Build 11)
-- [`ad097b5`](https://github.com/TeamAuraMusic/AuraMusic/commit/ad097b5) Fix GitHub organization URL in release notes
-- [`d193c90`](https://github.com/TeamAuraMusic/AuraMusic/commit/d193c90) Update release notes with clickable commit links
-- [`6aa1e3b`](https://github.com/TeamAuraMusic/AuraMusic/commit/6aa1e3b) Updated CHANGELOG.md and Indicate RELEASE_NOTES.md
+- [`f06b36b`](https://github.com/TeamAuraMusic/AuraMusic/commit/f06b36b) fix: explore screen content rendering
+- [`f2ef8a0`](https://github.com/TeamAuraMusic/AuraMusic/commit/f2ef8a0) fix: Added the missing import com.auramusic.app.models.toMediaMetadata
+- [`5b2d581`](https://github.com/TeamAuraMusic/AuraMusic/commit/5b2d581) 1. Duplicate "Music Videos for You" (HomeViewModel.kt)
+- [`2a20be9`](https://github.com/TeamAuraMusic/AuraMusic/commit/2a20be9) feat: add hero carousel banner to home screen
+- [`3d829c8`](https://github.com/TeamAuraMusic/AuraMusic/commit/3d829c8) fix: make hero carousel responsive for tablets and small screens
+- [`258f674`](https://github.com/TeamAuraMusic/AuraMusic/commit/258f674) feat(carousel): increase heights and add shimmer placeholder
+- [`c1053ff`](https://github.com/TeamAuraMusic/AuraMusic/commit/c1053ff) fix(carousel): show full thumbnail by using ContentScale.Fit
+- [`12bb237`](https://github.com/TeamAuraMusic/AuraMusic/commit/12bb237) feat: clean up HeroCarousel thumbnails and fix video mode autoplay
+- [`595f367`](https://github.com/TeamAuraMusic/AuraMusic/commit/595f367) Fixed - the import was androidx.compose.ui.layout.aspectRatio
+- [`762c1ec`](https://github.com/TeamAuraMusic/AuraMusic/commit/762c1ec) feat(HeroCarousel): show title and artist below thumbnail instead of overlay
+- [`aea4426`](https://github.com/TeamAuraMusic/AuraMusic/commit/aea4426) feat(HomeScreen): add Trending Now header and carousel thumbnail cropping on small screens
+- [`e78f0d9`](https://github.com/TeamAuraMusic/AuraMusic/commit/e78f0d9) feat: animate about icon, show build type, fix PayPal icon, fix video autoplay timing, full-cover carousel thumbnails, improve video lyrics sync
+- [`9e72ebf`](https://github.com/TeamAuraMusic/AuraMusic/commit/9e72ebf) fix: PayPal icon, carousel thumbnail fit, and video autoplay timing
+- [`78904e2`](https://github.com/TeamAuraMusic/AuraMusic/commit/78904e2) fix: move carousel text below thumbnail, fix PayPal logo, remove video fill mode
+- [`90362c7`](https://github.com/TeamAuraMusic/AuraMusic/commit/90362c7) Bump version code to 13 and version name to 1.0.12
 
-### Repository Update
-AuraMusic is now officially hosted at the Team AuraMusic organization:
-**https://github.com/TeamAuraMusic/AuraMusic**
+### Build Update
+- Version: 1.0.12 (Build 13)
+- VersionCode: 13
 
 ---
 
-**Full Changelog**: https://github.com/TeamAuraMusic/AuraMusic/compare/v1.0.9...v1.0.10
+**Full Changelog**: https://github.com/TeamAuraMusic/AuraMusic/compare/v1.0.11...v1.0.12
