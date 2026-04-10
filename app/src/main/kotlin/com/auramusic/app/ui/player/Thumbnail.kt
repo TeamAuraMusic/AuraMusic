@@ -909,7 +909,8 @@ private fun ThumbnailImage(
                 )
             }
             
-            // Always-on lyrics overlay at bottom (like YouTube subtitles)
+            // Always-on captions at bottom (like YouTube)
+            // Positioned absolute at bottom to always be visible
             VideoLyricsOverlay(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
