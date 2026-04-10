@@ -3078,6 +3078,14 @@ class MusicService :
                                         player.playWhenReady = true
                                         Timber.d("setVideoMode: Auto-started playback after first video frame rendered")
                                     }
+
+                                    override fun onPlaybackStateChanged(playbackState: Int) {
+                                        if (playbackState == Player.STATE_READY && !player.playWhenReady) {
+                                            player.removeListener(this)
+                                            player.playWhenReady = true
+                                            Timber.d("setVideoMode: Auto-started playback on STATE_READY (no surface attached)")
+                                        }
+                                    }
                                     
                                     override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                                         player.removeListener(this)
