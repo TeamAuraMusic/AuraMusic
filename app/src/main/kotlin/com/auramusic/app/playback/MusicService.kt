@@ -3146,11 +3146,10 @@ class MusicService :
                                 
                                 val videoMediaItem = videoMediaItemBuilder.build()
 
-                                // Enable subtitles by default on track selection
+                                // Enable subtitles by default
                                 player.trackSelectionParameters = player.trackSelectionParameters
                                     .buildUpon()
                                     .setPreferredTextLanguage("en")
-                                    .setRendererDisabled(C.TRACK_TYPE_TEXT, false)
                                     .build()
                                 
                                 Timber.d("setVideoMode: Replacing media item at index $index")
