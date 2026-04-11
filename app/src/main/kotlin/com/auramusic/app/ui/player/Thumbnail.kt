@@ -8,7 +8,6 @@ package com.auramusic.app.ui.player
 import android.provider.Settings
 import android.view.ViewGroup
 import android.view.WindowManager
-import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.compose.animation.AnimatedVisibility
@@ -100,10 +99,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.media3.common.C
 import androidx.media3.common.MediaItem
-import androidx.media3.common.TextOutput
-import androidx.media3.common.text.Cue
 import androidx.media3.ui.PlayerView
 import androidx.media3.common.Player
 import coil3.compose.AsyncImage
@@ -120,6 +116,7 @@ import com.auramusic.app.constants.PlayerHorizontalPadding
 import com.auramusic.app.constants.SeekExtraSeconds
 import com.auramusic.app.constants.SwipeThumbnailKey
 import com.auramusic.app.constants.ThumbnailCornerRadius
+import com.auramusic.app.constants.VideoLyricsEnabledKey
 import com.auramusic.app.constants.VideoQuality
 import com.auramusic.app.constants.VideoQualityKey
 import com.auramusic.app.listentogether.RoomRole
@@ -774,30 +771,12 @@ private fun ThumbnailImage(
                         keepScreenOn = true
                         // Show subtitle button to let users toggle captions
                         setShowSubtitleButton(true)
-                        // Get the SubtitleView and register a TextOutput like SmartTube
-                        val subtitleView = getSubtitleView()
-                        if (subtitleView != null) {
-                            player?.getTextComponent()?.addTextOutput(object : TextOutput {
-                                override fun onCues(cues: List<Cue>) {
-                                    subtitleView.setCues(cues)
-                                }
-                            })
-                        }
                     }
                 },
                 modifier = Modifier.fillMaxSize(),
                 update = { playerView ->
                     playerView.player = player
                     playerView.resizeMode = resizeMode
-                    // Re-register TextOutput for new player instance
-                    val subtitleView = playerView.getSubtitleView()
-                    if (subtitleView != null) {
-                        playerView.player?.getTextComponent()?.addTextOutput(object : TextOutput {
-                            override fun onCues(cues: List<Cue>) {
-                                subtitleView.setCues(cues)
-                            }
-                        })
-                    }
                     playerView.requestLayout()
                 }
             )

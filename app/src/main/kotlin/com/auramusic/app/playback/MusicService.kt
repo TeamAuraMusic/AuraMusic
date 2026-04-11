@@ -29,10 +29,7 @@ import androidx.core.net.toUri
 import androidx.datastore.preferences.core.edit
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
-import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
-import androidx.media3.common.MimeTypes
-import androidx.media3.common.SubtitleConfiguration
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
@@ -3069,27 +3066,6 @@ class MusicService :
                         android.util.Log.d("MusicService", ">>> Found video via search: ${videoData?.videoId}")
                         
                         if (videoData != null) {
-                            // Fetch caption tracks for subtitles
-                            val captionTracks = withContext(Dispatchers.IO) {
-                                YouTube.getCaptionTracks(videoData.videoId).getOrNull() ?: emptyList()
-                            }
-                            val subtitleConfigurations = mutableListOf<SubtitleConfiguration>()
-                            for (track in captionTracks) {
-                                val subtitleText = withContext(Dispatchers.IO) {
-                                    YouTube.fetchSubtitleFromCaptionTrack(track.baseUrl).getOrNull()
-                                } ?: continue
-                                val vttText = YouTube.convertTimedTextToVtt(subtitleText)
-                                val tempFile = File(cacheDir, "subtitle_${track.vssId}.vtt")
-                                tempFile.writeText(vttText)
-                                val uri = AndroidUri.fromFile(tempFile)
-                                val subConfig = SubtitleConfiguration.Builder(uri)
-                                    .setMimeType(MimeTypes.TEXT_VTT)
-                                    .setLanguage(track.languageCode)
-                                    .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
-                                    .build()
-                                subtitleConfigurations.add(subConfig)
-                            }
-
                             // Now get the stream URL for the found video
                             val streamResult = withContext(Dispatchers.IO) {
                                 FlowPlayerUtils.getVideoStreamUrl(videoData.videoId)
