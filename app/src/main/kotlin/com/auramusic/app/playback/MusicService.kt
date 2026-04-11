@@ -7,12 +7,25 @@
 
 package com.auramusic.app.playback
 
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.database.SQLException
+import android.media.AudioFocusRequest
+import android.media.AudioManager
+import android.media.audiofx.AudioEffect
+import android.media.audiofx.LoudnessEnhancer
+import android.net.ConnectivityManager
 import android.os.Binder
-import android.os.IBinder
-import android.os.PowerManager
+import androidx.core.app.NotificationCompat
 import androidx.core.content.getSystemService
 import androidx.core.net.toUri
-import androidx.core.os.bundleOf
 import androidx.datastore.preferences.core.edit
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -52,52 +65,128 @@ import androidx.media3.extractor.mkv.MatroskaExtractor
 import androidx.media3.extractor.mp4.FragmentedMp4Extractor
 import androidx.media3.extractor.mp4.Mp4Extractor
 import androidx.media3.session.CommandButton
+import androidx.media3.session.DefaultMediaNotificationProvider
+import androidx.media3.session.MediaController
+import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
-import androidx.media3.session.MediaSessionService
-import com.auramusic.app.LocalizationsHelper
-import com.auramusic.app.MediaLibrarySessionCallback
+import androidx.media3.session.SessionToken
+import com.google.common.util.concurrent.MoreExecutors
+import com.auramusic.innertube.YouTube
+import com.auramusic.innertube.models.SongItem
+import com.auramusic.innertube.models.WatchEndpoint
+import com.auramusic.lastfm.LastFM
+import com.auramusic.app.MainActivity
 import com.auramusic.app.R
-import com.auramusic.app.SearchEngine
+import com.auramusic.app.constants.AudioNormalizationKey
+import com.auramusic.app.constants.AudioOffload
+import com.auramusic.app.constants.AudioQualityKey
+import com.auramusic.app.constants.AutoDownloadOnLikeKey
+import com.auramusic.app.constants.AutoLoadMoreKey
+import com.auramusic.app.constants.AutoSkipNextOnErrorKey
+import com.auramusic.app.constants.CrossfadeDurationKey
+import com.auramusic.app.constants.VideoModeEnabledKey
+import com.auramusic.app.constants.VideoQuality
+import com.auramusic.app.constants.VideoQualityKey
+import com.auramusic.app.constants.CrossfadeEnabledKey
+import com.auramusic.app.constants.CrossfadeGaplessKey
+import com.auramusic.app.constants.DisableLoadMoreWhenRepeatAllKey
+import com.auramusic.app.constants.DiscordTokenKey
+import com.auramusic.app.constants.DiscordUseDetailsKey
+import com.auramusic.app.constants.EnableDiscordRPCKey
+import com.auramusic.app.constants.EnableLastFMScrobblingKey
+import com.auramusic.app.constants.HideExplicitKey
+import com.auramusic.app.constants.HideVideoSongsKey
+import com.auramusic.app.constants.HistoryDuration
+import com.auramusic.app.constants.LastFMUseNowPlaying
+import com.auramusic.app.constants.MediaSessionConstants.CommandToggleLike
+import com.auramusic.app.constants.MediaSessionConstants.CommandToggleRepeatMode
+import com.auramusic.app.constants.MediaSessionConstants.CommandToggleShuffle
+import com.auramusic.app.constants.MediaSessionConstants.CommandToggleStartRadio
+import com.auramusic.app.constants.PauseListenHistoryKey
+import com.auramusic.app.constants.PauseOnMute
+import com.auramusic.app.constants.PersistentQueueKey
+import com.auramusic.app.constants.PersistentShuffleAcrossQueuesKey
+import com.auramusic.app.constants.PlayerVolumeKey
+import com.auramusic.app.constants.RememberShuffleAndRepeatKey
+import com.auramusic.app.constants.RepeatModeKey
+import com.auramusic.app.constants.ScrobbleDelayPercentKey
+import com.auramusic.app.constants.ScrobbleDelaySecondsKey
+import com.auramusic.app.constants.ScrobbleMinSongDurationKey
+import com.auramusic.app.constants.ShowLyricsKey
+import com.auramusic.app.constants.ShuffleModeKey
+import com.auramusic.app.constants.ShufflePlaylistFirstKey
+import com.auramusic.app.constants.SimilarContent
+import com.auramusic.app.constants.SkipSilenceInstantKey
+import com.auramusic.app.constants.SkipSilenceKey
 import com.auramusic.app.db.MusicDatabase
-import com.auramusic.app.db.entity.Album
-import com.auramusic.app.db.entity.Artist
-import com.auramusic.app.db.entity.Song
+import com.auramusic.app.db.entities.Event
+import com.auramusic.app.db.entities.FormatEntity
+import com.auramusic.app.db.entities.LyricsEntity
+import com.auramusic.app.db.entities.RelatedSongMap
+import com.auramusic.app.di.DownloadCache
+import com.auramusic.app.di.PlayerCache
 import com.auramusic.app.eq.EqualizerService
 import com.auramusic.app.eq.audio.CustomEqualizerAudioProcessor
-import com.auramusic.app.eq.audio.SilenceDetectorAudioProcessor
+import com.auramusic.app.eq.data.EQProfileRepository
+import com.auramusic.app.extensions.SilentHandler
+import com.auramusic.app.extensions.collect
+import com.auramusic.app.extensions.collectLatest
 import com.auramusic.app.extensions.currentMetadata
-import com.auramusic.app.extensions.getCurrentQueueIndex
-import com.auramusic.app.extensions.getQueueWindows
-import com.auramusic.app.extensions.hasOutline
-import com.auramusic.app.extensions.lyrics
+import com.auramusic.app.extensions.findNextMediaItemById
+import com.auramusic.app.extensions.mediaItems
 import com.auramusic.app.extensions.metadata
-import com.auramusic.app.inet.MiniAsync
+import com.auramusic.app.extensions.setOffloadEnabled
+import com.auramusic.app.extensions.toEnum
+import com.auramusic.app.extensions.toMediaItem
+import com.auramusic.app.extensions.toPersistQueue
+import com.auramusic.app.extensions.toQueue
 import com.auramusic.app.lyrics.LyricsHelper
+import com.auramusic.app.models.PersistPlayerState
+import com.auramusic.app.models.PersistQueue
+import com.auramusic.app.models.toMediaMetadata
+import com.auramusic.app.playback.audio.SilenceDetectorAudioProcessor
+import com.auramusic.app.playback.queues.EmptyQueue
 import com.auramusic.app.playback.queues.Queue
-import com.auramusic.app.sessions.CastSessionHandler
-import com.auramusic.app.sessions.MediaSessionServiceCb
-import com.auramusic.app.utils.Cache
-import com.auramusic.app.utils.LocaleHelper
-import com.auramusic.app.utils.MiniNavigation
-import com.auramusic.app.utils.MusicModeushiftionRules
-import com.auramusic.app.utils.PendingBy
-import com.auramusic.app.utils.ReportException
-import com.auramusic.app.utils.Serializer
+import com.auramusic.app.playback.queues.YouTubeQueue
+import com.auramusic.app.playback.queues.filterExplicit
+import com.auramusic.app.playback.queues.filterVideoSongs
+import com.auramusic.app.utils.CoilBitmapLoader
+import com.auramusic.app.utils.DiscordRPC
+import com.auramusic.app.utils.FlowPlayerUtils
+import com.auramusic.app.utils.NetworkConnectivityObserver
+import com.auramusic.app.utils.ScrobbleManager
+import com.auramusic.app.utils.SyncUtils
+import com.auramusic.app.utils.YTPlayerUtils
+import com.auramusic.app.utils.dataStore
+import com.auramusic.app.utils.get
 import com.auramusic.app.utils.reportException
-import com.google.common.base.MoreObjects
-import com.google.common.util.concurrent.Futures
-import com.google.common.util.concurrent.ListenableFuture
-import com.google.common.util.concurrent.MoreExecutors
-import io.sweest.unbounded.Unbounded
+import com.auramusic.app.widget.AuraMusicWidgetManager
+import com.auramusic.app.widget.MusicWidgetReceiver
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.plus
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
 import timber.log.Timber
 import java.io.File
 import java.io.ObjectInputStream
@@ -2983,16 +3072,16 @@ class MusicService :
                             val subtitleConfigs = mutableListOf<MediaItem.SubtitleConfiguration>()
                             try {
                                 val captionTracks = withContext(Dispatchers.IO) {
-                                    com.auramusic.innertube.YouTube.getCaptionTracks(videoData.videoId).getOrNull()
+                                    YouTube.getCaptionTracks(videoData.videoId).getOrNull()
                                 }
                                 if (!captionTracks.isNullOrEmpty()) {
                                     for (track in captionTracks) {
                                         try {
                                             val subtitleText = withContext(Dispatchers.IO) {
-                                                com.auramusic.innertube.YouTube.fetchSubtitleFromCaptionTrack(track.baseUrl).getOrNull()
+                                                YouTube.fetchSubtitleFromCaptionTrack(track.baseUrl).getOrNull()
                                             }
                                             if (!subtitleText.isNullOrBlank()) {
-                                                val vttText = com.auramusic.innertube.YouTube.convertTimedTextToVtt(subtitleText)
+                                                val vttText = YouTube.convertTimedTextToVtt(subtitleText)
                                                 val tempFile = File(cacheDir, "subtitle_${track.vssId}.vtt")
                                                 tempFile.writeText(vttText)
                                                 val uri = android.net.Uri.fromFile(tempFile)
@@ -3055,6 +3144,9 @@ class MusicService :
                                 }
                                 
                                 val videoMediaItem = videoMediaItemBuilder.build()
+                                    .setMimeType(mimeType)
+                                    .setCustomCacheKey(mediaId + "_video")
+                                    .build()
 
                                 Timber.d("setVideoMode: Replacing media item at index $index")
                                 player.replaceMediaItem(index, videoMediaItem)
