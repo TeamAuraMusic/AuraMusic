@@ -215,7 +215,9 @@ private fun NewMiniPlayer(
     val liquidGlassEnabled by rememberPreference(LiquidGlassEffectKey, defaultValue = false)
     val backgroundColor = when {
         pureBlack && useDarkTheme -> Color.Black
-        liquidGlassEnabled -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
+        liquidGlassEnabled -> MaterialTheme.colorScheme.surfaceVariant.copy(
+            alpha = if (useDarkTheme) 0.4f else 0.25f
+        )
         else -> MaterialTheme.colorScheme.surfaceContainer
     }
     val primaryColor = MaterialTheme.colorScheme.primary

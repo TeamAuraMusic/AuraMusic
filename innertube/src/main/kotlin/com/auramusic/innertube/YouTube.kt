@@ -1074,10 +1074,17 @@ object YouTube {
     /**
      * Get caption tracks from the player response (like SmartTube does).
      * Returns a list of available caption tracks with their URLs.
+     * Tries WEB client first, then falls back to WEB_REMIX for YouTube Music content.
      */
     suspend fun getCaptionTracks(videoId: String): Result<List<PlayerResponse.Captions.PlayerCaptionsTracklistRenderer.CaptionTrack>> = runCatching {
-        val response = innerTube.player(WEB, videoId, null, null).body<PlayerResponse>()
-        response.captions?.playerCaptionsTracklistRenderer?.captionTracks ?: emptyList()
+        // Try WEB client first
+        val webResponse = innerTube.player(WEB, videoId, null, null).body<PlayerResponse>()
+        val webTracks = webResponse.captions?.playerCaptionsTracklistRenderer?.captionTracks
+        if (!webTracks.isNullOrEmpty()) return@runCatching webTracks
+
+        // Fallback to WEB_REMIX for YouTube Music content
+        val remixResponse = innerTube.player(WEB_REMIX, videoId, null, null).body<PlayerResponse>()
+        remixResponse.captions?.playerCaptionsTracklistRenderer?.captionTracks ?: emptyList()
     }
 
     /**

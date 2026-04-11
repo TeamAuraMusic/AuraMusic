@@ -17,12 +17,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
  * Liquid Glass Effect - Apple/iOS style frosted glass
  * Creates a translucent frosted glass appearance with blur effect
+ * Adapts to light/dark themes automatically using surface luminance.
  * 
  * @param enabled Whether the liquid glass effect is enabled
  * @param cornerRadius The corner radius for the glass effect
@@ -38,10 +40,13 @@ fun Modifier.liquidGlass(
 ): Modifier {
     return this.then(
         if (enabled) {
+            val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+            val glassBaseAlpha = if (isDark) alpha.coerceAtLeast(0.3f) else alpha
+            val shimmerColor = if (isDark) Color.White.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.1f)
             Modifier
                 .clip(RoundedCornerShape(cornerRadius))
                 .background(
-                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = alpha)
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = glassBaseAlpha)
                 )
                 .then(
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -50,10 +55,7 @@ fun Modifier.liquidGlass(
                         Modifier
                     }
                 )
-                .background(
-                    Color.White.copy(alpha = 0.1f),
-                    RoundedCornerShape(cornerRadius)
-                )
+                .background(shimmerColor, RoundedCornerShape(cornerRadius))
         } else {
             Modifier
         }
@@ -71,11 +73,18 @@ fun LiquidGlassContainer(
     content: @Composable BoxScope.() -> Unit
 ) {
     if (enabled) {
+        val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+        val baseAlpha = if (isDark) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) 0.35f else 0.3f
+        } else {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) 0.2f else 0.15f
+        }
+        val shimmerColor = if (isDark) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.1f)
         Box(
             modifier = modifier
                 .clip(RoundedCornerShape(cornerRadius))
                 .background(
-                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) 0.2f else 0.15f)
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = baseAlpha)
                 )
                 .then(
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -84,10 +93,7 @@ fun LiquidGlassContainer(
                         Modifier
                     }
                 )
-                .background(
-                    Color.White.copy(alpha = 0.1f),
-                    RoundedCornerShape(cornerRadius)
-                )
+                .background(shimmerColor, RoundedCornerShape(cornerRadius))
         ) {
             content()
         }
@@ -109,9 +115,15 @@ fun FrostedGlassCard(
     content: @Composable BoxScope.() -> Unit
 ) {
     if (enabled) {
+        val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
         val glassColor = MaterialTheme.colorScheme.surfaceVariant.copy(
-            alpha = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) 0.25f else 0.2f
+            alpha = if (isDark) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) 0.35f else 0.3f
+            } else {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) 0.25f else 0.2f
+            }
         )
+        val shimmerAlpha = if (isDark) 0.1f else 0.08f
         
         Box(
             modifier = modifier
@@ -120,12 +132,11 @@ fun FrostedGlassCard(
                     color = glassColor
                 )
         ) {
-            // Add subtle border for glass effect
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
-                        Color.White.copy(alpha = 0.08f),
+                        Color.White.copy(alpha = shimmerAlpha),
                         RoundedCornerShape(cornerRadius)
                     )
             ) {

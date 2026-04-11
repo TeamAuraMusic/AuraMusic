@@ -1307,6 +1307,8 @@ private fun VideoLyricsOverlay(
         // Strip any suffixes like "_video" that might be added for video mode
         val videoId = rawVideoId.removeSuffix("_video").ifEmpty { rawVideoId }
         
+        timber.log.Timber.d("VideoLyricsOverlay: Fetching captions for videoId=$videoId (activeVideoId=$activeVideoId, songId=${mediaMetadata?.id}, videoMode=$videoModeEnabled)")
+        
         transcriptText = null
         captionError = null
         isLoadingCaptions = true
@@ -1317,35 +1319,47 @@ private fun VideoLyricsOverlay(
                 // Try caption tracks first (extracted from player response like SmartTube)
                 val captionResult = YouTube.getCaptionTracks(videoId)
                 val captionTracks = captionResult.getOrNull()
+                timber.log.Timber.d("VideoLyricsOverlay: Caption tracks found: ${captionTracks?.size ?: 0}")
                 
                 if (!captionTracks.isNullOrEmpty()) {
-                    val captionTrack = captionTracks.firstOrNull()
+                    // Prefer English captions, then auto-generated, then first available
+                    val captionTrack = captionTracks.firstOrNull { it.languageCode == "en" }
+                        ?: captionTracks.firstOrNull { it.kind == "asr" }
+                        ?: captionTracks.firstOrNull()
                     if (captionTrack != null) {
+                        timber.log.Timber.d("VideoLyricsOverlay: Using caption track: lang=${captionTrack.languageCode}, kind=${captionTrack.kind}")
                         val fetchResult = YouTube.fetchSubtitleFromCaptionTrack(captionTrack.baseUrl)
                         fetchResult.onSuccess { text ->
+                            timber.log.Timber.d("VideoLyricsOverlay: Caption text length: ${text.length}")
                             if (text.isNotEmpty()) {
                                 transcriptText = text
                             }
                         }.onFailure { e ->
+                            timber.log.Timber.e(e, "VideoLyricsOverlay: Failed to fetch caption track content")
                             captionError = e.message
                         }
                     }
                 } else {
+                    timber.log.Timber.d("VideoLyricsOverlay: No caption tracks available, trying transcript fallback")
                     captionError = "No caption tracks available"
                 }
                 
                 // Fallback to transcript API if caption tracks didn't work
                 if (transcriptText == null) {
+                    timber.log.Timber.d("VideoLyricsOverlay: Trying transcript fallback for videoId=$videoId")
                     val transcriptResult = YouTube.transcript(videoId)
                     transcriptResult.onSuccess { text ->
+                        timber.log.Timber.d("VideoLyricsOverlay: Transcript text length: ${text.length}")
                         transcriptText = text
                     }.onFailure { e ->
+                        timber.log.Timber.e(e, "VideoLyricsOverlay: Transcript fallback also failed")
                         if (captionError == null) {
                             captionError = "Transcript: ${e.message}"
                         }
                     }
                 }
             } catch (e: Exception) {
+                timber.log.Timber.e(e, "VideoLyricsOverlay: Exception during caption fetching")
                 captionError = e.message
             } finally {
                 isLoadingCaptions = false
