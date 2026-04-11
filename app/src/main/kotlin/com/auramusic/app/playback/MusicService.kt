@@ -233,7 +233,9 @@ class MusicService :
     private var reentrantFocusGain = false
     private var wasPlayingBeforeVolumeMute = false
     private var isPausedByVolumeMute = false
-    
+
+    private lateinit var foregroundNotification: Notification
+
     private var crossfadeEnabled = false
     private var crossfadeDuration = 5000f
     private var crossfadeGapless = true
@@ -412,6 +414,7 @@ class MusicService :
                 .setContentIntent(pending)
                 .setOngoing(true)
                 .build()
+            foregroundNotification = notification
             startForeground(NOTIFICATION_ID, notification)
         } catch (e: Exception) {
             Timber.tag(TAG).e(e, "Failed to create foreground notification")
