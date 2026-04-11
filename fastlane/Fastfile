@@ -1,0 +1,19 @@
+default_platform(:android)
+
+platform :android do
+  desc "Build FOSS flavor release APK"
+  task :foss do
+    gradle(
+      "assembleFossUniversalRelease",
+      "-PpackageName=com.auramusic.app"
+    )
+  end
+
+  desc "Build GMS flavor release APK"
+  task :gms do
+    gradle(
+      "assembleGmsUniversalRelease",
+      "-PpackageName=com.auramusic.app"
+    )
+  end
+end

@@ -3143,7 +3143,7 @@ class MusicService :
                                     Timber.d("setVideoMode: Added ${subtitleConfigs.size} subtitle tracks to media item")
                                 }
                                 
-                                val videoMediaItem = videoMediaItemBuilder.build()
+                                val videoMediaItem = videoMediaItemBuilder
                                     .setMimeType(mimeType)
                                     .setCustomCacheKey(mediaId + "_video")
                                     .build()

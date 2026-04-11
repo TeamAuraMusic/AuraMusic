@@ -773,13 +773,6 @@ private fun ThumbnailImage(
                         keepScreenOn = true
                         // Show subtitle button to let users toggle captions
                         setShowSubtitleButton(true)
-                        
-                        // Get the SubtitleView and register with SubtitleManager
-                        val subView = getSubtitleView()
-                        if (subView != null) {
-                            val subtitleManager = SubtitleManager(subView, ctx)
-                            player?.addListener(subtitleManager)
-                        }
                     }
                 },
                 modifier = Modifier.fillMaxSize(),
