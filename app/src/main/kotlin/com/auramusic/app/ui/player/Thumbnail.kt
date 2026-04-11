@@ -120,7 +120,6 @@ import com.auramusic.app.constants.ThumbnailCornerRadius
 import com.auramusic.app.constants.VideoLyricsEnabledKey
 import com.auramusic.app.constants.VideoQuality
 import com.auramusic.app.constants.VideoQualityKey
-import com.auramusic.app.ui.player.SubtitleManager
 import com.auramusic.app.listentogether.RoomRole
 import com.auramusic.app.ui.component.CastButton
 import com.auramusic.app.utils.FlowPlayerUtils
