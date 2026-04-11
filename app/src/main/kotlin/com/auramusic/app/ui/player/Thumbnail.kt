@@ -8,6 +8,7 @@ package com.auramusic.app.ui.player
 import android.provider.Settings
 import android.view.ViewGroup
 import android.view.WindowManager
+import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.compose.animation.AnimatedVisibility
