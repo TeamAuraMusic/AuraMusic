@@ -5,6 +5,7 @@
 
 package com.auramusic.app.ui.player
 
+import android.widget.Toast
 import android.provider.Settings
 import android.view.ViewGroup
 import android.view.WindowManager
@@ -1274,6 +1275,7 @@ private fun VideoLyricsOverlay(
     modifier: Modifier = Modifier
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
+    val context = LocalContext.current
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     val player = playerConnection.player
 
@@ -1308,11 +1310,7 @@ private fun VideoLyricsOverlay(
     // Only fetch captions when video ID actually changes AND video mode is enabled
     LaunchedEffect(activeVideoId, subtitleLanguage) {
         // Only proceed if video mode is enabled and we have a video ID
-        if (activeVideoId == null) {
-            return@LaunchedEffect
-        }
-        
-        val videoId: String = activeVideoId
+        val videoId = activeVideoId ?: return@LaunchedEffect
         
         // Skip if already attempted for this video ID
         if (videoId in attemptedVideoIds) {
@@ -1386,6 +1384,12 @@ private fun VideoLyricsOverlay(
                 captionError = e.message
             } finally {
                 isLoadingCaptions = false
+                // Show result via Toast
+                if (transcriptText != null && transcriptText!!.isNotEmpty()) {
+                    Toast.makeText(context, "Captions loaded successfully", Toast.LENGTH_SHORT).show()
+                } else if (captionError != null) {
+                    Toast.makeText(context, "Captions failed: $captionError", Toast.LENGTH_LONG).show()
+                }
             }
         }
     }
