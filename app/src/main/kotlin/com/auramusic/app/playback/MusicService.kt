@@ -2994,7 +2994,7 @@ class MusicService :
             try {
                 val subtitleText = YouTube.fetchSubtitleFromCaptionTrack(info.url).getOrNull()
                 if (!subtitleText.isNullOrBlank()) {
-                    val cues = com.auramusic.app.subtitles.SubtitleHandler.parseContent(subtitleText, info.format)
+                    val cues = com.auramusic.app.subtitles.SubtitleHandler.parseContent(subtitleText, "")
                     _currentSubtitleCues.value = cues
                     Timber.d("selectSubtitle: Loaded ${cues.size} cues for ${info.language}")
                 }
