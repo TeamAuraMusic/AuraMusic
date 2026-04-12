@@ -1146,10 +1146,23 @@ object YouTube {
             "https://youtube.com$captionTrackUrl"
         }
         
-        val url = if ("fmt=" in fullUrl) fullUrl else "$fullUrl&fmt=json3"
+        // Ensure fmt=json3 is always present
+        val url = if ("fmt=json3" in fullUrl) {
+            fullUrl
+        } else if ("fmt=" in fullUrl) {
+            fullUrl.replace("fmt=[^&]*".toRegex(), "fmt=json3")
+        } else {
+            "$fullUrl&fmt=json3"
+        }
+        
+        // Use Timber for logging (innertube module has Timber available)
+        timber.log.Timber.d("fetchSubtitleFromCaptionTrack: URL = $url")
         
         // Use method with proper YouTube headers to avoid being redirected to error page
-        val responseText = innerTube.getUrlWithYouTubeHeaders(url).bodyAsText()
+        val response = innerTube.getUrlWithYouTubeHeaders(url)
+        val responseText = response.bodyAsText()
+        
+        timber.log.Timber.d("fetchSubtitleFromCaptionTrack: Status = ${response.status}, Response preview = ${responseText.take(300)}")
         
         // Check if response is an error page (starts with < which indicates HTML)
         if (responseText.trim().startsWith("<")) {
