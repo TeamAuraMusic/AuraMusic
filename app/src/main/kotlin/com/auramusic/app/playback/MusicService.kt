@@ -3088,9 +3088,11 @@ class MusicService :
                             val subtitleConfigs = mutableListOf<MediaItem.SubtitleConfiguration>()
                             val subtitleInfos = mutableListOf<SubtitleInfo>()
                             try {
-                                val captionTracks = withContext(Dispatchers.IO) {
-                                    YouTube.getCaptionTracks(videoData.videoId).getOrNull()
+                                val captionResult = withContext(Dispatchers.IO) {
+                                    YouTube.getCaptionTracksWithDuration(videoData.videoId).getOrNull()
                                 }
+                                val captionTracks = captionResult?.first
+                                val videoDurationMs = captionResult?.second
                                 if (!captionTracks.isNullOrEmpty()) {
                                     for (track in captionTracks) {
                                         try {
@@ -3098,7 +3100,7 @@ class MusicService :
                                                 YouTube.fetchSubtitleFromCaptionTrack(track.baseUrl).getOrNull()
                                             }
                                             if (!subtitleText.isNullOrBlank()) {
-                                                val vttText = YouTube.convertTimedTextToVtt(subtitleText)
+                                                val vttText = YouTube.convertTimedTextToVttWithDuration(subtitleText, videoDurationMs)
                                                 val tempFile = File(cacheDir, "subtitle_${track.vssId}.vtt")
                                                 tempFile.writeText(vttText)
                                                 val uri = android.net.Uri.fromFile(tempFile)

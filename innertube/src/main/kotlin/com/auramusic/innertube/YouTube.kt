@@ -1075,6 +1075,29 @@ object YouTube {
      * Get caption tracks from the player response (like SmartTube does).
      * Returns a list of available caption tracks with their URLs.
      * Tries WEB client first, then falls back to WEB_REMIX for YouTube Music content.
+     * Also returns video duration in milliseconds for proper subtitle timing.
+     */
+    suspend fun getCaptionTracks(videoId: String): Result<Pair<List<PlayerResponse.Captions.PlayerCaptionsTracklistRenderer.CaptionTrack>, Long?>> = runCatching {
+        // Try WEB client first
+        val webResponse = innerTube.player(WEB, videoId, null, null).body<PlayerResponse>()
+        val webTracks = webResponse.captions?.playerCaptionsTracklistRenderer?.captionTracks
+        val webDuration = webResponse.videoDetails?.lengthSeconds?.toLongOrNull()?.times(1000)
+        
+        if (!webTracks.isNullOrEmpty()) {
+            return@runCatching webTracks to webDuration
+        }
+
+        // Fallback to WEB_REMIX for YouTube Music content
+        val remixResponse = innerTube.player(WEB_REMIX, videoId, null, null).body<PlayerResponse>()
+        val remixTracks = remixResponse.captions?.playerCaptionsTracklistRenderer?.captionTracks
+        val remixDuration = remixResponse.videoDetails?.lengthSeconds?.toLongOrNull()?.times(1000)
+        
+        (remixTracks ?: emptyList()) to (remixDuration ?: webDuration)
+    }
+    
+    /**
+     * Get caption tracks from the player response (legacy function, returns only tracks).
+     * @deprecated Use getCaptionTracksWithDuration instead for video duration support.
      */
     suspend fun getCaptionTracks(videoId: String): Result<List<PlayerResponse.Captions.PlayerCaptionsTracklistRenderer.CaptionTrack>> = runCatching {
         // Try WEB client first
@@ -1135,6 +1158,43 @@ object YouTube {
                 }
             } else {
                 startMs + 5000
+            }
+            val startTime = formatTime(startMs)
+            val endTime = formatTime(endMs)
+            cues.add("$startTime --> $endTime\n$text")
+        }
+        return "WEBVTT\n\n" + cues.joinToString("\n\n")
+    }
+    
+    /**
+     * Convert timed text to VTT format with optional video duration.
+     * Uses video duration for the last cue's end time instead of default 5s.
+     */
+    fun convertTimedTextToVttWithDuration(timedText: String, videoDurationMs: Long?): String {
+        val lines = timedText.lines().filter { it.isNotBlank() }
+        val cues = mutableListOf<String>()
+        for (i in lines.indices) {
+            val line = lines[i]
+            val match = Regex("""\[(\d{2}):(\d{2})\.(\d{3})\](.*)""").find(line) ?: continue
+            val min = match.groupValues[1].toInt()
+            val sec = match.groupValues[2].toInt()
+            val ms = match.groupValues[3].toInt()
+            val text = match.groupValues[4].trim()
+            val startMs = min * 60000 + sec * 1000 + ms
+            val endMs = if (i + 1 < lines.size) {
+                val nextLine = lines[i + 1]
+                val nextMatch = Regex("""\[(\d{2}):(\d{2})\.(\d{3})\].*""").find(nextLine)
+                if (nextMatch != null) {
+                    val nextMin = nextMatch.groupValues[1].toInt()
+                    val nextSec = nextMatch.groupValues[2].toInt()
+                    val nextMs = nextMatch.groupValues[3].toInt()
+                    nextMin * 60000 + nextSec * 1000 + nextMs
+                } else {
+                    startMs + 5000
+                }
+            } else {
+                // Use video duration for last cue if available, otherwise default 5s
+                (videoDurationMs?.toInt() ?: startMs + 5000).coerceAtLeast(startMs + 1000)
             }
             val startTime = formatTime(startMs)
             val endTime = formatTime(endMs)

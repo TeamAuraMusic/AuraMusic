@@ -116,6 +116,7 @@ import com.auramusic.app.constants.PlayerBackgroundStyleKey
 import com.auramusic.app.constants.PlayerHorizontalPadding
 import com.auramusic.app.constants.SeekExtraSeconds
 import com.auramusic.app.constants.SubtitlesEnabledKey
+import com.auramusic.app.constants.SubtitleLanguageKey
 import com.auramusic.app.constants.SwipeThumbnailKey
 import com.auramusic.app.constants.ThumbnailCornerRadius
 import com.auramusic.app.constants.VideoLyricsEnabledKey
@@ -1290,6 +1291,10 @@ private fun VideoLyricsOverlay(
         VideoLyricsEnabledKey,
         defaultValue = true
     )
+    val subtitleLanguage by rememberPreference(
+        SubtitleLanguageKey,
+        defaultValue = "en"
+    )
 
     if (!videoLyricsEnabled) return
 
@@ -1297,6 +1302,7 @@ private fun VideoLyricsOverlay(
     var transcriptText by remember { mutableStateOf<String?>(null) }
     var isLoadingCaptions by remember { mutableStateOf(false) }
     var captionError by remember { mutableStateOf<String?>(null) }
+    var videoDurationMs by remember { mutableLongStateOf(0L) }
 
     // Use the actual video ID being played (may differ from song ID when video was found via search)
     val activeVideoId by playerConnection.currentVideoId.collectAsState()
@@ -1314,18 +1320,25 @@ private fun VideoLyricsOverlay(
         transcriptText = null
         captionError = null
         isLoadingCaptions = true
+        videoDurationMs = 0L
         
         delay(500) // Slightly longer delay to ensure player is ready
         withContext(Dispatchers.IO) {
             try {
                 // Try caption tracks first (extracted from player response like SmartTube)
+                // Use version that returns video duration for proper VTT conversion
                 val captionResult = YouTube.getCaptionTracks(videoId)
-                val captionTracks = captionResult.getOrNull()
-                timber.log.Timber.d("VideoLyricsOverlay: Caption tracks found: ${captionTracks?.size ?: 0}")
+                val captionResultPair = captionResult.getOrNull()
+                val captionTracks = captionResultPair?.first
+                videoDurationMs = captionResultPair?.second ?: 0L
+                timber.log.Timber.d("VideoLyricsOverlay: Caption tracks found: ${captionTracks?.size ?: 0}, duration: ${videoDurationMs}ms")
                 
                 if (!captionTracks.isNullOrEmpty()) {
-                    // Prefer English captions, then auto-generated, then first available
-                    val captionTrack = captionTracks.firstOrNull { it.languageCode == "en" }
+                    // Prefer user-selected language, then English, then auto-generated, then first available
+                    val captionTrack = if (subtitleLanguage != "auto") {
+                        captionTracks.firstOrNull { it.languageCode == subtitleLanguage }
+                    } else null
+                        ?: captionTracks.firstOrNull { it.languageCode == "en" }
                         ?: captionTracks.firstOrNull { it.kind == "asr" }
                         ?: captionTracks.firstOrNull()
                     if (captionTrack != null) {
@@ -1436,7 +1449,15 @@ private fun VideoLyricsOverlay(
         )
     )
 
-    if (currentLine != null) {
+    // Show loading indicator while fetching captions
+    if (isLoadingCaptions) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = modifier.fillMaxWidth()
+        ) {
+            ContainedLoadingIndicator()
+        }
+    } else if (currentLine != null) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = modifier
