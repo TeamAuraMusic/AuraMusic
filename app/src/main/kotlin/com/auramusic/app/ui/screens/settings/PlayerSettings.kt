@@ -184,7 +184,7 @@ fun PlayerSettings(
     )
     val (subtitleLanguage, onSubtitleLanguageChange) = rememberPreference(
         SubtitleLanguageKey,
-        defaultValue = "en"
+        defaultValue = "auto"
     )
     val (subtitleFontSize, onSubtitleFontSizeChange) = rememberPreference(
         SubtitleFontSizeKey,

@@ -907,6 +907,13 @@ private fun ThumbnailImage(
                 )
             }
             
+            VideoLyricsOverlay(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 80.dp)
+            )
+            
 
         } else {
             // Album art image
@@ -1270,6 +1277,10 @@ private fun VideoLyricsOverlay(
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     val player = playerConnection.player
 
+    // Check if video mode is enabled
+    val videoModeEnabled by playerConnection.videoModeEnabled.collectAsState()
+    if (!videoModeEnabled) return
+
     // Check if video subtitles are enabled
     val (videoLyricsEnabled, _) = rememberPreference(
         VideoLyricsEnabledKey,
@@ -1277,7 +1288,7 @@ private fun VideoLyricsOverlay(
     )
     val subtitleLanguage by rememberPreference(
         SubtitleLanguageKey,
-        defaultValue = "en"
+        defaultValue = "auto"
     )
 
     if (!videoLyricsEnabled) return
