@@ -1384,11 +1384,13 @@ private fun VideoLyricsOverlay(
                 captionError = e.message
             } finally {
                 isLoadingCaptions = false
-                // Show result via Toast
-                if (transcriptText != null && transcriptText!!.isNotEmpty()) {
-                    Toast.makeText(context, "Captions loaded successfully", Toast.LENGTH_SHORT).show()
-                } else if (captionError != null) {
-                    Toast.makeText(context, "Captions failed: $captionError", Toast.LENGTH_LONG).show()
+                // Show result via Toast on main thread
+                withContext(Dispatchers.Main) {
+                    if (transcriptText != null && transcriptText!!.isNotEmpty()) {
+                        Toast.makeText(context, "Captions loaded successfully", Toast.LENGTH_SHORT).show()
+                    } else if (captionError != null) {
+                        Toast.makeText(context, "Captions failed: $captionError", Toast.LENGTH_LONG).show()
+                    }
                 }
             }
         }
