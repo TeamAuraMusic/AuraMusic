@@ -1284,6 +1284,10 @@ private fun VideoLyricsOverlay(
     if (!videoModeEnabled) return
 
     // Check if video subtitles are enabled
+    val (subtitlesEnabled, _) = rememberPreference(
+        SubtitlesEnabledKey,
+        defaultValue = true
+    )
     val (videoLyricsEnabled, _) = rememberPreference(
         VideoLyricsEnabledKey,
         defaultValue = true
@@ -1293,7 +1297,7 @@ private fun VideoLyricsOverlay(
         defaultValue = "auto"
     )
 
-    if (!videoLyricsEnabled) return
+    if (!videoLyricsEnabled || !subtitlesEnabled) return
 
     // Fetch YouTube subtitles: try caption tracks first (like SmartTube), fallback to transcript
     var transcriptText by remember { mutableStateOf<String?>(null) }

@@ -3180,19 +3180,27 @@ class MusicService :
                                     .setMimeType(mimeType)
                                     .setCustomCacheKey(mediaId + "_video")
                                 
-                                // Add subtitle configurations if available
-                                if (subtitleConfigs.isNotEmpty()) {
+                                // Add subtitle configurations if available AND if subtitles are enabled
+                                val ccEnabled = dataStore.get(com.auramusic.app.constants.SubtitlesEnabledKey, true)
+                                if (ccEnabled && subtitleConfigs.isNotEmpty()) {
                                     videoMediaItemBuilder.setSubtitleConfigurations(subtitleConfigs)
                                     Timber.d("setVideoMode: Added ${subtitleConfigs.size} subtitle tracks to media item")
                                 }
                                 
                                 val videoMediaItem = videoMediaItemBuilder.build()
 
-                                // Enable subtitles by default
-                                player.trackSelectionParameters = player.trackSelectionParameters
-                                    .buildUpon()
-                                    .setPreferredTextLanguage("en")
-                                    .build()
+                                // Only enable subtitles if they are enabled in settings
+                                if (ccEnabled) {
+                                    player.trackSelectionParameters = player.trackSelectionParameters
+                                        .buildUpon()
+                                        .setPreferredTextLanguage("en")
+                                        .build()
+                                } else {
+                                    player.trackSelectionParameters = player.trackSelectionParameters
+                                        .buildUpon()
+                                        .setPreferredTextLanguage(null)
+                                        .build()
+                                }
                                 
                                 Timber.d("setVideoMode: Replacing media item at index $index")
                                 player.replaceMediaItem(index, videoMediaItem)
