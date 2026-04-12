@@ -22,7 +22,6 @@ import com.auramusic.app.extensions.tryOrNull
 import com.auramusic.app.extensions.zipInputStream
 import com.auramusic.app.extensions.zipOutputStream
 import com.auramusic.app.playback.MusicService
-import com.auramusic.app.playback.MusicService.Companion.PERSISTENT_QUEUE_FILE
 import com.auramusic.app.utils.reportException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -123,7 +122,7 @@ class BackupRestoreViewModel @Inject constructor(
             }
 
             context.stopService(Intent(context, MusicService::class.java))
-            context.filesDir.resolve(PERSISTENT_QUEUE_FILE).delete()
+            context.filesDir.resolve(MusicService.PERSISTENT_QUEUE_FILE).delete()
             context.startActivity(Intent(context, MainActivity::class.java))
             exitProcess(0)
         }.onFailure {

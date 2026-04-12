@@ -55,7 +55,8 @@ object SubtitleHandler {
                     i++
                     continue
                 }
-                val match = regex.find(trimmedLine) ?: run {
+                val match = regex.find(trimmedLine)
+                if (match == null) {
                     i++
                     return@while
                 }

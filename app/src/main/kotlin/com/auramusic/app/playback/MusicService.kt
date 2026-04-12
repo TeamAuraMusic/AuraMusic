@@ -2977,9 +2977,7 @@ class MusicService :
     private val _currentPositionFlow = MutableStateFlow(0L)
     val currentPositionFlow: StateFlow<Long> = _currentPositionFlow.asStateFlow()
 
-    companion object {
-        val desiredSubtitleLanguages = setOf("en", "sw", "es", "fr", "la")
-    }
+
 
     fun selectSubtitle(index: Int) {
         _selectedSubtitleIndex.value = index
@@ -3526,6 +3524,8 @@ class MusicService :
     }
 
     companion object {
+        val desiredSubtitleLanguages = setOf("en", "sw", "es", "fr", "la")
+
         const val ROOT = "root"
         const val SONG = "song"
         const val ARTIST = "artist"
@@ -3544,11 +3544,10 @@ class MusicService :
         const val PERSISTENT_PLAYER_STATE_FILE = "persistent_player_state.data"
         const val MAX_CONSECUTIVE_ERR = 5
         const val MAX_RETRY_COUNT = 10
-        // Constants for audio normalization
-        private const val MAX_GAIN_MB = 300 // Maximum gain in millibels (3 dB)
-        private const val MIN_GAIN_MB = -1500 // Minimum gain in millibels (-15 dB)
+        const val MAX_GAIN_MB = 300 // Maximum gain in millibels (3 dB)
+        const val MIN_GAIN_MB = -1500 // Minimum gain in millibels (-15 dB)
 
-        private const val TAG = "MusicService"
+        const val TAG = "MusicService"
         
         @Volatile
         var isRunning = false
