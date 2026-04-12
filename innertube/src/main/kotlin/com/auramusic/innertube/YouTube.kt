@@ -1139,8 +1139,21 @@ object YouTube {
      * Returns timed text as "[MM:SS.mmm]text" lines (same format as transcript).
      */
     suspend fun fetchSubtitleFromCaptionTrack(captionTrackUrl: String): Result<String> = runCatching {
-        val url = if ("fmt=" in captionTrackUrl) captionTrackUrl else "$captionTrackUrl&fmt=json3"
+        // Ensure URL has proper format and domain
+        val fullUrl = if (captionTrackUrl.startsWith("http")) {
+            captionTrackUrl
+        } else {
+            "https://youtube.com$captionTrackUrl"
+        }
+        
+        val url = if ("fmt=" in fullUrl) fullUrl else "$fullUrl&fmt=json3"
         val responseText = innerTube.getUrl(url).bodyAsText()
+        
+        // Check if response is an error page (starts with < which indicates HTML)
+        if (responseText.trim().startsWith("<")) {
+            error("Invalid subtitle response (HTML error page)")
+        }
+        
         val json = Json.parseToJsonElement(responseText).jsonObject
         val events = json["events"]?.jsonArray ?: error("No events in subtitle response")
         buildString {
