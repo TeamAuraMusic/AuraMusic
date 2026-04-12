@@ -3084,9 +3084,13 @@ class MusicService :
                         android.util.Log.d("MusicService", ">>> Found video via search: ${videoData?.videoId}")
                         
                         if (videoData != null) {
-                            // Fetch caption tracks for subtitles
+                            // Check if captions/subtitles are enabled before fetching
+                            val ccEnabled = dataStore.get(com.auramusic.app.constants.SubtitlesEnabledKey, true)
+                            
+                            // Fetch caption tracks for subtitles (only if enabled)
                             val subtitleConfigs = mutableListOf<MediaItem.SubtitleConfiguration>()
                             val subtitleInfos = mutableListOf<SubtitleInfo>()
+                            if (ccEnabled) {
                             try {
                                 val captionResult = withContext(Dispatchers.IO) {
                                     YouTube.getCaptionTracksWithDuration(videoData.videoId).getOrNull()
@@ -3132,9 +3136,9 @@ class MusicService :
                             } catch (e: Exception) {
                                 Timber.e(e, "setVideoMode: Error fetching caption tracks")
                             }
+                            }
                             _availableSubtitles.value = subtitleInfos
-                            // Auto-select preferred subtitle track
-                            val ccEnabled = dataStore.get(com.auramusic.app.constants.SubtitlesEnabledKey, true)
+                            // Auto-select preferred subtitle track (only if enabled)
                             if (ccEnabled && subtitleInfos.isNotEmpty()) {
                                 val preferredLang = dataStore.get(com.auramusic.app.constants.SubtitleLanguageKey, "en")
                                 val preferredIndex = subtitleInfos.indexOfFirst { it.languageCode == preferredLang }
