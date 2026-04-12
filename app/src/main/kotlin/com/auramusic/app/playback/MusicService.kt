@@ -3094,12 +3094,15 @@ class MusicService :
                                 val captionTracks = captionResult?.first
                                 val videoDurationMs = captionResult?.second
                                 if (!captionTracks.isNullOrEmpty()) {
+                                    Timber.d("setVideoMode: Found ${captionTracks.size} caption tracks for videoId=${videoData.videoId}")
                                     for (track in captionTracks) {
                                         try {
+                                            Timber.d("setVideoMode: Fetching caption track: lang=${track.languageCode}, kind=${track.kind}, baseUrl=${track.baseUrl.take(100)}...")
                                             val subtitleText = withContext(Dispatchers.IO) {
                                                 YouTube.fetchSubtitleFromCaptionTrack(track.baseUrl).getOrNull()
                                             }
                                             if (!subtitleText.isNullOrBlank()) {
+                                                Timber.d("setVideoMode: Successfully fetched ${subtitleText.length} chars for ${track.languageCode}")
                                                 val vttText = YouTube.convertTimedTextToVttWithDuration(subtitleText, videoDurationMs)
                                                 val tempFile = File(cacheDir, "subtitle_${track.vssId}.vtt")
                                                 tempFile.writeText(vttText)
@@ -3133,7 +3136,7 @@ class MusicService :
                             // Auto-select preferred subtitle track
                             val ccEnabled = dataStore.get(com.auramusic.app.constants.SubtitlesEnabledKey, true)
                             if (ccEnabled && subtitleInfos.isNotEmpty()) {
-                                val preferredLang = dataStore.get(com.auramusic.app.constants.SubtitleLanguageKey, "en") ?: "en"
+                                val preferredLang = dataStore.get(com.auramusic.app.constants.SubtitleLanguageKey, "en")
                                 val preferredIndex = subtitleInfos.indexOfFirst { it.languageCode == preferredLang }
                                 selectSubtitle(if (preferredIndex >= 0) preferredIndex else 0)
                             }

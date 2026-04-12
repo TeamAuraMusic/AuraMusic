@@ -1080,27 +1080,33 @@ object YouTube {
      */
     suspend fun getCaptionTracksWithDuration(videoId: String): Result<Pair<List<PlayerResponse.Captions.PlayerCaptionsTracklistRenderer.CaptionTrack>, Long?>> = runCatching {
         // Try WEB client first
+        timber.log.Timber.d("getCaptionTracksWithDuration: Trying WEB client for videoId=$videoId")
         val webResponse = innerTube.player(WEB, videoId, null, null).body<PlayerResponse>()
         val webTracks = webResponse.captions?.playerCaptionsTracklistRenderer?.captionTracks
         val webDuration = webResponse.videoDetails?.lengthSeconds?.toLongOrNull()?.times(1000)
+        timber.log.Timber.d("getCaptionTracksWithDuration: WEB client - tracks=${webTracks?.size ?: 0}, duration=${webDuration}ms")
         
         if (!webTracks.isNullOrEmpty()) {
             return@runCatching webTracks to webDuration
         }
 
         // Fallback to ANDROID/MOBILE client which may have more captions available
+        timber.log.Timber.d("getCaptionTracksWithDuration: Trying MOBILE client for videoId=$videoId")
         val mobileResponse = innerTube.player(MOBILE, videoId, null, null).body<PlayerResponse>()
         val mobileTracks = mobileResponse.captions?.playerCaptionsTracklistRenderer?.captionTracks
         val mobileDuration = mobileResponse.videoDetails?.lengthSeconds?.toLongOrNull()?.times(1000)
+        timber.log.Timber.d("getCaptionTracksWithDuration: MOBILE client - tracks=${mobileTracks?.size ?: 0}, duration=${mobileDuration}ms")
         
         if (!mobileTracks.isNullOrEmpty()) {
             return@runCatching mobileTracks to mobileDuration
         }
         
         // Last fallback to WEB_REMIX
+        timber.log.Timber.d("getCaptionTracksWithDuration: Trying WEB_REMIX client for videoId=$videoId")
         val remixResponse = innerTube.player(WEB_REMIX, videoId, null, null).body<PlayerResponse>()
         val remixTracks = remixResponse.captions?.playerCaptionsTracklistRenderer?.captionTracks
         val remixDuration = remixResponse.videoDetails?.lengthSeconds?.toLongOrNull()?.times(1000)
+        timber.log.Timber.d("getCaptionTracksWithDuration: WEB_REMIX client - tracks=${remixTracks?.size ?: 0}, duration=${remixDuration}ms")
         
         (remixTracks ?: emptyList()) to (remixDuration ?: mobileDuration ?: webDuration)
     }
@@ -1162,11 +1168,12 @@ object YouTube {
         val response = innerTube.getUrlWithYouTubeHeaders(url)
         val responseText = response.bodyAsText()
         
-        timber.log.Timber.d("fetchSubtitleFromCaptionTrack: Status = ${response.status}, Response preview = ${responseText.take(300)}")
+        timber.log.Timber.d("fetchSubtitleFromCaptionTrack: Status = ${response.status}, Response length = ${responseText.length}")
         
         // Check if response is an error page (starts with < which indicates HTML)
         if (responseText.trim().startsWith("<")) {
-            error("Invalid subtitle response (HTML error page)")
+            timber.log.Timber.e("fetchSubtitleFromCaptionTrack: Received HTML error page instead of JSON3. Response preview: ${responseText.take(500)}")
+            error("Invalid subtitle response (HTML error page). Status: ${response.status}")
         }
         
         val json = Json.parseToJsonElement(responseText).jsonObject

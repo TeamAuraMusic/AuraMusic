@@ -1343,7 +1343,9 @@ private fun VideoLyricsOverlay(
                     // Prefer user-selected language, then English, then auto-generated, then first available
                     val captionTrack = if (subtitleLanguage != "auto") {
                         captionTracks.firstOrNull { it.languageCode == subtitleLanguage }
-                    } else null
+                    } else {
+                        null
+                    }
                         ?: captionTracks.firstOrNull { it.languageCode == "en" }
                         ?: captionTracks.firstOrNull { it.kind == "asr" }
                         ?: captionTracks.firstOrNull()
