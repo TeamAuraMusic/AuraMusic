@@ -115,12 +115,15 @@ import com.auramusic.app.constants.PlayerBackgroundStyle
 import com.auramusic.app.constants.PlayerBackgroundStyleKey
 import com.auramusic.app.constants.PlayerHorizontalPadding
 import com.auramusic.app.constants.SeekExtraSeconds
+import com.auramusic.app.constants.SubtitlesEnabledKey
 import com.auramusic.app.constants.SwipeThumbnailKey
 import com.auramusic.app.constants.ThumbnailCornerRadius
 import com.auramusic.app.constants.VideoLyricsEnabledKey
 import com.auramusic.app.constants.VideoQuality
 import com.auramusic.app.constants.VideoQualityKey
 import com.auramusic.app.listentogether.RoomRole
+import com.auramusic.app.subtitles.SubtitleCue
+import com.auramusic.app.subtitles.SubtitleInfo
 import com.auramusic.app.ui.component.CastButton
 import com.auramusic.app.utils.FlowPlayerUtils
 import com.auramusic.app.utils.rememberEnumPreference
@@ -262,6 +265,10 @@ fun Thumbnail(
     
     // Video mode state
     val videoModeEnabled by playerConnection.videoModeEnabled.collectAsState()
+    val availableSubtitles by playerConnection.availableSubtitles.collectAsState()
+    val selectedSubtitleIndex by playerConnection.selectedSubtitleIndex.collectAsState()
+    val currentSubtitleCues by playerConnection.currentSubtitleCues.collectAsState()
+    val subtitlesEnabled by rememberPreference(SubtitlesEnabledKey, true)
 
     // Preferences - computed once
     // Disable swipe for Listen Together guests
@@ -686,6 +693,8 @@ private fun ThumbnailImage(
     val player = playerConnection.player
     val context = LocalContext.current
     val isVideoSwitching by playerConnection.isVideoSwitching.collectAsState()
+    val (subtitlesEnabled, onSubtitlesEnabledChange) = rememberPreference(SubtitlesEnabledKey, true)
+    val currentSubtitleCues by playerConnection.currentSubtitleCues.collectAsState()
     
     // [4] Auto-hide controls state
     var showControls by remember { mutableStateOf(true) }
@@ -909,12 +918,24 @@ private fun ThumbnailImage(
                 VideoSettingsButton(
                     resizeMode = resizeMode,
                     onResizeModeChange = { resizeMode = it },
-                    onInteraction = { lastInteractionTime = System.currentTimeMillis() }
+                    onInteraction = { lastInteractionTime = System.currentTimeMillis() },
+                    subtitlesEnabled = subtitlesEnabled,
+                    onSubtitlesToggle = { onSubtitlesEnabledChange(!subtitlesEnabled) }
                 )
             }
             
-            // Native ExoPlayer subtitles now handled via TextOutput in PlayerView
-            // Old custom VideoLyricsOverlay removed - native rendering like SmartTube
+            // Custom subtitle overlay for fetched caption cues
+            if (subtitlesEnabled && currentSubtitleCues.isNotEmpty()) {
+                SubtitleOverlayFromState(
+                    cues = currentSubtitleCues,
+                    currentPositionMs = playerPosition,
+                    enabled = true,
+                    fontSize = 16f,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 12.dp)
+                )
+            }
         } else {
             // Album art image
             AsyncImage(
@@ -990,6 +1011,8 @@ private fun VideoSettingsButton(
     resizeMode: Int,
     onResizeModeChange: (Int) -> Unit,
     onInteraction: () -> Unit,
+    subtitlesEnabled: Boolean = true,
+    onSubtitlesToggle: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -1058,7 +1081,35 @@ onClick = {
                     }
                 )
                 
-                // Native ExoPlayer handles subtitles via PlayerView
+                // Captions toggle
+                DropdownMenuItem(
+                    text = {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_subtitles),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(24.dp).padding(end = 12.dp),
+                                    tint = Color.White
+                                )
+                                Text(stringResource(R.string.captions))
+                            }
+                            Text(
+                                text = if (subtitlesEnabled) stringResource(R.string.captions_on) else stringResource(R.string.captions_off),
+                                color = Color.Gray,
+                                fontSize = 13.sp
+                            )
+                        }
+                    },
+                    onClick = {
+                        onSubtitlesToggle()
+                        expanded = false
+                    }
+                )
                 
                 // Video fit option
                 DropdownMenuItem(

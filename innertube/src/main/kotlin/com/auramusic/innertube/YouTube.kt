@@ -1151,6 +1151,28 @@ object YouTube {
         return String.format("%02d:%02d:%02d.%03d", h, m, s, mmm)
     }
 
+    fun filterCaptionTracksByLanguage(
+        tracks: List<PlayerResponse.Captions.PlayerCaptionsTracklistRenderer.CaptionTrack>,
+        desiredLanguages: Set<String>
+    ): List<PlayerResponse.Captions.PlayerCaptionsTracklistRenderer.CaptionTrack> {
+        if (desiredLanguages.isEmpty()) {
+            return tracks
+        }
+        val filtered = tracks.filter { it.languageCode in desiredLanguages }
+        if (filtered.isEmpty()) {
+            timber.log.Timber.w("filterCaptionTracksByLanguage: No tracks found for languages $desiredLanguages, returning all tracks")
+            return tracks
+        }
+        val prioritized = filtered.sortedByDescending { track ->
+            when (track.kind) {
+                null -> 2
+                "asr" -> 0
+                else -> 1
+            }
+        }
+        return prioritized
+    }
+
     suspend fun visitorData(): Result<String> = runCatching {
         Json.parseToJsonElement(innerTube.getSwJsData().bodyAsText().substring(5))
             .jsonArray[0]

@@ -62,6 +62,9 @@ import com.auramusic.app.constants.SimilarContent
 import com.auramusic.app.constants.SkipSilenceInstantKey
 import com.auramusic.app.constants.SkipSilenceKey
 import com.auramusic.app.constants.StopMusicOnTaskClearKey
+import com.auramusic.app.constants.SubtitlesEnabledKey
+import com.auramusic.app.constants.SubtitleFontSizeKey
+import com.auramusic.app.constants.SubtitleLanguageKey
 import com.auramusic.app.constants.VideoModeEnabledKey
 import com.auramusic.app.ui.component.DefaultDialog
 import com.auramusic.app.ui.component.EnumDialog
@@ -166,6 +169,14 @@ fun PlayerSettings(
     val (videoModeEnabled, onVideoModeEnabledChange) = rememberPreference(
         VideoModeEnabledKey,
         defaultValue = true
+    )
+    val (subtitlesEnabled, onSubtitlesEnabledChange) = rememberPreference(
+        SubtitlesEnabledKey,
+        defaultValue = true
+    )
+    val (subtitleFontSize, onSubtitleFontSizeChange) = rememberPreference(
+        SubtitleFontSizeKey,
+        defaultValue = 16f
     )
     val (pauseOnMute, onPauseOnMuteChange) = rememberPreference(
         PauseOnMute,
@@ -457,6 +468,27 @@ fun PlayerSettings(
                         )
                     },
                     onClick = { onVideoModeEnabledChange(!videoModeEnabled) }
+                ))
+                add(Material3SettingsItem(
+                    icon = painterResource(R.drawable.ic_subtitles),
+                    title = { Text(stringResource(R.string.closed_captions)) },
+                    description = { Text(stringResource(R.string.closed_captions_desc)) },
+                    trailingContent = {
+                        Switch(
+                            checked = subtitlesEnabled,
+                            onCheckedChange = onSubtitlesEnabledChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (subtitlesEnabled) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = { onSubtitlesEnabledChange(!subtitlesEnabled) }
                 ))
                 // Only show Cast setting in GMS builds (not in F-Droid/FOSS)
                 if (BuildConfig.CAST_AVAILABLE) {

@@ -157,11 +157,21 @@ class PlayerConnection(
     val isMuted = service.isMuted
 
     val videoModeEnabled = service.videoModeEnabled
+    val currentPosition: kotlinx.coroutines.flow.StateFlow<Long>
+        get() = service.currentPositionFlow
     val isVideoSwitching = service.isVideoSwitching
     val isVideoAvailable = service.isVideoAvailable
     val videoFetchError = service.videoFetchError
     val videoModeMessage = service.videoModeMessage
     val currentVideoId = service.currentVideoId
+
+    val availableSubtitles = service.availableSubtitles
+    val selectedSubtitleIndex = service.selectedSubtitleIndex
+    val currentSubtitleCues = service.currentSubtitleCues
+
+    fun selectSubtitle(index: Int) {
+        service.selectSubtitle(index)
+    }
 
     fun toggleVideoMode() {
         android.util.Log.d("PlayerConnection", "toggleVideoMode called, current videoModeEnabled: ${videoModeEnabled.value}, isVideoAvailable: ${isVideoAvailable.value}")
