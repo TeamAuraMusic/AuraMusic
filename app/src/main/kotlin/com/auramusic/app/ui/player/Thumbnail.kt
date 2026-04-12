@@ -1302,12 +1302,18 @@ private fun VideoLyricsOverlay(
     // Track which video IDs we've already attempted to fetch (to avoid re-fetching on player collapse/expand)
     var attemptedVideoIds by remember { mutableStateOf(setOf<String>()) }
 
-    // Use the actual video ID being played
+    // Use the actual video ID being played and video mode state
     val activeVideoId by playerConnection.currentVideoId.collectAsState()
+    val videoModeEnabled by playerConnection.videoModeEnabled.collectAsState()
 
-    // Only fetch captions when video ID actually changes to a new video
-    LaunchedEffect(activeVideoId, subtitleLanguage) {
-        val videoId = activeVideoId ?: return@LaunchedEffect
+    // Only fetch captions when video ID actually changes AND video mode is enabled
+    LaunchedEffect(activeVideoId, videoModeEnabled, subtitleLanguage) {
+        // Only proceed if video mode is enabled and we have a video ID
+        if (!videoModeEnabled || activeVideoId == null) {
+            return@LaunchedEffect
+        }
+        
+        val videoId = activeVideoId
         
         // Skip if already attempted for this video ID
         if (videoId in attemptedVideoIds) {
