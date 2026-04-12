@@ -1298,14 +1298,22 @@ private fun VideoLyricsOverlay(
     var isLoadingCaptions by remember { mutableStateOf(false) }
     var captionError by remember { mutableStateOf<String?>(null) }
     var videoDurationMs by remember { mutableLongStateOf(0L) }
+    var fetchedVideoId by remember { mutableStateOf<String?>(null) }
 
     // Use the actual video ID being played (may differ from song ID when video was found via search)
     val activeVideoId by playerConnection.currentVideoId.collectAsState()
 
+    // Only fetch captions when video ID changes (not on every player expand)
     LaunchedEffect(mediaMetadata?.id, activeVideoId, subtitleLanguage) {
         val rawVideoId = (if (videoModeEnabled) activeVideoId else null)
             ?: mediaMetadata?.id
             ?: return@LaunchedEffect
+        
+        // Skip if already fetched for this video
+        if (fetchedVideoId == rawVideoId && transcriptText != null) {
+            return@LaunchedEffect
+        }
+        
         // Strip any suffixes like "_video" that might be added for video mode
         val videoId = rawVideoId.removeSuffix("_video").ifEmpty { rawVideoId }
         
@@ -1315,6 +1323,7 @@ private fun VideoLyricsOverlay(
         captionError = null
         isLoadingCaptions = true
         videoDurationMs = 0L
+        fetchedVideoId = videoId
         
         delay(500) // Slightly longer delay to ensure player is ready
         withContext(Dispatchers.IO) {
