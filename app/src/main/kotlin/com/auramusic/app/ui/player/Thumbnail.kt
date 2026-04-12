@@ -467,50 +467,6 @@ fun Thumbnail(
         }
     }
 }
-                    }
-                }
-            }
-        } else if (!isLoadingCaptions && captionError != null) {
-            // Show indicator when captions finished loading but none are available
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp)
-            ) {
-                Text(
-                    text = captionError,
-                    color = Color.White.copy(alpha = 0.5f),
-                    fontSize = 11.sp,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .background(
-                            Color.Black.copy(alpha = 0.35f),
-                            RoundedCornerShape(4.dp)
-                        )
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                )
-            }
-        }
-
-        // Seek effect
-        LaunchedEffect(showSeekEffect) {
-            if (showSeekEffect) {
-                delay(1000)
-                showSeekEffect = false
-            }
-        }
-
-        AnimatedVisibility(
-            visible = showSeekEffect,
-            enter = fadeIn(),
-            exit = fadeOut(),
-            modifier = Modifier.align(Alignment.Center)
-        ) {
-            SeekEffectOverlay(seekDirection = seekDirection)
-        }
-    }
-}
 
 /**
  * Header component showing "Now Playing" and queue/album title.
