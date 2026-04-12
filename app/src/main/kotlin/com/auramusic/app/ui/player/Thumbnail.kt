@@ -464,6 +464,12 @@ fun Thumbnail(
                     }
                 }
             }
+        }
+    }
+}
+                    }
+                }
+            }
         } else if (!isLoadingCaptions && captionError != null) {
             // Show indicator when captions finished loading but none are available
             Box(
