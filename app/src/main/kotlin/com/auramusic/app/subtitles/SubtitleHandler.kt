@@ -58,7 +58,7 @@ object SubtitleHandler {
                 val match = regex.find(trimmedLine)
                 if (match == null) {
                     i++
-                    return@while
+                    continue
                 }
                 val minutes = match.groupValues[1].toLongOrNull() ?: 0
                 val seconds = match.groupValues[2].toLongOrNull() ?: 0
