@@ -1298,32 +1298,32 @@ private fun VideoLyricsOverlay(
     var isLoadingCaptions by remember { mutableStateOf(false) }
     var captionError by remember { mutableStateOf<String?>(null) }
     var videoDurationMs by remember { mutableLongStateOf(0L) }
-    var fetchedVideoId by remember { mutableStateOf<String?>(null) }
 
-    // Use the actual video ID being played (may differ from song ID when video was found via search)
+    // Track which video IDs we've already attempted to fetch (to avoid re-fetching on player collapse/expand)
+    var attemptedVideoIds by remember { mutableStateOf(setOf<String>()) }
+
+    // Use the actual video ID being played
     val activeVideoId by playerConnection.currentVideoId.collectAsState()
 
-    // Only fetch captions when video ID changes (not on every player expand)
-    LaunchedEffect(mediaMetadata?.id, activeVideoId, subtitleLanguage) {
-        val rawVideoId = (if (videoModeEnabled) activeVideoId else null)
-            ?: mediaMetadata?.id
-            ?: return@LaunchedEffect
+    // Only fetch captions when video ID actually changes to a new video
+    LaunchedEffect(activeVideoId, subtitleLanguage) {
+        val videoId = activeVideoId ?: return@LaunchedEffect
         
-        // Skip if already fetched for this video
-        if (fetchedVideoId == rawVideoId && transcriptText != null) {
+        // Skip if already attempted for this video ID
+        if (videoId in attemptedVideoIds) {
+            timber.log.Timber.d("VideoLyricsOverlay: Already attempted for videoId=$videoId, skipping")
             return@LaunchedEffect
         }
         
-        // Strip any suffixes like "_video" that might be added for video mode
-        val videoId = rawVideoId.removeSuffix("_video").ifEmpty { rawVideoId }
+        timber.log.Timber.d("VideoLyricsOverlay: Fetching captions for videoId=$videoId")
         
-        timber.log.Timber.d("VideoLyricsOverlay: Fetching captions for videoId=$videoId (activeVideoId=$activeVideoId, songId=${mediaMetadata?.id}, videoMode=$videoModeEnabled)")
+        // Add to attempted set first to prevent re-fetching
+        attemptedVideoIds = attemptedVideoIds + videoId
         
         transcriptText = null
         captionError = null
         isLoadingCaptions = true
         videoDurationMs = 0L
-        fetchedVideoId = videoId
         
         delay(500) // Slightly longer delay to ensure player is ready
         withContext(Dispatchers.IO) {
