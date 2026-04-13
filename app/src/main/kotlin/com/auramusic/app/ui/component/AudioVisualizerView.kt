@@ -190,7 +190,7 @@ fun AudioVisualizerSlider(
             if (isDragging || enabled) {
                 val thumbRadius = barHeight * 0.8f
                 drawCircle(
-                    color = thumbColor ?: activeColor,
+                    color = thumbColor,
                     radius = thumbRadius,
                     center = Offset(progressWidth.coerceIn(thumbRadius, width - thumbRadius), centerY)
                 )
@@ -262,7 +262,7 @@ private fun DrawScope.drawSmoothOceanWaves(
         val phase = (x / width) * waveCount * 2f * Math.PI.toFloat() + waveOffset
         val smoothWave = sin(phase) * waveAmplitude * 0.3f
 
-        val y = waveTop - sampleValue * waveAmplitude * 0.6f - smoothWave.toFloat()
+        val y = waveTop - sampleValue * waveAmplitude * 0.6f - smoothWave
         wavePath.lineTo(x, y)
     }
 
@@ -338,7 +338,7 @@ fun AudioVisualizerPreview(
             val smoothWave = sin(phase) * waveAmplitude * 0.3f
             val sampleValue = (sin(phase + waveOffset) + 1f) / 2f
 
-            val y = waveTop - sampleValue * waveAmplitude * 0.6f - smoothWave.toFloat()
+            val y = waveTop - sampleValue * waveAmplitude * 0.6f - smoothWave
             wavePath.lineTo(x, y)
         }
 
