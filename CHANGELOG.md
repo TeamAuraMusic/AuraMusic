@@ -1,3 +1,62 @@
+# AuraMusic v1.0.14 (Build 15) Changelog
+
+## Features
+- Added AudioVisualizerView with Android Visualizer API for real-time wave visualization
+- Added SamsungSlider component with wave style
+- Added Listen Together at top setting - moves Listen Together to top of nav bar when enabled
+- Added Listen Together card to HomeScreen
+- Added subtitle language preference setting in player settings
+- Added Fixed (FIXED_WIDTH) option to video fit settings
+- Renamed Samsung slider style to Liquid
+
+## UI/UX Improvements
+- Rewrote AudioVisualizerSlider with ocean wave style that replaces progress bar
+- Implemented Samsung notification bar wave slider style
+- Fixed liquid glass effect in dark mode
+- Removed Listen Together icon from top app bar and updated setting label
+- Position captions lower in video mode to show in empty space
+- Show caption loading status indicator below thumbnail when captions are unavailable
+
+## Video Playback Improvements
+- Fixed video mode switching with improved caption fetching reliability
+- Fixed video captions to enable VideoLyricsOverlay and auto subtitle language by default
+- Fixed video mode is enabled before fetching captions
+- Fixed video captions to cache captions per video ID to avoid reloading on player expand/collapse
+- Fixed handle caption track URLs that may not have proper domain
+- Use proper YouTube headers when fetching caption track content
+- Use MOBILE/ANDROID client as fallback for caption tracks to improve caption availability
+
+## Lyrics Improvements
+- Improved RushLyrics malformed timestamp detection and fixing
+- Fixed RushLyrics malformed timestamps - generate valid line timing
+- Fixed RushLyrics invalid timestamp handling
+- Fixed lyrics all-highlighted bug
+- Caption re-fetching improvements
+- Removed auto-reordering of lyrics providers
+
+## Bug Fixes
+- Fixed numerous compilation errors in MainActivity, HomeScreen, AudioVisualizerView, and AppearanceSettings
+- Fixed duplicate videoModeEnabled declaration
+- Fixed remove duplicate videoModeEnabled declaration in VideoLyricsOverlay
+- Fixed explicitly type videoId as String to resolve nullable type mismatch
+- Fixed remove redundant toFloat() calls in AudioVisualizerView
+- Fixed use LinearEasing instead of LinearRepeatable
+- Fixed missing SAMSUNG branch in when expression
+- Fixed Pass SongItem metadata with isVideoSong flag to enable video mode for trending carousel
+- Fixed compilation errors in MainActivity and HomeScreen
+- Fixed show loading indicator during video buffering for faster perceived loading
+
+## Build
+- Bumped versionCode to 15
+- Bumped versionName to 1.0.14
+- Updated Gradle wrapper to 9.4.1
+- Added Gradle 9.4.1 SHA256 checksum
+- Restored tinypinyin to 2.0.3 for build compatibility
+
+
+**Full Changelog**: https://github.com/TeamAuraMusic/AuraMusic/compare/v1.0.13...v1.0.14
+
+
 # AuraMusic v1.0.13 (Build 14) Changelog
 
 ## Features
