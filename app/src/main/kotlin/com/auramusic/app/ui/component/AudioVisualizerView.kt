@@ -46,8 +46,7 @@ fun AudioVisualizerView(
 
     DisposableEffect(audioSessionId) {
         if (audioSessionId == 0) {
-            onDispose { }
-            return@DisposableEffect
+            return@DisposableEffect onDispose { }
         }
 
         val visualizerInstance = Visualizer(audioSessionId)
@@ -96,7 +95,7 @@ fun AudioVisualizerView(
 
     val displayWaveData = waveformData ?: run {
         if (isPlaying) {
-            ByteArray(128) { i -> (sin(i * 0.3 + waveOffset) * 40 + 40).toByte() }
+            ByteArray(128) { i -> ((sin(i * 0.3 + waveOffset) * 40 + 40).toInt() and 0xFF).toByte() }
         } else {
             null
         }

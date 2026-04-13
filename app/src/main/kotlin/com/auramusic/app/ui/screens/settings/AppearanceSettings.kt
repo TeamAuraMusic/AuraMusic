@@ -12,6 +12,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -815,7 +817,9 @@ fun AppearanceSettings(
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    Box(
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
                         modifier = Modifier
                             .aspectRatio(1f)
                             .weight(1f)
@@ -830,19 +834,19 @@ fun AppearanceSettings(
                                 onSquigglySliderChange(false)
                                 showSliderOptionDialog = false
                             }
-                            .padding(12.dp),
-                        contentAlignment = Alignment.Center
+                            .padding(12.dp)
                     ) {
                         AudioVisualizerPreview(
                             waveColor = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
                         )
                         Text(
                             text = stringResource(R.string.visualizer),
                             style = MaterialTheme.typography.labelSmall,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.align(Alignment.BottomCenter)
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                     Spacer(modifier = Modifier.weight(1f))
