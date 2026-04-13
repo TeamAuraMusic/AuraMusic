@@ -6,7 +6,6 @@
 package com.auramusic.app.ui.screens.settings
 
 import android.app.Activity
-import android.content.Intent
 import android.os.Build
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -148,20 +147,6 @@ fun AppearanceSettings(
     fun handleIconChange(enabled: Boolean) {
         onEnableDynamicIconChange(enabled)
         IconUtils.setIcon(activity, enabled)
-        coroutineScope.launch {
-            val result = snackbarHostState.showSnackbar(
-                message = "Icon updated, restart to apply",
-                actionLabel = "Restart"
-            )
-            if (result == SnackbarResult.ActionPerformed) {
-                val packageManager = activity.packageManager
-                val intent = packageManager.getLaunchIntentForPackage(activity.packageName)
-                val componentName = intent?.component
-                val mainIntent = Intent.makeRestartActivityTask(componentName)
-                activity.startActivity(mainIntent)
-                Runtime.getRuntime().exit(0)
-            }
-        }
     }
 
 
