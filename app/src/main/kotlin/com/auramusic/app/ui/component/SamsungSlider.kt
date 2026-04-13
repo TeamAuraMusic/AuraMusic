@@ -5,7 +5,11 @@
 
 package com.auramusic.app.ui.component
 
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.LinearRepeatable
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -24,12 +28,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlin.math.sin
 
 @Composable
 fun SamsungSlider(
@@ -40,8 +45,8 @@ fun SamsungSlider(
     onValueChangeFinished: (() -> Unit)? = null,
     colors: SliderColors = SliderDefaults.colors(),
     enabled: Boolean = true,
-    trackHeight: Dp = 6.dp,
-    expandedTrackHeight: Dp = 12.dp,
+    trackHeight: Dp = 4.dp,
+    expandedTrackHeight: Dp = 6.dp,
 ) {
     val normalizedValue = ((value - valueRange.start) / (valueRange.endInclusive - valueRange.start))
         .coerceIn(0f, 1f)
@@ -51,10 +56,15 @@ fun SamsungSlider(
 
     val displayValue = if (isDragging) dragValue else normalizedValue
 
-    val animatedHeight by animateFloatAsState(
-        targetValue = if (isDragging) 1f else 0f,
-        animationSpec = tween(durationMillis = 150),
-        label = "trackExpand"
+    val infiniteTransition = rememberInfiniteTransition(label = "waveTransition")
+    val waveOffset by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 2f * Math.PI.toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1500, easing = LinearRepeatable.Easing.Linear),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "waveOffset"
     )
 
     val activeColor = colors.activeTrackColor
@@ -62,7 +72,7 @@ fun SamsungSlider(
 
     val baseModifier = modifier
         .fillMaxWidth()
-        .height(expandedTrackHeight + 16.dp)
+        .height(24.dp)
 
     val interactiveModifier = if (enabled) {
         baseModifier
@@ -106,29 +116,100 @@ fun SamsungSlider(
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val baseHeightPx = trackHeight.toPx()
-            val expandedHeightPx = expandedTrackHeight.toPx()
-            val currentHeight = baseHeightPx + (expandedHeightPx - baseHeightPx) * animatedHeight
-            val cornerRadius = currentHeight / 2f
-            val top = (size.height - currentHeight) / 2f
+            val currentHeight = baseHeightPx
+            val centerY = size.height / 2f
 
-            // Inactive track (full width pill)
-            drawRoundRect(
-                color = inactiveColor,
-                topLeft = Offset(0f, top),
-                size = Size(size.width, currentHeight),
-                cornerRadius = CornerRadius(cornerRadius, cornerRadius)
+            val topTrackY = centerY - currentHeight - 2.dp.toPx()
+            val bottomTrackY = centerY + 2.dp.toPx()
+
+            val progressWidth = size.width * displayValue
+
+            val amplitude = if (displayValue < 0.166f) {
+                3.dp.toPx()
+            } else {
+                6.dp.toPx()
+            }
+
+            drawWavyTrack(
+                y = topTrackY,
+                height = currentHeight,
+                progress = displayValue,
+                waveOffset = waveOffset,
+                amplitude = amplitude,
+                activeColor = activeColor,
+                inactiveColor = inactiveColor,
+                progressWidth = progressWidth,
+                isTop = true
             )
 
-            // Active track (filled portion pill)
-            val activeWidth = (size.width * displayValue).coerceAtLeast(currentHeight)
-            if (displayValue > 0f) {
-                drawRoundRect(
-                    color = activeColor,
-                    topLeft = Offset(0f, top),
-                    size = Size(activeWidth.coerceAtMost(size.width), currentHeight),
-                    cornerRadius = CornerRadius(cornerRadius, cornerRadius)
-                )
-            }
+            drawWavyTrack(
+                y = bottomTrackY,
+                height = currentHeight,
+                progress = displayValue,
+                waveOffset = waveOffset,
+                amplitude = amplitude,
+                activeColor = activeColor,
+                inactiveColor = inactiveColor,
+                progressWidth = progressWidth,
+                isTop = false
+            )
         }
+    }
+}
+
+private fun DrawScope.drawWavyTrack(
+    y: Float,
+    height: Float,
+    progress: Float,
+    waveOffset: Float,
+    amplitude: Float,
+    activeColor: androidx.compose.ui.graphics.Color,
+    inactiveColor: androidx.compose.ui.graphics.Color,
+    progressWidth: Float,
+    isTop: Boolean
+) {
+    val waveCount = 3
+    val waveWidth = size.width / waveCount
+
+    val inactivePath = Path()
+    inactivePath.moveTo(0f, y + height / 2f)
+
+    for (i in 0..waveCount) {
+        val x = i * waveWidth
+        val phase = (i.toFloat() / waveCount) * 2f * Math.PI.toFloat() + waveOffset
+        val waveY = y + height / 2f + sin(phase).toFloat() * amplitude
+        inactivePath.lineTo(x, waveY.coerceIn(y, y + height))
+    }
+
+    inactivePath.lineTo(size.width, y + height / 2f)
+
+    drawPath(
+        path = inactivePath,
+        color = inactiveColor,
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = height)
+    )
+
+    if (progressWidth > 0f) {
+        val activePath = Path()
+        val actualProgressWidth = progressWidth.coerceAtMost(size.width)
+
+        activePath.moveTo(0f, y + height / 2f)
+
+        for (i in 0..waveCount) {
+            val x = i * waveWidth
+            if (x > actualProgressWidth) break
+            val phase = (i.toFloat() / waveCount) * 2f * Math.PI.toFloat() + waveOffset
+            val waveY = y + height / 2f + sin(phase).toFloat() * amplitude
+            val clampedX = x.coerceAtMost(actualProgressWidth)
+            activePath.lineTo(clampedX, waveY.coerceIn(y, y + height))
+        }
+
+        activePath.lineTo(actualProgressWidth.coerceAtMost(size.width), y + height / 2f)
+
+        drawPath(
+            path = activePath,
+            color = activeColor,
+            style = androidx.compose.ui.graphics.drawscope.Stroke(width = height)
+        )
     }
 }
