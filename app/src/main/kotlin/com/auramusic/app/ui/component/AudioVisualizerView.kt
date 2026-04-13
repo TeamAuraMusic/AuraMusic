@@ -269,3 +269,72 @@ private fun DrawScope.drawOceanWaves(
         style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx())
     )
 }
+
+@Composable
+fun AudioVisualizerPreview(
+    modifier: Modifier = Modifier,
+    waveColor: Color = Color.White,
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "wavePreview")
+    val waveOffset by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 2f * Math.PI.toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "waveOffset"
+    )
+
+    Canvas(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(48.dp)
+    ) {
+        val width = size.width
+        val centerY = size.height / 2
+        val trackHeight = 6.dp.toPx()
+        val amplitude = trackHeight * 1.5f
+        val waveCount = 4
+
+        drawRoundRect(
+            color = waveColor.copy(alpha = 0.3f),
+            topLeft = Offset(0f, centerY - trackHeight / 2),
+            size = Size(width, trackHeight),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(trackHeight / 2, trackHeight / 2)
+        )
+
+        val wavePath = Path()
+        val waveHeight = trackHeight * 2f
+
+        wavePath.moveTo(0f, centerY + waveHeight)
+
+        for (i in 0 until (width / 2).toInt()) {
+            val x = i.toFloat()
+            val phase = (i.toFloat() / width) * waveCount * 2f * Math.PI.toFloat() + waveOffset
+            val waveY = sin(phase) * amplitude * 0.5f
+            val sampleValue = sin(phase) * 0.5f
+            val y = centerY + sampleValue * amplitude * 0.8f + waveY
+
+            wavePath.lineTo(x, y.coerceIn(centerY - waveHeight, centerY + waveHeight))
+        }
+
+        val progressWidth = width * 0.4f
+        wavePath.lineTo(progressWidth, centerY)
+        wavePath.lineTo(progressWidth, centerY + waveHeight)
+        wavePath.close()
+
+        drawPath(
+            path = wavePath,
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    waveColor.copy(alpha = 0.8f),
+                    waveColor.copy(alpha = 0.4f),
+                    waveColor.copy(alpha = 0.1f)
+                ),
+                startY = centerY - waveHeight,
+                endY = centerY + waveHeight
+            )
+        )
+    }
+}
