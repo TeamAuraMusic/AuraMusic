@@ -143,6 +143,7 @@ import com.auramusic.app.constants.SYSTEM_DEFAULT
 import com.auramusic.app.constants.SelectedThemeColorKey
 import com.auramusic.app.constants.SlimNavBarHeight
 import com.auramusic.app.constants.SlimNavBarKey
+import com.auramusic.app.constants.ListenTogetherAtTopKey
 import com.auramusic.app.constants.StopMusicOnTaskClearKey
 import com.auramusic.app.constants.UpdateNotificationsEnabledKey
 import com.auramusic.app.constants.UseNewMiniPlayerDesignKey
@@ -562,8 +563,24 @@ class MainActivity : ComponentActivity() {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val (previousTab, setPreviousTab) = rememberSaveable { mutableStateOf("home") }
 
-                val navigationItems = remember { Screens.MainScreens }
+                val orderedNavigationItems = remember { Screens.MainScreens }
                 val (slimNav) = rememberPreference(SlimNavBarKey, defaultValue = false)
+                val (listenTogetherAtTop) = rememberPreference(ListenTogetherAtTopKey, defaultValue = true)
+                
+                // Reorder navigation items based on preference
+                val orderedNavigationItems = remember(listenTogetherAtTop) {
+                    if (listenTogetherAtTop) {
+                        listOf(
+                            Screens.Home,
+                            Screens.ListenTogether,
+                            Screens.Search,
+                            Screens.Library
+                        )
+                    } else {
+                        Screens.MainScreens
+                    }
+                }
+                
                 val (useNewMiniPlayerDesign) = rememberPreference(UseNewMiniPlayerDesignKey, defaultValue = true)
                 val defaultOpenTab = remember {
                     dataStore[DefaultOpenTabKey].toEnum(defaultValue = NavigationTab.HOME)
@@ -613,8 +630,8 @@ class MainActivity : ComponentActivity() {
                 val inSearchScreen by remember {
                     derivedStateOf { currentRoute?.startsWith("search/") == true }
                 }
-                val navigationItemRoutes = remember(navigationItems) {
-                    navigationItems.map { it.route }.toSet()
+                val navigationItemRoutes = remember(orderedNavigationItems) {
+                    orderedNavigationItems.map { it.route }.toSet()
                 }
 
                 val shouldShowNavigationBar = remember(currentRoute, navigationItemRoutes) {
@@ -696,13 +713,13 @@ class MainActivity : ComponentActivity() {
                                 TextRange(searchQuery.length)
                             )
                         )
-                    } else if (navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route }) {
+                    } else if (orderedNavigationItems.fastAny { it.route == navBackStackEntry?.destination?.route }) {
                         onQueryChange(TextFieldValue())
                     }
 
                     // Reset scroll behavior for main navigation items
-                    if (navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route }) {
-                        if (navigationItems.fastAny { it.route == previousTab }) {
+                    if (orderedNavigationItems.fastAny { it.route == navBackStackEntry?.destination?.route }) {
+                        if (orderedNavigationItems.fastAny { it.route == previousTab }) {
                             topAppBarScrollBehavior.state.resetHeightOffset()
                         }
                     }
@@ -929,7 +946,7 @@ class MainActivity : ComponentActivity() {
                                     )
 
                                     AppNavigationBar(
-                                        navigationItems = navigationItems,
+                                        orderedNavigationItems = orderedNavigationItems,
                                         currentRoute = currentRoute,
                                         onItemClick = onNavItemClick,
                                         pureBlack = pureBlack,
@@ -1030,7 +1047,7 @@ class MainActivity : ComponentActivity() {
 
                             if (showRail && currentRoute != "wrapped") {
                                 AppNavigationRail(
-                                    navigationItems = navigationItems,
+                                    orderedNavigationItems = orderedNavigationItems,
                                     currentRoute = currentRoute,
                                     onItemClick = onRailItemClick,
                                     pureBlack = pureBlack,
@@ -1048,10 +1065,10 @@ class MainActivity : ComponentActivity() {
                                     }.route,
                                     // Enter Transition - smoother with smaller offset and longer duration
                                     enterTransition = {
-                                        val currentRouteIndex = navigationItems.indexOfFirst {
+                                        val currentRouteIndex = orderedNavigationItems.indexOfFirst {
                                             it.route == targetState.destination.route
                                         }
-                                        val previousRouteIndex = navigationItems.indexOfFirst {
+                                        val previousRouteIndex = orderedNavigationItems.indexOfFirst {
                                             it.route == initialState.destination.route
                                         }
 
@@ -1062,10 +1079,10 @@ class MainActivity : ComponentActivity() {
                                     },
                                     // Exit Transition - smoother with smaller offset and longer duration
                                     exitTransition = {
-                                        val currentRouteIndex = navigationItems.indexOfFirst {
+                                        val currentRouteIndex = orderedNavigationItems.indexOfFirst {
                                             it.route == initialState.destination.route
                                         }
-                                        val targetRouteIndex = navigationItems.indexOfFirst {
+                                        val targetRouteIndex = orderedNavigationItems.indexOfFirst {
                                             it.route == targetState.destination.route
                                         }
 
@@ -1076,10 +1093,10 @@ class MainActivity : ComponentActivity() {
                                     },
                                     // Pop Enter Transition - smoother with smaller offset and longer duration
                                     popEnterTransition = {
-                                        val currentRouteIndex = navigationItems.indexOfFirst {
+                                        val currentRouteIndex = orderedNavigationItems.indexOfFirst {
                                             it.route == targetState.destination.route
                                         }
-                                        val previousRouteIndex = navigationItems.indexOfFirst {
+                                        val previousRouteIndex = orderedNavigationItems.indexOfFirst {
                                             it.route == initialState.destination.route
                                         }
 
@@ -1090,10 +1107,10 @@ class MainActivity : ComponentActivity() {
                                     },
                                     // Pop Exit Transition - smoother with smaller offset and longer duration
                                     popExitTransition = {
-                                        val currentRouteIndex = navigationItems.indexOfFirst {
+                                        val currentRouteIndex = orderedNavigationItems.indexOfFirst {
                                             it.route == initialState.destination.route
                                         }
-                                        val targetRouteIndex = navigationItems.indexOfFirst {
+                                        val targetRouteIndex = orderedNavigationItems.indexOfFirst {
                                             it.route == targetState.destination.route
                                         }
 

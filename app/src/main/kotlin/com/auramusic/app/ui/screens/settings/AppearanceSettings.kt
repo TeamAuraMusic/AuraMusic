@@ -90,6 +90,7 @@ import com.auramusic.app.constants.ShowUploadedPlaylistKey
 import com.auramusic.app.constants.SliderStyle
 import com.auramusic.app.constants.SliderStyleKey
 import com.auramusic.app.constants.SlimNavBarKey
+import com.auramusic.app.constants.ListenTogetherAtTopKey
 import com.auramusic.app.constants.SquigglySliderKey
 import com.auramusic.app.constants.SwipeSensitivityKey
 import com.auramusic.app.constants.SwipeThumbnailKey
@@ -239,6 +240,11 @@ fun AppearanceSettings(
     val (slimNav, onSlimNavChange) = rememberPreference(
         SlimNavBarKey,
         defaultValue = false
+    )
+
+    val (listenTogetherAtTop, onListenTogetherAtTopChange) = rememberPreference(
+        ListenTogetherAtTopKey,
+        defaultValue = true
     )
 
     val (swipeToSong, onSwipeToSongChange) = rememberPreference(
@@ -1450,6 +1456,26 @@ fun AppearanceSettings(
                         )
                     },
                     onClick = { onSlimNavChange(!slimNav) }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.group),
+                    title = { Text(stringResource(R.string.listen_together_at_top)) },
+                    trailingContent = {
+                        Switch(
+                            checked = listenTogetherAtTop,
+                            onCheckedChange = onListenTogetherAtTopChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (listenTogetherAtTop) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = { onListenTogetherAtTopChange(!listenTogetherAtTop) }
                 ),
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.grid_view),
