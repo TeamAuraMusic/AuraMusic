@@ -846,12 +846,6 @@ class MainActivity : ComponentActivity() {
                                                     contentDescription = stringResource(R.string.stats)
                                                 )
                                             }
-                                            IconButton(onClick = { navController.navigate("listen_together") }) {
-                                                Icon(
-                                                    painter = painterResource(R.drawable.group),
-                                                    contentDescription = stringResource(R.string.listen_together)
-                                                )
-                                            }
                                             IconButton(onClick = { showAccountDialog = true }) {
                                                 BadgedBox(badge = {
                                                     if (latestVersionName != BuildConfig.VERSION_NAME) {

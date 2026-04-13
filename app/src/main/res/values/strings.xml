@@ -436,7 +436,7 @@
     <string name="swipe_song_to_add">Swipe right to add to playlist</string>
     <string name="swipe_song_to_remove">Swipe left to remove from playlist</string>
     <string name="slim_navbar">Slim navigation bar</string>
-    <string name="listen_together_at_top">Listen Together at top</string>
+    <string name="listen_together_at_top">Remove from bottom Nav bar</string>
     <string name="auto_playlists">Auto playlists</string>
     <string name="show_liked_playlist">Show liked songs playlist</string>
     <string name="show_downloaded_playlist">Show downloaded songs playlist</string>
