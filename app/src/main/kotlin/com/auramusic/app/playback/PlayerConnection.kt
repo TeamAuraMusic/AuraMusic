@@ -164,6 +164,8 @@ class PlayerConnection(
     val videoFetchError = service.videoFetchError
     val videoModeMessage = service.videoModeMessage
     val currentVideoId = service.currentVideoId
+    val captionCache get() = service.captionCache
+    val captionAttemptedIds get() = service.captionAttemptedIds
 
     val availableSubtitles = service.availableSubtitles
     val selectedSubtitleIndex = service.selectedSubtitleIndex

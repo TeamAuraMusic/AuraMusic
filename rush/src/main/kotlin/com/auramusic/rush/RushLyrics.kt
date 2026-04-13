@@ -241,35 +241,30 @@ object RushLyrics {
                 }
                 
                 if (allWordsAtZero && timestamps.isNotEmpty()) {
-                    val effectiveDuration = if (duration > 0) duration * 1000L else 180000L
+                    if (maxLineTimestamp > 0L) {
+                        // Line timestamps are valid — just strip the malformed word timings
+                        val wordTagPattern = Regex("\\s*<\\d{1,2}:\\d{2}\\.\\d{2,3}>[^<]*")
+                        return lines.joinToString("\n") { line ->
+                            line.trim().replace(wordTagPattern, "")
+                        }
+                    }
                     
-                    // Rebuild LRC with proper word timings distributed evenly
+                    // All line timestamps are also 0 — redistribute everything evenly
+                    val effectiveDuration = if (duration > 0) duration * 1000L else 180000L
                     val validLines = lines.filter { linePattern.matches(it.trim()) }
                     if (validLines.isNotEmpty()) {
                         return buildString {
                             validLines.forEachIndexed { lineIndex, line ->
                                 val match = linePattern.matchEntire(line.trim())
                                 val text = match?.groupValues?.get(4) ?: ""
+                                // Strip any malformed word tags from text
+                                val cleanText = text.replace(Regex("\\s*<\\d{1,2}:\\d{2}\\.\\d{2,3}>[^<]*"), "").trim()
                                 val lineTimeMs = lineIndex * (effectiveDuration / validLines.size)
                                 
                                 val minutes = lineTimeMs / 60000
                                 val seconds = (lineTimeMs % 60000) / 1000
                                 val centiseconds = (lineTimeMs % 1000) / 10
-                                append("[%02d:%02d.%02d]%s".format(minutes, seconds, centiseconds, text))
-                                
-                                // Add word timings
-                                val words = text.split(" ").filter { it.isNotBlank() }
-                                if (words.isNotEmpty()) {
-                                    val wordInterval = (effectiveDuration / validLines.size) / words.size
-                                    words.forEachIndexed { wordIndex, word ->
-                                        val wordTime = lineTimeMs + (wordIndex * wordInterval)
-                                        val wMin = wordTime / 60000
-                                        val wSec = (wordTime % 60000) / 1000
-                                        val wCs = (wordTime % 1000) / 10
-                                        append(" <%02d:%02d.%02d>%s".format(wMin, wSec, wCs, word))
-                                    }
-                                }
-                                appendLine()
+                                appendLine("[%02d:%02d.%02d]%s".format(minutes, seconds, centiseconds, cleanText))
                             }
                         }
                     }

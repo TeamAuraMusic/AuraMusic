@@ -2967,6 +2967,9 @@ class MusicService :
     val isVideoAvailable: StateFlow<Boolean> = _isVideoAvailable.asStateFlow()
     private val _currentVideoId = MutableStateFlow<String?>(null)
     val currentVideoId: StateFlow<String?> = _currentVideoId.asStateFlow()
+    // Cache for video captions to avoid re-fetching on player collapse/expand
+    val captionCache = java.util.concurrent.ConcurrentHashMap<String, String>()
+    val captionAttemptedIds = java.util.Collections.synchronizedSet(mutableSetOf<String>())
     private val _availableSubtitles = MutableStateFlow<List<com.auramusic.app.subtitles.SubtitleInfo>>(emptyList())
     val availableSubtitles: StateFlow<List<com.auramusic.app.subtitles.SubtitleInfo>> = _availableSubtitles.asStateFlow()
     private val _selectedSubtitleIndex = MutableStateFlow(-1)

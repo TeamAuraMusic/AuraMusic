@@ -162,6 +162,22 @@ fun ContentSettings(
         }
     }
 
+    // Sync preferred provider selection with provider order
+    LaunchedEffect(preferredProvider) {
+        val currentOrder = LyricsProviderRegistry.deserializeProviderOrder(lyricsProviderOrder)
+        val preferredName = when (preferredProvider) {
+            PreferredLyricsProvider.LRCLIB -> "LrcLib"
+            PreferredLyricsProvider.KUGOU -> "KuGou"
+            PreferredLyricsProvider.BETTER_LYRICS -> "BetterLyrics"
+            PreferredLyricsProvider.SIMPMUSIC -> "SimpMusic"
+            PreferredLyricsProvider.RUSH_LYRICS -> "RushLyrics"
+        }
+        if (currentOrder.firstOrNull() != preferredName) {
+            val newOrder = listOf(preferredName) + currentOrder.filter { it != preferredName }
+            onLyricsProviderOrderChange(LyricsProviderRegistry.serializeProviderOrder(newOrder))
+        }
+    }
+
     // Calculate enabled providers count for UI logic
     val enabledProvidersCount = listOf(enableLrclib, enableKugou, enableBetterLyrics, enableSimpMusic, enableRushLyrics).count { it }
 

@@ -101,6 +101,7 @@ import com.auramusic.app.ui.component.IconButton
 import com.auramusic.app.ui.component.Material3SettingsGroup
 import com.auramusic.app.ui.component.Material3SettingsItem
 import com.auramusic.app.ui.component.PlayerSliderTrack
+import com.auramusic.app.ui.component.SamsungSlider
 import com.auramusic.app.ui.component.SquigglySlider
 import com.auramusic.app.ui.component.WavySlider
 import com.auramusic.app.ui.theme.DefaultThemeColor
@@ -773,6 +774,46 @@ fun AppearanceSettings(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
+                }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier
+                            .aspectRatio(1f)
+                            .weight(1f)
+                            .clip(RoundedCornerShape(16.dp))
+                            .border(
+                                1.dp,
+                                if (sliderStyle == SliderStyle.SAMSUNG) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                                RoundedCornerShape(16.dp)
+                            )
+                            .clickable {
+                                onSliderStyleChange(SliderStyle.SAMSUNG)
+                                onSquigglySliderChange(false)
+                                showSliderOptionDialog = false
+                            }
+                            .padding(12.dp)
+                    ) {
+                        val sliderValue = 0.4f
+                        SamsungSlider(
+                            value = sliderValue,
+                            valueRange = 0f..1f,
+                            onValueChange = { /* preview only */ },
+                            colors = sliderPreviewColors,
+                            enabled = false,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            text = stringResource(R.string.samsung),
+                            style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
                 }
             }
         }

@@ -159,6 +159,7 @@ import com.auramusic.app.ui.component.LocalMenuState
 import com.auramusic.app.ui.component.Lyrics
 import com.auramusic.app.ui.component.PlayerSliderTrack
 import com.auramusic.app.ui.component.ResizableIconButton
+import com.auramusic.app.ui.component.SamsungSlider
 import com.auramusic.app.ui.component.SquigglySlider
 import com.auramusic.app.ui.component.WavySlider
 import com.auramusic.app.ui.component.rememberBottomSheetState
@@ -1410,6 +1411,35 @@ fun BottomSheetPlayer(
                             )
                         },
                         modifier = Modifier.padding(horizontal = PlayerHorizontalPadding)
+                    )
+                }
+
+                SliderStyle.SAMSUNG -> {
+                    SamsungSlider(
+                        value = (sliderPosition ?: effectivePosition).toFloat(),
+                        valueRange = 0f..(if (duration == C.TIME_UNSET) 0f else duration.toFloat()),
+                        onValueChange = {
+                            if (!isListenTogetherGuest) {
+                                sliderPosition = it.toLong()
+                            }
+                        },
+                        onValueChangeFinished = {
+                            if (!isListenTogetherGuest) {
+                                sliderPosition?.let {
+                                    if (isCasting) {
+                                        castHandler?.seekTo(it)
+                                        lastManualSeekTime = System.currentTimeMillis()
+                                    } else {
+                                        playerConnection.player.seekTo(it)
+                                    }
+                                    position = it
+                                }
+                                sliderPosition = null
+                            }
+                        },
+                        enabled = !isListenTogetherGuest,
+                        colors = PlayerSliderColors.getSliderColors(textButtonColor, playerBackground, useDarkTheme),
+                        modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
                     )
                 }
             }

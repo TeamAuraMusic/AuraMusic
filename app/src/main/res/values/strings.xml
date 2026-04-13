@@ -375,6 +375,7 @@
     <string name="squiggly">Squiggly</string>
     <string name="wavy">Wavy</string>
     <string name="slim">Slim</string>
+    <string name="samsung">Samsung</string>
     <string name="misc">Misc</string>
     <string name="default_open_tab">Default open tab</string>
     <string name="grid_cell_size">Grid cell size</string>

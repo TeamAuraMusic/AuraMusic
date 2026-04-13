@@ -41,7 +41,8 @@ val DeveloperModeKey = booleanPreferencesKey("developerMode")
 enum class SliderStyle {
     DEFAULT,
     WAVY,
-    SLIM
+    SLIM,
+    SAMSUNG
 }
 
 const val SYSTEM_DEFAULT = "SYSTEM_DEFAULT"

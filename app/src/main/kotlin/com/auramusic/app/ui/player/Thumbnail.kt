@@ -1301,24 +1301,38 @@ private fun VideoLyricsOverlay(
     if (!videoLyricsEnabled || !subtitlesEnabled) return
 
     // Fetch YouTube subtitles: try caption tracks first (like SmartTube), fallback to transcript
-    var transcriptText by rememberSaveable { mutableStateOf<String?>(null) }
-    var isLoadingCaptions by rememberSaveable { mutableStateOf(false) }
-    var captionError by rememberSaveable { mutableStateOf<String?>(null) }
-    var videoDurationMs by rememberSaveable { mutableLongStateOf(0L) }
-
-    // Track which video IDs we've already attempted to fetch
-    var attemptedVideoIds by rememberSaveable { mutableStateOf(setOf<String>()) }
+    var transcriptText by remember { mutableStateOf<String?>(null) }
+    var isLoadingCaptions by remember { mutableStateOf(false) }
+    var captionError by remember { mutableStateOf<String?>(null) }
+    var videoDurationMs by remember { mutableLongStateOf(0L) }
 
     // Use the actual video ID being played
     val activeVideoId by playerConnection.currentVideoId.collectAsState()
+
+    // Restore from service-level cache on recomposition
+    LaunchedEffect(activeVideoId) {
+        val videoId = activeVideoId ?: return@LaunchedEffect
+        val cached = playerConnection.captionCache[videoId]
+        if (cached != null) {
+            transcriptText = cached
+        }
+    }
 
     // Only fetch captions when video ID actually changes AND video mode is enabled
     LaunchedEffect(activeVideoId, subtitleLanguage) {
         // Only proceed if video mode is enabled and we have a video ID
         val videoId = activeVideoId ?: return@LaunchedEffect
         
+        // Check service-level cache first
+        val cachedCaption = playerConnection.captionCache[videoId]
+        if (cachedCaption != null) {
+            timber.log.Timber.d("VideoLyricsOverlay: Using cached caption for videoId=$videoId")
+            transcriptText = cachedCaption
+            return@LaunchedEffect
+        }
+        
         // Skip if already attempted for this video ID
-        if (videoId in attemptedVideoIds) {
+        if (videoId in playerConnection.captionAttemptedIds) {
             timber.log.Timber.d("VideoLyricsOverlay: Already attempted for videoId=$videoId, skipping")
             return@LaunchedEffect
         }
@@ -1326,7 +1340,7 @@ private fun VideoLyricsOverlay(
         timber.log.Timber.d("VideoLyricsOverlay: Fetching captions for videoId=$videoId")
         
         // Add to attempted set first to prevent re-fetching
-        attemptedVideoIds = attemptedVideoIds + videoId
+        playerConnection.captionAttemptedIds.add(videoId)
         
         transcriptText = null
         captionError = null
@@ -1394,6 +1408,7 @@ private fun VideoLyricsOverlay(
                 // Show result via Toast on main thread
                 withContext(Dispatchers.Main) {
                     if (transcriptText != null && transcriptText!!.isNotEmpty()) {
+                        playerConnection.captionCache[videoId] = transcriptText!!
                         Toast.makeText(context, "Captions loaded successfully", Toast.LENGTH_SHORT).show()
                     } else if (captionError != null) {
                         Toast.makeText(context, "Captions failed: $captionError", Toast.LENGTH_LONG).show()

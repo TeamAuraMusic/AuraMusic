@@ -24,6 +24,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
@@ -34,15 +35,13 @@ constructor(
     @ApplicationContext private val context: Context,
     private val networkConnectivity: NetworkConnectivityObserver,
 ) {
-    // Initialize with default providers
-    private var lyricsProviders =
-        listOf(
-            BetterLyricsProvider,
-            RushLyricsProvider,
-            SimpMusicLyricsProvider,
-            LrcLibLyricsProvider,
-            KuGouLyricsProvider,
-        )
+    // Initialize with default providers from registry
+    @Volatile
+    private var lyricsProviders = LyricsProviderRegistry.getOrderedProviders(
+        LyricsProviderRegistry.serializeProviderOrder(LyricsProviderRegistry.getDefaultProviderOrder())
+    )
+    @Volatile
+    private var providersLoaded = false
 
     init {
         // Collect the flow to update lyricsProviders when preferences change
@@ -101,6 +100,7 @@ constructor(
                 .collect { providers ->
                     Timber.tag("LyricsHelper").d("Updated providers: ${providers.map { it.name }}")
                     lyricsProviders = providers
+                    providersLoaded = true
                 }
         }
     }
@@ -111,6 +111,15 @@ constructor(
 
     suspend fun getLyrics(mediaMetadata: MediaMetadata): LyricsWithProvider {
         currentLyricsJob?.cancel()
+
+        // Wait briefly for provider preferences to load on first call
+        if (!providersLoaded) {
+            var waited = 0
+            while (!providersLoaded && waited < 500) {
+                delay(10)
+                waited += 10
+            }
+        }
 
         val cached = cache.get(mediaMetadata.id)
         if (cached != null && cached.lyrics != LYRICS_NOT_FOUND) {
