@@ -664,6 +664,8 @@
 
     <!-- Listen Together -->
     <string name="listen_together">Listen Together</string>
+    <string name="listen_together_in_room">In room - tap to open</string>
+    <string name="listen_together_start_or_join">Start or join a room</string>
     <string name="listen_together_not_configured">Listen Together is not configured</string>
     <string name="listen_together_description">Listen to music with friends in real-time</string>
     <string name="listen_together_username">Username</string>

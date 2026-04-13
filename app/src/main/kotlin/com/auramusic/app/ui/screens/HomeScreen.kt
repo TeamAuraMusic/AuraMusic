@@ -91,6 +91,7 @@ import com.auramusic.innertube.models.WatchEndpoint
 import com.auramusic.innertube.models.YTItem
 import com.auramusic.innertube.utils.parseCookieString
 import com.auramusic.app.LocalDatabase
+import com.auramusic.app.LocalListenTogetherManager
 import com.auramusic.app.LocalPlayerAwareWindowInsets
 import com.auramusic.app.LocalPlayerConnection
 import com.auramusic.app.R
@@ -449,6 +450,58 @@ fun HomeScreen(
             }
 
             if (selectedChip == null) {
+                // Listen Together quick access button
+                item(key = "listen_together_button") {
+                    val listenTogetherManager = LocalListenTogetherManager.current
+                    val isInRoom by listenTogetherManager?.isInRoom?.collectAsState(initial = false) ?: remember { mutableStateOf(false) }
+
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .combinedClickable(
+                                onClick = {
+                                    navController.navigate("listen_together")
+                                }
+                            ),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        ),
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.group),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(28.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(R.string.listen_together),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Text(
+                                    text = if (isInRoom) stringResource(R.string.listen_together_in_room) else stringResource(R.string.listen_together_start_or_join),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                )
+                            }
+                            Icon(
+                                painter = painterResource(R.drawable.chevron_right),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+                }
+
                 item(key = "wrapped_card") {
                     AnimatedVisibility(visible = shouldShowWrappedCard) {
                         Card(

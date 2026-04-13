@@ -846,12 +846,6 @@ class MainActivity : ComponentActivity() {
                                                     contentDescription = stringResource(R.string.history)
                                                 )
                                             }
-                                            IconButton(onClick = { navController.navigate("new_releases") }) {
-                                                Icon(
-                                                    painter = painterResource(R.drawable.new_releases),
-                                                    contentDescription = stringResource(R.string.new_releases)
-                                                )
-                                            }
                                             IconButton(onClick = { navController.navigate("stats") }) {
                                                 Icon(
                                                     painter = painterResource(R.drawable.stats),
