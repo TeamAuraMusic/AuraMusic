@@ -676,7 +676,11 @@ private fun ThumbnailImage(
     val player = playerConnection.player
     val context = LocalContext.current
     val isVideoSwitching by playerConnection.isVideoSwitching.collectAsState()
+    val playbackState by playerConnection.playbackState.collectAsState()
     val (subtitlesEnabled, onSubtitlesEnabledChange) = rememberPreference(SubtitlesEnabledKey, true)
+    
+    // Check if video is buffering
+    val isVideoBuffering = videoModeEnabled && playbackState == Player.STATE_BUFFERING
     
     // [4] Auto-hide controls state
     var showControls by remember { mutableStateOf(true) }
@@ -743,8 +747,8 @@ private fun ThumbnailImage(
             )
             .background(if (videoModeEnabled) Color.Black else MaterialTheme.colorScheme.surfaceVariant)
     ) {
-        if (isVideoSwitching && !videoModeEnabled) {
-            // Show loading animation while video is being fetched
+        if (isVideoSwitching || isVideoBuffering) {
+            // Show loading animation while video is being fetched or buffered
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
