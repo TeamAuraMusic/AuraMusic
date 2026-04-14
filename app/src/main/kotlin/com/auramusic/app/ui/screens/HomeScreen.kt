@@ -650,81 +650,54 @@ fun HomeScreen(
                     }
 
                     item(key = "speed_dial_grid") {
-                        val targetItemSize = 160.dp
-                        val availableWidth = maxWidth - 32.dp
-                        val columns = (availableWidth / targetItemSize).toInt().coerceAtLeast(3)
-                        val rows = when {
-                            columns >= 6 -> 1
-                            columns >= 4 -> 2
-                            else -> 3
-                        }
-                        val itemsPerPage = columns * rows
-                        val itemWidth = availableWidth / columns
-
-                        val pagerState = rememberPagerState(pageCount = { (speedDialItemsList.size + itemsPerPage - 1) / itemsPerPage })
-
-                        Column(
+                        val itemSize = 120.dp
+                        LazyHorizontalGrid(
+                            rows = GridCells.Fixed(2),
+                            contentPadding = WindowInsets.systemBars
+                                .only(WindowInsetsSides.Horizontal)
+                                .asPaddingValues(),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .animateItem(),
+                                .height(itemSize * 2 + 16.dp)
+                                .animateItem()
                         ) {
-                            HorizontalPager(
-                                state = pagerState,
-                                contentPadding = PaddingValues(horizontal = 16.dp),
-                                pageSpacing = 16.dp,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(itemWidth * rows),
-                            ) { page ->
-                                val pageStartIndex = page * itemsPerPage
-                                val pageItems = speedDialItemsList.drop(pageStartIndex).take(itemsPerPage)
+                            items(
+                                items = speedDialItemsList,
+                                key = { it.id }
+                            ) { item ->
+                                val isPinned by database.speedDialDao.isPinned(item.id).collectAsState(initial = false)
 
-                                Column(modifier = Modifier.fillMaxSize()) {
-                                    for (row in 0 until rows) {
-                                        Row(modifier = Modifier.fillMaxWidth()) {
-                                            for (col in 0 until columns) {
-                                                val itemIndex = row * columns + col
-                                                if (itemIndex < pageItems.size) {
-                                                    val item = pageItems[itemIndex]
-                                                    val isPinned by database.speedDialDao.isPinned(item.id).collectAsState(initial = false)
-
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .width(itemWidth)
-                                                            .height(itemWidth)
-                                                            .padding(4.dp),
-                                                    ) {
-                                                        SpeedDialGridItem(
-                                                            item = item,
-                                                            isPinned = isPinned,
-                                                            isActive = item.id in listOf(mediaMetadata?.album?.id, mediaMetadata?.id),
-                                                            isPlaying = isPlaying,
-                                                            modifier = Modifier.fillMaxSize(),
-                                                            onClick = {
-                                                                when (item) {
-                                                                    is SongItem -> playerConnection.playQueue(
-                                                                        YouTubeQueue(
-                                                                            item.endpoint ?: WatchEndpoint(videoId = item.id),
-                                                                            item.toMediaMetadata()
-                                                                        )
-                                                                    )
-                                                                    is AlbumItem -> navController.navigate("album/${item.id}")
-                                                                    is ArtistItem -> navController.navigate("artist/${item.id}")
-                                                                    is PlaylistItem -> navController.navigate("online_playlist/${item.id}")
-                                                                    is PodcastItem -> navController.navigate("online_podcast/${item.id}")
-                                                                    is EpisodeItem -> playerConnection.playQueue(ListQueue(title = item.title, items = listOf(item.toMediaMetadata().toMediaItem())))
-                                                                }
-                                                            },
-                                                            onLongClick = {
-                                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                                viewModel.togglePin(item)
-                                                            }
-                                                        )
-                                                    }
-                                                }
+                                Box(
+                                    modifier = Modifier
+                                        .size(itemSize)
+                                        .padding(4.dp),
+                                ) {
+                                    SpeedDialGridItem(
+                                        item = item,
+                                        isPinned = isPinned,
+                                        isActive = item.id in listOf(mediaMetadata?.album?.id, mediaMetadata?.id),
+                                        isPlaying = isPlaying,
+                                        modifier = Modifier.fillMaxSize(),
+                                        onClick = {
+                                            when (item) {
+                                                is SongItem -> playerConnection.playQueue(
+                                                    YouTubeQueue(
+                                                        item.endpoint ?: WatchEndpoint(videoId = item.id),
+                                                        item.toMediaMetadata()
+                                                    )
+                                                )
+                                                is AlbumItem -> navController.navigate("album/${item.id}")
+                                                is ArtistItem -> navController.navigate("artist/${item.id}")
+                                                is PlaylistItem -> navController.navigate("online_playlist/${item.id}")
+                                                is PodcastItem -> navController.navigate("online_podcast/${item.id}")
+                                                is EpisodeItem -> playerConnection.playQueue(ListQueue(title = item.title, items = listOf(item.toMediaMetadata().toMediaItem())))
                                             }
+                                        },
+                                        onLongClick = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            viewModel.togglePin(item)
                                         }
-                                    }
+                                    )
                                 }
                             }
                         }
@@ -817,6 +790,41 @@ fun HomeScreen(
                                                 }
                                             }
                                         )
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // From the Community Section
+                communityPlaylists?.takeIf { it.isNotEmpty() }?.let { playlists ->
+                    item(key = "community_playlists_title") {
+                        NavigationTitle(
+                            title = stringResource(R.string.from_the_community),
+                            modifier = Modifier.animateItem(),
+                        )
+                    }
+
+                    item(key = "community_playlists_content") {
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier.animateItem(),
+                        ) {
+                            items(playlists) { item ->
+                                CommunityPlaylistCard(
+                                    item = item,
+                                    onClick = {
+                                        navController.navigate("online_playlist/${item.playlist.id.removePrefix("VL")}")
+                                    },
+                                    onSongClick = { song ->
+                                        playerConnection.playQueue(
+                                            YouTubeQueue(
+                                                song.endpoint ?: WatchEndpoint(videoId = song.id),
+                                                song.toMediaMetadata(),
+                                            ),
+                                        )
+                                    },
                                 )
                             }
                         }
@@ -1211,41 +1219,6 @@ fun HomeScreen(
             }
 
             if (selectedChip == null) {
-                // From the Community Section
-                communityPlaylists?.takeIf { it.isNotEmpty() }?.let { playlists ->
-                    item(key = "community_playlists_title") {
-                        NavigationTitle(
-                            title = stringResource(R.string.from_the_community),
-                            modifier = Modifier.animateItem(),
-                        )
-                    }
-
-                    item(key = "community_playlists_content") {
-                        LazyRow(
-                            contentPadding = PaddingValues(horizontal = 16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            modifier = Modifier.animateItem(),
-                        ) {
-                            items(playlists) { item ->
-                                CommunityPlaylistCard(
-                                    item = item,
-                                    onClick = {
-                                        navController.navigate("online_playlist/${item.playlist.id.removePrefix("VL")}")
-                                    },
-                                    onSongClick = { song ->
-                                        playerConnection.playQueue(
-                                            YouTubeQueue(
-                                                song.endpoint ?: WatchEndpoint(videoId = song.id),
-                                                song.toMediaMetadata(),
-                                            ),
-                                        )
-                                    },
-                                )
-                            }
-                        }
-                    }
-                }
-
                 explorePage?.podcasts?.takeIf { it.isNotEmpty() }?.let { podcasts ->
                     item(key = "podcasts_title") {
                         NavigationTitle(
