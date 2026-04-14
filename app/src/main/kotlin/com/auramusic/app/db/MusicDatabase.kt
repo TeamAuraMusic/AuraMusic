@@ -679,7 +679,6 @@ val MIGRATION_24_25 =
 
 class Migration29To30 : AutoMigrationSpec {
     override fun onPostMigrate(db: SupportSQLiteDatabase) {
-        // Ensure isVideo column exists (safeguard)
         var hasIsVideo = false
         db.query('PRAGMA table_info(\"song\")').use { cursor ->
             val nameIndex = cursor.getColumnIndex('name')
@@ -689,6 +688,49 @@ class Migration29To30 : AutoMigrationSpec {
                     hasIsVideo = true
                     break
                 }
+            }
+        }
+        if (!hasIsVideo) {
+            db.execSQL('ALTER TABLE song ADD COLUMN isVideo INTEGER NOT NULL DEFAULT 0')
+        }
+
+        var hasProvider = false
+        db.query('PRAGMA table_info(\"lyrics\")').use { cursor ->
+            val nameIndex = cursor.getColumnIndex('name')
+            while (cursor.moveToNext()) {
+                val colName = if (nameIndex >= 0) cursor.getString(nameIndex) else null
+                if (colName == 'provider') {
+                    hasProvider = true
+                    break
+                }
+            }
+        }
+        if (!hasProvider) {
+            db.execSQL('ALTER TABLE lyrics ADD COLUMN provider TEXT NOT NULL DEFAULT \"Unknown\"')
+        }
+    }
+}
+
+class Migration31To32 : AutoMigrationSpec {
+    override fun onPostMigrate(db: SupportSQLiteDatabase) {
+        db.execSQL('''
+            CREATE TABLE IF NOT EXISTS `speed_dial_item` (
+                `id` TEXT NOT NULL,
+                `title` TEXT NOT NULL,
+                `thumbnailUrl` TEXT,
+                `type` TEXT NOT NULL,
+                `subtype` TEXT,
+                `artistName` TEXT,
+                `artistId` TEXT,
+                `playlistId` TEXT,
+                `shuffleEndpoint` TEXT,
+                `radioEndpoint` TEXT,
+                `playEndpoint` TEXT,
+                PRIMARY KEY(`id`)
+            )
+        '''.trimIndent())
+    }
+}
             }
         }
         if (!hasIsVideo) {
