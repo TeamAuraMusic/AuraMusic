@@ -15,7 +15,7 @@ import com.auramusic.innertube.models.SongItem
 import com.auramusic.innertube.models.YTItem
 import com.auramusic.innertube.models.EpisodeItem
 
-@Entity(tableName = 'speed_dial_item')
+@Entity(tableName = "speed_dial_item")
 data class SpeedDialItem(
     @PrimaryKey
     val id: String,
