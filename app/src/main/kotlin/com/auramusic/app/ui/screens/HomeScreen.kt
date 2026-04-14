@@ -69,6 +69,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
@@ -112,6 +113,7 @@ import com.auramusic.app.constants.ListItemHeight
 import com.auramusic.app.constants.ListThumbnailSize
 import com.auramusic.app.constants.SmallGridThumbnailHeight
 import com.auramusic.app.constants.ThumbnailCornerRadius
+import com.auramusic.app.ui.component.PlayingIndicatorBox
 import com.auramusic.app.db.entities.Album
 import com.auramusic.app.db.entities.Artist
 import com.auramusic.app.db.entities.LocalItem
@@ -1466,6 +1468,10 @@ fun CommunityPlaylistCard(
     val dbPlaylist by database.playlistByBrowseId(item.playlist.id).collectAsState(initial = null)
     val isBookmarked = dbPlaylist?.playlist?.bookmarkedAt != null
 
+    val mediaMetadata by playerConnection?.mediaMetadata?.collectAsState(initial = null) ?: remember { mutableStateOf(null) }
+    val isCurrentSongPlaying = item.songs.any { it.id == mediaMetadata?.id }
+    val isPlaying by playerConnection?.isEffectivelyPlaying?.collectAsState(initial = false) ?: remember { mutableStateOf(false) }
+
     Card(
         modifier = modifier
             .width(320.dp)
@@ -1526,6 +1532,22 @@ fun CommunityPlaylistCard(
                                 modifier = Modifier
                                     .weight(1f)
                                     .fillMaxSize(),
+                            )
+                        }
+                    }
+
+                    if (isCurrentSongPlaying) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.5f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            PlayingIndicatorBox(
+                                isActive = true,
+                                playWhenReady = isPlaying,
+                                color = Color.White,
+                                modifier = Modifier.size(32.dp)
                             )
                         }
                     }
