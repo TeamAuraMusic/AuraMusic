@@ -1,3 +1,34 @@
+# AuraMusic v1.0.15 (Build 16) Release Notes
+
+## What's New
+- Fixed lyrics provider priority not being respected when user sets provider order
+- Improved HomeScreen performance with optimized key parameters
+- Fixed duplicate key crash in Moods & Genres section
+- This release focuses on fixing known issues and adding new features
+
+### Lyrics Provider Improvements
+- Fixed issue where user-set provider priority was not being respected
+- Provider order now properly saves and loads from preferences
+- Fallback to preferred provider logic works correctly when custom order is not set
+- Added proper check for customized provider order vs default order
+
+### Performance Improvements
+- Optimized HomeScreen with key parameters to prevent recomposition
+- Added derivedStateOf for expensive calculations in LazyGrids
+- Improved list rendering performance
+
+### Bug Fixes
+- Fixed duplicate key crash in Moods & Genres grid by adding title to item key
+- Fixed not being able to save and load provider priority order
+- Fixed RushLyrics not showing when set as first priority provider
+
+### Full Changelog (Commits since last release):
+- [`37a2eee`](https://github.com/TeamAuraMusic/AuraMusic/commit/37a2eee) Fix: lyrics provider priority not respected and duplicate key crash
+- [`a91a918`](https://github.com/TeamAuraMusic/AuraMusic/commit/a91a918) Perf: optimize HomeScreen with key parameters and derivedStateOf
+- [`10c6818`](https://github.com/TeamAuraMusic/AuraMusic/commit/10c6818) feat: add playing indicator bars to community playlist thumbnails
+
+---
+
 # AuraMusic v1.0.14 (Build 15) Release Notes
 
                                ## What's New
