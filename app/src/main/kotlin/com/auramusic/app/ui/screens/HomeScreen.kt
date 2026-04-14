@@ -9,8 +9,10 @@ import com.auramusic.app.ui.screens.wrapped.WrappedConstants
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -19,6 +21,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -36,6 +39,8 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -68,11 +73,13 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -125,6 +132,7 @@ import com.auramusic.app.ui.component.LocalMenuState
 import com.auramusic.app.ui.component.NavigationTitle
 import com.auramusic.app.ui.component.SongGridItem
 import com.auramusic.app.ui.component.SongListItem
+import com.auramusic.app.ui.component.SpeedDialGridItem
 import com.auramusic.app.ui.component.YouTubeGridItem
 import com.auramusic.app.ui.component.shimmer.GridItemPlaceHolder
 import com.auramusic.app.ui.component.shimmer.ShimmerHost
@@ -140,6 +148,7 @@ import com.auramusic.app.ui.utils.SnapLayoutInfoProvider
 import com.auramusic.app.utils.rememberEnumPreference
 import com.auramusic.app.utils.rememberPreference
 import com.auramusic.app.viewmodels.HomeViewModel
+import com.auramusic.app.viewmodels.CommunityPlaylistItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -170,6 +179,9 @@ fun HomeScreen(
     val accountPlaylists by viewModel.accountPlaylists.collectAsState()
     val homePage by viewModel.homePage.collectAsState()
     val explorePage by viewModel.explorePage.collectAsState()
+    val speedDialItems by viewModel.speedDialItems.collectAsState()
+    val pinnedSpeedDialItems by viewModel.pinnedSpeedDialItems.collectAsState()
+    val communityPlaylists by viewModel.communityPlaylists.collectAsState()
 
     val allLocalItems by viewModel.allLocalItems.collectAsState()
     val allYtItems by viewModel.allYtItems.collectAsState()
@@ -625,6 +637,97 @@ fun HomeScreen(
                             )
                         }
                     }
+
+                // Speed Dial Section
+                speedDialItems.takeIf { it.isNotEmpty() }?.let { speedDialItemsList ->
+                    item(key = 'speed_dial_title') {
+                        NavigationTitle(
+                            title = stringResource(R.string.speed_dial),
+                            modifier = Modifier.animateItem(),
+                        )
+                    }
+
+                    item(key = 'speed_dial_grid') {
+                        val targetItemSize = 160.dp
+                        val availableWidth = maxWidth - 32.dp
+                        val columns = (availableWidth / targetItemSize).toInt().coerceAtLeast(3)
+                        val rows = when {
+                            columns >= 6 -> 1
+                            columns >= 4 -> 2
+                            else -> 3
+                        }
+                        val itemsPerPage = columns * rows
+                        val itemWidth = availableWidth / columns
+
+                        val pagerState = rememberPagerState(pageCount = { (speedDialItemsList.size + itemsPerPage - 1) / itemsPerPage })
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .animateItem(),
+                        ) {
+                            HorizontalPager(
+                                state = pagerState,
+                                contentPadding = PaddingValues(horizontal = 16.dp),
+                                pageSpacing = 16.dp,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(itemWidth * rows),
+                            ) { page ->
+                                val pageStartIndex = page * itemsPerPage
+                                val pageItems = speedDialItemsList.drop(pageStartIndex).take(itemsPerPage)
+
+                                Column(modifier = Modifier.fillMaxSize()) {
+                                    for (row in 0 until rows) {
+                                        Row(modifier = Modifier.fillMaxWidth()) {
+                                            for (col in 0 until columns) {
+                                                val itemIndex = row * columns + col
+                                                if (itemIndex < pageItems.size) {
+                                                    val item = pageItems[itemIndex]
+                                                    val isPinned by database.speedDialDao.isPinned(item.id).collectAsState(initialValue = false)
+
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .width(itemWidth)
+                                                            .height(itemWidth)
+                                                            .padding(4.dp),
+                                                    ) {
+                                                        SpeedDialGridItem(
+                                                            item = item,
+                                                            isPinned = isPinned,
+                                                            isActive = item.id in listOf(mediaMetadata?.album?.id, mediaMetadata?.id),
+                                                            isPlaying = isPlaying,
+                                                            modifier = Modifier.fillMaxSize(),
+                                                            onClick = {
+                                                                when (item) {
+                                                                    is SongItem -> playerConnection.playQueue(
+                                                                        YouTubeQueue(
+                                                                            item.endpoint ?: WatchEndpoint(videoId = item.id),
+                                                                            item.toMediaMetadata()
+                                                                        )
+                                                                    )
+                                                                    is AlbumItem -> navController.navigate('album/${item.id}')
+                                                                    is ArtistItem -> navController.navigate('artist/${item.id}')
+                                                                    is PlaylistItem -> navController.navigate('online_playlist/${item.id}')
+                                                                    is PodcastItem -> navController.navigate('online_podcast/${item.id}')
+                                                                    is EpisodeItem -> playerConnection.playQueue(ListQueue(title = item.title, items = listOf(item.toMediaMetadata().toMediaItem())))
+                                                                }
+                                                            },
+                                                            onLongClick = {
+                                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                                viewModel.togglePin(item)
+                                                            }
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
 
                 quickPicks?.takeIf { it.isNotEmpty() }?.let { quickPicks ->
                     item(key = "quick_picks_title") {
@@ -1106,6 +1209,41 @@ fun HomeScreen(
             }
 
             if (selectedChip == null) {
+                // From the Community Section
+                communityPlaylists?.takeIf { it.isNotEmpty() }?.let { playlists ->
+                    item(key = 'community_playlists_title') {
+                        NavigationTitle(
+                            title = stringResource(R.string.from_the_community),
+                            modifier = Modifier.animateItem(),
+                        )
+                    }
+
+                    item(key = 'community_playlists_content') {
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier.animateItem(),
+                        ) {
+                            items(playlists) { item ->
+                                CommunityPlaylistCard(
+                                    item = item,
+                                    onClick = {
+                                        navController.navigate('online_playlist/${item.playlist.id.removePrefix(\"VL\")}')
+                                    },
+                                    onSongClick = { song ->
+                                        playerConnection.playQueue(
+                                            YouTubeQueue(
+                                                song.endpoint ?: WatchEndpoint(videoId = song.id),
+                                                song.toMediaMetadata(),
+                                            ),
+                                        )
+                                    },
+                                )
+                            }
+                        }
+                    }
+                }
+
                 explorePage?.podcasts?.takeIf { it.isNotEmpty() }?.let { podcasts ->
                     item(key = "podcasts_title") {
                         NavigationTitle(
@@ -1275,5 +1413,176 @@ fun HomeScreen(
                 .align(Alignment.TopCenter)
                 .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues()),
         )
+    }
+}
+
+@Composable
+fun CommunityPlaylistCard(
+    item: CommunityPlaylistItem,
+    onClick: () -> Unit,
+    onSongClick: (SongItem) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val database = LocalDatabase.current
+    val playerConnection = LocalPlayerConnection.current
+    val scope = rememberCoroutineScope()
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+
+    val containerColor = if (isDark) {
+        MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    }
+
+    val dbPlaylist by database.playlistByBrowseId(item.playlist.id).collectAsState(initialValue = null)
+    val isBookmarked = dbPlaylist?.playlist?.bookmarkedAt != null
+
+    Card(
+        modifier = modifier
+            .width(320.dp)
+            .height(420.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = containerColor,
+        ),
+        shape = RoundedCornerShape(28.dp),
+        onClick = onClick,
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                // 2x2 Grid of thumbnails
+                Box(
+                    modifier = Modifier
+                        .size(100.dp)
+                        .clip(RoundedCornerShape(12.dp)),
+                ) {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        Row(modifier = Modifier.weight(1f)) {
+                            AsyncImage(
+                                model = item.songs.getOrNull(0)?.thumbnail?.replace(Regex('w\\d+-h\\d+'), 'w120-h120'),
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxSize(),
+                            )
+                            AsyncImage(
+                                model = item.songs.getOrNull(1)?.thumbnail?.replace(Regex('w\\d+-h\\d+'), 'w120-h120'),
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxSize(),
+                            )
+                        }
+                        Row(modifier = Modifier.weight(1f)) {
+                            AsyncImage(
+                                model = item.songs.getOrNull(2)?.thumbnail?.replace(Regex('w\\d+-h\\d+'), 'w120-h120'),
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxSize(),
+                            )
+                            AsyncImage(
+                                model = item.songs.getOrNull(3)?.thumbnail?.replace(Regex('w\\d+-h\\d+'), 'w120-h120'),
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxSize(),
+                            )
+                        }
+                    }
+                }
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Text(
+                        text = item.playlist.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = item.playlist.author?.name ?: 'Unknown',
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.secondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = item.playlist.songCountText ?: '${item.songs.size} songs',
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.secondary,
+                    )
+                }
+            }
+
+            // Song list
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 16.dp),
+            ) {
+                item.songs.take(4).forEach { song ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .combinedClickable(
+                                onClick = { onSongClick(song) },
+                                onLongClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                }
+                            )
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        AsyncImage(
+                            model = song.thumbnail?.replace(Regex('w\\d+-h\\d+'), 'w60-h60'),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(8.dp)),
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = song.title,
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                text = song.artists.firstOrNull()?.name ?: '',
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.secondary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        IconButton(
+                            onClick = { onSongClick(song) }
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.play),
+                                contentDescription = null,
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }

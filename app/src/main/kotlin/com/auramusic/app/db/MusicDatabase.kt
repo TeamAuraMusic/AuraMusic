@@ -21,6 +21,7 @@ import androidx.room.migration.AutoMigrationSpec
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteOpenHelper
+import com.auramusic.app.db.dao.SpeedDialDao
 import com.auramusic.app.db.entities.AlbumArtistMap
 import com.auramusic.app.db.entities.AlbumEntity
 import com.auramusic.app.db.entities.ArtistEntity
@@ -40,6 +41,7 @@ import com.auramusic.app.db.entities.SongArtistMap
 import com.auramusic.app.db.entities.SongEntity
 import com.auramusic.app.db.entities.SortedSongAlbumMap
 import com.auramusic.app.db.entities.SortedSongArtistMap
+import com.auramusic.app.db.entities.SpeedDialItem
 import com.auramusic.app.extensions.toSQLiteQuery
 import timber.log.Timber
 import java.time.Instant
@@ -50,6 +52,9 @@ import java.util.Date
 class MusicDatabase(
     private val delegate: InternalDatabase,
 ) : DatabaseDao by delegate.dao {
+    val speedDialDao: SpeedDialDao
+        get() = delegate.speedDialDao
+    
     val openHelper: SupportSQLiteOpenHelper
         get() = delegate.openHelper
 
@@ -100,14 +105,15 @@ class MusicDatabase(
         RelatedSongMap::class,
         SetVideoIdEntity::class,
         PlayCountEntity::class,
-        RecognitionHistory::class
+        RecognitionHistory::class,
+        SpeedDialItem::class
     ],
     views = [
         SortedSongArtistMap::class,
         SortedSongAlbumMap::class,
         PlaylistSongMapPreview::class,
     ],
-    version = 31,
+    version = 32,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 2, to = 3),
@@ -139,11 +145,13 @@ class MusicDatabase(
         AutoMigration(from = 28, to = 29),
         AutoMigration(from = 29, to = 30, spec = Migration29To30::class),
         AutoMigration(from = 30, to = 31),
+        AutoMigration(from = 31, to = 32),
     ],
 )
 @TypeConverters(Converters::class)
 abstract class InternalDatabase : RoomDatabase() {
     abstract val dao: DatabaseDao
+    abstract val speedDialDao: SpeedDialDao
 
     companion object {
         const val DB_NAME = "song.db"

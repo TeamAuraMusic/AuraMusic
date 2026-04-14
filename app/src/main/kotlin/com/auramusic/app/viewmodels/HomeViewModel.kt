@@ -10,7 +10,10 @@ import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.auramusic.innertube.YouTube
+import com.auramusic.innertube.models.AlbumItem
+import com.auramusic.innertube.models.Artist
 import com.auramusic.innertube.models.PlaylistItem
+import com.auramusic.innertube.models.SongItem
 import com.auramusic.innertube.models.WatchEndpoint
 import com.auramusic.innertube.models.YTItem
 import com.auramusic.innertube.models.filterExplicit
@@ -30,9 +33,15 @@ import com.auramusic.app.db.MusicDatabase
 import com.auramusic.app.db.entities.Album
 import com.auramusic.app.db.entities.LocalItem
 import com.auramusic.app.db.entities.Song
+import com.auramusic.app.db.entities.SpeedDialItem
 import com.auramusic.app.extensions.filterVideoSongs
 import com.auramusic.app.extensions.toEnum
 import com.auramusic.app.models.SimilarRecommendation
+
+data class CommunityPlaylistItem(
+    val playlist: PlaylistItem,
+    val songs: List<SongItem>
+)
 import com.auramusic.app.ui.screens.wrapped.WrappedAudioService
 import com.auramusic.app.ui.screens.wrapped.WrappedManager
 import com.auramusic.app.utils.SyncUtils
@@ -42,9 +51,11 @@ import com.auramusic.app.utils.reportException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -81,6 +92,72 @@ class HomeViewModel @Inject constructor(
     val allLocalItems = MutableStateFlow<List<LocalItem>>(emptyList())
     val allYtItems = MutableStateFlow<List<YTItem>>(emptyList())
 
+    val communityPlaylists = MutableStateFlow<List<CommunityPlaylistItem>?>(null)
+
+    val pinnedSpeedDialItems: StateFlow<List<SpeedDialItem>> =
+        database.speedDialDao.getAll()
+            .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    val speedDialItems: StateFlow<List<YTItem>> =
+        combine(
+            database.speedDialDao.getAll(),
+            keepListening,
+            quickPicks
+        ) { pinned, keepListening, quick ->
+            val pinnedItems = pinned.map { it.toYTItem() }
+            val filled = pinnedItems.toMutableList()
+            val targetSize = 27
+
+            if (filled.size < targetSize) {
+                keepListening?.let { k ->
+                    val needed = targetSize - filled.size
+                    val available = k.filter { item ->
+                        filled.none { p -> p.id == item.id }
+                    }.mapNotNull { item ->
+                        when (item) {
+                            is Song -> SongItem(
+                                id = item.id,
+                                title = item.title,
+                                artists = item.artists.map { Artist(name = it.name, id = it.id) },
+                                thumbnail = item.thumbnailUrl ?: '',
+                                explicit = false
+                            )
+                            is Album -> AlbumItem(
+                                browseId = item.id,
+                                playlistId = item.album.playlistId ?: '',
+                                title = item.title,
+                                artists = item.artists.map { Artist(name = it.name, id = it.id) },
+                                year = item.album.year,
+                                thumbnail = item.thumbnailUrl ?: ''
+                            )
+                            else -> null
+                        }
+                    }
+                    filled.addAll(available.take(needed))
+                }
+            }
+
+            if (filled.size < targetSize) {
+                quick?.let { q ->
+                    val needed = targetSize - filled.size
+                    val available = q.filter { song ->
+                        filled.none { p -> p.id == song.id }
+                    }.map { song ->
+                        SongItem(
+                            id = song.id,
+                            title = song.title,
+                            artists = song.artists.map { Artist(name = it.name, id = it.id) },
+                            thumbnail = song.thumbnailUrl ?: '',
+                            explicit = false
+                        )
+                    }
+                    filled.addAll(available.take(needed))
+                }
+            }
+            
+            filled.take(targetSize)
+        }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
     val accountName = MutableStateFlow("Guest")
     val accountImageUrl = MutableStateFlow<String?>(null)
 
@@ -97,12 +174,26 @@ class HomeViewModel @Inject constructor(
         prefs[WrappedSeenKey] ?: false
     }.stateIn(viewModelScope, SharingStarted.Lazily, false)
 
-    fun markWrappedAsSeen() {
+fun markWrappedAsSeen() {
         viewModelScope.launch(Dispatchers.IO) {
             context.dataStore.edit {
-                val currentMonth = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM"))
+                val currentMonth = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern('yyyy-MM'))
                 it[LastWrappedMonthKey] = currentMonth
             }
+        }
+    }
+
+    fun togglePin(item: YTItem) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val speedDialItem = SpeedDialItem.fromYTItem(item)
+            val isPinned = database.speedDialDao.isPinned(speedDialItem.id).first()
+            if (isPinned) {
+                database.speedDialDao.delete(speedDialItem.id)
+            } else {
+                database.speedDialDao.insert(speedDialItem)
+            }
+        }
+    }
         }
     }
     // Track last processed cookie to avoid unnecessary updates
@@ -296,6 +387,82 @@ class HomeViewModel @Inject constructor(
                 homePage.value?.sections?.flatMap { it.items }.orEmpty()
 
         isLoading.value = false
+
+        viewModelScope.launch(Dispatchers.IO) { getCommunityPlaylists() }
+    }
+
+    private suspend fun getCommunityPlaylists() {
+        val fromTimeStamp = System.currentTimeMillis() - 86400000L * 7 * 4
+        val artistSeeds = database.mostPlayedArtists(fromTimeStamp, limit = 10).first()
+            .filter { it.artist.isYouTubeArtist }
+            .shuffled().take(3)
+        val songSeeds = database.mostPlayedSongs(fromTimeStamp, limit = 5).first()
+            .shuffled().take(2)
+
+        val candidatePlaylists = java.util.Collections.synchronizedList(mutableListOf<PlaylistItem>())
+
+        coroutineScope {
+            artistSeeds.map { seed ->
+                launch(Dispatchers.IO) {
+                    YouTube.artist(seed.id).onSuccess { page ->
+                        page.sections.forEach { section ->
+                            section.items.filterIsInstance<PlaylistItem>().forEach { playlist ->
+                                if (playlist.author?.name != 'YouTube Music' && 
+                                    playlist.author?.name != 'YouTube' && 
+                                    playlist.author?.name != 'Playlist' &&
+                                    playlist.author?.name != seed.artist.name &&
+                                    !playlist.id.startsWith('RD') &&
+                                    !playlist.id.startsWith('OLAK')
+                                ) {
+                                    candidatePlaylists.add(playlist)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            songSeeds.map { seed ->
+                launch(Dispatchers.IO) {
+                    val endpoint = YouTube.next(WatchEndpoint(videoId = seed.id)).getOrNull()?.relatedEndpoint
+                    if (endpoint != null) {
+                        YouTube.related(endpoint).onSuccess { page ->
+                            page.playlists.forEach { playlist ->
+                                if (playlist.author?.name != 'YouTube Music' && 
+                                    playlist.author?.name != 'YouTube' && 
+                                    playlist.author?.name != 'Playlist' &&
+                                    !playlist.id.startsWith('RD') &&
+                                    !playlist.id.startsWith('OLAK')
+                                ) {
+                                    candidatePlaylists.add(playlist)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        val uniqueCandidates = candidatePlaylists.distinctBy { it.id }.shuffled().take(5)
+
+        val playlists = java.util.Collections.synchronizedList(mutableListOf<CommunityPlaylistItem>())
+
+        coroutineScope {
+            uniqueCandidates.map { playlist ->
+                launch(Dispatchers.IO) {
+                    YouTube.playlist(playlist.id).onSuccess { page ->
+                        val songs = page.songs.take(10)
+                        if (songs.isNotEmpty()) {
+                            val songCountText = page.playlist.songCountText ?: playlist.songCountText
+                            val updatedPlaylist = playlist.copy(songCountText = songCountText)
+                            playlists.add(CommunityPlaylistItem(updatedPlaylist, songs))
+                        }
+                    }
+                }
+            }.forEach { it.join() }
+        }
+
+        communityPlaylists.value = playlists.shuffled()
     }
 
     private val _isLoadingMore = MutableStateFlow(false)
