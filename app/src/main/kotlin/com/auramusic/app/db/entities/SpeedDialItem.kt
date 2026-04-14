@@ -14,6 +14,8 @@ import com.auramusic.innertube.models.PodcastItem
 import com.auramusic.innertube.models.SongItem
 import com.auramusic.innertube.models.YTItem
 import com.auramusic.innertube.models.EpisodeItem
+import com.auramusic.innertube.models.Artist
+import com.auramusic.innertube.models.WatchEndpoint
 
 @Entity(tableName = "speed_dial_item")
 data class SpeedDialItem(
@@ -54,8 +56,8 @@ data class SpeedDialItem(
                 id = id,
                 title = title,
                 thumbnail = thumbnailUrl ?: "",
-                shuffleEndpoint = shuffleEndpoint,
-                radioEndpoint = radioEndpoint
+                shuffleEndpoint = shuffleEndpoint?.let { WatchEndpoint(playlistId = it) },
+                radioEndpoint = radioEndpoint?.let { WatchEndpoint(playlistId = it) }
             )
             "PLAYLIST" -> PlaylistItem(
                 id = id,
@@ -63,26 +65,26 @@ data class SpeedDialItem(
                 author = artistName?.let { Artist(name = it, id = null) },
                 songCountText = null,
                 thumbnail = thumbnailUrl ?: "",
-                playEndpoint = playEndpoint?.let { WatchPlaylistEndpoint(playlistId = id) },
-                shuffleEndpoint = shuffleEndpoint,
-                radioEndpoint = radioEndpoint
+                playEndpoint = playEndpoint?.let { WatchEndpoint(playlistId = id) },
+                shuffleEndpoint = shuffleEndpoint?.let { WatchEndpoint(playlistId = it) },
+                radioEndpoint = radioEndpoint?.let { WatchEndpoint(playlistId = it) }
             )
             "PODCAST" -> PodcastItem(
-                browseId = id,
+                id = id,
                 title = title,
-                authors = listOfNotNull(artistName?.let { Artist(name = it, id = artistId) }),
+                author = artistName?.let { Artist(name = it, id = artistId) },
+                episodeCountText = null,
                 thumbnail = thumbnailUrl ?: "",
-                playEndpoint = playEndpoint?.let { WatchPlaylistEndpoint(playlistId = playlistId ?: "") },
-                shuffleEndpoint = shuffleEndpoint,
-                radioEndpoint = radioEndpoint
+                playEndpoint = playEndpoint?.let { WatchEndpoint(playlistId = playlistId ?: "") },
+                shuffleEndpoint = shuffleEndpoint?.let { WatchEndpoint(playlistId = it) }
             )
             "EPISODE" -> EpisodeItem(
                 id = id,
                 title = title,
-                artists = listOfNotNull(artistName?.let { Artist(name = it, id = artistId) }),
+                author = artistName?.let { Artist(name = it, id = artistId) },
                 thumbnail = thumbnailUrl ?: "",
                 duration = null,
-                playEndpoint = playEndpoint
+                endpoint = playEndpoint?.let { WatchEndpoint(videoId = it) }
             )
             else -> SongItem(
                 id = id,
@@ -110,7 +112,7 @@ data class SpeedDialItem(
                     playlistId = null,
                     shuffleEndpoint = null,
                     radioEndpoint = null,
-                    playEndpoint = item.endpoint?.let { "${it.videoId}" }
+                    playEndpoint = item.endpoint?.videoId
                 )
                 is AlbumItem -> SpeedDialItem(
                     id = item.browseId,
@@ -152,16 +154,16 @@ data class SpeedDialItem(
                     playEndpoint = item.playEndpoint?.playlistId
                 )
                 is PodcastItem -> SpeedDialItem(
-                    id = item.browseId,
+                    id = item.id,
                     title = item.title,
                     thumbnailUrl = item.thumbnail,
                     type = "PODCAST",
                     subtype = null,
-                    artistName = item.authors.firstOrNull()?.name,
-                    artistId = item.authors.firstOrNull()?.id,
+                    artistName = item.author?.name,
+                    artistId = item.author?.id,
                     playlistId = item.playEndpoint?.playlistId,
                     shuffleEndpoint = item.shuffleEndpoint?.playlistId,
-                    radioEndpoint = item.radioEndpoint?.playlistId,
+                    radioEndpoint = null,
                     playEndpoint = item.playEndpoint?.playlistId
                 )
                 is EpisodeItem -> SpeedDialItem(
@@ -170,18 +172,14 @@ data class SpeedDialItem(
                     thumbnailUrl = item.thumbnail,
                     type = "EPISODE",
                     subtype = null,
-                    artistName = item.artists.firstOrNull()?.name,
-                    artistId = item.artists.firstOrNull()?.id,
+                    artistName = item.author?.name,
+                    artistId = item.author?.id,
                     playlistId = null,
                     shuffleEndpoint = null,
                     radioEndpoint = null,
-                    playEndpoint = item.playEndpoint
+                    playEndpoint = item.endpoint?.videoId
                 )
             }
         }
     }
 }
-
-data class WatchPlaylistEndpoint(
-    val playlistId: String,
-)
