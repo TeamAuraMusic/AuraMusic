@@ -5,6 +5,8 @@
 
 package com.auramusic.app.db.entities
 
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 import com.auramusic.innertube.models.AlbumItem
 import com.auramusic.innertube.models.ArtistItem
 import com.auramusic.innertube.models.PlaylistItem
@@ -13,7 +15,9 @@ import com.auramusic.innertube.models.SongItem
 import com.auramusic.innertube.models.YTItem
 import com.auramusic.innertube.models.EpisodeItem
 
+@Entity(tableName = 'speed_dial_item')
 data class SpeedDialItem(
+    @PrimaryKey
     val id: String,
     val title: String,
     val thumbnailUrl: String?,
