@@ -10,6 +10,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -127,7 +128,7 @@ fun SpeedDialGridItem(
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.ic_push_pin),
-                        contentDescription = 'Pinned',
+                        contentDescription = "Pinned",
                         tint = Color.White,
                         modifier = Modifier.size(10.dp)
                     )

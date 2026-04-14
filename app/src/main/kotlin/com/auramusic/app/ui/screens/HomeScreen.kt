@@ -640,14 +640,14 @@ fun HomeScreen(
 
                 // Speed Dial Section
                 speedDialItems.takeIf { it.isNotEmpty() }?.let { speedDialItemsList ->
-                    item(key = 'speed_dial_title') {
+                    item(key = "speed_dial_title") {
                         NavigationTitle(
                             title = stringResource(R.string.speed_dial),
                             modifier = Modifier.animateItem(),
                         )
                     }
 
-                    item(key = 'speed_dial_grid') {
+                    item(key = "speed_dial_grid") {
                         val targetItemSize = 160.dp
                         val availableWidth = maxWidth - 32.dp
                         val columns = (availableWidth / targetItemSize).toInt().coerceAtLeast(3)
@@ -706,10 +706,10 @@ fun HomeScreen(
                                                                             item.toMediaMetadata()
                                                                         )
                                                                     )
-                                                                    is AlbumItem -> navController.navigate('album/${item.id}')
-                                                                    is ArtistItem -> navController.navigate('artist/${item.id}')
-                                                                    is PlaylistItem -> navController.navigate('online_playlist/${item.id}')
-                                                                    is PodcastItem -> navController.navigate('online_podcast/${item.id}')
+                                                                    is AlbumItem -> navController.navigate("album/${item.id}")
+                                                                    is ArtistItem -> navController.navigate("artist/${item.id}")
+                                                                    is PlaylistItem -> navController.navigate("online_playlist/${item.id}")
+                                                                    is PodcastItem -> navController.navigate("online_podcast/${item.id}")
                                                                     is EpisodeItem -> playerConnection.playQueue(ListQueue(title = item.title, items = listOf(item.toMediaMetadata().toMediaItem())))
                                                                 }
                                                             },
@@ -1211,14 +1211,14 @@ fun HomeScreen(
             if (selectedChip == null) {
                 // From the Community Section
                 communityPlaylists?.takeIf { it.isNotEmpty() }?.let { playlists ->
-                    item(key = 'community_playlists_title') {
+                    item(key = "community_playlists_title") {
                         NavigationTitle(
                             title = stringResource(R.string.from_the_community),
                             modifier = Modifier.animateItem(),
                         )
                     }
 
-                    item(key = 'community_playlists_content') {
+                    item(key = "community_playlists_content") {
                         LazyRow(
                             contentPadding = PaddingValues(horizontal = 16.dp),
                             horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -1228,7 +1228,7 @@ fun HomeScreen(
                                 CommunityPlaylistCard(
                                     item = item,
                                     onClick = {
-                                        navController.navigate('online_playlist/${item.playlist.id.removePrefix(\"VL\")}')
+                                        navController.navigate("online_playlist/${item.playlist.id.removePrefix("VL")}")
                                     },
                                     onSongClick = { song ->
                                         playerConnection.playQueue(
@@ -1465,7 +1465,7 @@ fun CommunityPlaylistCard(
                     Column(modifier = Modifier.fillMaxSize()) {
                         Row(modifier = Modifier.weight(1f)) {
                             AsyncImage(
-                                model = item.songs.getOrNull(0)?.thumbnail?.replace(Regex('w\\d+-h\\d+'), 'w120-h120'),
+                                model = item.songs.getOrNull(0)?.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w120-h120"),
                                 contentDescription = null,
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier
@@ -1473,7 +1473,7 @@ fun CommunityPlaylistCard(
                                     .fillMaxSize(),
                             )
                             AsyncImage(
-                                model = item.songs.getOrNull(1)?.thumbnail?.replace(Regex('w\\d+-h\\d+'), 'w120-h120'),
+                                model = item.songs.getOrNull(1)?.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w120-h120"),
                                 contentDescription = null,
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier
@@ -1483,7 +1483,7 @@ fun CommunityPlaylistCard(
                         }
                         Row(modifier = Modifier.weight(1f)) {
                             AsyncImage(
-                                model = item.songs.getOrNull(2)?.thumbnail?.replace(Regex('w\\d+-h\\d+'), 'w120-h120'),
+                                model = item.songs.getOrNull(2)?.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w120-h120"),
                                 contentDescription = null,
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier
@@ -1491,7 +1491,7 @@ fun CommunityPlaylistCard(
                                     .fillMaxSize(),
                             )
                             AsyncImage(
-                                model = item.songs.getOrNull(3)?.thumbnail?.replace(Regex('w\\d+-h\\d+'), 'w120-h120'),
+                                model = item.songs.getOrNull(3)?.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w120-h120"),
                                 contentDescription = null,
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier
@@ -1514,7 +1514,7 @@ fun CommunityPlaylistCard(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = item.playlist.author?.name ?: 'Unknown',
+                        text = item.playlist.author?.name ?: "Unknown",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.secondary,
                         maxLines = 1,
@@ -1522,7 +1522,7 @@ fun CommunityPlaylistCard(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = item.playlist.songCountText ?: '${item.songs.size} songs',
+                        text = item.playlist.songCountText ?: "${item.songs.size} songs",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.secondary,
                     )
@@ -1549,7 +1549,7 @@ fun CommunityPlaylistCard(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         AsyncImage(
-                            model = song.thumbnail?.replace(Regex('w\\d+-h\\d+'), 'w60-h60'),
+                            model = song.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w60-h60"),
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
@@ -1565,7 +1565,7 @@ fun CommunityPlaylistCard(
                                 overflow = TextOverflow.Ellipsis,
                             )
                             Text(
-                                text = song.artists.firstOrNull()?.name ?: '',
+                                text = song.artists.firstOrNull()?.name ?: "",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.secondary,
                                 maxLines = 1,

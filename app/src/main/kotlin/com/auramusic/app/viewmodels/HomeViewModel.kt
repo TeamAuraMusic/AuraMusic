@@ -37,11 +37,6 @@ import com.auramusic.app.db.entities.SpeedDialItem
 import com.auramusic.app.extensions.filterVideoSongs
 import com.auramusic.app.extensions.toEnum
 import com.auramusic.app.models.SimilarRecommendation
-
-data class CommunityPlaylistItem(
-    val playlist: PlaylistItem,
-    val songs: List<SongItem>
-)
 import com.auramusic.app.ui.screens.wrapped.WrappedAudioService
 import com.auramusic.app.ui.screens.wrapped.WrappedManager
 import com.auramusic.app.utils.SyncUtils
@@ -63,6 +58,11 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
+
+data class CommunityPlaylistItem(
+    val playlist: PlaylistItem,
+    val songs: List<SongItem>
+)
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -119,16 +119,16 @@ class HomeViewModel @Inject constructor(
                                 id = item.id,
                                 title = item.title,
                                 artists = item.artists.map { Artist(name = it.name, id = it.id) },
-                                thumbnail = item.thumbnailUrl ?: '',
+                                thumbnail = item.thumbnailUrl ?: "",
                                 explicit = false
                             )
                             is Album -> AlbumItem(
                                 browseId = item.id,
-                                playlistId = item.album.playlistId ?: '',
+                                playlistId = item.album.playlistId ?: "",
                                 title = item.title,
                                 artists = item.artists.map { Artist(name = it.name, id = it.id) },
                                 year = item.album.year,
-                                thumbnail = item.thumbnailUrl ?: ''
+                                thumbnail = item.thumbnailUrl ?: ""
                             )
                             else -> null
                         }
@@ -147,7 +147,7 @@ class HomeViewModel @Inject constructor(
                             id = song.id,
                             title = song.title,
                             artists = song.artists.map { Artist(name = it.name, id = it.id) },
-                            thumbnail = song.thumbnailUrl ?: '',
+                            thumbnail = song.thumbnailUrl ?: "",
                             explicit = false
                         )
                     }
@@ -177,7 +177,7 @@ class HomeViewModel @Inject constructor(
 fun markWrappedAsSeen() {
         viewModelScope.launch(Dispatchers.IO) {
             context.dataStore.edit {
-                val currentMonth = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern('yyyy-MM'))
+                val currentMonth = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM"))
                 it[LastWrappedMonthKey] = currentMonth
             }
         }
@@ -192,8 +192,6 @@ fun markWrappedAsSeen() {
             } else {
                 database.speedDialDao.insert(speedDialItem)
             }
-        }
-    }
         }
     }
     // Track last processed cookie to avoid unnecessary updates
@@ -407,12 +405,12 @@ fun markWrappedAsSeen() {
                     YouTube.artist(seed.id).onSuccess { page ->
                         page.sections.forEach { section ->
                             section.items.filterIsInstance<PlaylistItem>().forEach { playlist ->
-                                if (playlist.author?.name != 'YouTube Music' && 
-                                    playlist.author?.name != 'YouTube' && 
-                                    playlist.author?.name != 'Playlist' &&
+                                if (playlist.author?.name != "YouTube Music" && 
+                                    playlist.author?.name != "YouTube" && 
+                                    playlist.author?.name != "Playlist" &&
                                     playlist.author?.name != seed.artist.name &&
-                                    !playlist.id.startsWith('RD') &&
-                                    !playlist.id.startsWith('OLAK')
+                                    !playlist.id.startsWith("RD") &&
+                                    !playlist.id.startsWith("OLAK")
                                 ) {
                                     candidatePlaylists.add(playlist)
                                 }
@@ -428,11 +426,11 @@ fun markWrappedAsSeen() {
                     if (endpoint != null) {
                         YouTube.related(endpoint).onSuccess { page ->
                             page.playlists.forEach { playlist ->
-                                if (playlist.author?.name != 'YouTube Music' && 
-                                    playlist.author?.name != 'YouTube' && 
-                                    playlist.author?.name != 'Playlist' &&
-                                    !playlist.id.startsWith('RD') &&
-                                    !playlist.id.startsWith('OLAK')
+                                if (playlist.author?.name != "YouTube Music" && 
+                                    playlist.author?.name != "YouTube" && 
+                                    playlist.author?.name != "Playlist" &&
+                                    !playlist.id.startsWith("RD") &&
+                                    !playlist.id.startsWith("OLAK")
                                 ) {
                                     candidatePlaylists.add(playlist)
                                 }
