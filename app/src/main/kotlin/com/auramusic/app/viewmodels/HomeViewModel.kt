@@ -120,7 +120,8 @@ class HomeViewModel @Inject constructor(
                                 title = item.title,
                                 artists = item.artists.map { Artist(name = it.name, id = it.id) },
                                 thumbnail = item.thumbnailUrl ?: "",
-                                explicit = false
+                                explicit = false,
+                                musicVideoType = if (item.song.isVideo) "MUSIC_VIDEO_TYPE_OMV" else null
                             )
                             is Album -> AlbumItem(
                                 browseId = item.id,
@@ -148,7 +149,8 @@ class HomeViewModel @Inject constructor(
                             title = song.title,
                             artists = song.artists.map { Artist(name = it.name, id = it.id) },
                             thumbnail = song.thumbnailUrl ?: "",
-                            explicit = false
+                            explicit = false,
+                            musicVideoType = if (song.song.isVideo) "MUSIC_VIDEO_TYPE_OMV" else null
                         )
                     }
                     filled.addAll(available.take(needed))

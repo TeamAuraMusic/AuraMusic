@@ -650,7 +650,7 @@ fun HomeScreen(
                     }
 
                     item(key = "speed_dial_grid") {
-                        val itemSize = 120.dp
+                        val itemSize = 160.dp
                         LazyHorizontalGrid(
                             rows = GridCells.Fixed(2),
                             contentPadding = WindowInsets.systemBars
@@ -661,6 +661,59 @@ fun HomeScreen(
                                 .height(itemSize * 2 + 16.dp)
                                 .animateItem()
                         ) {
+                            item(key = "speed_dial_shuffle") {
+                                Box(
+                                    modifier = Modifier
+                                        .size(itemSize)
+                                        .padding(4.dp),
+                                ) {
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .combinedClickable(
+                                                onClick = {
+                                                    val playableItems = speedDialItemsList.filterIsInstance<SongItem>()
+                                                    if (playableItems.isNotEmpty()) {
+                                                        val randomItem = playableItems.random()
+                                                        playerConnection.playQueue(
+                                                            YouTubeQueue(
+                                                                randomItem.endpoint ?: WatchEndpoint(videoId = randomItem.id),
+                                                                randomItem.toMediaMetadata()
+                                                            )
+                                                        )
+                                                    }
+                                                }
+                                            ),
+                                        shape = RoundedCornerShape(16.dp),
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                                        ),
+                                    ) {
+                                        Box(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Column(
+                                                horizontalAlignment = Alignment.CenterHorizontally,
+                                                verticalArrangement = Arrangement.Center,
+                                            ) {
+                                                Icon(
+                                                    painter = painterResource(R.drawable.shuffle),
+                                                    contentDescription = stringResource(R.string.shuffle),
+                                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                    modifier = Modifier.size(32.dp)
+                                                )
+                                                Spacer(modifier = Modifier.height(4.dp))
+                                                Text(
+                                                    text = stringResource(R.string.shuffle),
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                             items(
                                 items = speedDialItemsList,
                                 key = { it.id }
