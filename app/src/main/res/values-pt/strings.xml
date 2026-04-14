@@ -614,7 +614,7 @@
     <string name="visit_metrolist">Visitar AuraMusic</string>
 
     <!-- Last.fm -->
-    <string name="lastfm_integração">Integração Last.fm</string>
+    <string name="lastfm_integration">Integração Last.fm</string>
     <string name="username">Nome de usuário</string>
     <string name="password">Senha</string>
     <string name="logging_in">Entrando…</string>
