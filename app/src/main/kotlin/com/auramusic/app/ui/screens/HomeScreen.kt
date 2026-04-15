@@ -673,6 +673,7 @@ fun HomeScreen(
 item(key = "speed_dial_shuffle") {
                                   var isLoading by remember { mutableStateOf(false) }
                                   var shuffledPositions by remember { mutableStateOf(listOf(0, 1, 2, 3)) }
+                                  var lastLoadedSongId by remember { mutableStateOf<String?>(null) }
 
                                   val animatedPos0 by animateFloatAsState(
                                       targetValue = shuffledPositions.indexOf(0).toFloat(),
@@ -705,10 +706,11 @@ item(key = "speed_dial_shuffle") {
                                               .fillMaxSize()
                                               .combinedClickable(
                                                   onClick = {
-                                                      isLoading = true
                                                       val playableItems = speedDialItemsList.filterIsInstance<SongItem>()
                                                       if (playableItems.isNotEmpty()) {
+                                                          isLoading = true
                                                           val randomItem = playableItems.random()
+                                                          lastLoadedSongId = randomItem.id
                                                           playerConnection.playQueue(
                                                               YouTubeQueue(
                                                                   randomItem.endpoint ?: WatchEndpoint(videoId = randomItem.id),
@@ -788,9 +790,10 @@ item(key = "speed_dial_shuffle") {
                                           }
                                       }
                                   }
-                                  LaunchedEffect(isPlaying) {
-                                      if (isPlaying && isLoading) {
+                                  LaunchedEffect(mediaMetadata) {
+                                      if (isLoading && lastLoadedSongId != null && mediaMetadata?.id == lastLoadedSongId) {
                                           isLoading = false
+                                          lastLoadedSongId = null
                                       }
                                   }
                               }
