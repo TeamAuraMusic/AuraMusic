@@ -24,7 +24,7 @@
 ### Socials
 
 <a href="https://discord.gg/PFvX7gnJg">
-<img src="https://upload.wikimedia.org/wikipedia/commons/3/3c/Discord_logo.svg" alt="Discord" width="50" height="50">
+<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/discord/discord-original.svg" alt="Discord" width="50" height="50">
 </a>
 <a href="https://discord.gg/PFvX7gnJg">Join on Discord</a>
 
