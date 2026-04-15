@@ -5,12 +5,17 @@
 
 package com.auramusic.app.ui.component
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -85,25 +90,34 @@ fun SpeedDialGridItem(
                     .clip(if (isArtist) CircleShape else RoundedCornerShape(12.dp))
             )
 
-            // Active indicator
-            if (isActive && isPlaying) {
+            // Active indicator - shows playing animation or pause icon
+            AnimatedVisibility(
+                visible = isActive,
+                enter = fadeIn(tween(500)),
+                exit = fadeOut(tween(500))
+            ) {
                 Box(
+                    contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(8.dp)
-                        .size(24.dp)
+                        .fillMaxSize()
                         .background(
-                            Color.Black.copy(alpha = 0.6f),
-                            CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
+                            Color.Black.copy(alpha = 0.5f),
+                            if (isArtist) CircleShape else RoundedCornerShape(12.dp)
+                        )
                 ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_play),
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(14.dp)
-                    )
+                    if (isPlaying) {
+                        PlayingIndicator(
+                            color = Color.White,
+                            modifier = Modifier.height(24.dp)
+                        )
+                    } else {
+                        Icon(
+                            painter = painterResource(R.drawable.play),
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
                 }
             }
 
