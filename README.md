@@ -23,6 +23,13 @@
 
 ### Socials
 
+<a href="https://discord.gg/PFvX7gnJg">
+<img src="https://upload.wikimedia.org/wikipedia/commons/3/3c/Discord_logo.svg" alt="Discord" width="50" height="50">
+</a>
+<a href="https://discord.gg/PFvX7gnJg">Join on Discord</a>
+
+&nbsp;&nbsp;
+
 <a href="https://t.me/AuraMusicUpdates">
 <img src="https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg" alt="Telegram" width="50" height="50">
 </a>
