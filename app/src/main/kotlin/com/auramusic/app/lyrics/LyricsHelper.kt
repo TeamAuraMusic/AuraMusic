@@ -65,7 +65,7 @@ init {
                         // This respects user's preferred provider selection
                         Timber.tag("LyricsHelper").d("Using fallback provider logic")
                         val preferredProvider = preferences[PreferredLyricsProviderKey]
-                            .toEnum(PreferredLyricsProvider.LRCLIB)
+                            .toEnum(PreferredLyricsProvider.BETTER_LYRICS)
                         when (preferredProvider) {
                             PreferredLyricsProvider.LRCLIB -> listOf(
                                 LrcLibLyricsProvider,

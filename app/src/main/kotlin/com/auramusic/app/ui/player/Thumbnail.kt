@@ -1294,7 +1294,7 @@ private fun VideoLyricsOverlay(
     if (!videoModeEnabled) return
 
     // Position overlay below video for captions
-    val bottomPadding = if (isFixedMode) 180.dp else 140.dp
+    val bottomPadding = if (isFixedMode) 24.dp else 16.dp
 
     // Check if video subtitles are enabled
     val (subtitlesEnabled, _) = rememberPreference(

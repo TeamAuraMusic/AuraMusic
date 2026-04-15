@@ -250,134 +250,149 @@ fun markWrappedAsSeen() {
         val hideExplicit = context.dataStore.get(HideExplicitKey, false)
         val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
 
-        getQuickPicks()
-        forgottenFavorites.value = database.forgottenFavorites().first().filterVideoSongs(hideVideoSongs).shuffled().take(20)
-
-        val fromTimeStamp = System.currentTimeMillis() - 86400000 * 7 * 2
-        val keepListeningSongs = database.mostPlayedSongs(fromTimeStamp, limit = 15, offset = 5).first().filterVideoSongs(hideVideoSongs).shuffled().take(10)
-        val keepListeningAlbums = database.mostPlayedAlbums(fromTimeStamp, limit = 8, offset = 2).first().filter { it.album.thumbnailUrl != null }.shuffled().take(5)
-        val keepListeningArtists = database.mostPlayedArtists(fromTimeStamp).first().filter { it.artist.isYouTubeArtist && it.artist.thumbnailUrl != null }.shuffled().take(5)
-        keepListening.value = (keepListeningSongs + keepListeningAlbums + keepListeningArtists).shuffled()
-
-        if (YouTube.cookie != null) {
-            YouTube.library("FEmusic_liked_playlists").completed().onSuccess {
-                accountPlaylists.value = it.items.filterIsInstance<PlaylistItem>().filterNot { it.id == "SE" }
-            }.onFailure {
-                reportException(it)
+        coroutineScope {
+            // Local database queries - fast, run first
+            launch {
+                getQuickPicks()
             }
-        }
+            launch {
+                forgottenFavorites.value = database.forgottenFavorites().first().filterVideoSongs(hideVideoSongs).shuffled().take(20)
+            }
+            launch {
+                val fromTimeStamp = System.currentTimeMillis() - 86400000 * 7 * 2
+                val keepListeningSongs = database.mostPlayedSongs(fromTimeStamp, limit = 15, offset = 5).first().filterVideoSongs(hideVideoSongs).shuffled().take(10)
+                val keepListeningAlbums = database.mostPlayedAlbums(fromTimeStamp, limit = 8, offset = 2).first().filter { it.album.thumbnailUrl != null }.shuffled().take(5)
+                val keepListeningArtists = database.mostPlayedArtists(fromTimeStamp).first().filter { it.artist.isYouTubeArtist && it.artist.thumbnailUrl != null }.shuffled().take(5)
+                keepListening.value = (keepListeningSongs + keepListeningAlbums + keepListeningArtists).shuffled()
+            }
 
-        // Get recommendations from most played artists (prioritize recent listening)
-        val artistRecommendations = database.mostPlayedArtists(fromTimeStamp, limit = 15).first()
-            .filter { it.artist.isYouTubeArtist }
-            .shuffled().take(4)
-            .mapNotNull {
-                val items = mutableListOf<YTItem>()
-                YouTube.artist(it.id).onSuccess { page ->
-                    // Get more sections for better variety
-                    page.sections.takeLast(3).forEach { section ->
-                        items += section.items
+            // Account playlists - independent
+            launch {
+                if (YouTube.cookie != null) {
+                    YouTube.library("FEmusic_liked_playlists").completed().onSuccess {
+                        accountPlaylists.value = it.items.filterIsInstance<PlaylistItem>().filterNot { it.id == "SE" }
+                    }.onFailure {
+                        reportException(it)
                     }
                 }
-                SimilarRecommendation(
-                    title = it,
-                    items = items
-                        .distinctBy { item -> item.id }
-                        .filterExplicit(hideExplicit)
-                        .filterVideoSongs(hideVideoSongs)
-                        .shuffled()
-                        .take(12)
-                        .ifEmpty { return@mapNotNull null }
-                )
             }
 
-        // Get recommendations from most played songs
-        val songRecommendations = database.mostPlayedSongs(fromTimeStamp, limit = 15).first()
-            .filter { it.album != null }
-            .shuffled().take(3)
-            .mapNotNull { song ->
-                val endpoint = YouTube.next(WatchEndpoint(videoId = song.id)).getOrNull()?.relatedEndpoint ?: return@mapNotNull null
-                val page = YouTube.related(endpoint).getOrNull() ?: return@mapNotNull null
-                SimilarRecommendation(
-                    title = song,
-                    items = (page.songs.shuffled().take(10) +
-                            page.albums.shuffled().take(5) +
-                            page.artists.shuffled().take(3) +
-                            page.playlists.shuffled().take(3))
-                        .distinctBy { it.id }
-                        .filterExplicit(hideExplicit)
-                        .filterVideoSongs(hideVideoSongs)
-                        .shuffled()
-                        .ifEmpty { return@mapNotNull null }
-                )
+            // Network-heavy: similar recommendations
+            launch {
+                val fromTimeStamp = System.currentTimeMillis() - 86400000 * 7 * 2
+
+                val artistRecommendations = database.mostPlayedArtists(fromTimeStamp, limit = 15).first()
+                    .filter { it.artist.isYouTubeArtist }
+                    .shuffled().take(4)
+                    .mapNotNull {
+                        val items = mutableListOf<YTItem>()
+                        YouTube.artist(it.id).onSuccess { page ->
+                            page.sections.takeLast(3).forEach { section ->
+                                items += section.items
+                            }
+                        }
+                        SimilarRecommendation(
+                            title = it,
+                            items = items
+                                .distinctBy { item -> item.id }
+                                .filterExplicit(hideExplicit)
+                                .filterVideoSongs(hideVideoSongs)
+                                .shuffled()
+                                .take(12)
+                                .ifEmpty { return@mapNotNull null }
+                        )
+                    }
+
+                val songRecommendations = database.mostPlayedSongs(fromTimeStamp, limit = 15).first()
+                    .filter { it.album != null }
+                    .shuffled().take(3)
+                    .mapNotNull { song ->
+                        val endpoint = YouTube.next(WatchEndpoint(videoId = song.id)).getOrNull()?.relatedEndpoint ?: return@mapNotNull null
+                        val page = YouTube.related(endpoint).getOrNull() ?: return@mapNotNull null
+                        SimilarRecommendation(
+                            title = song,
+                            items = (page.songs.shuffled().take(10) +
+                                    page.albums.shuffled().take(5) +
+                                    page.artists.shuffled().take(3) +
+                                    page.playlists.shuffled().take(3))
+                                .distinctBy { it.id }
+                                .filterExplicit(hideExplicit)
+                                .filterVideoSongs(hideVideoSongs)
+                                .shuffled()
+                                .ifEmpty { return@mapNotNull null }
+                        )
+                    }
+
+                val albumRecommendations = database.mostPlayedAlbums(fromTimeStamp, limit = 10).first()
+                    .filter { it.album.thumbnailUrl != null }
+                    .shuffled().take(2)
+                    .mapNotNull { album ->
+                        val items = mutableListOf<YTItem>()
+                        YouTube.album(album.id).onSuccess { page ->
+                            page.otherVersions.let { items += it }
+                        }
+                        album.artists.firstOrNull()?.id?.let { artistId ->
+                            YouTube.artist(artistId).onSuccess { page ->
+                                page.sections.lastOrNull()?.items?.let { items += it }
+                            }
+                        }
+                        SimilarRecommendation(
+                            title = album,
+                            items = items
+                                .distinctBy { it.id }
+                                .filterExplicit(hideExplicit)
+                                .filterVideoSongs(hideVideoSongs)
+                                .shuffled()
+                                .take(10)
+                                .ifEmpty { return@mapNotNull null }
+                        )
+                    }
+
+                similarRecommendations.value = (artistRecommendations + songRecommendations + albumRecommendations).shuffled()
             }
-        
-        // Get recommendations from most played albums
-        val albumRecommendations = database.mostPlayedAlbums(fromTimeStamp, limit = 10).first()
-            .filter { it.album.thumbnailUrl != null }
-            .shuffled().take(2)
-            .mapNotNull { album ->
-                val items = mutableListOf<YTItem>()
-                YouTube.album(album.id).onSuccess { page ->
-                    // Get related albums and artists
-                    page.otherVersions.let { items += it }
+
+            // Home page - independent
+            launch {
+                YouTube.home().onSuccess { page ->
+                    homePage.value = page.copy(
+                        sections = page.sections.map { section ->
+                            section.copy(items = section.items.filterExplicit(hideExplicit).filterVideoSongs(hideVideoSongs))
+                        }
+                    )
+                }.onFailure {
+                    reportException(it)
                 }
-                // Also get artist's other content
-                album.artists.firstOrNull()?.id?.let { artistId ->
-                    YouTube.artist(artistId).onSuccess { page ->
-                        page.sections.lastOrNull()?.items?.let { items += it }
+            }
+
+            // Explore page - independent
+            launch {
+                YouTube.explore().onSuccess { page ->
+                    explorePage.value = page.copy(
+                        newReleaseAlbums = page.newReleaseAlbums.filterExplicit(hideExplicit)
+                    )
+                }.onFailure {
+                    reportException(it)
+                }
+
+                if (explorePage.value?.podcasts.isNullOrEmpty()) {
+                    YouTube.podcasts().onSuccess { podcastsPage ->
+                        explorePage.value = explorePage.value?.copy(
+                            podcasts = podcastsPage.featured
+                        )
+                    }.onFailure {
+                        reportException(it)
                     }
                 }
-                SimilarRecommendation(
-                    title = album,
-                    items = items
-                        .distinctBy { it.id }
-                        .filterExplicit(hideExplicit)
-                        .filterVideoSongs(hideVideoSongs)
-                        .shuffled()
-                        .take(10)
-                        .ifEmpty { return@mapNotNull null }
-                )
-            }
-        
-        similarRecommendations.value = (artistRecommendations + songRecommendations + albumRecommendations).shuffled()
 
-        YouTube.home().onSuccess { page ->
-            homePage.value = page.copy(
-                sections = page.sections.map { section ->
-                    section.copy(items = section.items.filterExplicit(hideExplicit).filterVideoSongs(hideVideoSongs))
+                if (explorePage.value?.mixes.isNullOrEmpty()) {
+                    YouTube.mixes().onSuccess { mixesPage ->
+                        explorePage.value = explorePage.value?.copy(
+                            mixes = mixesPage.mixes
+                        )
+                    }.onFailure {
+                        reportException(it)
+                    }
                 }
-            )
-        }.onFailure {
-            reportException(it)
-        }
-
-        YouTube.explore().onSuccess { page ->
-            explorePage.value = page.copy(
-                newReleaseAlbums = page.newReleaseAlbums.filterExplicit(hideExplicit)
-            )
-        }.onFailure {
-            reportException(it)
-        }
-
-        // If explore() didn't return podcasts/mixes, try separate browse calls
-        if (explorePage.value?.podcasts.isNullOrEmpty()) {
-            YouTube.podcasts().onSuccess { podcastsPage ->
-                explorePage.value = explorePage.value?.copy(
-                    podcasts = podcastsPage.featured
-                )
-            }.onFailure {
-                reportException(it)
-            }
-        }
-
-        if (explorePage.value?.mixes.isNullOrEmpty()) {
-            YouTube.mixes().onSuccess { mixesPage ->
-                explorePage.value = explorePage.value?.copy(
-                    mixes = mixesPage.mixes
-                )
-            }.onFailure {
-                reportException(it)
             }
         }
 

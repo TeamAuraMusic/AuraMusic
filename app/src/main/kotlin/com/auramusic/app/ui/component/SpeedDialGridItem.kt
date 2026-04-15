@@ -29,7 +29,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.auramusic.app.R
 import com.auramusic.innertube.models.AlbumItem
@@ -123,6 +125,27 @@ fun SpeedDialGridItem(
                         contentDescription = "Pinned",
                         tint = Color.White,
                         modifier = Modifier.size(10.dp)
+                    )
+                }
+            }
+
+            // Video song indicator
+            if (item is SongItem && item.isVideoSong) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(6.dp)
+                        .background(
+                            Color.Black.copy(alpha = 0.6f),
+                            RoundedCornerShape(4.dp)
+                        )
+                        .padding(horizontal = 4.dp, vertical = 1.dp)
+                ) {
+                    Text(
+                        text = "VIDEO",
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontSize = 8.sp,
                     )
                 }
             }
