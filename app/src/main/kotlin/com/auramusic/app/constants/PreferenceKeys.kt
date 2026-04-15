@@ -410,6 +410,9 @@ val TranslateModeKey = stringPreferencesKey("translateMode")
 val TranslateLanguageKey = stringPreferencesKey("translateLanguage")
 val LyricsGlowEffectKey = booleanPreferencesKey("lyricsGlowEffect")
 val LiquidGlassEffectKey = booleanPreferencesKey("liquidGlassEffect")
+val LiquidGlassBlurRadiusKey = floatPreferencesKey("liquidGlassBlurRadius")
+val LiquidGlassCornerRadiusKey = floatPreferencesKey("liquidGlassCornerRadius")
+val LiquidGlassOpacityKey = floatPreferencesKey("liquidGlassOpacity")
 
 val LyricsAnimationStyleKey = stringPreferencesKey("lyricsAnimationStyle")
 enum class LyricsAnimationStyle {

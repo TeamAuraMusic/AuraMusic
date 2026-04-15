@@ -76,6 +76,9 @@ import com.auramusic.app.constants.LyricsAnimationStyleKey
 import com.auramusic.app.constants.LyricsClickKey
 import com.auramusic.app.constants.LyricsGlowEffectKey
 import com.auramusic.app.constants.LiquidGlassEffectKey
+import com.auramusic.app.constants.LiquidGlassBlurRadiusKey
+import com.auramusic.app.constants.LiquidGlassCornerRadiusKey
+import com.auramusic.app.constants.LiquidGlassOpacityKey
 import com.auramusic.app.constants.LyricsLineSpacingKey
 import com.auramusic.app.constants.LyricsScrollKey
 import com.auramusic.app.constants.LyricsTextPositionKey
@@ -201,6 +204,18 @@ fun AppearanceSettings(
     val (liquidGlassEnabled, onLiquidGlassEnabledChange) = rememberPreference(
         LiquidGlassEffectKey,
         defaultValue = false
+    )
+    val (liquidGlassBlurRadius, onLiquidGlassBlurRadiusChange) = rememberPreference(
+        LiquidGlassBlurRadiusKey,
+        defaultValue = 20f
+    )
+    val (liquidGlassCornerRadius, onLiquidGlassCornerRadiusChange) = rememberPreference(
+        LiquidGlassCornerRadiusKey,
+        defaultValue = 16f
+    )
+    val (liquidGlassOpacity, onLiquidGlassOpacityChange) = rememberPreference(
+        LiquidGlassOpacityKey,
+        defaultValue = 0.15f
     )
     val (lyricsTextSize, onLyricsTextSizeChange) = rememberPreference(LyricsTextSizeKey, defaultValue = 24f)
     val (lyricsLineSpacing, onLyricsLineSpacingChange) = rememberPreference(LyricsLineSpacingKey, defaultValue = 1.3f)
@@ -1014,6 +1029,14 @@ fun AppearanceSettings(
                         onClick = { onPureBlackMiniPlayerChange(!pureBlackMiniPlayer) }
                     )
                 )
+            }
+        )
+
+        Spacer(modifier = Modifier.height(27.dp))
+
+        Material3SettingsGroup(
+            title = stringResource(R.string.liquid_glass_settings),
+            items = buildList {
                 add(
                     Material3SettingsItem(
                         icon = painterResource(R.drawable.ic_lyrics),
@@ -1039,6 +1062,77 @@ fun AppearanceSettings(
                         onClick = { onLiquidGlassEnabledChange(!liquidGlassEnabled) }
                     )
                 )
+                if (liquidGlassEnabled) {
+                    add(
+                        Material3SettingsItem(
+                            icon = painterResource(R.drawable.blur),
+                            title = { Text(stringResource(R.string.liquid_glass_blur_radius)) },
+                            description = { Text("${liquidGlassBlurRadius.toInt()} dp") },
+                            trailingContent = {
+                                Box(
+                                    modifier = Modifier
+                                        .width(120.dp)
+                                        .padding(start = 8.dp)
+                                ) {
+                                    Slider(
+                                        value = liquidGlassBlurRadius,
+                                        onValueChange = { onLiquidGlassBlurRadiusChange(it) },
+                                        valueRange = 5f..40f,
+                                        steps = 6,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+                            },
+                            onClick = {}
+                        )
+                    )
+                    add(
+                        Material3SettingsItem(
+                            icon = painterResource(R.drawable.rounded_corner),
+                            title = { Text(stringResource(R.string.liquid_glass_corner_radius)) },
+                            description = { Text("${liquidGlassCornerRadius.toInt()} dp") },
+                            trailingContent = {
+                                Box(
+                                    modifier = Modifier
+                                        .width(120.dp)
+                                        .padding(start = 8.dp)
+                                ) {
+                                    Slider(
+                                        value = liquidGlassCornerRadius,
+                                        onValueChange = { onLiquidGlassCornerRadiusChange(it) },
+                                        valueRange = 8f..32f,
+                                        steps = 5,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+                            },
+                            onClick = {}
+                        )
+                    )
+                    add(
+                        Material3SettingsItem(
+                            icon = painterResource(R.drawable.opacity),
+                            title = { Text(stringResource(R.string.liquid_glass_opacity)) },
+                            description = { Text("${(liquidGlassOpacity * 100).toInt()}%") },
+                            trailingContent = {
+                                Box(
+                                    modifier = Modifier
+                                        .width(120.dp)
+                                        .padding(start = 8.dp)
+                                ) {
+                                    Slider(
+                                        value = liquidGlassOpacity,
+                                        onValueChange = { onLiquidGlassOpacityChange(it) },
+                                        valueRange = 0.05f..0.5f,
+                                        steps = 8,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+                            },
+                            onClick = {}
+                        )
+                    )
+                }
             }
         )
 

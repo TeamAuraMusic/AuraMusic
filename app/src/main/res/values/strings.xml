@@ -390,6 +390,10 @@
     <string name="player_background_blur">Blur</string>
     <string name="liquid_glass_effect">Liquid glass effect</string>
     <string name="liquid_glass_effect_desc">Apple-style frosted glass on mini player and cards</string>
+    <string name="liquid_glass_blur_radius">Blur intensity</string>
+    <string name="liquid_glass_corner_radius">Corner radius</string>
+    <string name="liquid_glass_opacity">Opacity</string>
+    <string name="liquid_glass_settings">Liquid Glass</string>
     <string name="hide_player_thumbnail">Hide player thumbnail</string>
     <string name="hide_player_thumbnail_desc">Hide the thumbnail in the mini player</string>
     <string name="crop_album_art">Crop album art</string>

@@ -84,6 +84,9 @@ import com.auramusic.app.R
 import com.auramusic.app.constants.CropAlbumArtKey
 import com.auramusic.app.constants.DarkModeKey
 import com.auramusic.app.constants.LiquidGlassEffectKey
+import com.auramusic.app.constants.LiquidGlassBlurRadiusKey
+import com.auramusic.app.constants.LiquidGlassCornerRadiusKey
+import com.auramusic.app.constants.LiquidGlassOpacityKey
 import com.auramusic.app.constants.MiniPlayerHeight
 import com.auramusic.app.constants.PureBlackMiniPlayerKey
 import com.auramusic.app.constants.SwipeSensitivityKey
@@ -213,16 +216,21 @@ private fun NewMiniPlayer(
     
     // Memoize colors
     val liquidGlassEnabled by rememberPreference(LiquidGlassEffectKey, defaultValue = false)
+    val liquidGlassBlurRadius by rememberPreference(LiquidGlassBlurRadiusKey, defaultValue = 20f)
+    val liquidGlassCornerRadius by rememberPreference(LiquidGlassCornerRadiusKey, defaultValue = 16f)
+    val liquidGlassOpacity by rememberPreference(LiquidGlassOpacityKey, defaultValue = 0.15f)
+
     val backgroundColor = when {
         // Liquid glass effect - works in all theme modes including pure black
         liquidGlassEnabled -> {
             val isDark = useDarkTheme
+            val adjustedOpacity = if (isDark) liquidGlassOpacity.coerceAtLeast(0.3f) else liquidGlassOpacity
             if (isDark && pureBlack) {
                 Color(0xFF1A1A1A).copy(alpha = 0.6f)
             } else if (isDark) {
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = adjustedOpacity + 0.25f)
             } else {
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = adjustedOpacity + 0.1f)
             }
         }
         // Pure black mode - solid black when liquid glass is off
