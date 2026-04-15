@@ -23,7 +23,10 @@
 
 ### Socials
 
-[![Telegram](https://img.shields.io/badge/Telegram-AuraMusicUpdates?logo=telegram&style=for-the-badge&color=2CA5E0)](https://t.me/AuraMusicUpdates)
+<a href="https://t.me/AuraMusicUpdates">
+<img src="https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg" alt="Telegram" width="50" height="50">
+</a>
+<a href="https://t.me/AuraMusicUpdates">Join on Telegram</a>
 
 </div>
 
