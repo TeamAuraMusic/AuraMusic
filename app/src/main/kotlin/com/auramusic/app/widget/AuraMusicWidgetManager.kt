@@ -523,18 +523,6 @@ class AuraMusicWidgetManager @Inject constructor(
         )
     }
 
-    private fun getCompactSquarePlayPauseIntent(): PendingIntent {
-        val intent = Intent(context, CompactSquareWidgetReceiver::class.java).apply {
-            action = CompactSquareWidgetReceiver.ACTION_COMPACT_SQUARE_PLAY_PAUSE
-        }
-        return PendingIntent.getBroadcast(
-            context,
-            11,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-    }
-
     private fun getCompactSquarePreviousIntent(): PendingIntent {
         val intent = Intent(context, CompactSquareWidgetReceiver::class.java).apply {
             action = CompactSquareWidgetReceiver.ACTION_COMPACT_SQUARE_PREVIOUS
