@@ -63,8 +63,7 @@ init {
                     val isCustomized = providerOrder != defaultOrder
 
                     if (isCustomized) {
-                        // Use the custom provider order if user has set one
-                        // but ensure preferred provider is first
+                        // Use custom order, but ensure preferred provider is ALWAYS first (even if disabled)
                         val customOrder = LyricsProviderRegistry.getOrderedProviders(providerOrder)
                         val preferredProviderInstance = when (preferredProvider) {
                             PreferredLyricsProvider.LRCLIB -> LrcLibLyricsProvider
@@ -73,11 +72,10 @@ init {
                             PreferredLyricsProvider.SIMPMUSIC -> SimpMusicLyricsProvider
                             PreferredLyricsProvider.RUSH_LYRICS -> RushLyricsProvider
                         }
-                        // Move preferred provider to front if enabled
+                        // Always include preferred provider first (respect user's selection)
                         val filteredCustom = customOrder.filter { it.isEnabled(context) }
-                        val preferredFirst = filteredCustom.filter { it.name == preferredProviderInstance.name } + 
-                            filteredCustom.filter { it.name != preferredProviderInstance.name }
-                        preferredFirst
+                        val others = filteredCustom.filter { it.name != preferredProviderInstance.name }
+                        listOf(preferredProviderInstance) + others
                     } else {
                         // Use preferred provider logic - put selected provider first
                         when (preferredProvider) {
@@ -143,9 +141,12 @@ init {
             }
         }
 
+        // Check cache - but only return if from currently selected preferred provider
         val cached = cache.get(mediaMetadata.id)
-        if (cached != null && cached.lyrics != LYRICS_NOT_FOUND) {
-            Timber.tag("LyricsHelper").d("Returning cached lyrics from ${cached.provider}")
+        val preferredProviderName = lyricsProviders.firstOrNull()?.name ?: ""
+        val isFromPreferredProvider = cached?.provider == preferredProviderName
+        if (cached != null && cached.lyrics != LYRICS_NOT_FOUND && isFromPreferredProvider) {
+            Timber.tag("LyricsHelper").d("Returning cached lyrics from preferred provider ${cached.provider}")
             return cached
         }
 
