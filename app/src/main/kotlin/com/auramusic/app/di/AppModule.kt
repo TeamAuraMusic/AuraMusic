@@ -57,7 +57,6 @@ object AppModule {
             com.auramusic.app.db.MIGRATION_21_24,
             com.auramusic.app.db.MIGRATION_22_24,
             com.auramusic.app.db.MIGRATION_24_25,
-            com.auramusic.app.db.MIGRATION_32_33,
         )
         .fallbackToDestructiveMigration(dropAllTables = true)
         .build()
