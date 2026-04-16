@@ -146,7 +146,6 @@ class MusicDatabase(
         AutoMigration(from = 29, to = 30, spec = Migration29To30::class),
         AutoMigration(from = 30, to = 31),
         AutoMigration(from = 31, to = 32, spec = Migration31To32::class),
-        AutoMigration(from = 32, to = 33),
     ],
 )
 @TypeConverters(Converters::class)
@@ -167,6 +166,7 @@ abstract class InternalDatabase : RoomDatabase() {
                         MIGRATION_21_24,
                         MIGRATION_22_24,
                         MIGRATION_24_25,
+                        MIGRATION_32_33,
                     )
                     .fallbackToDestructiveMigration(dropAllTables = true)
                     .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
@@ -732,3 +732,10 @@ class Migration31To32 : AutoMigrationSpec {
         """.trimIndent())
     }
 }
+
+val MIGRATION_32_33 =
+    object : Migration(32, 33) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE speed_dial_item ADD COLUMN musicVideoType TEXT DEFAULT NULL")
+        }
+    }
