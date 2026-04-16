@@ -4,35 +4,42 @@
     android:height="250dp"
     android:viewportWidth="250"
     android:viewportHeight="250">
-    <!-- Background -->
+    <!-- Background album art -->
     <path
         android:fillColor="#E8DEF8"
         android:pathData="M0,0h250v250h-250z"/>
-    <!-- Turntable circle -->
+    <!-- Gradient overlay -->
     <path
-        android:fillColor="#FFB4AB"
-        android:pathData="M125,100m-70,0a70,70 0,1 1,140 0a70,70 0,1 1,-140 0"/>
-    <!-- Album art -->
+        android:fillColor="#80000000"
+        android:pathData="M0,170h250v80h-250z"/>
+    <!-- Vinyl ring -->
+    <path
+        android:fillColor="#20000000"
+        android:pathData="M125,85m-60,0a60,60 0,1 1,120 0a60,60 0,1 1,-120 0"/>
+    <path
+        android:fillColor="#15000000"
+        android:pathData="M125,85m-45,0a45,45 0,1 1,90 0a45,45 0,1 1,-90 0"/>
+    <!-- Album art center -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M125,100m-45,0a45,45 0,1 1,90 0a45,45 0,1 1,-90 0"/>
+        android:pathData="M125,85m-30,0a30,30 0,1 1,60 0a30,30 0,1 1,-60 0"/>
     <!-- Center hole -->
     <path
         android:fillColor="#E8DEF8"
-        android:pathData="M125,100m-12,0a12,12 0,1 1,24 0a12,12 0,1 1,-24 0"/>
-    <!-- Previous button -->
+        android:pathData="M125,85m-8,0a8,8 0,1 1,16 0a8,8 0,1 1,-16 0"/>
+    <!-- Previous -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M60,175l8,5l-8,5z"/>
+        android:pathData="M50,200l6,4l-6,4z"/>
     <!-- Play button -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M110,165m-20,0a20,20 0,1 1,40 0a20,20 0,1 1,-40 0"/>
+        android:pathData="M115,190m-18,0a18,18 0,1 1,36 0a18,18 0,1 1,-36 0"/>
     <path
         android:fillColor="#FFB4AB"
-        android:pathData="M108,160l8,5l-8,5z"/>
-    <!-- Next button -->
+        android:pathData="M112,186l6,4l-6,4z"/>
+    <!-- Next -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M170,175l8,5l-8,5z"/>
+        android:pathData="M195,200l6,4l-6,4z"/>
 </vector>

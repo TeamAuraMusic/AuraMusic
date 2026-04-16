@@ -4,31 +4,33 @@
     android:height="110dp"
     android:viewportWidth="110"
     android:viewportHeight="110">
-    <!-- Background -->
-    <path
-        android:fillColor="#FFB4AB"
-        android:pathData="M0,0h110v110h-110z"/>
-    <!-- Album art -->
+    <!-- Full cover album art -->
     <path
         android:fillColor="#E8DEF8"
-        android:pathData="M5,5h100v80h-100z"/>
-    <!-- Controls bar background -->
+        android:pathData="M0,0h110v110h-110z"/>
+    <!-- Gradient overlay -->
     <path
         android:fillColor="#80000000"
-        android:pathData="M0,85h110v25h-110z"/>
+        android:pathData="M0,75h110v35h-110z"/>
     <!-- Previous button -->
     <path
+        android:fillColor="#40FFFFFF"
+        android:pathData="M20,92m-8,0a8,8 0,1 1,16 0a8,8 0,1 1,-16 0"/>
+    <path
         android:fillColor="#FFFFFF"
-        android:pathData="M20,97l6,3l-6,3z"/>
+        android:pathData="M18,89l4,3l-4,3z"/>
     <!-- Play button -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M50,90m-10,0a10,10 0,1 1,20 0a10,10 0,1 1,-20 0"/>
+        android:pathData="M50,85m-12,0a12,12 0,1 1,24 0a12,12 0,1 1,-24 0"/>
     <path
         android:fillColor="#FFB4AB"
-        android:pathData="M48,87l5,3l-5,3z"/>
+        android:pathData="M48,82l4,3l-4,3z"/>
     <!-- Next button -->
     <path
+        android:fillColor="#40FFFFFF"
+        android:pathData="M80,92m-8,0a8,8 0,1 1,16 0a8,8 0,1 1,-16 0"/>
+    <path
         android:fillColor="#FFFFFF"
-        android:pathData="M84,97l6,3l-6,3z"/>
+        android:pathData="M88,89l4,3l-4,3z"/>
 </vector>

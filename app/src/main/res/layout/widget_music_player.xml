@@ -2,37 +2,43 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/widget_primary_container"
-    android:padding="12dp">
+    android:background="@color/widget_primary_container">
 
+    <!-- Full cover album art -->
     <ImageView
         android:id="@+id/widget_album_art"
-        android:layout_width="56dp"
-        android:layout_height="56dp"
-        android:layout_alignParentStart="true"
-        android:layout_centerVertical="true"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:scaleType="centerCrop"
         android:src="@drawable/ic_widget_music_placeholder" />
 
-    <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_toStartOf="@id/widget_previous"
-        android:layout_toEndOf="@id/widget_album_art"
-        android:layout_centerVertical="true"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="4dp"
-        android:orientation="vertical">
+    <!-- Gradient overlay for readability -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/widget_gradient_overlay" />
 
+    <!-- Bottom controls container -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:background="#80000000">
+
+        <!-- Song info -->
         <TextView
             android:id="@+id/widget_song_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ellipsize="end"
             android:maxLines="1"
-            android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
-            android:textStyle="bold" />
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:shadowColor="#000000"
+            android:shadowRadius="4" />
 
         <TextView
             android:id="@+id/widget_artist_name"
@@ -40,60 +46,72 @@
             android:layout_height="wrap_content"
             android:ellipsize="end"
             android:maxLines="1"
-            android:textColor="@color/widget_text_secondary"
-            android:textSize="11sp" />
+            android:textColor="#CCFFFFFF"
+            android:textSize="13sp"
+            android:shadowColor="#000000"
+            android:shadowRadius="3" />
+
+        <!-- Progress bar -->
+        <ImageView
+            android:id="@+id/widget_progress_fill"
+            android:layout_width="match_parent"
+            android:layout_height="3dp"
+            android:layout_marginTop="8dp"
+            android:scaleType="fitXY"
+            android:src="@drawable/widget_progress" />
+
+        <!-- Control buttons -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:gravity="center">
+
+            <ImageView
+                android:id="@+id/widget_like_button"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/widget_button_transparent"
+                android:padding="8dp"
+                android:src="@drawable/ic_widget_heart_outline_nav" />
+
+            <ImageView
+                android:id="@+id/widget_previous"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginStart="16dp"
+                android:background="@drawable/widget_button_circle"
+                android:padding="10dp"
+                android:src="@drawable/ic_widget_skip_previous" />
+
+            <ImageView
+                android:id="@+id/widget_play_pause"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="12dp"
+                android:background="@drawable/widget_play_button_large"
+                android:padding="14dp"
+                android:src="@drawable/ic_widget_play" />
+
+            <ImageView
+                android:id="@+id/widget_next"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginEnd="16dp"
+                android:background="@drawable/widget_button_circle"
+                android:padding="10dp"
+                android:src="@drawable/ic_widget_skip_next" />
+
+            <ImageView
+                android:id="@+id/widget_placeholder"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:visibility="invisible" />
+
+        </LinearLayout>
 
     </LinearLayout>
-
-    <ImageView
-        android:id="@+id/widget_previous"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
-        android:layout_toStartOf="@id/widget_play_pause"
-        android:layout_centerVertical="true"
-        android:layout_marginEnd="2dp"
-        android:background="@drawable/widget_button_bg"
-        android:padding="6dp"
-        android:src="@drawable/ic_widget_skip_previous" />
-
-    <ImageView
-        android:id="@+id/widget_play_pause"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:layout_toStartOf="@id/widget_next"
-        android:layout_centerVertical="true"
-        android:layout_marginEnd="2dp"
-        android:background="@drawable/widget_button_bg"
-        android:padding="8dp"
-        android:src="@drawable/ic_widget_play" />
-
-    <ImageView
-        android:id="@+id/widget_next"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
-        android:layout_toStartOf="@id/widget_like_button"
-        android:layout_centerVertical="true"
-        android:layout_marginEnd="2dp"
-        android:background="@drawable/widget_button_bg"
-        android:padding="6dp"
-        android:src="@drawable/ic_widget_skip_next" />
-
-    <ImageView
-        android:id="@+id/widget_like_button"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
-        android:layout_alignParentEnd="true"
-        android:layout_centerVertical="true"
-        android:background="@drawable/widget_button_bg"
-        android:padding="6dp"
-        android:src="@drawable/ic_widget_heart_outline_nav" />
-
-    <ImageView
-        android:id="@+id/widget_progress_fill"
-        android:layout_width="match_parent"
-        android:layout_height="3dp"
-        android:layout_alignParentBottom="true"
-        android:scaleType="fitXY"
-        android:src="@drawable/widget_progress" />
 
 </RelativeLayout>

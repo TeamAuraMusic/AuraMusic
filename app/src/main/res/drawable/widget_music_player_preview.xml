@@ -4,43 +4,43 @@
     android:height="110dp"
     android:viewportWidth="250"
     android:viewportHeight="110">
-    <!-- Background -->
-    <path
-        android:fillColor="#FFB4AB"
-        android:pathData="M0,0h250v110h-250z"/>
-    <!-- Album art placeholder -->
+    <!-- Background album art -->
     <path
         android:fillColor="#E8DEF8"
-        android:pathData="M12,27h56v56h-56z"/>
+        android:pathData="M0,0h250v110h-250z"/>
+    <!-- Gradient overlay -->
+    <path
+        android:fillColor="#80000000"
+        android:pathData="M0,60h250v50h-250z"/>
     <!-- Song title -->
     <path
-        android:fillColor="#1C1B1F"
-        android:pathData="M78,35h120v12h-120z"/>
+        android:fillColor="#FFFFFF"
+        android:pathData="M12,65h150v14h-150z"/>
     <!-- Artist -->
     <path
-        android:fillColor="#49454F"
-        android:pathData="M78,55h80v10h-80z"/>
-    <!-- Previous button -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M168,50l8,5l-8,5z"/>
-    <!-- Play button -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M188,45m-12,0a12,12 0,1 1,24 0a12,12 0,1 1,-24 0"/>
-    <path
-        android:fillColor="#FFB4AB"
-        android:pathData="M185,40l6,5l-6,5z"/>
-    <!-- Next button -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M208,50l8,5l-8,5z"/>
-    <!-- Like button -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M230,50m-8,0a8,8 0,1 1,16 0a8,8 0,1 1,-16 0"/>
+        android:fillColor="#CCFFFFFF"
+        android:pathData="M12,82h100v10h-100z"/>
     <!-- Progress bar -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M12,105h200v3h-200z"/>
+        android:pathData="M12,105h180v3h-180z"/>
+    <!-- Like icon -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M15,50m-10,0a10,10 0,1 1,20 0a10,10 0,1 1,-20 0"/>
+    <!-- Previous -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M70,68l6,4l-6,4z"/>
+    <!-- Play button -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M115,65m-15,0a15,15 0,1 1,30 0a15,15 0,1 1,-30 0"/>
+    <path
+        android:fillColor="#FFB4AB"
+        android:pathData="M112,60l6,5l-6,5z"/>
+    <!-- Next -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M165,68l6,4l-6,4z"/>
 </vector>

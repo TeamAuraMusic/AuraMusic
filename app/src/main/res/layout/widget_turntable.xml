@@ -2,59 +2,89 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/widget_primary_container"
-    android:padding="8dp">
+    android:background="@color/widget_primary_container">
 
+    <!-- Full cover album art -->
     <ImageView
         android:id="@+id/widget_turntable_album_art"
-        android:layout_width="130dp"
-        android:layout_height="130dp"
-        android:layout_centerHorizontal="true"
-        android:layout_above="@id/widget_turntable_controls"
-        android:layout_marginBottom="8dp"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
         android:contentDescription="@string/widget_turntable_album_art" />
 
+    <!-- Gradient overlay -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/widget_gradient_overlay" />
+
+    <!-- Center circular album art with vinyl effect -->
+    <FrameLayout
+        android:layout_width="160dp"
+        android:layout_height="160dp"
+        android:layout_centerInParent="true">
+
+        <!-- Outer ring -->
+        <ImageView
+            android:id="@+id/widget_turntable_vinyl"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@drawable/widget_vinyl_ring" />
+
+        <!-- Album art in center -->
+        <ImageView
+            android:id="@+id/widget_turntable_album_art_inner"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:layout_gravity="center"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_widget_music_placeholder" />
+
+    </FrameLayout>
+
+    <!-- Bottom controls -->
     <LinearLayout
         android:id="@+id/widget_turntable_controls"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_centerHorizontal="true"
         android:layout_alignParentBottom="true"
         android:orientation="horizontal"
-        android:gravity="center_vertical">
+        android:gravity="center"
+        android:padding="16dp"
+        android:background="#80000000">
 
         <ImageView
             android:id="@+id/widget_turntable_prev_button"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="@drawable/widget_button_bg"
-            android:padding="8dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/widget_button_circle"
+            android:padding="12dp"
             android:src="@drawable/ic_widget_skip_previous"
             android:contentDescription="@string/widget_turntable_prev_button" />
 
         <FrameLayout
             android:id="@+id/widget_turntable_play_container"
-            android:layout_width="52dp"
-            android:layout_height="52dp"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp">
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:layout_marginStart="24dp"
+            android:layout_marginEnd="24dp">
 
             <ImageView
                 android:id="@+id/widget_turntable_play_pause"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="@drawable/widget_play_button_bg"
-                android:padding="12dp"
+                android:background="@drawable/widget_play_button_large"
+                android:padding="16dp"
                 android:src="@drawable/ic_widget_play_secondary"
                 android:contentDescription="@string/widget_turntable_play_pause" />
         </FrameLayout>
 
         <ImageView
             android:id="@+id/widget_turntable_next_button"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="@drawable/widget_button_bg"
-            android:padding="8dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/widget_button_circle"
+            android:padding="12dp"
             android:src="@drawable/ic_widget_skip_next"
             android:contentDescription="@string/widget_turntable_next_button" />
 
