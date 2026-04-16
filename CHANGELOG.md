@@ -1,3 +1,47 @@
+# AuraMusic v2.0.0 (Build 17) Changelog
+
+## Features
+- Added liquid glass customization options (blur radius, corner radius, opacity) in Appearance Settings
+- Added Discord and Telegram links to About screen
+- Added 4-dot shuffle button with animations to speed dial
+- Added playing indicator in center of SpeedDialGridItem
+- Updated README with socials section (Discord, Telegram)
+
+## UI/UX Improvements
+- Improved shuffle button loading indicator size and synchronization with isPlaying
+- Track loaded song ID and stop loading when mediaMetadata matches
+- Removed unnecessary video toast message after successful load
+- Fixed video fit mode persistence across app restorts
+- Reorganized About screen layout with updated sliders
+
+## Video Playback Improvements
+- Improved video loading speed with sequential subtitle fetching
+- Added auto-play on first frame
+- Fixed video song parsing in HomePage to extract musicVideoType
+
+## Lyrics Improvements
+- Fixed Rush lyrics sync by converting duration ms to seconds
+- Fixed user lyrics selection to always respect preferred provider
+- Refetch lyrics if cached from different provider
+- Fixed lyrics provider conflicts and video playback in Speed Dial & Keep Listening
+
+## Bug Fixes
+- Fixed SpeedDialGridItem compile error
+- Fixed missing setValue import for var delegation in HomeScreen
+- Fixed duplicate column error with IF NOT EXISTS and column existence checks
+- Fixed database migrations for seamless upgrades
+- Fixed Discord and Telegram logo URLs in README
+
+## Build
+- Bumped versionCode to 17
+- Version: 2.0.0
+- Updated tinypinyin version to 2.0.1
+
+---
+
+**Full Changelog**: https://github.com/TeamAuraMusic/AuraMusic/compare/v1.0.15...v2.0.0
+
+
 # AuraMusic v1.0.15 (Build 16) Changelog
 
 ## Features

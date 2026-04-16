@@ -1,3 +1,83 @@
+# AuraMusic v2.0.0 (Build 17) Release Notes
+
+## What's New
+- Major release with significant UI/UX improvements and bug fixes
+- Added liquid glass customization options with blur radius, corner radius, and opacity controls
+- Added Discord and Telegram links to About screen and README
+- Improved shuffle button with 4-dot animation
+- Fixed video fit mode persistence and loading speed
+- Fixed lyrics provider preference to always respect user selection
+- Database migrations fixed for seamless upgrades
+
+### Liquid Glass Customization
+- Added blur radius, corner radius, and opacity options in Appearance Settings
+- Users can now customize the liquid glass effect to their preference
+
+### Social Links
+- Added Discord and Telegram links to About screen
+- Updated README with socials section
+
+### Shuffle Button Improvements
+- Added 4-dot shuffle button with animations to speed dial
+- Improved loading indicator size and synchronization with isPlaying
+- Track loaded song ID and stop loading when mediaMetadata matches
+
+### Video Playback Improvements
+- Fixed video fit mode persistence across app restarts
+- Improved video loading speed with sequential subtitle fetching
+- Added auto-play on first frame
+- Removed unnecessary video toast message after successful load
+
+### Lyrics Improvements
+- Fixed Rush lyrics sync by converting duration ms to seconds
+- Fixed user lyrics selection to always respect preferred provider
+- Refetch lyrics if cached from different provider
+- Fixed lyrics provider conflicts and video playback in Speed Dial & Keep Listening
+
+### Database Migrations
+- Fixed SpeedDialItem musicVideoType column with manual migration
+- Converted 31-32 and 32-33 DB migrations to manual
+- Registered DB migrations in Hilt DI module to prevent crash on upgrade
+- Fixed duplicate column error with IF NOT EXISTS and column existence checks
+
+### Build Updates
+- Updated tinypinyin version to 2.0.1
+- Reorganized About screen layout
+- Added SpeedDialGridItem playing indicator in center
+
+### Full Changelog (Commits since last release):
+- [`69a0b4a`](https://github.com/TeamAuraMusic/AuraMusic/commit/69a0b4a) Update SpeedDialGridItem to show playing indicator in center
+- [`2a1244b`](https://github.com/TeamAuraMusic/AuraMusic/commit/2a1244b) Fix SpeedDialGridItem compile error
+- [`582e54c`](https://github.com/TeamAuraMusic/AuraMusic/commit/582e54c) Fix video fit mode persistence, improve video loading speed, update shuffle button
+- [`f788b6c`](https://github.com/TeamAuraMusic/AuraMusic/commit/f788b6c) Optimize subtitle fetching to run sequentially, add auto-play on first frame
+- [`94c6e0f`](https://github.com/TeamAuraMusic/AuraMusic/commit/94c6e0f) Fix: Add missing setValue import for var delegation in HomeScreen
+- [`db4bccc`](https://github.com/TeamAuraMusic/AuraMusic/commit/db4bccc) Add 4-dot shuffle button with animations to speed dial
+- [`3953e46`](https://github.com/TeamAuraMusic/AuraMusic/commit/3953e46) Fix shuffle button: increase dot spacing and loading indicator size, fix loading sync with isPlaying
+- [`a0a32f3`](https://github.com/TeamAuraMusic/AuraMusic/commit/a0a32f3) Fix shuffle button loading: track loaded song ID and stop when mediaMetadata matches
+- [`4bdc7db`](https://github.com/TeamAuraMusic/AuraMusic/commit/4bdc7db) Remove video toast message after video loads successfully
+- [`db37313`](https://github.com/TeamAuraMusic/AuraMusic/commit/db37313) Add Telegram link to README socials section
+- [`2f0fe22`](https://github.com/TeamAuraMusic/AuraMusic/commit/2f0fe22) Add Telegram icon to socials section
+- [`67c81d0`](https://github.com/TeamAuraMusic/AuraMusic/commit/67c81d0) Add liquid glass customization options (blur radius, corner radius, opacity) in appearance settings
+- [`aa59687`](https://github.com/TeamAuraMusic/AuraMusic/commit/aa59687) Add Discord to socials section in README
+- [`1d07170`](https://github.com/TeamAuraMusic/AuraMusic/commit/1d07170) Fix Discord logo URL in README
+- [`87b34b9`](https://github.com/TeamAuraMusic/AuraMusic/commit/87b34b9) Update Discord logo URL to working source
+- [`95a8b7d`](https://github.com/TeamAuraMusic/AuraMusic/commit/95a8b7d) Add Discord and Telegram links to About screen
+- [`db1947a`](https://github.com/TeamAuraMusic/AuraMusic/commit/db1947a) Fix lyrics and video song handling: - Fix Rush lyrics sync by converting duration ms to seconds - Fix user lyrics selection to always respect preferred provider - Fix video song parsing in HomePage to extract musicVideoType
+- [`5d92f98`](https://github.com/TeamAuraMusic/AuraMusic/commit/5d92f98) Fix lyrics provider preference: ensure selected provider is always tried first, and refetch if cached from different provider
+- [`a320768`](https://github.com/TeamAuraMusic/AuraMusic/commit/a320768) fix: resolve lyrics provider conflicts, video playback in Speed Dial & Keep Listening
+- [`d490dd7`](https://github.com/TeamAuraMusic/AuraMusic/commit/d490dd7) fix: replace AutoMigration(32 33) with manual migration for SpeedDialItem musicVideoType column
+- [`6dfcd29`](https://github.com/TeamAuraMusic/AuraMusic/commit/6dfcd29) fix: convert 31-32 and 32-33 DB migrations to manual (no 32.json schema exists)
+- [`3775ce1`](https://github.com/TeamAuraMusic/AuraMusic/commit/3775ce1) fix: register DB migrations in Hilt DI module to prevent crash on upgrade
+- [`68362c0`](https://github.com/TeamAuraMusic/AuraMusic/commit/68362c0) Update tinypinyin version to 2.0.1
+- [`91ab496`](https://github.com/TeamAuraMusic/AuraMusic/commit/91ab496) fix: use AutoMigration for 32->33 instead of manual migration
+- [`30c72e7`](https://github.com/TeamAuraMusic/AuraMusic/commit/30c72e7) fix: add schema 32.json for auto-migration
+- [`6efd681`](https://github.com/TeamAuraMusic/AuraMusic/commit/6efd681) fix: remove MIGRATION_32_33 reference from AppModule
+- [`93d1123`](https://github.com/TeamAuraMusic/AuraMusic/commit/93d1123) fix: use IF NOT EXISTS to avoid duplicate column error
+- [`d62a3ae`](https://github.com/TeamAuraMusic/AuraMusic/commit/d62a3ae) fix: check column existence before adding
+- [`96ed83d`](https://github.com/TeamAuraMusic/AuraMusic/commit/96ed83d) fix: align slider styles in appearance settings and reorganize about screen
+
+---
+
 # AuraMusic v1.0.15 (Build 16) Release Notes
 
 ## What's New
