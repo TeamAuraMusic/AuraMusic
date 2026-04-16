@@ -11,6 +11,7 @@
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
     android:previewImage="@drawable/widget_compact_wide_preview"
+    android:previewLayout="@layout/widget_compact_wide"
     android:description="@string/widget_compact_wide_desc"
     android:targetCellWidth="4"
     android:targetCellHeight="1">

@@ -11,6 +11,7 @@
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
     android:previewImage="@drawable/widget_turntable_preview"
+    android:previewLayout="@layout/widget_turntable"
     android:description="@string/widget_turntable_desc"
     android:targetCellWidth="4"
     android:targetCellHeight="4">
