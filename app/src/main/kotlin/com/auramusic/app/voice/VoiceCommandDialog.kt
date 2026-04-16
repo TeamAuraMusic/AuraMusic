@@ -5,23 +5,19 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collectLatest
+import com.auramusic.app.R
 
 @Composable
 fun VoiceCommandDialog(
@@ -105,7 +101,7 @@ fun VoiceCommandDialog(
                     ) {
                         IconButton(onClick = onDismiss) {
                             Icon(
-                                Icons.Default.Close,
+                                painter = painterResource(R.drawable.close),
                                 contentDescription = "Close",
                                 tint = MaterialTheme.colorScheme.onSurface
                             )
@@ -209,10 +205,7 @@ fun VoiceMicIcon(state: VoiceUiState) {
         contentAlignment = Alignment.Center
     ) {
         Icon(
-            imageVector = when (state) {
-                is VoiceUiState.Processing -> Icons.Default.Search
-                else -> Icons.Default.Mic
-            },
+            painter = painterResource(R.drawable.mic),
             contentDescription = "Voice",
             modifier = Modifier.size(48.dp),
             tint = when (state) {

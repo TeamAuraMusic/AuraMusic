@@ -6,15 +6,11 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -22,11 +18,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import com.auramusic.app.R
 import com.auramusic.app.voice.VoiceCommand
 import com.auramusic.app.voice.VoiceCommandDialog
-import kotlinx.coroutines.flow.collectLatest
 
 @Composable
 fun VoiceCommandButton(
@@ -75,7 +72,7 @@ fun VoiceCommandButton(
             )
         ) {
             Icon(
-                imageVector = Icons.Default.Mic,
+                painter = painterResource(R.drawable.mic),
                 contentDescription = "Voice command",
                 modifier = Modifier.size(24.dp)
             )

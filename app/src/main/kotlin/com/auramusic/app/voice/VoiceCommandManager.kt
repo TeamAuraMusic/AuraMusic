@@ -36,7 +36,7 @@ class VoiceCommandManager @Inject constructor(
 
         onCommandRecognized = onCommand
         _recognizedText.value = ""
-        _voiceState.value = VoiceState.Listening
+        _voiceState.value = VoiceState.Listening(0f)
 
         speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context).apply {
             setRecognitionListener(createRecognitionListener())
@@ -67,7 +67,7 @@ class VoiceCommandManager @Inject constructor(
 
     private fun createRecognitionListener() = object : RecognitionListener {
         override fun onReadyForSpeech(params: Bundle?) {
-            _voiceState.value = VoiceState.Listening
+            _voiceState.value = VoiceState.Listening(0f)
         }
 
         override fun onBeginningOfSpeech() {}
