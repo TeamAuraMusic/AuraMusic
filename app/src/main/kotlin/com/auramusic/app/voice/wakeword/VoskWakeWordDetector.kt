@@ -4,6 +4,7 @@ import android.content.Context
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
 import org.vosk.Model
 import org.vosk.Recognizer
@@ -21,7 +22,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class VoskWakeWordDetector @Inject constructor(
-    private val context: Context,
+    @ApplicationContext private val context: Context,
 ) : WakeWordDetector {
 
     private var audioRecord: AudioRecord? = null
