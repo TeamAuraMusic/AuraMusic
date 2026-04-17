@@ -68,8 +68,9 @@ class VoiceCommandManager @Inject constructor(
                     putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5)
                     when (mode) {
                         RecognitionMode.WAKE_WORD -> {
-                            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 800L)
-                            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 600L)
+                            // Longer wake word window: keep listening for up to 10 seconds of silence
+                            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 10000L)
+                            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 7000L)
                         }
                         RecognitionMode.COMMAND -> {
                             putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 2000L)

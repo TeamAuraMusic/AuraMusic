@@ -329,21 +329,15 @@ class VoiceCommandViewModel @Inject constructor(
 
     /**
      * After showing feedback/error, dismiss the overlay and go back to idle.
-     * Does NOT auto-restart wake word to avoid mic looping.
-     * Wake word restarts on next scheduleWakeWordRestart cycle or manual trigger.
+     * Wake word listening will NOT auto-restart here. It only restarts
+     * on app foreground or when user manually activates the mic button.
      */
     private fun scheduleOverlayDismiss() {
         feedbackJob?.cancel()
         feedbackJob = viewModelScope.launch {
             delay(1500)
             _uiState.update { VoiceUiState() }
-            // Only restart wake word if it was previously active and not too many errors
-            if (wakeWordEnabled && voiceEnabled && isAppInForeground && hasMicPermission
-                && consecutiveErrors < maxConsecutiveErrors
-            ) {
-                delay(500)
-                maybeStartWakeWordListening()
-            }
+            // No automatic wake word restart — prevents infinite mic looping
         }
     }
 
