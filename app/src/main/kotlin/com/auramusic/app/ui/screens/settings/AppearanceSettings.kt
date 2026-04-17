@@ -68,6 +68,8 @@ import com.auramusic.app.constants.DynamicThemeKey
 import com.auramusic.app.constants.EnableDynamicIconKey
 import com.auramusic.app.constants.EnableHighRefreshRateKey
 import com.auramusic.app.constants.EnableVoiceCommandsKey
+import com.auramusic.app.constants.EnableVoiceWakeWordKey
+import com.auramusic.app.constants.VoiceWakeWordKey
 import com.auramusic.app.constants.GridItemSize
 import com.auramusic.app.constants.GridItemsSizeKey
 import com.auramusic.app.constants.HidePlayerThumbnailKey
@@ -222,6 +224,8 @@ fun AppearanceSettings(
     val (lyricsLineSpacing, onLyricsLineSpacingChange) = rememberPreference(LyricsLineSpacingKey, defaultValue = 1.3f)
     val (lyricsGlowEffect, onLyricsGlowEffectChange) = rememberPreference(LyricsGlowEffectKey, defaultValue = false)
     val (enableVoiceCommands, onEnableVoiceCommandsChange) = rememberPreference(EnableVoiceCommandsKey, defaultValue = true)
+    val (enableVoiceWakeWord, onEnableVoiceWakeWordChange) = rememberPreference(EnableVoiceWakeWordKey, defaultValue = false)
+    val (voiceWakeWord, onVoiceWakeWordChange) = rememberPreference(VoiceWakeWordKey, defaultValue = "Aura")
 
     val (sliderStyle, onSliderStyleChange) = rememberEnumPreference(
         SliderStyleKey,
@@ -337,6 +341,10 @@ fun AppearanceSettings(
     }
 
     var showLyricsLineSpacingDialog by rememberSaveable {
+        mutableStateOf(false)
+    }
+
+    var showWakeWordDialog by rememberSaveable {
         mutableStateOf(false)
     }
 
@@ -506,6 +514,71 @@ fun AppearanceSettings(
                     valueRange = 1.0f..2.0f,
                     steps = 19,
                     modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+    }
+
+    if (showWakeWordDialog) {
+        var tempWakeWord by remember { mutableStateOf(voiceWakeWord) }
+        
+        DefaultDialog(
+            onDismiss = { 
+                tempWakeWord = voiceWakeWord
+                showWakeWordDialog = false 
+            },
+            buttons = {
+                TextButton(
+                    onClick = { 
+                        tempWakeWord = "Aura"
+                    }
+                ) {
+                    Text(stringResource(R.string.reset))
+                }
+                
+                Spacer(modifier = Modifier.weight(1f))
+                
+                TextButton(
+                    onClick = { 
+                        tempWakeWord = voiceWakeWord
+                        showWakeWordDialog = false 
+                    }
+                ) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+                TextButton(
+                    onClick = { 
+                        if (tempWakeWord.isNotBlank()) {
+                            onVoiceWakeWordChange(tempWakeWord.trim())
+                        }
+                        showWakeWordDialog = false 
+                    }
+                ) {
+                    Text(stringResource(android.R.string.ok))
+                }
+            }
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.voice_wake_word),
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                
+                Text(
+                    text = "Current: $tempWakeWord",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                
+                Text(
+                    text = "Say \"Hey Aura\", \"Hello Aura\", \"Aura\", or your custom wake word to activate",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
                 )
             }
         }
@@ -1485,6 +1558,33 @@ fun AppearanceSettings(
                         )
                     },
                     onClick = { onEnableVoiceCommandsChange(!enableVoiceCommands) }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.mic),
+                    title = { Text(stringResource(R.string.enable_voice_wake_word)) },
+                    description = { Text(stringResource(R.string.enable_voice_wake_word_desc)) },
+                    trailingContent = {
+                        Switch(
+                            checked = enableVoiceWakeWord,
+                            onCheckedChange = onEnableVoiceWakeWordChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (enableVoiceWakeWord) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = { onEnableVoiceWakeWordChange(!enableVoiceWakeWord) }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.mic),
+                    title = { Text(stringResource(R.string.voice_wake_word)) },
+                    description = { Text(voiceWakeWord) },
+                    onClick = { showWakeWordDialog = true }
                 )
             )
         )

@@ -3,6 +3,7 @@ package com.auramusic.app.ui.player
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.media.AudioManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
@@ -111,11 +112,30 @@ fun VoiceCommandButton(
 }
 
 private fun handlePlaybackCommand(command: VoiceCommand, playerConnection: PlayerConnection) {
+    val player = playerConnection.player
+    val context = playerConnection.service as? Context ?: return
+    
     kotlinx.coroutines.CoroutineScope(Dispatchers.Main).launch {
         when (command) {
-            is VoiceCommand.Play -> playerConnection.play()
-            is VoiceCommand.Pause -> playerConnection.pause()
-            is VoiceCommand.TogglePlayPause -> playerConnection.togglePlayPause()
+            is VoiceCommand.Play -> {
+                if (player.playbackState == ExoPlayer.STATE_IDLE) {
+                    player.prepare()
+                }
+                player.playWhenReady = true
+            }
+            is VoiceCommand.Pause -> {
+                player.playWhenReady = false
+            }
+            is VoiceCommand.TogglePlayPause -> {
+                if (player.isPlaying) {
+                    player.playWhenReady = false
+                } else {
+                    if (player.playbackState == ExoPlayer.STATE_IDLE) {
+                        player.prepare()
+                    }
+                    player.playWhenReady = true
+                }
+            }
             is VoiceCommand.Next -> playerConnection.seekToNext()
             is VoiceCommand.Previous -> playerConnection.seekToPrevious()
             is VoiceCommand.Shuffle -> {
@@ -156,12 +176,22 @@ private fun handlePlaybackCommand(command: VoiceCommand, playerConnection: Playe
                 player.seekTo(newPosition)
             }
             is VoiceCommand.VolumeUp -> {
-                val player = playerConnection.player
-                player.volume = (player.volume + 0.1f).coerceAtMost(1f)
+                try {
+                    val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                    audioManager.adjustVolume(AudioManager.ADJUST_RAISE, 0)
+                } catch (e: Exception) {
+                    val player = playerConnection.player
+                    player.volume = (player.volume + 0.1f).coerceAtMost(1f)
+                }
             }
             is VoiceCommand.VolumeDown -> {
-                val player = playerConnection.player
-                player.volume = (player.volume - 0.1f).coerceAtLeast(0f)
+                try {
+                    val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                    audioManager.adjustVolume(AudioManager.ADJUST_LOWER, 0)
+                } catch (e: Exception) {
+                    val player = playerConnection.player
+                    player.volume = (player.volume - 0.1f).coerceAtLeast(0f)
+                }
             }
             is VoiceCommand.Mute -> playerConnection.setMuted(true)
             is VoiceCommand.Unmute -> playerConnection.setMuted(false)
@@ -176,6 +206,16 @@ private fun handlePlaybackCommand(command: VoiceCommand, playerConnection: Playe
                 player.setPlaybackSpeed(newSpeed)
             }
             is VoiceCommand.ResetSpeed -> {
+                playerConnection.player.setPlaybackSpeed(1.0f)
+            }
+            is VoiceCommand.ToggleLike -> playerConnection.toggleLike()
+            is VoiceCommand.ClearQueue -> {
+                playerConnection.player.clearMediaItems()
+            }
+            else -> {}
+        }
+    }
+}
                 playerConnection.player.setPlaybackSpeed(1.0f)
             }
             is VoiceCommand.ToggleLike -> playerConnection.toggleLike()

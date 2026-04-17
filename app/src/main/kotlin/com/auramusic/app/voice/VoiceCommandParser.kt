@@ -2,12 +2,34 @@ package com.auramusic.app.voice
 
 object VoiceCommandParser {
 
-    fun parseCommand(text: String): VoiceCommand {
+    private val defaultWakeWords = listOf("hey aura", "hello aura", "aura", "ok aura", "hey aura music", "aura play")
+
+    fun parseCommand(text: String, wakeWord: String = "aura"): VoiceCommand {
         val lowerText = text.lowercase().trim()
         
+        // Check for wake word and extract command after it
+        var commandText = lowerText
+        for (wake in defaultWakeWords) {
+            if (lowerText.startsWith(wake)) {
+                commandText = lowerText.removePrefix(wake).trim()
+                break
+            }
+        }
+        
+        // Also check custom wake word
+        val customWake = wakeWord.lowercase()
+        if (customWake.isNotEmpty() && lowerText.startsWith(customWake)) {
+            commandText = lowerText.removePrefix(customWake).trim()
+        }
+        
+        // If nothing left after wake word, return Unknown
+        if (commandText.isEmpty()) {
+            return VoiceCommand.WakeWordDetected
+        }
+        
         // Search commands
-        if (lowerText.contains("search") || lowerText.contains("find") || lowerText.contains("play")) {
-            val query = lowerText
+        if (commandText.contains("search") || commandText.contains("find") || commandText.contains("play")) {
+            val query = commandText
                 .replace("search for", "")
                 .replace("search", "")
                 .replace("find", "")
@@ -21,7 +43,7 @@ object VoiceCommandParser {
         }
 
         // Seek forward
-        val forwardMatch = Regex("skip ([0-9]+) (second|seconds|minute|minutes)|forward ([0-9]+) (second|seconds|minute|minutes)").find(lowerText)
+        val forwardMatch = Regex("skip ([0-9]+) (second|seconds|minute|minutes)|forward ([0-9]+) (second|seconds|minute|minutes)").find(commandText)
         if (forwardMatch != null) {
             val num = forwardMatch.groupValues[1].ifEmpty { forwardMatch.groupValues[3] }.toIntOrNull() ?: 30
             val unit = if (forwardMatch.groupValues[2].contains("minute") || forwardMatch.groupValues[4].contains("minute")) 60 else 1
@@ -29,7 +51,7 @@ object VoiceCommandParser {
         }
         
         // Seek backward
-        val backwardMatch = Regex("go back|rewind|back ([0-9]+) (second|seconds|minute|minutes)|previous ([0-9]+) (second|seconds|minute|minutes)").find(lowerText)
+        val backwardMatch = Regex("go back|rewind|back ([0-9]+) (second|seconds|minute|minutes)|previous ([0-9]+) (second|seconds|minute|minutes)").find(commandText)
         if (backwardMatch != null) {
             val num = backwardMatch.groupValues[2].ifEmpty { backwardMatch.groupValues[3] }.toIntOrNull() ?: 10
             val unit = if (backwardMatch.groupValues[3].contains("minute")) 60 else 1
@@ -39,152 +61,152 @@ object VoiceCommandParser {
         // Playback commands
         return when {
             // Play commands
-            lowerText.contains("play") || lowerText.contains("start") || lowerText.contains("resume") -> {
+            commandText.contains("play") || commandText.contains("start") || commandText.contains("resume") -> {
                 VoiceCommand.Play
             }
             
             // Pause commands
-            lowerText.contains("pause") || lowerText.contains("stop") -> {
+            commandText.contains("pause") || commandText.contains("stop") -> {
                 VoiceCommand.Pause
             }
             
             // Toggle play/pause
-            lowerText.contains("toggle") && lowerText.contains("play") -> {
+            commandText.contains("toggle") && commandText.contains("play") -> {
                 VoiceCommand.TogglePlayPause
             }
             
             // Next commands
-            lowerText.contains("next") || lowerText.contains("skip") || lowerText.contains("forward") -> {
+            commandText.contains("next") || commandText.contains("skip") || commandText.contains("forward") -> {
                 VoiceCommand.Next
             }
             
             // Previous commands  
-            lowerText.contains("previous") || lowerText.contains("back") || lowerText.contains("last") -> {
+            commandText.contains("previous") || commandText.contains("back") || commandText.contains("last") -> {
                 VoiceCommand.Previous
             }
             
             // Shuffle commands
-            lowerText.contains("shuffle on") -> {
+            commandText.contains("shuffle on") -> {
                 VoiceCommand.ShuffleOn
             }
-            lowerText.contains("shuffle off") -> {
+            commandText.contains("shuffle off") -> {
                 VoiceCommand.ShuffleOff
             }
-            lowerText.contains("shuffle") -> {
+            commandText.contains("shuffle") -> {
                 VoiceCommand.Shuffle
             }
             
             // Repeat commands
-            lowerText.contains("repeat one") || lowerText.contains("loop one") -> {
+            commandText.contains("repeat one") || commandText.contains("loop one") -> {
                 VoiceCommand.RepeatOne
             }
-            lowerText.contains("repeat all") || lowerText.contains("loop all") -> {
+            commandText.contains("repeat all") || commandText.contains("loop all") -> {
                 VoiceCommand.RepeatAll
             }
-            lowerText.contains("repeat off") || lowerText.contains("loop off") -> {
+            commandText.contains("repeat off") || commandText.contains("loop off") -> {
                 VoiceCommand.RepeatOff
             }
-            lowerText.contains("repeat") || lowerText.contains("loop") -> {
+            commandText.contains("repeat") || commandText.contains("loop") -> {
                 VoiceCommand.Repeat
             }
             
             // Volume commands
-            lowerText.contains("volume up") || lowerText.contains("louder") || lowerText.contains("increase volume") || lowerText.contains("volume higher") -> {
+            commandText.contains("volume up") || commandText.contains("louder") || commandText.contains("increase volume") || commandText.contains("volume higher") -> {
                 VoiceCommand.VolumeUp
             }
-            lowerText.contains("volume down") || lowerText.contains("quieter") || lowerText.contains("decrease volume") || lowerText.contains("volume lower") -> {
+            commandText.contains("volume down") || commandText.contains("quieter") || commandText.contains("decrease volume") || commandText.contains("volume lower") -> {
                 VoiceCommand.VolumeDown
             }
-            lowerText.contains("mute") || lowerText.contains("silent") -> {
+            commandText.contains("mute") || commandText.contains("silent") -> {
                 VoiceCommand.Mute
             }
-            lowerText.contains("unmute") -> {
+            commandText.contains("unmute") -> {
                 VoiceCommand.Unmute
             }
             
             // Speed commands
-            lowerText.contains("speed up") || lowerText.contains("faster") -> {
+            commandText.contains("speed up") || commandText.contains("faster") -> {
                 VoiceCommand.SpeedUp
             }
-            lowerText.contains("slow down") || lowerText.contains("slower") -> {
+            commandText.contains("slow down") || commandText.contains("slower") -> {
                 VoiceCommand.SlowDown
             }
-            lowerText.contains("normal speed") || lowerText.contains("reset speed") -> {
+            commandText.contains("normal speed") || commandText.contains("reset speed") -> {
                 VoiceCommand.ResetSpeed
             }
             
             // Settings commands
-            lowerText.contains("dark mode on") || lowerText.contains("dark theme on") || lowerText.contains("enable dark mode") -> {
+            commandText.contains("dark mode on") || commandText.contains("dark theme on") || commandText.contains("enable dark mode") -> {
                 VoiceCommand.SetDarkMode(true)
             }
-            lowerText.contains("dark mode off") || lowerText.contains("dark theme off") || lowerText.contains("disable dark mode") -> {
+            commandText.contains("dark mode off") || commandText.contains("dark theme off") || commandText.contains("disable dark mode") -> {
                 VoiceCommand.SetDarkMode(false)
             }
-            lowerText.contains("dark mode") || lowerText.contains("dark theme") -> {
+            commandText.contains("dark mode") || commandText.contains("dark theme") -> {
                 VoiceCommand.SetDarkMode(true)
             }
-            lowerText.contains("light mode on") || lowerText.contains("light theme on") || lowerText.contains("enable light mode") -> {
+            commandText.contains("light mode on") || commandText.contains("light theme on") || commandText.contains("enable light mode") -> {
                 VoiceCommand.SetDarkMode(false)
             }
-            lowerText.contains("light mode off") || lowerText.contains("light theme off") -> {
+            commandText.contains("light mode off") || commandText.contains("light theme off") -> {
                 VoiceCommand.SetDarkMode(true)
             }
-            lowerText.contains("light mode") || lowerText.contains("light theme") -> {
+            commandText.contains("light mode") || commandText.contains("light theme") -> {
                 VoiceCommand.SetDarkMode(false)
             }
-            lowerText.contains("toggle theme") || lowerText.contains("switch theme") -> {
+            commandText.contains("toggle theme") || commandText.contains("switch theme") -> {
                 VoiceCommand.ToggleTheme
             }
             
             // Lyrics commands
-            lowerText.contains("show lyrics") || lowerText.contains("lyrics on") || lowerText.contains("enable lyrics") -> {
+            commandText.contains("show lyrics") || commandText.contains("lyrics on") || commandText.contains("enable lyrics") -> {
                 VoiceCommand.ShowLyrics
             }
-            lowerText.contains("hide lyrics") || lowerText.contains("lyrics off") || lowerText.contains("disable lyrics") -> {
+            commandText.contains("hide lyrics") || commandText.contains("lyrics off") || commandText.contains("disable lyrics") -> {
                 VoiceCommand.HideLyrics
             }
-            lowerText.contains("toggle lyrics") -> {
+            commandText.contains("toggle lyrics") -> {
                 VoiceCommand.ToggleLyrics
             }
             
             // Video commands
-            lowerText.contains("video on") || lowerText.contains("show video") || lowerText.contains("enable video") -> {
+            commandText.contains("video on") || commandText.contains("show video") || commandText.contains("enable video") -> {
                 VoiceCommand.EnableVideo
             }
-            lowerText.contains("video off") || lowerText.contains("hide video") || lowerText.contains("disable video") -> {
+            commandText.contains("video off") || commandText.contains("hide video") || commandText.contains("disable video") -> {
                 VoiceCommand.DisableVideo
             }
-            lowerText.contains("toggle video") -> {
+            commandText.contains("toggle video") -> {
                 VoiceCommand.ToggleVideo
             }
             
             // Like commands
-            lowerText.contains("like") || lowerText.contains("favorite") || lowerText.contains("love") -> {
+            commandText.contains("like") || commandText.contains("favorite") || commandText.contains("love") -> {
                 VoiceCommand.ToggleLike
             }
             
             // Queue commands
-            lowerText.contains("show queue") || lowerText.contains("view queue") || lowerText.contains("open queue") -> {
+            commandText.contains("show queue") || commandText.contains("view queue") || commandText.contains("open queue") -> {
                 VoiceCommand.ShowQueue
             }
-            lowerText.contains("clear queue") -> {
+            commandText.contains("clear queue") -> {
                 VoiceCommand.ClearQueue
             }
-            lowerText.contains("add to queue") || lowerText.contains("queue this") -> {
+            commandText.contains("add to queue") || commandText.contains("queue this") -> {
                 VoiceCommand.AddToQueue
             }
             
             // Open commands
-            lowerText.contains("go home") || lowerText.contains("open home") -> {
+            commandText.contains("go home") || commandText.contains("open home") -> {
                 VoiceCommand.OpenHome
             }
-            lowerText.contains("go library") || lowerText.contains("open library") -> {
+            commandText.contains("go library") || commandText.contains("open library") -> {
                 VoiceCommand.OpenLibrary
             }
-            lowerText.contains("go search") || lowerText.contains("open search") -> {
+            commandText.contains("go search") || commandText.contains("open search") -> {
                 VoiceCommand.OpenSearch
             }
-            lowerText.contains("go settings") || lowerText.contains("open settings") -> {
+            commandText.contains("go settings") || commandText.contains("open settings") -> {
                 VoiceCommand.OpenSettings
             }
             
@@ -252,6 +274,9 @@ sealed class VoiceCommand {
     data object OpenLibrary : VoiceCommand()
     data object OpenSearch : VoiceCommand()
     data object OpenSettings : VoiceCommand()
+    
+    // Wake word
+    data object WakeWordDetected : VoiceCommand()
     
     // Unknown
     data class Unknown(val text: String) : VoiceCommand()

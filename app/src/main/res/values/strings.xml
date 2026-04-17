@@ -458,6 +458,10 @@
     <string name="voice_commands">Voice Commands (Experimental)</string>
     <string name="enable_voice_commands">Enable voice commands</string>
     <string name="enable_voice_commands_desc">Show voice command button in player. Experimental feature.</string>
+    <string name="enable_voice_wake_word">Voice wake word</string>
+    <string name="enable_voice_wake_word_desc">Activate voice assistant with wake words like \"Hey Aura\"</string>
+    <string name="voice_wake_word">Custom wake word</string>
+    <string name="voice_wake_word_desc">Set your custom wake word (default: Aura)</string>
     <string name="font">Font</string>
     <string name="about">About</string>
     <string name="general">General</string>

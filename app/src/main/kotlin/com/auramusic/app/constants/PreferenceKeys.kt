@@ -39,6 +39,8 @@ val PauseOnMute = booleanPreferencesKey("pauseOnMute")
 val KeepScreenOn = booleanPreferencesKey("keepScreenOn")
 val DeveloperModeKey = booleanPreferencesKey("developerMode")
 val EnableVoiceCommandsKey = booleanPreferencesKey("enableVoiceCommands")
+val EnableVoiceWakeWordKey = booleanPreferencesKey("enableVoiceWakeWord")
+val VoiceWakeWordKey = stringPreferencesKey("voiceWakeWord")
 
 enum class SliderStyle {
     DEFAULT,
