@@ -238,7 +238,7 @@ object VoiceCommandActionExecutor {
                     player.getMediaItemAt(i)?.let { mediaItems.add(it) }
                 }
                 if (mediaItems.size <= 1) {
-                    return@withContext "The queue is empty or has only one song"
+                    return "The queue is empty or has only one song"
                 }
                 var downloadCount = 0
                 val skippedList = mutableListOf<String>()
@@ -274,13 +274,13 @@ object VoiceCommandActionExecutor {
                 val service = conn.service
                 val mediaMetadata = service.currentMediaMetadata.value
                 if (mediaMetadata?.album == null) {
-                    return@withContext "Current song has no album information"
+                    return "Current song has no album information"
                 }
                 val albumId = mediaMetadata.album.id
                 val albumSongsFlow = service.database.albumSongs(albumId)
                 val albumSongs = albumSongsFlow.first()
                 if (albumSongs.isEmpty()) {
-                    return@withContext "No songs found in album"
+                    return "No songs found in album"
                 }
                 var downloadCount = 0
                 albumSongs.forEach { song ->
