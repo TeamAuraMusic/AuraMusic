@@ -1,22 +1,19 @@
 package com.auramusic.app.voice
 
 import android.content.Context
-import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
-import androidx.datastore.preferences.preferencesDataStore
+import com.auramusic.app.utils.dataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
-val Context.settingsDataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
-
 @Singleton
 class VoiceCommandHandler @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
-    private val dataStore = context.settingsDataStore
+    private val dataStore = context.dataStore
 
     companion object {
         // Player settings keys

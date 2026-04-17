@@ -31,7 +31,7 @@ import com.auramusic.app.R
 import com.auramusic.app.playback.PlayerConnection
 import com.auramusic.app.voice.VoiceCommand
 import com.auramusic.app.voice.VoiceCommandDialog
-import com.auramusic.app.voice.settingsDataStore
+import com.auramusic.app.utils.dataStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -191,7 +191,7 @@ private fun handleSettingsCommand(command: VoiceCommand, playerConnection: Playe
     val context = playerConnection.service as? Context ?: return
     
     kotlinx.coroutines.CoroutineScope(Dispatchers.Main).launch {
-        val dataStore = context.settingsDataStore
+        val dataStore = context.dataStore
         when (command) {
             is VoiceCommand.SetDarkMode -> {
                 val darkModeKey = stringPreferencesKey("darkMode")
