@@ -127,29 +127,64 @@ class VoskWakeWordDetector @Inject constructor(
     private suspend fun startAudioRecording() {
         val buffer = ShortArray(BUFFER_SIZE)
 
-        audioRecord = AudioRecord(
-            MediaRecorder.AudioSource.VOICE_RECOGNITION,
-            SAMPLE_RATE,
-            AudioFormat.CHANNEL_IN_MONO,
-            AudioFormat.ENCODING_PCM_16BIT,
-            BUFFER_SIZE * 2
-        )
+        try {
+            audioRecord = AudioRecord(
+                MediaRecorder.AudioSource.VOICE_RECOGNITION,
+                SAMPLE_RATE,
+                AudioFormat.CHANNEL_IN_MONO,
+                AudioFormat.ENCODING_PCM_16BIT,
+                BUFFER_SIZE * 2
+            )
 
-        audioRecord?.startRecording()
+            if (audioRecord?.state != AudioRecord.STATE_INITIALIZED) {
+                android.util.Log.e("VoskWakeWordDetector", "AudioRecord not initialized. State: ${audioRecord?.state}")
+                isRunning.set(false)
+                return
+            }
 
-        while (isRunning.get()) {
-            val read = audioRecord?.read(buffer, 0, BUFFER_SIZE) ?: -1
-            if (read > 0) {
-                try {
-                    // VOSK accepts short[] buffer directly with number of samples
-                    val isFinal = recognizer?.acceptWaveForm(buffer, read)
+            audioRecord?.startRecording()
+            android.util.Log.d("VoskWakeWordDetector", "Audio recording started")
 
-                    // Check partial result (real-time)
-                    val partialJson = recognizer?.partialResult ?: ""
-                    if (partialJson.isNotEmpty()) {
-                        // Debug: log partial results
-                        android.util.Log.d("VoskWakeWordDetector", "Partial: $partialJson")
+            while (isRunning.get()) {
+                val read = audioRecord?.read(buffer, 0, BUFFER_SIZE) ?: -1
+                if (read > 0) {
+                    try {
+                        // VOSK accepts short[] buffer directly with number of samples
+                        val isFinal = recognizer?.acceptWaveForm(buffer, read)
+
+                        // Check partial result (real-time)
+                        val partialJson = recognizer?.partialResult ?: ""
+                        if (partialJson.isNotEmpty()) {
+                            android.util.Log.d("VoskWakeWordDetector", "Partial: $partialJson")
+                        }
+                        if (WAKE_WORD in partialJson.lowercase()) {
+                            android.util.Log.d("VoskWakeWordDetector", "WAKE WORD DETECTED in partial!")
+                            triggerWakeWord()
+                            continue
+                        }
+
+                        // Check final result if utterance ended
+                        if (isFinal == true) {
+                            val finalJson = recognizer?.result ?: ""
+                            if (WAKE_WORD in finalJson.lowercase()) {
+                                android.util.Log.d("VoskWakeWordDetector", "WAKE WORD DETECTED in final!")
+                                triggerWakeWord()
+                                continue
+                            }
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("VoskWakeWordDetector", "Error processing audio", e)
                     }
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("VoskWakeWordDetector", "Audio recording failed", e)
+        } finally {
+            audioRecord?.stop()
+            audioRecord?.release()
+            audioRecord = null
+        }
+    }
                     if (WAKE_WORD in partialJson.lowercase()) {
                         android.util.Log.d("VoskWakeWordDetector", "WAKE WORD DETECTED!")
                         triggerWakeWord()
