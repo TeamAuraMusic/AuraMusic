@@ -51,7 +51,7 @@ class VoskWakeWordDetector @Inject constructor(
                 // Download model if not present
                 val modelPath = ensureModel()
                 model = Model(modelPath)
-                recognizer = Recognizer(model, SAMPLE_RATE)
+                recognizer = Recognizer(model, SAMPLE_RATE.toFloat())
 
                 // Start audio loop
                 startAudioRecording()

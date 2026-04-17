@@ -11,10 +11,6 @@ import com.auramusic.app.MainActivity
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
-/**
- * Foreground service for always-on wake word detection.
- * Uses VOSK to listen for "Aura" keyword in the background.
- */
 @AndroidEntryPoint
 class WakeWordService : Service() {
 
