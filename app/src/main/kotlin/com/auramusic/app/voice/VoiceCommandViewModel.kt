@@ -9,6 +9,7 @@ import com.auramusic.app.constants.VoiceWakeWordKey
 import com.auramusic.app.playback.PlayerConnection
 import com.auramusic.app.utils.dataStore
 import com.auramusic.app.voice.wakeword.VoskWakeWordDetector
+import com.auramusic.app.voice.wakeword.WakeWordService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job

@@ -16,13 +16,9 @@ import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * VOSK-based wake word detector.
- * Continuously listens and triggers when "aura" is detected.
- */
 @Singleton
 class VoskWakeWordDetector @Inject constructor(
-    @ApplicationContext val context: Context,
+    @ApplicationContext private val context: Context,
 ) : WakeWordDetector {
 
     private var audioRecord: AudioRecord? = null
@@ -49,17 +45,14 @@ class VoskWakeWordDetector @Inject constructor(
 
         detectionJob = CoroutineScope(Dispatchers.IO).launch {
             try {
-                // Download model if not present
                 val modelPath = ensureModel()
-                android.util.Log.d("VoskWakeWordDetector", "Loading VOSK model from: $modelPath")
+                android.util.Log.d("VoskWakeWordDetector", "Loading model from: $modelPath")
                 model = Model(modelPath)
                 recognizer = Recognizer(model, SAMPLE_RATE.toFloat())
-                android.util.Log.d("VoskWakeWordDetector", "VOSK model loaded, starting audio")
-
-                // Start audio loop
+                android.util.Log.d("VoskWakeWordDetector", "Model loaded, starting audio")
                 startAudioRecording()
             } catch (e: Exception) {
-                android.util.Log.e("VoskWakeWordDetector", "Failed to start detector", e)
+                android.util.Log.e("VoskWakeWordDetector", "Failed to start", e)
                 isRunning.set(false)
             }
         }
@@ -118,7 +111,7 @@ class VoskWakeWordDetector @Inject constructor(
             model?.close()
             model = null
         } catch (e: Exception) {
-            e.printStackTrace()
+            android.util.Log.e("VoskWakeWordDetector", "Error stopping", e)
         }
     }
 
@@ -137,43 +130,40 @@ class VoskWakeWordDetector @Inject constructor(
             )
 
             if (audioRecord?.state != AudioRecord.STATE_INITIALIZED) {
-                android.util.Log.e("VoskWakeWordDetector", "AudioRecord not initialized. State: ${audioRecord?.state}")
+                android.util.Log.e("VoskWakeWordDetector", "AudioRecord not initialized")
                 isRunning.set(false)
                 return
             }
 
             audioRecord?.startRecording()
-            android.util.Log.d("VoskWakeWordDetector", "Audio recording started")
+            android.util.Log.d("VoskWakeWordDetector", "Recording started")
 
             while (isRunning.get()) {
                 val read = audioRecord?.read(buffer, 0, BUFFER_SIZE) ?: -1
                 if (read > 0) {
                     try {
-                        // VOSK accepts short[] buffer directly with number of samples
                         val isFinal = recognizer?.acceptWaveForm(buffer, read)
 
-                        // Check partial result (real-time)
                         val partialJson = recognizer?.partialResult ?: ""
                         if (partialJson.isNotEmpty()) {
                             android.util.Log.d("VoskWakeWordDetector", "Partial: $partialJson")
                         }
                         if (WAKE_WORD in partialJson.lowercase()) {
-                            android.util.Log.d("VoskWakeWordDetector", "WAKE WORD DETECTED in partial!")
+                            android.util.Log.d("VoskWakeWordDetector", "DETECTED in partial")
                             triggerWakeWord()
                             continue
                         }
 
-                        // Check final result if utterance ended
                         if (isFinal == true) {
                             val finalJson = recognizer?.result ?: ""
                             if (WAKE_WORD in finalJson.lowercase()) {
-                                android.util.Log.d("VoskWakeWordDetector", "WAKE WORD DETECTED in final!")
+                                android.util.Log.d("VoskWakeWordDetector", "DETECTED in final")
                                 triggerWakeWord()
                                 continue
                             }
                         }
                     } catch (e: Exception) {
-                        android.util.Log.e("VoskWakeWordDetector", "Error processing audio", e)
+                        android.util.Log.e("VoskWakeWordDetector", "Processing error", e)
                     }
                 }
             }
@@ -185,32 +175,11 @@ class VoskWakeWordDetector @Inject constructor(
             audioRecord = null
         }
     }
-                    if (WAKE_WORD in partialJson.lowercase()) {
-                        android.util.Log.d("VoskWakeWordDetector", "WAKE WORD DETECTED!")
-                        triggerWakeWord()
-                        continue
-                    }
-
-                    // Check final result if utterance ended
-                    if (isFinal == true) {
-                        val finalJson = recognizer?.result ?: ""
-                        if (WAKE_WORD in finalJson.lowercase()) {
-                            triggerWakeWord()
-                            continue
-                        }
-                    }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            }
-        }
-    }
 
     private suspend fun triggerWakeWord() {
         withContext(Dispatchers.Main) {
             wakeWordCallback?.invoke()
         }
-        // Cooldown to avoid rapid re-trigger
         delay(1500)
         recognizer?.reset()
     }
