@@ -33,12 +33,9 @@ android {
         // LastFM API keys from GitHub Secrets
         val lastFmKey = localProperties.getProperty("LASTFM_API_KEY") ?: System.getenv("LASTFM_API_KEY") ?: ""
         val lastFmSecret = localProperties.getProperty("LASTFM_SECRET") ?: System.getenv("LASTFM_SECRET") ?: ""
-        // Picovoice AccessKey for Porcupine
-        val picovoiceKey = localProperties.getProperty("PICO_VOICE_ACCESS_KEY") ?: System.getenv("PICO_VOICE_ACCESS_KEY") ?: ""
 
         buildConfigField("String", "LASTFM_API_KEY", "\"$lastFmKey\"")
         buildConfigField("String", "LASTFM_SECRET", "\"$lastFmSecret\"")
-        buildConfigField("String", "PICO_VOICE_ACCESS_KEY", "\"$picovoiceKey\"")
         
         // NDK configuration for vibra_fp library
         ndk {
