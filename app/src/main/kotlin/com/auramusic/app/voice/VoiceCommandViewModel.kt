@@ -46,6 +46,7 @@ class VoiceCommandViewModel @Inject constructor(
     private var feedbackJob: Job? = null
     private var consecutiveErrors = 0
     private val maxConsecutiveErrors = 5
+    private var isSessionActive = false // guards against rapid manual clicks
 
     init {
         observePreferences()
@@ -86,10 +87,11 @@ class VoiceCommandViewModel @Inject constructor(
     }
 
     fun startManualSession() {
-        // Prevent spamming the mic button rapidly
-        if (_uiState.value.isVisible) return
+        // Prevent spamming the mic button rapidly (guard with isSessionActive)
+        if (isSessionActive) return
         stopEverything()
         consecutiveErrors = 0
+        isSessionActive = true
         _uiState.update {
             VoiceUiState(
                 isVisible = true,
@@ -118,6 +120,7 @@ class VoiceCommandViewModel @Inject constructor(
         restartJob?.cancel()
         restartJob = null
         voiceCommandManager.stopListening()
+        isSessionActive = false
     }
 
     private fun observePreferences() {
