@@ -299,8 +299,8 @@ dependencies {
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.json)
 
-    // Picovoice Porcupine (wake word detection)
-    implementation("ai.picovoice:porcupine-android:3.0.1")
+    // VOSK offline speech recognition (wake word detection)
+    implementation("org.vosk:vosk-android:0.3.45")
 
     implementation(project(":innertube"))
     implementation(project(":flow"))
