@@ -265,5 +265,3 @@ fun VoiceMicIconWithWaves(state: VoiceUiState) {
         }
     }
 }
-
-sealed class VoiceUiState
