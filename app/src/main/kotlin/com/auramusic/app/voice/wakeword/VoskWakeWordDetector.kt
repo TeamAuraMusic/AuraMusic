@@ -137,16 +137,9 @@ class VoskWakeWordDetector @Inject constructor(
         while (isRunning.get()) {
             val read = audioRecord?.read(buffer, 0, BUFFER_SIZE) ?: -1
             if (read > 0) {
-                // Convert PCM 16-bit short[] to byte[]
-                val audioData = ByteArray(read * 2)
-                for (i in 0 until read) {
-                    val sample = buffer[i]
-                    audioData[i * 2] = (sample and 0xFF).toByte()
-                    audioData[i * 2 + 1] = (sample.toInt() shr 8 and 0xFF).toByte()
-                }
-
                 try {
-                    val isFinal = recognizer?.acceptWaveForm(audioData, audioData.size)
+                    // VOSK accepts short[] buffer directly with number of samples
+                    val isFinal = recognizer?.acceptWaveForm(buffer, read)
 
                     // Check partial result (real-time)
                     val partialJson = recognizer?.partialResult ?: ""
