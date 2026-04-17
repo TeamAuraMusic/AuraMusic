@@ -1165,6 +1165,18 @@ fun BottomSheetPlayer(
                                 }
                             }
                         }
+
+                        // Voice command button
+                        if (enableVoiceCommands) {
+                            VoiceCommandButton(
+                                onSearch = { query ->
+                                    navController.navigate("search/$query")
+                                },
+                                onNavigate = { route ->
+                                    navController.navigate(route)
+                                }
+                            )
+                        }
                     }
                 } else {
                     AnimatedContent(targetState = showInlineLyrics, label = "ShareButton") { showLyrics ->
@@ -1221,7 +1233,7 @@ fun BottomSheetPlayer(
                         targetState = isVideoAvailable,
                         label = "VideoToggle"
                     ) { available ->
-                        if (available) {
+                        if (available && mediaMetadata.isVideoSong == true) {
                             Box(
                                 modifier = Modifier
                                     .size(40.dp)
