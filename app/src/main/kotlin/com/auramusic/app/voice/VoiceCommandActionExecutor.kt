@@ -2,6 +2,7 @@ package com.auramusic.app.voice
 
 import android.content.Context
 import android.media.AudioManager
+import androidx.core.net.toUri
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -210,7 +211,7 @@ object VoiceCommandActionExecutor {
                 } else {
                     val songId = mediaMetadata.id
                     val isDownloaded = withContext(Dispatchers.IO) {
-                        service.database.song(songId).first()?.isDownloaded ?: false
+                        service.database.song(songId).first()?.song?.isDownloaded ?: false
                     }
                     if (isDownloaded) {
                         "This song is already downloaded"
@@ -244,7 +245,7 @@ object VoiceCommandActionExecutor {
                 mediaItems.forEach { item ->
                     val songId = item.mediaId
                     val isDownloaded = withContext(Dispatchers.IO) {
-                        service.database.song(songId).first()?.isDownloaded ?: false
+                        service.database.song(songId).first()?.song?.isDownloaded ?: false
                     }
                     if (!isDownloaded) {
                         val downloadRequest = DownloadRequest.Builder(songId, songId.toUri())
@@ -285,7 +286,7 @@ object VoiceCommandActionExecutor {
                 albumSongs.forEach { song ->
                     val songId = song.song.id
                     val isDownloaded = withContext(Dispatchers.IO) {
-                        service.database.song(songId).first()?.isDownloaded ?: false
+                        service.database.song(songId).first()?.song?.isDownloaded ?: false
                     }
                     if (!isDownloaded) {
                         val downloadRequest = DownloadRequest.Builder(songId, songId.toUri())

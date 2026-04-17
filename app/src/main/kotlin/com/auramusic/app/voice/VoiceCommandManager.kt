@@ -72,7 +72,7 @@ class VoiceCommandManager @Inject constructor(
                     putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
                     putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5)
                     // Don't request audio focus to avoid pausing playback
-                    putExtra(RecognizerIntent.EXTRA_AUDIO_FOCUS, false)
+                    putExtra("android.speech.extra.AUDIO_FOCUS", false)
                     when (mode) {
                         RecognitionMode.WAKE_WORD -> {
                             // Longer wake word window: keep listening for up to 10 seconds of silence

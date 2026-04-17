@@ -71,18 +71,6 @@ class VoiceCommandViewModel @Inject constructor(
         _uiState.update { VoiceUiState() }
     }
 
-    fun onAppBackground() {
-        isAppInForeground = false
-        stopEverything()
-        _uiState.update { VoiceUiState() }
-    }
-
-    fun onAppBackground() {
-        isAppInForeground = false
-        stopEverything()
-        _uiState.update { VoiceUiState() }
-    }
-
     fun onMicPermissionChanged(granted: Boolean) {
         hasMicPermission = granted
         // Do NOT auto-start mic on permission grant
