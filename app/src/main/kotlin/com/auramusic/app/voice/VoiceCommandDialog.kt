@@ -11,7 +11,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.painterResource
@@ -133,6 +132,7 @@ fun VoiceCommandDialog(
                             is VoiceUiState.PartialResult -> "\"${(uiState as VoiceUiState.PartialResult).text}\""
                             is VoiceUiState.CommandRecognized -> "Command recognized"
                             is VoiceUiState.Error -> (uiState as VoiceUiState.Error).message
+                            else -> "Tap to speak"
                         },
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurface,
@@ -217,6 +217,7 @@ fun VoiceMicIconWithWaves(state: VoiceUiState) {
         is VoiceUiState.Processing -> MaterialTheme.colorScheme.secondary
         is VoiceUiState.Error -> MaterialTheme.colorScheme.error
         else -> MaterialTheme.colorScheme.primaryContainer
+    }
 
     Box(
         modifier = Modifier.size(140.dp),
@@ -224,7 +225,6 @@ fun VoiceMicIconWithWaves(state: VoiceUiState) {
     ) {
         // Wave circles (only visible when listening)
         if (isListening) {
-            // Simple static circles that scale with the main animation
             for (i in 0..2) {
                 val waveScale = 1f + (i * 0.25f) + (scale - 1f) * 0.5f
                 val alpha = 0.4f - (i * 0.12f)
@@ -236,46 +236,6 @@ fun VoiceMicIconWithWaves(state: VoiceUiState) {
                 ) {
                     drawCircle(
                         color = backgroundColor.copy(alpha = alpha.coerceAtLeast(0f)),
-                        radius = size.minDimension / 2,
-                        style = Stroke(width = 3.dp.toPx())
-                    )
-                }
-            }
-        }
-
-    Box(
-        modifier = Modifier.size(140.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        // Wave circles (only visible when listening)
-        if (isListening) {
-            for (i in 0..2) {
-                val waveScale by animateFloat(
-                    initialValue = 0.8f + (i * 0.2f),
-                    targetValue = 1.4f + (i * 0.2f),
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(1200, delayMillis = i * 400),
-                        repeatMode = RepeatMode.Restart
-                    ),
-                    label = "waveScale$i"
-                )
-                val alpha by animateFloat(
-                    initialValue = 0.5f - (i * 0.15f),
-                    targetValue = 0f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(1200, delayMillis = i * 400),
-                        repeatMode = RepeatMode.Restart
-                    ),
-                    label = "waveAlpha$i"
-                )
-                
-                Canvas(
-                    modifier = Modifier
-                        .size(100.dp)
-                        .scale(waveScale)
-                ) {
-                    drawCircle(
-                        color = backgroundColor.copy(alpha = alpha),
                         radius = size.minDimension / 2,
                         style = Stroke(width = 3.dp.toPx())
                     )
@@ -306,11 +266,4 @@ fun VoiceMicIconWithWaves(state: VoiceUiState) {
     }
 }
 
-sealed class VoiceUiState {
-    data object Idle : VoiceUiState()
-    data class Listening(val amplitude: Float = 0f) : VoiceUiState()
-    data object Processing : VoiceUiState()
-    data class PartialResult(val text: String) : VoiceUiState()
-    data object CommandRecognized : VoiceUiState()
-    data class Error(val message: String) : VoiceUiState()
-}
+sealed class VoiceUiState
