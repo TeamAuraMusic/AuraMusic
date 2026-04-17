@@ -1,10 +1,23 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- Music note icon simplified for notification -->
+    <!-- Simplified music note from app icon -->
     <path
-        android:fillColor="#FFB4AB"
-        android:pathData="M12,3v10.55c-0.59,-0.34 -1.27,-0.55 -2,-0.55 -2.21,0 -4,1.79 -4,4s1.79,4 4,4 4,-1.79 4,-4V7h4V3h-6z"/>
+        android:pathData="M12,3v10.55c-0.59,-0.34 -1.27,-0.55 -2,-0.55c-2.21,0 -4,1.79 -4,4s1.79,4 4,4s4,-1.79 4,-4V7h4V3H12z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="6"
+                android:startY="20"
+                android:endX="20"
+                android:endY="4">
+                <item android:offset="0.0" android:color="#FFFF812A" />
+                <item android:offset="0.5" android:color="#FFFF3C62" />
+                <item android:offset="1.0" android:color="#FFFF0E8E" />
+            </gradient>
+        </aapt:attr>
+    </path>
 </vector>
