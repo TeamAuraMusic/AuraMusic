@@ -27,6 +27,7 @@ sealed interface VoiceRecognitionEvent {
     data class FinalText(val text: String) : VoiceRecognitionEvent
     data class Error(val code: Int, val message: String, val recoverable: Boolean) : VoiceRecognitionEvent
     data object EndOfSpeech : VoiceRecognitionEvent
+    data object WakeWordDetected : VoiceRecognitionEvent // Emitted by Porcupine detector
 }
 
 enum class RecognitionMode { WAKE_WORD, COMMAND }
@@ -47,6 +48,14 @@ class VoiceCommandManager @Inject constructor(
     private var currentMode: RecognitionMode = RecognitionMode.WAKE_WORD
 
     fun isAvailable(): Boolean = SpeechRecognizer.isRecognitionAvailable(context)
+
+    /**
+     * Called by WakeWordService when Porcupine detects the wake word.
+     * Triggers a WakeWordDetected event for ViewModel to handle.
+     */
+    fun onWakeWordDetected() {
+        _events.tryEmit(VoiceRecognitionEvent.WakeWordDetected)
+    }
 
     fun startListening(mode: RecognitionMode) {
         if (!isAvailable()) {

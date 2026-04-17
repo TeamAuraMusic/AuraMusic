@@ -8,6 +8,7 @@ import com.auramusic.app.constants.EnableVoiceWakeWordKey
 import com.auramusic.app.constants.VoiceWakeWordKey
 import com.auramusic.app.playback.PlayerConnection
 import com.auramusic.app.utils.dataStore
+import com.auramusic.app.voice.wakeword.WakeWordService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
@@ -62,13 +63,20 @@ class VoiceCommandViewModel @Inject constructor(
 
     fun onAppForeground() {
         isAppInForeground = true
-        // Do NOT auto-start mic on app open — user must activate manually or via wake word activation
+        // Start wake word detection service when app is visible
+        if (voiceEnabled && wakeWordEnabled && hasMicPermission) {
+            WakeWordService.start(context)
+        }
     }
 
     fun onAppBackground() {
         isAppInForeground = false
         stopEverything()
         _uiState.update { VoiceUiState() }
+        // Optionally stop wake word service to save battery when app is background
+        // Siri/Gemini keep it always-on, but that requires system-level integration
+        // For now, stop when app backgrounded
+        WakeWordService.stop(context)
     }
 
     fun onMicPermissionChanged(granted: Boolean) {
@@ -179,6 +187,20 @@ class VoiceCommandViewModel @Inject constructor(
 
                     is VoiceRecognitionEvent.Error -> {
                         handleError(event)
+                    }
+
+                    VoiceRecognitionEvent.WakeWordDetected -> {
+                        // Wake word detected by Porcupine; start COMMAND mode
+                        stopEverything()
+                        consecutiveErrors = 0
+                        _uiState.update {
+                            VoiceUiState(
+                                isVisible = true,
+                                mode = VoiceMode.COMMAND,
+                                phase = VoicePhase.LISTENING,
+                            )
+                        }
+                        voiceCommandManager.startListening(RecognitionMode.COMMAND)
                     }
                 }
             }
