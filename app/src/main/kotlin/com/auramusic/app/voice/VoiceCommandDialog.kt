@@ -37,18 +37,22 @@ fun VoiceCommandDialog(
                     onDismiss()
                 }
                 is VoiceCommand.Play, is VoiceCommand.Pause, is VoiceCommand.TogglePlayPause,
-                is VoiceCommand.Next, is VoiceCommand.Previous, is VoiceCommand.Shuffle,
-                is VoiceCommand.Repeat, is VoiceCommand.VolumeUp, is VoiceCommand.VolumeDown,
-                is VoiceCommand.Mute, is VoiceCommand.Unmute, is VoiceCommand.ToggleLike -> {
+                is VoiceCommand.Next, is VoiceCommand.Previous, 
+                is VoiceCommand.Shuffle, is VoiceCommand.ShuffleOn, is VoiceCommand.ShuffleOff,
+                is VoiceCommand.Repeat, is VoiceCommand.RepeatOne, is VoiceCommand.RepeatAll, is VoiceCommand.RepeatOff,
+                is VoiceCommand.VolumeUp, is VoiceCommand.VolumeDown,
+                is VoiceCommand.Mute, is VoiceCommand.Unmute,
+                is VoiceCommand.SpeedUp, is VoiceCommand.SlowDown, is VoiceCommand.ResetSpeed,
+                is VoiceCommand.SeekForward, is VoiceCommand.SeekBackward,
+                is VoiceCommand.ToggleLike,
+                is VoiceCommand.ClearQueue, is VoiceCommand.AddToQueue -> {
                     onPlaybackCommand(command)
                     onDismiss()
                 }
                 is VoiceCommand.SetDarkMode, is VoiceCommand.ToggleTheme,
-                is VoiceCommand.ShowLyrics, is VoiceCommand.HideLyrics,
-                is VoiceCommand.EnableVideo, is VoiceCommand.DisableVideo -> {
-                    onSettingsCommand(command)
-                    onDismiss()
-                }
+                is VoiceCommand.ShowLyrics, is VoiceCommand.HideLyrics, is VoiceCommand.ToggleLyrics,
+                is VoiceCommand.EnableVideo, is VoiceCommand.DisableVideo, is VoiceCommand.ToggleVideo,
+                is VoiceCommand.ShowQueue,
                 is VoiceCommand.OpenHome, is VoiceCommand.OpenLibrary,
                 is VoiceCommand.OpenSearch, is VoiceCommand.OpenSettings -> {
                     onSettingsCommand(command)
@@ -137,7 +141,7 @@ fun VoiceCommandDialog(
                         text = when (uiState) {
                             is VoiceUiState.Listening -> "Say a command..."
                             is VoiceUiState.Processing -> "Please wait..."
-                            else -> "Try: \"Play\", \"Next\", \"Search songs\", \"Dark mode\""
+                            else -> "Try: \"Play\" • \"Next\" • \"Search songs\"\n\"Dark mode\" • \"Volume up\" • \"Shuffle on\""
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,

@@ -3,6 +3,7 @@ package com.auramusic.app.voice
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,7 +31,10 @@ class VoiceCommandViewModel @Inject constructor(
                     is VoiceState.Idle -> VoiceUiState.Idle
                     is VoiceState.Listening -> VoiceUiState.Listening(state.amplitude)
                     is VoiceState.Processing -> VoiceUiState.Processing
-                    is VoiceState.PartialResult -> VoiceUiState.PartialResult(state.text)
+                    is VoiceState.PartialResult -> {
+                        _recognizedText.value = state.text
+                        VoiceUiState.PartialResult(state.text)
+                    }
                     is VoiceState.CommandRecognized -> VoiceUiState.CommandRecognized
                     is VoiceState.Error -> VoiceUiState.Error(state.message)
                 }
@@ -39,6 +43,7 @@ class VoiceCommandViewModel @Inject constructor(
 
         voiceCommandManager.startListening { command ->
             _uiState.value = VoiceUiState.CommandRecognized
+            onCommandCallback?.invoke(command)
         }
     }
 

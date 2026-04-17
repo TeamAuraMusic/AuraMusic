@@ -455,9 +455,9 @@
     <string name="enable_dynamic_icon">Enable dynamic icon</string>
     <string name="enable_high_refresh_rate">High refresh rate</string>
     <string name="enable_high_refresh_rate_desc">Enable 90Hz/120Hz display support</string>
-    <string name="voice_commands">Voice Commands</string>
+    <string name="voice_commands">Voice Commands (Experimental)</string>
     <string name="enable_voice_commands">Enable voice commands</string>
-    <string name="enable_voice_commands_desc">Show voice command button in player</string>
+    <string name="enable_voice_commands_desc">Show voice command button in player. Experimental feature.</string>
     <string name="font">Font</string>
     <string name="about">About</string>
     <string name="general">General</string>
