@@ -68,12 +68,12 @@ class VoiceCommandManager @Inject constructor(
                     putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5)
                     when (mode) {
                         RecognitionMode.WAKE_WORD -> {
-                            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
-                            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1000L)
+                            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 800L)
+                            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 600L)
                         }
                         RecognitionMode.COMMAND -> {
-                            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 2500L)
-                            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1800L)
+                            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 2000L)
+                            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
                         }
                     }
                 }
@@ -91,6 +91,8 @@ class VoiceCommandManager @Inject constructor(
         mainHandler.post {
             try {
                 speechRecognizer?.stopListening()
+                speechRecognizer?.destroy()
+                speechRecognizer = null
             } catch (_: Exception) {}
             _isListening.value = false
         }

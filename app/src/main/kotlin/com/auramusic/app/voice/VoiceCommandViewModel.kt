@@ -15,7 +15,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
@@ -43,8 +42,8 @@ class VoiceCommandViewModel @Inject constructor(
 
     private var restartJob: Job? = null
     private var feedbackJob: Job? = null
-    private var restartDelay = 300L
-    private val maxRestartDelay = 2000L
+    private var consecutiveErrors = 0
+    private val maxConsecutiveErrors = 5
 
     init {
         observePreferences()
@@ -63,13 +62,13 @@ class VoiceCommandViewModel @Inject constructor(
 
     fun onAppForeground() {
         isAppInForeground = true
+        consecutiveErrors = 0
         maybeStartWakeWordListening()
     }
 
     fun onAppBackground() {
         isAppInForeground = false
-        voiceCommandManager.stopListening()
-        restartJob?.cancel()
+        stopEverything()
         _uiState.update { VoiceUiState() }
     }
 
@@ -79,8 +78,8 @@ class VoiceCommandViewModel @Inject constructor(
     }
 
     fun startManualSession() {
-        feedbackJob?.cancel()
-        restartJob?.cancel()
+        stopEverything()
+        consecutiveErrors = 0
         _uiState.update {
             VoiceUiState(
                 isVisible = true,
@@ -92,11 +91,18 @@ class VoiceCommandViewModel @Inject constructor(
     }
 
     fun dismissOverlay() {
-        feedbackJob?.cancel()
-        restartJob?.cancel()
-        voiceCommandManager.stopListening()
+        stopEverything()
         _uiState.update { VoiceUiState() }
+        consecutiveErrors = 0
         maybeStartWakeWordListening()
+    }
+
+    private fun stopEverything() {
+        feedbackJob?.cancel()
+        feedbackJob = null
+        restartJob?.cancel()
+        restartJob = null
+        voiceCommandManager.stopListening()
     }
 
     private fun observePreferences() {
@@ -119,6 +125,7 @@ class VoiceCommandViewModel @Inject constructor(
                     } else if (!enabled || !wakeWord) {
                         if (_uiState.value.mode == VoiceMode.WAKE_WORD) {
                             voiceCommandManager.stopListening()
+                            restartJob?.cancel()
                         }
                     }
                 }
@@ -130,10 +137,10 @@ class VoiceCommandViewModel @Inject constructor(
             voiceCommandManager.events.collect { event ->
                 when (event) {
                     is VoiceRecognitionEvent.Ready -> {
+                        consecutiveErrors = 0
                         if (_uiState.value.isVisible) {
                             _uiState.update { it.copy(phase = VoicePhase.LISTENING) }
                         }
-                        restartDelay = 300L
                     }
 
                     is VoiceRecognitionEvent.Rms -> {
@@ -145,12 +152,11 @@ class VoiceCommandViewModel @Inject constructor(
                     is VoiceRecognitionEvent.PartialText -> {
                         val currentMode = _uiState.value.mode
                         if (currentMode == VoiceMode.WAKE_WORD) {
-                            // Check for wake word in partial results for faster detection
                             val match = VoiceCommandParser.extractWakeWord(event.text, customWakeWord)
                             if (match.detected) {
                                 handleWakeWordDetected(match.remainingText)
                             }
-                        } else {
+                        } else if (_uiState.value.isVisible) {
                             _uiState.update {
                                 it.copy(
                                     recognizedText = event.text,
@@ -180,8 +186,8 @@ class VoiceCommandViewModel @Inject constructor(
 
     private fun handleWakeWordDetected(remainingText: String) {
         voiceCommandManager.stopListening()
+        restartJob?.cancel()
         if (remainingText.isNotEmpty()) {
-            // Wake word + command in same utterance
             _uiState.update {
                 VoiceUiState(
                     isVisible = true,
@@ -192,7 +198,6 @@ class VoiceCommandViewModel @Inject constructor(
             }
             processCommand(remainingText)
         } else {
-            // Just wake word, switch to command mode
             _uiState.update {
                 VoiceUiState(
                     isVisible = true,
@@ -214,11 +219,10 @@ class VoiceCommandViewModel @Inject constructor(
                     if (match.detected) {
                         handleWakeWordDetected(match.remainingText)
                     } else {
-                        // No wake word, restart passive listening
-                        scheduleRestart(VoiceMode.WAKE_WORD)
+                        scheduleWakeWordRestart()
                     }
                 } else {
-                    scheduleRestart(VoiceMode.WAKE_WORD)
+                    scheduleWakeWordRestart()
                 }
             }
 
@@ -238,7 +242,7 @@ class VoiceCommandViewModel @Inject constructor(
                             errorMessage = "I didn't catch that"
                         )
                     }
-                    scheduleFeedbackAndRestart()
+                    scheduleOverlayDismiss()
                 }
             }
         }
@@ -248,38 +252,34 @@ class VoiceCommandViewModel @Inject constructor(
         val currentMode = _uiState.value.mode
 
         if (currentMode == VoiceMode.WAKE_WORD) {
-            // Silently restart for passive mode
             if (event.recoverable) {
-                scheduleRestart(VoiceMode.WAKE_WORD)
+                consecutiveErrors++
+                if (consecutiveErrors < maxConsecutiveErrors) {
+                    scheduleWakeWordRestart()
+                }
+                // If too many errors, stop trying — user can re-trigger via button
             }
             return
         }
 
+        // Command/Manual mode errors
         if (event.recoverable && _uiState.value.isVisible) {
-            // For command/manual mode, show brief error then restart
-            _uiState.update {
-                it.copy(
-                    phase = VoicePhase.ERROR,
-                    errorMessage = if (event.code == android.speech.SpeechRecognizer.ERROR_NO_MATCH ||
-                        event.code == android.speech.SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
-                        "I didn't catch that"
-                    } else {
-                        event.message
-                    }
-                )
+            val errorMsg = if (event.code == android.speech.SpeechRecognizer.ERROR_NO_MATCH ||
+                event.code == android.speech.SpeechRecognizer.ERROR_SPEECH_TIMEOUT
+            ) {
+                "I didn't catch that"
+            } else {
+                event.message
             }
-            scheduleFeedbackAndRestart()
+            _uiState.update {
+                it.copy(phase = VoicePhase.ERROR, errorMessage = errorMsg)
+            }
+            scheduleOverlayDismiss()
         } else {
             _uiState.update {
-                it.copy(
-                    phase = VoicePhase.ERROR,
-                    errorMessage = event.message
-                )
+                it.copy(phase = VoicePhase.ERROR, errorMessage = event.message)
             }
-            viewModelScope.launch {
-                delay(1500)
-                dismissOverlay()
-            }
+            scheduleOverlayDismiss()
         }
     }
 
@@ -288,7 +288,6 @@ class VoiceCommandViewModel @Inject constructor(
             val command = VoiceCommandParser.parseCommand(text, customWakeWord)
             when (command) {
                 is VoiceCommand.WakeWordDetected -> {
-                    // Just wake word again, listen for command
                     _uiState.update {
                         it.copy(
                             mode = VoiceMode.COMMAND,
@@ -306,7 +305,7 @@ class VoiceCommandViewModel @Inject constructor(
                             feedbackText = "I didn't understand: \"$text\"",
                         )
                     }
-                    scheduleFeedbackAndRestart()
+                    scheduleOverlayDismiss()
                 }
 
                 else -> {
@@ -322,58 +321,70 @@ class VoiceCommandViewModel @Inject constructor(
                             feedbackText = feedback,
                         )
                     }
-                    scheduleFeedbackAndRestart()
+                    scheduleOverlayDismiss()
                 }
             }
         }
     }
 
-    private fun scheduleFeedbackAndRestart() {
+    /**
+     * After showing feedback/error, dismiss the overlay and go back to idle.
+     * Does NOT auto-restart wake word to avoid mic looping.
+     * Wake word restarts on next scheduleWakeWordRestart cycle or manual trigger.
+     */
+    private fun scheduleOverlayDismiss() {
         feedbackJob?.cancel()
         feedbackJob = viewModelScope.launch {
-            delay(1200)
+            delay(1500)
             _uiState.update { VoiceUiState() }
-            maybeStartWakeWordListening()
+            // Only restart wake word if it was previously active and not too many errors
+            if (wakeWordEnabled && voiceEnabled && isAppInForeground && hasMicPermission
+                && consecutiveErrors < maxConsecutiveErrors
+            ) {
+                delay(500)
+                maybeStartWakeWordListening()
+            }
         }
     }
 
-    private fun scheduleRestart(mode: VoiceMode) {
+    /**
+     * Restart wake word listening with backoff to avoid rapid loops.
+     */
+    private fun scheduleWakeWordRestart() {
+        if (!isAppInForeground || !voiceEnabled || !wakeWordEnabled || !hasMicPermission) return
+        if (consecutiveErrors >= maxConsecutiveErrors) return
+
         restartJob?.cancel()
+        val delayMs = when {
+            consecutiveErrors == 0 -> 200L
+            consecutiveErrors < 3 -> 500L
+            else -> 1000L
+        }
         restartJob = viewModelScope.launch {
-            delay(restartDelay)
-            restartDelay = (restartDelay * 1.5).toLong().coerceAtMost(maxRestartDelay)
-            if (isAppInForeground && voiceEnabled) {
-                when (mode) {
-                    VoiceMode.WAKE_WORD -> {
-                        if (wakeWordEnabled && hasMicPermission) {
-                            voiceCommandManager.startListening(RecognitionMode.WAKE_WORD)
-                        }
-                    }
-                    VoiceMode.COMMAND, VoiceMode.MANUAL -> {
-                        if (_uiState.value.isVisible) {
-                            voiceCommandManager.startListening(RecognitionMode.COMMAND)
-                        }
-                    }
-                }
+            delay(delayMs)
+            if (isAppInForeground && voiceEnabled && wakeWordEnabled && hasMicPermission
+                && _uiState.value.mode == VoiceMode.WAKE_WORD && !_uiState.value.isVisible
+            ) {
+                voiceCommandManager.startListening(RecognitionMode.WAKE_WORD)
             }
         }
     }
 
     private fun maybeStartWakeWordListening() {
-        if (voiceEnabled && wakeWordEnabled && isAppInForeground && hasMicPermission &&
-            _uiState.value.mode != VoiceMode.COMMAND && _uiState.value.mode != VoiceMode.MANUAL
-        ) {
-            _uiState.update {
-                VoiceUiState(mode = VoiceMode.WAKE_WORD, phase = VoicePhase.IDLE)
-            }
-            voiceCommandManager.startListening(RecognitionMode.WAKE_WORD)
+        if (!voiceEnabled || !wakeWordEnabled || !isAppInForeground || !hasMicPermission) return
+        if (_uiState.value.isVisible) return
+        if (_uiState.value.mode == VoiceMode.COMMAND || _uiState.value.mode == VoiceMode.MANUAL) return
+
+        _uiState.update {
+            VoiceUiState(mode = VoiceMode.WAKE_WORD, phase = VoicePhase.IDLE)
         }
+        consecutiveErrors = 0
+        voiceCommandManager.startListening(RecognitionMode.WAKE_WORD)
     }
 
     override fun onCleared() {
         super.onCleared()
-        restartJob?.cancel()
-        feedbackJob?.cancel()
+        stopEverything()
         voiceCommandManager.destroy()
     }
 }

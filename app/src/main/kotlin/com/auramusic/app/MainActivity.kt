@@ -574,27 +574,27 @@ class MainActivity : ComponentActivity() {
                 val voiceCommandViewModel: VoiceCommandViewModel = hiltViewModel()
                 val voiceUiState by voiceCommandViewModel.uiState.collectAsState()
 
+                var hasMicPermission by remember {
+                    mutableStateOf(
+                        ContextCompat.checkSelfPermission(
+                            this@MainActivity,
+                            Manifest.permission.RECORD_AUDIO
+                        ) == PackageManager.PERMISSION_GRANTED
+                    )
+                }
+
                 val micPermissionLauncher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.RequestPermission()
                 ) { granted ->
+                    hasMicPermission = granted
                     voiceCommandViewModel.onMicPermissionChanged(granted)
                     if (granted) {
                         voiceCommandViewModel.startManualSession()
                     }
                 }
 
-                val hasMicPermission = remember {
-                    ContextCompat.checkSelfPermission(
-                        this@MainActivity,
-                        Manifest.permission.RECORD_AUDIO
-                    ) == PackageManager.PERMISSION_GRANTED
-                }
-
-                LaunchedEffect(hasMicPermission) {
-                    voiceCommandViewModel.onMicPermissionChanged(hasMicPermission)
-                }
-
                 LaunchedEffect(Unit) {
+                    voiceCommandViewModel.onMicPermissionChanged(hasMicPermission)
                     voiceCommandViewModel.onAppForeground()
                 }
 
@@ -616,7 +616,7 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
-                val voiceCommandController = remember(voiceCommandViewModel) {
+                val voiceCommandController = remember(voiceCommandViewModel, hasMicPermission) {
                     object : VoiceCommandController {
                         override fun requestManualActivation() {
                             if (hasMicPermission) {
