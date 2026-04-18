@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import android.speech.tts.Voice
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
@@ -98,34 +99,34 @@ class VoiceFeedbackManager @Inject constructor(
                 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                     tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
+                    
+                    // Set listener to know when done (API 21+)
+                    tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener {
+                        override fun onStart(utteranceId: String?) {
+                            // Started speaking
+                        }
+                        
+                        override fun onDone(utteranceId: String?) {
+                            mainHandler.post {
+                                restoreMusicVolume()
+                                isSpeaking = false
+                                onComplete?.invoke()
+                            }
+                        }
+                        
+                        override fun onError(utteranceId: String?) {
+                            mainHandler.post {
+                                android.util.Log.e("VoiceFeedbackManager", "TTS utterance error")
+                                restoreMusicVolume()
+                                isSpeaking = false
+                                onComplete?.invoke()
+                            }
+                        }
+                    })
                 } else {
                     @Suppress("DEPRECATION")
                     tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null)
                 }
-                
-                // Set listener to know when done
-                tts?.setOnUtteranceProgressListener(object : TextToSpeech.OnUtteranceProgressListener {
-                    override fun onStart(utteranceId: String?) {
-                        // Started speaking
-                    }
-                    
-                    override fun onDone(utteranceId: String?) {
-                        mainHandler.post {
-                            restoreMusicVolume()
-                            isSpeaking = false
-                            onComplete?.invoke()
-                        }
-                    }
-                    
-                    override fun onError(utteranceId: String?) {
-                        mainHandler.post {
-                            android.util.Log.e("VoiceFeedbackManager", "TTS utterance error")
-                            restoreMusicVolume()
-                            isSpeaking = false
-                            onComplete?.invoke()
-                        }
-                    }
-                })
             } catch (e: Exception) {
                 android.util.Log.e("VoiceFeedbackManager", "Speech error", e)
                 isSpeaking = false
