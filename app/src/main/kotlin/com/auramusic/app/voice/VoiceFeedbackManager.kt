@@ -2,6 +2,7 @@ package com.auramusic.app.voice
 
 import android.app.Service
 import android.content.Context
+import android.media.AudioAttributes
 import android.media.AudioManager
 import android.os.Build
 import android.os.Handler
@@ -62,7 +63,18 @@ class VoiceFeedbackManager @Inject constructor(
                     ?: availableVoices.firstOrNull()
                 
                 currentVoice?.let { tts?.voice = it }
-                
+
+                // Route TTS output to a separate stream so it is not
+                // affected by STREAM_MUSIC ducking/muting
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    tts?.setAudioAttributes(
+                        AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_ASSISTANT)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                            .build()
+                    )
+                }
+
                 // Load pitch/speed
                 currentPitch = prefs.getFloat(KEY_PITCH, 1.0f)
                 currentSpeechRate = prefs.getFloat(KEY_SPEECH_RATE, 1.0f)

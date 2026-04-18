@@ -352,7 +352,13 @@ import javax.inject.Inject
                             recognizedText = "",
                         )
                     }
-                    voiceCommandManager.startListening(RecognitionMode.COMMAND)
+                    if (voiceFeedbackManager.isEnabled()) {
+                        voiceFeedbackManager.speak("Hello! How can I help you today?") {
+                            voiceCommandManager.startListening(RecognitionMode.COMMAND)
+                        }
+                    } else {
+                        voiceCommandManager.startListening(RecognitionMode.COMMAND)
+                    }
                 }
 
                 is VoiceCommand.Unknown -> {
