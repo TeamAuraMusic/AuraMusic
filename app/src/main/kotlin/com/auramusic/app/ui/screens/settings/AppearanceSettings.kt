@@ -1658,33 +1658,6 @@ fun AppearanceSettings(
                 )
             )
         )
-                            }
-                        )
-                    },
-                    onClick = { voiceFeedbackViewModel.setEnabled(!voiceFeedbackViewModel.isEnabled) }
-                ),
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.mic),
-                    title = { Text(stringResource(R.string.assistant_voice)) },
-                    description = {
-                        Text(voiceFeedbackViewModel.selectedVoice.value?.locale?.displayName ?: "Default")
-                    },
-                    onClick = { showVoiceDialog = true }
-                ),
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.mic),
-                    title = { Text(stringResource(R.string.voice_pitch)) },
-                    description = { Text("${(voiceFeedbackViewModel.pitch.value * 100).roundToInt()}%") },
-                    onClick = { showPitchDialog = true }
-                ),
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.mic),
-                    title = { Text(stringResource(R.string.voice_speech_rate)) },
-                    description = { Text("${(voiceFeedbackViewModel.speechRate.value * 100).roundToInt()}%") },
-                    onClick = { showRateDialog = true }
-                )
-            )
-        )
 
         // Voice selection dialog
         if (showVoiceDialog) {
