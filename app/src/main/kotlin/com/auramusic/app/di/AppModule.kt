@@ -6,7 +6,6 @@
 package com.auramusic.app.di
 
 import android.content.Context
-import android.content.Context
 import androidx.media3.database.DatabaseProvider
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
@@ -20,6 +19,7 @@ import com.auramusic.app.listentogether.ListenTogetherClient
 import com.auramusic.app.listentogether.ListenTogetherManager
 import com.auramusic.app.utils.dataStore
 import com.auramusic.app.utils.get
+import com.auramusic.app.voice.VoiceFeedbackManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -28,7 +28,6 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import com.auramusic.app.voice.VoiceFeedbackManager
 import javax.inject.Singleton
 
 @Module
@@ -40,7 +39,6 @@ object AppModule {
     fun provideVoiceFeedbackManager(
         @ApplicationContext context: Context,
     ): VoiceFeedbackManager = VoiceFeedbackManager(context)
-}
 
     @Provides
     @Singleton
