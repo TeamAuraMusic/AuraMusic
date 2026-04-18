@@ -164,8 +164,8 @@ class VoskWakeWordDetector @Inject constructor(
     }
     
     private fun hasModelFilesAtRoot(dir: File): Boolean {
-        val requiredFiles = listOf("am", "conf", "graph")
-        return requiredFiles.all { fileName -> File(dir, fileName).isFile }
+        val requiredDirs = listOf("am", "conf", "graph")
+        return requiredDirs.all { fileName -> File(dir, it).isDirectory }
     }
 
         val zipFile = File(context.cacheDir, "$MODEL_NAME.zip")
@@ -212,24 +212,25 @@ class VoskWakeWordDetector @Inject constructor(
             throw Exception("Model path is not a directory: ${modelDir.absolutePath}")
         }
         
-        val requiredFiles = listOf("am", "conf", "graph")
-        val missingFiles = requiredFiles.filter { !File(modelDir, it).exists() }
+        // VOSK requires these subdirectories
+        val requiredDirs = listOf("am", "conf", "graph")
+        val missingDirs = requiredDirs.filter { !File(modelDir, it).isDirectory }
         
-        if (missingFiles.isNotEmpty()) {
+        if (missingDirs.isNotEmpty()) {
             val contents = modelDir.list()?.joinToString() ?: "empty"
             android.util.Log.e("VoskWakeWordDetector", "Model directory contents: $contents")
-            throw Exception("Model missing required files: ${missingFiles.joinToString()}. Found: ${modelDir.list()?.joinToString()}")
+            throw Exception("Model missing required directories: ${missingDirs.joinToString()}. Found: ${modelDir.list()?.joinToString()}")
         }
         
-        // Verify files have reasonable sizes
-        requiredFiles.forEach { fileName ->
-            val file = File(modelDir, fileName)
-            if (file.length() < 100) {
-                throw Exception("Model file '$fileName' appears corrupted (size: ${file.length()} bytes)")
+        // Verify directories have content (at least one file each)
+        requiredDirs.forEach { dirName ->
+            val dir = File(modelDir, dirName)
+            if (dir.listFiles()?.isEmpty() == true) {
+                throw Exception("Model directory '$dirName' is empty")
             }
         }
         
-        android.util.Log.d("VoskWakeWordDetector", "Model validated: ${modelDir.absolutePath}, files: ${requiredFiles.joinToString()}")
+        android.util.Log.d("VoskWakeWordDetector", "Model validated: ${modelDir.absolutePath}, dirs: ${requiredDirs.joinToString()}")
     }
     
     private fun findExtractedModelDir(parentDir: File): File? {
