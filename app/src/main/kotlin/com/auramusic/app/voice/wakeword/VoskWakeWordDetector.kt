@@ -36,7 +36,12 @@ class VoskWakeWordDetector @Inject constructor(
     private val isRunning = AtomicBoolean(false)
     private var wakeWordCallback: (() -> Unit)? = null
     private var progressCallback: ((progress: Int, bytesRead: Long, totalBytes: Long) -> Unit)? = null
+    private var lastWakeWordTime = 0L
     private val mainHandler = Handler(Looper.getMainLooper())
+    
+    private val WAKE_WORD_COOLDOWN_MS = 2000
+    
+    private val WAKE_WORD_COOLDOWN_MS = 2000
 
     companion object {
         private const val SAMPLE_RATE = 16000
@@ -75,9 +80,6 @@ class VoskWakeWordDetector @Inject constructor(
                 recognizer = Recognizer(model, SAMPLE_RATE.toFloat(), WAKE_WORD_GRAMMAR)
                 android.util.Log.d("VoskWakeWordDetector", "Model loaded with grammar, starting audio")
                 
-                withContext(Dispatchers.Main) {
-                    showToast("Aura wake word detection active")
-                }
                 startAudioRecording()
             } catch (e: Exception) {
                 android.util.Log.e("VoskWakeWordDetector", "Failed to start", e)
@@ -377,6 +379,14 @@ class VoskWakeWordDetector @Inject constructor(
                         }
                         if (WAKE_WORD in partialJson.lowercase() && "[unk]" !in partialJson) {
                             android.util.Log.d("VoskWakeWordDetector", "DETECTED in partial: $partialJson")
+                            
+                            val now = System.currentTimeMillis()
+                            if (now - lastWakeWordTime < WAKE_WORD_COOLDOWN_MS) {
+                                android.util.Log.d("VoskWakeWordDetector", "Ignoring wake word (cooldown)")
+                                continue
+                            }
+                            lastWakeWordTime = now
+                            
                             withContext(Dispatchers.Main) {
                                 showToast("Wake word detected!")
                             }
@@ -388,6 +398,14 @@ class VoskWakeWordDetector @Inject constructor(
                             val finalJson = recognizer?.result ?: ""
                             if (WAKE_WORD in finalJson.lowercase() && "[unk]" !in finalJson) {
                                 android.util.Log.d("VoskWakeWordDetector", "DETECTED in final: $finalJson")
+                                
+                                val now = System.currentTimeMillis()
+                                if (now - lastWakeWordTime < WAKE_WORD_COOLDOWN_MS) {
+                                    android.util.Log.d("VoskWakeWordDetector", "Ignoring wake word (cooldown)")
+                                    continue
+                                }
+                                lastWakeWordTime = now
+                                
                                 withContext(Dispatchers.Main) {
                                     showToast("Wake word detected!")
                                 }
