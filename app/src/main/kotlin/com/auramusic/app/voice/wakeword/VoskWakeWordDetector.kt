@@ -37,8 +37,8 @@ class VoskWakeWordDetector @Inject constructor(
     companion object {
         private const val SAMPLE_RATE = 16000
         private const val BUFFER_SIZE = 4096
-        private const val MODEL_NAME = "vosk-model-small-en-0.15"
-        private const val MODEL_URL = "https://alphacephei.com/vosk/models/vosk-model-small-en-0.15.zip"
+        private const val MODEL_NAME = "vosk-model-small-en-us-0.15"
+        private const val MODEL_URL = "https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip"
         private const val WAKE_WORD = "aura"
         // Grammar constrains VOSK to only recognize these phrases (+ [unk] for everything else)
         // Without this, VOSK does free-form recognition and may transcribe "aura" as "are a", "or a", etc.
