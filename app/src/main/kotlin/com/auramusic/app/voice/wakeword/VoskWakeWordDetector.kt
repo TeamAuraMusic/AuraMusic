@@ -4,6 +4,9 @@ import android.content.Context
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
+import android.os.Handler
+import android.os.Looper
+import android.widget.Toast
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
 import org.vosk.Model
@@ -27,6 +30,7 @@ class VoskWakeWordDetector @Inject constructor(
     private var model: Model? = null
     private val isRunning = AtomicBoolean(false)
     private var wakeWordCallback: (() -> Unit)? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     companion object {
         private const val SAMPLE_RATE = 16000
@@ -34,6 +38,15 @@ class VoskWakeWordDetector @Inject constructor(
         private const val MODEL_NAME = "vosk-model-small-en-0.15"
         private const val MODEL_URL = "https://alphacephei.com/vosk/models/vosk-model-small-en-0.15.zip"
         private const val WAKE_WORD = "aura"
+        // Grammar constrains VOSK to only recognize these phrases (+ [unk] for everything else)
+        // Without this, VOSK does free-form recognition and may transcribe "aura" as "are a", "or a", etc.
+        private const val WAKE_WORD_GRAMMAR = "[\"hey aura\", \"hello aura\", \"ok aura\", \"aura\", \"[unk]\"]"
+    }
+
+    private fun showToast(message: String) {
+        mainHandler.post {
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        }
     }
 
     override fun setOnWakeWordDetectedListener(callback: () -> Unit) {
@@ -48,11 +61,14 @@ class VoskWakeWordDetector @Inject constructor(
                 val modelPath = ensureModel()
                 android.util.Log.d("VoskWakeWordDetector", "Loading model from: $modelPath")
                 model = Model(modelPath)
-                recognizer = Recognizer(model, SAMPLE_RATE.toFloat())
-                android.util.Log.d("VoskWakeWordDetector", "Model loaded, starting audio")
+                // Use grammar mode to constrain recognition to wake word phrases only
+                recognizer = Recognizer(model, SAMPLE_RATE.toFloat(), WAKE_WORD_GRAMMAR)
+                android.util.Log.d("VoskWakeWordDetector", "Model loaded with grammar, starting audio")
+                showToast("Aura wake word detection active")
                 startAudioRecording()
             } catch (e: Exception) {
                 android.util.Log.e("VoskWakeWordDetector", "Failed to start", e)
+                showToast("Wake word failed: ${e.message}")
                 isRunning.set(false)
             }
         }
@@ -149,20 +165,24 @@ class VoskWakeWordDetector @Inject constructor(
                     try {
                         val isFinal = recognizer?.acceptWaveForm(buffer, read)
 
+                        // Check partial results for wake word (low-latency detection)
                         val partialJson = recognizer?.partialResult ?: ""
-                        if (partialJson.isNotEmpty()) {
+                        if (partialJson.isNotEmpty() && "[unk]" !in partialJson) {
                             android.util.Log.d("VoskWakeWordDetector", "Partial: $partialJson")
                         }
-                        if (WAKE_WORD in partialJson.lowercase()) {
-                            android.util.Log.d("VoskWakeWordDetector", "DETECTED in partial")
+                        if (WAKE_WORD in partialJson.lowercase() && "[unk]" !in partialJson) {
+                            android.util.Log.d("VoskWakeWordDetector", "DETECTED in partial: $partialJson")
+                            showToast("Wake word detected!")
                             triggerWakeWord()
                             continue
                         }
 
+                        // Check final results
                         if (isFinal == true) {
                             val finalJson = recognizer?.result ?: ""
-                            if (WAKE_WORD in finalJson.lowercase()) {
-                                android.util.Log.d("VoskWakeWordDetector", "DETECTED in final")
+                            if (WAKE_WORD in finalJson.lowercase() && "[unk]" !in finalJson) {
+                                android.util.Log.d("VoskWakeWordDetector", "DETECTED in final: $finalJson")
+                                showToast("Wake word detected!")
                                 triggerWakeWord()
                                 continue
                             }
