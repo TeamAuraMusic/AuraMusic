@@ -45,9 +45,10 @@ class VoiceFeedbackManager @Inject constructor(
         
         tts = TextToSpeech(context) { status ->
             if (status == TextToSpeech.SUCCESS) {
-                // Detect available English voices
+                // Detect available English voices - limit to main 5 locales
+                val mainEnglishLocales = listOf(Locale.US, Locale.UK, Locale.CANADA, Locale("en", "AU"), Locale("en", "IN"))
                 availableVoices = tts?.voices?.filter { voice ->
-                    voice.locale.language == "en"
+                    voice.locale.language == "en" && mainEnglishLocales.any { it.language == voice.locale.language && it.country == voice.locale.country }
                 }?.sortedBy { it.locale.displayName } ?: emptyList()
                 
                 // Load saved voice preference
@@ -127,6 +128,13 @@ class VoiceFeedbackManager @Inject constructor(
                 } else {
                     @Suppress("DEPRECATION")
                     tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null)
+                    // For older APIs, just restore after a short delay
+                    scope.launch {
+                        delay(3000)
+                        restoreMusicVolume()
+                        isSpeaking = false
+                        onComplete?.invoke()
+                    }
                 }
             } catch (e: Exception) {
                 android.util.Log.e("VoiceFeedbackManager", "Speech error", e)
