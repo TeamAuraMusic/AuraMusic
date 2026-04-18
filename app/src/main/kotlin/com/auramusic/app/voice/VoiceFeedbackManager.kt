@@ -49,7 +49,9 @@ class VoiceFeedbackManager @Inject constructor(
                 val mainEnglishLocales = listOf(Locale.US, Locale.UK, Locale.CANADA, Locale("en", "AU"), Locale("en", "IN"))
                 availableVoices = tts?.voices?.filter { voice ->
                     voice.locale.language == "en" && mainEnglishLocales.any { it.language == voice.locale.language && it.country == voice.locale.country }
-                }?.sortedBy { it.locale.displayName } ?: emptyList()
+                }?.sortedBy { it.locale.displayName }
+                    ?.distinctBy { it.locale.displayName }
+                    ?: emptyList()
                 
                 // Load saved voice preference
                 val prefs = context.getSharedPreferences(PREFS_NAME, Service.MODE_PRIVATE)
@@ -210,9 +212,15 @@ class VoiceFeedbackManager @Inject constructor(
     private fun lowerMusicVolume() {
         try {
             val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-            originalMusicVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
-            // Reduce volume to 30%
-            val reducedVolume = (originalMusicVolume * 0.3f).toInt().coerceAtLeast(0)
+            val currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+            // Only duck if volume is meaningful; skip if stream is muted/very low
+            // to avoid saving a muted state as the "original" volume
+            if (currentVolume <= 1) {
+                originalMusicVolume = -1 // sentinel: do not restore
+                return
+            }
+            originalMusicVolume = currentVolume
+            val reducedVolume = (originalMusicVolume * 0.3f).toInt().coerceAtLeast(1)
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, reducedVolume, 0)
             android.util.Log.d("VoiceFeedbackManager", "Music volume lowered from $originalMusicVolume to $reducedVolume")
         } catch (e: Exception) {
@@ -222,6 +230,7 @@ class VoiceFeedbackManager @Inject constructor(
 
     private fun restoreMusicVolume() {
         try {
+            if (originalMusicVolume < 0) return // was not ducked
             val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, originalMusicVolume, 0)
             android.util.Log.d("VoiceFeedbackManager", "Music volume restored to $originalMusicVolume")

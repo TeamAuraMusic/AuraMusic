@@ -179,6 +179,7 @@ class VoiceCommandManager @Inject constructor(
 
         override fun onError(error: Int) {
             _isListening.value = false
+            enableSystemSoundEffects()
             val recoverable = error in listOf(
                 SpeechRecognizer.ERROR_NO_MATCH,
                 SpeechRecognizer.ERROR_SPEECH_TIMEOUT,
@@ -202,6 +203,7 @@ class VoiceCommandManager @Inject constructor(
 
         override fun onResults(results: Bundle?) {
             _isListening.value = false
+            enableSystemSoundEffects()
             val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
             val text = matches?.firstOrNull() ?: ""
             _events.tryEmit(VoiceRecognitionEvent.FinalText(text))
