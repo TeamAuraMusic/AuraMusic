@@ -23,12 +23,13 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-@HiltViewModel
-class VoiceCommandViewModel @Inject constructor(
-    private val voiceCommandManager: VoiceCommandManager,
-    @ApplicationContext private val context: Context,
-    private val wakeWordDetector: VoskWakeWordDetector,
-) : ViewModel() {
+    @HiltViewModel
+    class VoiceCommandViewModel @Inject constructor(
+        private val voiceCommandManager: VoiceCommandManager,
+        @ApplicationContext private val context: Context,
+        private val wakeWordDetector: VoskWakeWordDetector,
+        private val voiceFeedbackManager: VoiceFeedbackManager,
+    ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(VoiceUiState())
     val uiState: StateFlow<VoiceUiState> = _uiState.asStateFlow()
@@ -52,6 +53,8 @@ class VoiceCommandViewModel @Inject constructor(
     init {
         observePreferences()
         collectRecognitionEvents()
+        // Initialize voice feedback manager
+        voiceFeedbackManager.initialize()
     }
 
     fun bindHandlers(
@@ -242,6 +245,8 @@ class VoiceCommandViewModel @Inject constructor(
             }
             processCommand(remainingText)
         } else {
+            // Greet user and wait for command
+            voiceFeedbackManager.speak("Hello! How can I help you today?")
             _uiState.update {
                 VoiceUiState(
                     isVisible = true,
@@ -301,7 +306,6 @@ class VoiceCommandViewModel @Inject constructor(
                 if (consecutiveErrors < maxConsecutiveErrors) {
                     scheduleWakeWordRestart()
                 }
-                // If too many errors, stop trying — user can re-trigger via button
             }
             return
         }
@@ -318,11 +322,14 @@ class VoiceCommandViewModel @Inject constructor(
             _uiState.update {
                 it.copy(phase = VoicePhase.ERROR, errorMessage = errorMsg)
             }
+            voiceFeedbackManager.speak(errorMsg)
             scheduleOverlayDismiss()
         } else {
+            val errorMsg = event.message
             _uiState.update {
-                it.copy(phase = VoicePhase.ERROR, errorMessage = event.message)
+                it.copy(phase = VoicePhase.ERROR, errorMessage = errorMsg)
             }
+            voiceFeedbackManager.speak(errorMsg)
             scheduleOverlayDismiss()
         }
     }
@@ -343,12 +350,14 @@ class VoiceCommandViewModel @Inject constructor(
                 }
 
                 is VoiceCommand.Unknown -> {
+                    val feedback = "I didn't understand that"
                     _uiState.update {
                         it.copy(
                             phase = VoicePhase.FEEDBACK,
-                            feedbackText = "I didn't understand: \"$text\"",
+                            feedbackText = feedback,
                         )
                     }
+                    voiceFeedbackManager.speak(feedback)
                     scheduleOverlayDismiss()
                 }
 
@@ -365,6 +374,8 @@ class VoiceCommandViewModel @Inject constructor(
                             feedbackText = feedback,
                         )
                     }
+                    // Speak feedback result
+                    voiceFeedbackManager.speak(feedback)
                     scheduleOverlayDismiss()
                 }
             }
@@ -427,5 +438,6 @@ class VoiceCommandViewModel @Inject constructor(
         super.onCleared()
         stopEverything()
         voiceCommandManager.destroy()
+        voiceFeedbackManager.shutdown()
     }
 }
