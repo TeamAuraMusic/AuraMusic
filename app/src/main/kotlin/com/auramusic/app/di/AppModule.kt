@@ -6,6 +6,7 @@
 package com.auramusic.app.di
 
 import android.content.Context
+import android.content.Context
 import androidx.media3.database.DatabaseProvider
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
@@ -27,11 +28,19 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import com.auramusic.app.voice.VoiceFeedbackManager
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
+
+    @Provides
+    @Singleton
+    fun provideVoiceFeedbackManager(
+        @ApplicationContext context: Context,
+    ): VoiceFeedbackManager = VoiceFeedbackManager(context)
+}
 
     @Provides
     @Singleton
