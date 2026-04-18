@@ -7,7 +7,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.speech.tts.TextToSpeech
-import android.speech.tts.TextToSpeech.OnUtteranceProgressListener
+import android.speech.tts.UtteranceProgressListener
 import android.speech.tts.Voice
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
@@ -101,7 +101,7 @@ class VoiceFeedbackManager @Inject constructor(
                     tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
                     
                     // Set listener to know when done (API 21+)
-                    tts?.setOnUtteranceProgressListener(object : OnUtteranceProgressListener {
+                    tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                         override fun onStart(utteranceId: String?) {
                             // Started speaking
                         }
