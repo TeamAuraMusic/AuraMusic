@@ -330,7 +330,7 @@ class CastConnectionHandler(
     }
     
     fun loadCurrentMedia() {
-        val metadata = musicServiceImpl?.currentMediaMetadata.value ?: return
+        val metadata = musicServiceImpl?.currentMediaMetadata?.value ?: return
         loadMediaWithQueue(metadata)
     }
     
