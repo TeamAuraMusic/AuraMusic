@@ -3373,7 +3373,7 @@ class MusicService :
     private fun initializeCast() {
         if (dataStore.get(com.auramusic.app.constants.EnableGoogleCastKey, true)) {
             try {
-                castConnectionHandler = CastConnectionHandler(this, scope, null)
+                castConnectionHandler = CastConnectionHandler(this, scope, this)
                 castConnectionHandler?.initialize()
                 timber.log.Timber.d("Google Cast initialized")
             } catch (e: Exception) {

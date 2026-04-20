@@ -18,6 +18,7 @@ import com.google.android.gms.cast.framework.SessionManager
 import com.google.android.gms.cast.framework.SessionManagerListener
 import com.google.android.gms.cast.framework.media.RemoteMediaClient
 import com.google.android.gms.common.images.WebImage
+import com.auramusic.app.extensions.metadata
 import com.auramusic.app.models.MediaMetadata as AppMediaMetadata
 import com.auramusic.app.ui.utils.resize
 import kotlinx.coroutines.CoroutineScope
@@ -35,7 +36,7 @@ import timber.log.Timber
 class CastConnectionHandler(
     private val context: Context,
     private val scope: CoroutineScope,
-    private val musicService: MusicService
+    private val musicService: Any? = null
 ) {
     private var castContext: CastContext? = null
     private var sessionManager: SessionManager? = null
@@ -64,6 +65,9 @@ class CastConnectionHandler(
     
     private val _castVolume = MutableStateFlow(1.0f)
     val castVolume: StateFlow<Float> = _castVolume.asStateFlow()
+    
+    private val musicServiceImpl: MusicService?
+        get() = musicService as? MusicService
     
     private var positionUpdateJob: Job? = null
     private var currentMediaId: String? = null
@@ -116,7 +120,7 @@ class CastConnectionHandler(
             syncResetJob?.cancel()
             isSyncingFromCast = true
             
-            val player = musicService.player
+            val player = musicServiceImpl?.player
             val playerItemCount = player.mediaItemCount
             
             for (i in 0 until playerItemCount) {
@@ -167,7 +171,7 @@ class CastConnectionHandler(
                 
                 var lastLocalIndex = -1
                 for (i in 0 until playerItemCount) {
-                    if (musicService.player.getMediaItemAt(i).mediaId == lastMediaId) {
+                    if (musicServiceImpl?.player.getMediaItemAt(i).mediaId == lastMediaId) {
                         lastLocalIndex = i
                         break
                     }
@@ -178,7 +182,7 @@ class CastConnectionHandler(
                     val addCount = minOf(2, playerItemCount - lastLocalIndex - 1)
                     
                     for (i in 1..addCount) {
-                        val nextItem = musicService.player.getMediaItemAt(lastLocalIndex + i)
+                        val nextItem = musicServiceImpl?.player.getMediaItemAt(lastLocalIndex + i)
                         nextItem.metadata?.let { metadata ->
                             buildMediaInfo(metadata)?.let { mediaInfo ->
                                 itemsToAdd.add(MediaQueueItem.Builder(mediaInfo).build())
@@ -232,7 +236,7 @@ class CastConnectionHandler(
         override fun onSessionEnding(session: CastSession) {
             val castPosition = remoteMediaClient?.approximateStreamPosition ?: _castPosition.value
             if (castPosition > 0) {
-                musicService.player.seekTo(castPosition)
+                musicServiceImpl?.player.seekTo(castPosition)
             }
         }
         
@@ -248,7 +252,7 @@ class CastConnectionHandler(
             
             stopPositionUpdates()
             
-            musicService.player.pause()
+            musicServiceImpl?.player.pause()
         }
         
         override fun onSessionResuming(session: CastSession, sessionId: String) {
@@ -321,7 +325,7 @@ class CastConnectionHandler(
     }
     
     fun loadCurrentMedia() {
-        val metadata = musicService.currentMediaMetadata.value ?: return
+        val metadata = musicServiceImpl?.currentMediaMetadata.value ?: return
         loadMediaWithQueue(metadata)
     }
     
@@ -330,7 +334,7 @@ class CastConnectionHandler(
     }
     
     private suspend fun buildMediaInfo(metadata: AppMediaMetadata): MediaInfo? {
-        val streamUrl = musicService.getStreamUrl(metadata.id) ?: return null
+        val streamUrl = musicServiceImpl?.getStreamUrl(metadata.id) ?: return null
         
         val castMetadata = MediaMetadata(MediaMetadata.MEDIA_TYPE_MUSIC_TRACK).apply {
             putString(MediaMetadata.KEY_TITLE, metadata.title)
@@ -359,7 +363,7 @@ class CastConnectionHandler(
                 currentMediaId = metadata.id
                 lastCastItemId = -1
                 
-                val player = musicService.player
+                val player = musicServiceImpl?.player
                 val currentIndex = player.currentMediaItemIndex
                 val mediaItemCount = player.mediaItemCount
                 val shuffleEnabled = player.shuffleModeEnabled
@@ -424,7 +428,7 @@ class CastConnectionHandler(
                         org.json.JSONObject()
                     )
                     
-                    musicService.player.pause()
+                    musicServiceImpl?.player.pause()
                 }
                 
                 delay(1500)
@@ -482,7 +486,7 @@ class CastConnectionHandler(
         
         if (targetIndex == currentIndex) {
             currentMediaId = mediaId
-            musicService.player.pause()
+            musicServiceImpl?.player.pause()
             return true
         }
         
@@ -490,7 +494,7 @@ class CastConnectionHandler(
         
         isSyncingFromCast = true
         
-        val player = musicService.player
+        val player = musicServiceImpl?.player
         for (i in 0 until player.mediaItemCount) {
             if (player.getMediaItemAt(i).mediaId == mediaId) {
                 player.seekTo(i, 0)
@@ -519,12 +523,12 @@ class CastConnectionHandler(
             val currentIndex = queueItems.indexOfFirst { it.itemId == currentItemId }
             if (currentIndex >= 0 && currentIndex < queueItems.size - 1) {
                 client.queueNext(org.json.JSONObject())
-                musicService.player.pause()
+                musicServiceImpl?.player.pause()
                 return
             }
         }
         
-        val player = musicService.player
+        val player = musicServiceImpl?.player
         if (player.hasNextMediaItem()) {
             player.pause()
             player.seekToNextMediaItem()
@@ -540,12 +544,12 @@ class CastConnectionHandler(
             val currentIndex = queueItems.indexOfFirst { it.itemId == currentItemId }
             if (currentIndex > 0) {
                 client.queuePrev(org.json.JSONObject())
-                musicService.player.pause()
+                musicServiceImpl?.player.pause()
                 return
             }
         }
         
-        val player = musicService.player
+        val player = musicServiceImpl?.player
         if (player.hasPreviousMediaItem()) {
             player.pause()
             player.seekToPreviousMediaItem()
