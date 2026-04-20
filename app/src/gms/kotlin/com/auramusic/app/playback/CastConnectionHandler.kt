@@ -69,6 +69,9 @@ class CastConnectionHandler(
     private val musicServiceImpl: MusicService?
         get() = musicService as? MusicService
     
+    private val player: Player?
+        get() = player
+    
     private var positionUpdateJob: Job? = null
     private var currentMediaId: String? = null
     private var lastCastItemId: Int = -1
@@ -120,15 +123,15 @@ class CastConnectionHandler(
             syncResetJob?.cancel()
             isSyncingFromCast = true
             
-            val player = musicServiceImpl?.player
-            val playerItemCount = player.mediaItemCount
+            val currentPlayer = player ?: return
+            val playerItemCount = currentPlayer.mediaItemCount
             
             for (i in 0 until playerItemCount) {
-                val mediaItem = player.getMediaItemAt(i)
+                val mediaItem = currentPlayer.getMediaItemAt(i)
                 if (mediaItem.mediaId == castMediaId) {
-                    player.pause()
-                    player.seekTo(i, 0)
-                    player.pause()
+                    currentPlayer.pause()
+                    currentPlayer.seekTo(i, 0)
+                    currentPlayer.pause()
                     
                     val itemsAhead = queueItems.size - 1 - currentIndex
                     val itemsBehind = currentIndex
@@ -163,6 +166,8 @@ class CastConnectionHandler(
         
         isReloadingQueue = true
         
+        val currentPlayer = player ?: return
+        
         try {
             val itemsAhead = currentCastQueue.size - 1 - currentCastIndex
             if (itemsAhead < 2) {
@@ -171,7 +176,7 @@ class CastConnectionHandler(
                 
                 var lastLocalIndex = -1
                 for (i in 0 until playerItemCount) {
-                    if (musicServiceImpl?.player.getMediaItemAt(i).mediaId == lastMediaId) {
+                    if (currentPlayer.getMediaItemAt(i).mediaId == lastMediaId) {
                         lastLocalIndex = i
                         break
                     }
@@ -182,7 +187,7 @@ class CastConnectionHandler(
                     val addCount = minOf(2, playerItemCount - lastLocalIndex - 1)
                     
                     for (i in 1..addCount) {
-                        val nextItem = musicServiceImpl?.player.getMediaItemAt(lastLocalIndex + i)
+                        val nextItem = currentPlayer.getMediaItemAt(lastLocalIndex + i)
                         nextItem.metadata?.let { metadata ->
                             buildMediaInfo(metadata)?.let { mediaInfo ->
                                 itemsToAdd.add(MediaQueueItem.Builder(mediaInfo).build())
@@ -236,7 +241,7 @@ class CastConnectionHandler(
         override fun onSessionEnding(session: CastSession) {
             val castPosition = remoteMediaClient?.approximateStreamPosition ?: _castPosition.value
             if (castPosition > 0) {
-                musicServiceImpl?.player.seekTo(castPosition)
+                player?.seekTo(castPosition)
             }
         }
         
@@ -250,9 +255,9 @@ class CastConnectionHandler(
             remoteMediaClient?.unregisterCallback(remoteMediaClientCallback)
             remoteMediaClient = null
             
-            stopPositionUpdates()
+            player?.pause()
             
-            musicServiceImpl?.player.pause()
+            stopPositionUpdates()
         }
         
         override fun onSessionResuming(session: CastSession, sessionId: String) {
@@ -363,11 +368,11 @@ class CastConnectionHandler(
                 currentMediaId = metadata.id
                 lastCastItemId = -1
                 
-                val player = musicServiceImpl?.player
-                val currentIndex = player.currentMediaItemIndex
-                val mediaItemCount = player.mediaItemCount
-                val shuffleEnabled = player.shuffleModeEnabled
-                val timeline = player.currentTimeline
+                val currentPlayer = player ?: return@launch
+                val currentIndex = currentPlayer.currentMediaItemIndex
+                val mediaItemCount = currentPlayer.mediaItemCount
+                val shuffleEnabled = currentPlayer.shuffleModeEnabled
+                val timeline = currentPlayer.currentTimeline
                 
                 val queueItems = mutableListOf<MediaQueueItem>()
                 
@@ -377,7 +382,7 @@ class CastConnectionHandler(
                     for (i in 0 until 2) {
                         prevIdx = timeline.getPreviousWindowIndex(prevIdx, Player.REPEAT_MODE_OFF, shuffleEnabled)
                         if (prevIdx == androidx.media3.common.C.INDEX_UNSET) break
-                        prevItems.add(0, player.getMediaItemAt(prevIdx))
+                        prevItems.add(0, currentPlayer.getMediaItemAt(prevIdx))
                     }
                 }
                 
@@ -402,7 +407,7 @@ class CastConnectionHandler(
                     for (i in 0 until 2) {
                         nextIdx = timeline.getNextWindowIndex(nextIdx, Player.REPEAT_MODE_OFF, shuffleEnabled)
                         if (nextIdx == androidx.media3.common.C.INDEX_UNSET) break
-                        val nextItem = player.getMediaItemAt(nextIdx)
+                        val nextItem = currentPlayer.getMediaItemAt(nextIdx)
                         nextItem.metadata?.let { nextMetadata ->
                             buildMediaInfo(nextMetadata)?.let { mediaInfo ->
                                 queueItems.add(MediaQueueItem.Builder(mediaInfo).build())
@@ -411,8 +416,8 @@ class CastConnectionHandler(
                     }
                 }
                 
-                val startPosition = if (player.currentMediaItem?.mediaId == metadata.id) {
-                    player.currentPosition
+                val startPosition = if (currentPlayer.currentMediaItem?.mediaId == metadata.id) {
+                    currentPlayer.currentPosition
                 } else {
                     0L
                 }
@@ -428,7 +433,7 @@ class CastConnectionHandler(
                         org.json.JSONObject()
                     )
                     
-                    musicServiceImpl?.player.pause()
+                    currentPlayer.pause()
                 }
                 
                 delay(1500)
@@ -484,9 +489,11 @@ class CastConnectionHandler(
         val currentItemId = mediaStatus.currentItemId
         val currentIndex = queueItems.indexOfFirst { it.itemId == currentItemId }
         
+        val currentPlayer = player ?: return false
+        
         if (targetIndex == currentIndex) {
             currentMediaId = mediaId
-            musicServiceImpl?.player.pause()
+            currentPlayer.pause()
             return true
         }
         
@@ -494,14 +501,13 @@ class CastConnectionHandler(
         
         isSyncingFromCast = true
         
-        val player = musicServiceImpl?.player
-        for (i in 0 until player.mediaItemCount) {
-            if (player.getMediaItemAt(i).mediaId == mediaId) {
-                player.seekTo(i, 0)
+        for (i in 0 until currentPlayer.mediaItemCount) {
+            if (currentPlayer.getMediaItemAt(i).mediaId == mediaId) {
+                currentPlayer.seekTo(i, 0)
                 break
             }
         }
-        player.pause()
+        currentPlayer.pause()
         
         client.queueJumpToItem(targetItem.itemId, org.json.JSONObject())
         currentMediaId = mediaId
@@ -523,15 +529,15 @@ class CastConnectionHandler(
             val currentIndex = queueItems.indexOfFirst { it.itemId == currentItemId }
             if (currentIndex >= 0 && currentIndex < queueItems.size - 1) {
                 client.queueNext(org.json.JSONObject())
-                musicServiceImpl?.player.pause()
+                player?.pause()
                 return
             }
         }
         
-        val player = musicServiceImpl?.player
-        if (player.hasNextMediaItem()) {
-            player.pause()
-            player.seekToNextMediaItem()
+        val currentPlayer = player ?: return
+        if (currentPlayer.hasNextMediaItem()) {
+            currentPlayer.pause()
+            currentPlayer.seekToNextMediaItem()
         }
     }
     
@@ -544,15 +550,15 @@ class CastConnectionHandler(
             val currentIndex = queueItems.indexOfFirst { it.itemId == currentItemId }
             if (currentIndex > 0) {
                 client.queuePrev(org.json.JSONObject())
-                musicServiceImpl?.player.pause()
+                player?.pause()
                 return
             }
         }
         
-        val player = musicServiceImpl?.player
-        if (player.hasPreviousMediaItem()) {
-            player.pause()
-            player.seekToPreviousMediaItem()
+        val currentPlayer = player
+        if (currentPlayer?.hasPreviousMediaItem() == true) {
+            currentPlayer.pause()
+            currentPlayer.seekToPreviousMediaItem()
         }
     }
     
