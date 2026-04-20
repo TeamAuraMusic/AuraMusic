@@ -203,7 +203,7 @@ Join our community on social media - more platforms coming soon!
 - [**AuraMusicServer**](https://github.com/TeamAuraMusic/AuraMusicServer) – Listen together implementation
 - [**MusicRecognizer**](https://github.com/aleksey-saenko/MusicRecognizer) – Music recognition and Shazam API
 - [**Flow**](https://github.com/A-EDev/Flow) - Extract videos from YouTube 
-- [**VOSK**](https://github.com/alphacephei/vosk-android) - Offline wake word recognition
+- [**Vosk**](https://github.com/alphacep/vosk-api) - Offline wake word recognition
 
 The open-source community for tools, libraries, and APIs that make this project possible.
 
