@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 class CastConnectionHandler(
     private val context: Context,
     private val scope: CoroutineScope,
-    private val listener: CastConnectionListener?
+    private val listener: Any? = null
 ) {
     val isCasting: StateFlow<Boolean> = MutableStateFlow(false)
     val isConnecting: StateFlow<Boolean> = MutableStateFlow(false)
@@ -44,11 +44,4 @@ class CastConnectionHandler(
     fun loadMedia(metadata: MediaMetadata) {}
 
     fun disconnect() {}
-
-    interface CastConnectionListener {
-        fun onConnected()
-        fun onDisconnected()
-        fun onPlaybackChanged(isPlaying: Boolean)
-        fun onMetadataChanged(title: String, artist: String, album: String?)
-    }
 }
