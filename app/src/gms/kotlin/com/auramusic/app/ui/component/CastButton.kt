@@ -61,6 +61,7 @@ fun CastButton(
     
     val currentMetadata by playerConnection?.mediaMetadata?.collectAsState() ?: remember { mutableStateOf(null) }
 
+    // Initialize Cast when enableGoogleCast changes
     LaunchedEffect(enableGoogleCast) {
         if (!enableGoogleCast) {
             if (isCasting) {
@@ -73,36 +74,46 @@ fun CastButton(
             return@LaunchedEffect
         }
         try {
-            CastContext.getSharedInstance(context)
+            val castContext = CastContext.getSharedInstance(context)
+            Timber.d("CastContext initialized: $castContext")
+            
             mediaRouter = MediaRouter.getInstance(context)
+            Timber.d("MediaRouter initialized: $mediaRouter")
+            
             routeSelector = MediaRouteSelector.Builder()
                 .addControlCategory(CastMediaControlIntent.categoryForCast(CastMediaControlIntent.DEFAULT_MEDIA_RECEIVER_APPLICATION_ID))
                 .build()
+            
             playerConnection?.service?.castConnectionHandler?.initialize()
             castAvailable = true
+            Timber.d("Cast is available")
         } catch (e: Exception) {
-            Timber.d("Cast not available: ${e.message}")
+            Timber.e(e, "Cast not available: ${e.message}")
             castAvailable = false
         }
     }
-    
+
     DisposableEffect(mediaRouter, routeSelector) {
         val callback = object : MediaRouter.Callback() {
             override fun onRouteAdded(router: MediaRouter, route: MediaRouter.RouteInfo) {
+                Timber.d("Route added: ${route.name}")
                 updateRoutes(router, routeSelector) { availableRoutes = it }
             }
             
             override fun onRouteRemoved(router: MediaRouter, route: MediaRouter.RouteInfo) {
+                Timber.d("Route removed: ${route.name}")
                 updateRoutes(router, routeSelector) { availableRoutes = it }
             }
             
             override fun onRouteChanged(router: MediaRouter, route: MediaRouter.RouteInfo) {
+                Timber.d("Route changed: ${route.name}")
                 updateRoutes(router, routeSelector) { availableRoutes = it }
             }
         }
         
         routeSelector?.let { selector ->
-            mediaRouter?.addCallback(selector, callback, MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY)
+            mediaRouter?.addCallback(selector, callback, MediaRouter.CALLBACK_FLAG_PERFORM_DISCOVERY)
+            // Get initial routes
             updateRoutes(mediaRouter, selector) { availableRoutes = it }
         }
         
@@ -185,6 +196,10 @@ private fun updateRoutes(
     }
     val routes = router.routes.filter { route ->
         route.matchesSelector(selector) && !route.isDefault
+    }
+    Timber.d("Found ${routes.size} routes")
+    routes.forEach { route ->
+        Timber.d("Route: ${route.name}, id: ${route.id}, isSelected: ${route.isSelected}")
     }
     onUpdate(routes)
 }
