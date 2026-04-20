@@ -4,15 +4,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -35,6 +29,7 @@ import androidx.mediarouter.media.MediaRouter
 import com.google.android.gms.cast.CastMediaControlIntent
 import com.google.android.gms.cast.framework.CastContext
 import com.auramusic.app.LocalPlayerConnection
+import com.auramusic.app.ui.component.LocalMenuState
 import com.auramusic.app.R
 import com.auramusic.app.constants.EnableGoogleCastKey
 import com.auramusic.app.utils.rememberPreference
@@ -47,12 +42,12 @@ fun CastButton(
 ) {
     val context = LocalContext.current
     val playerConnection = LocalPlayerConnection.current
+    val menuState = LocalMenuState.current
     
     var castAvailable by remember { mutableStateOf(false) }
     var mediaRouter by remember { mutableStateOf<MediaRouter?>(null) }
     var routeSelector by remember { mutableStateOf<MediaRouteSelector?>(null) }
     var availableRoutes by remember { mutableStateOf<List<MediaRouter.RouteInfo>>(emptyList()) }
-    var showCastDialog by remember { mutableStateOf(false) }
     
     val (enableGoogleCast) = rememberPreference(
         key = EnableGoogleCastKey,
@@ -141,7 +136,27 @@ fun CastButton(
                     .align(Alignment.Center)
                     .clip(RoundedCornerShape(20.dp))
                     .clickable {
-                        showCastDialog = true
+                        val currentRoute = if (isCasting) {
+                            mediaRouter?.routes?.find { route ->
+                                routeSelector?.let { selector -> 
+                                    route.matchesSelector(selector) && route.isSelected
+                                } == true
+                            }
+                        } else null
+
+                        menuState.show {
+                            CastPickerSheet(
+                                routes = availableRoutes,
+                                isConnecting = isConnecting,
+                                currentlyConnectedRoute = currentRoute,
+                                onRouteSelected = { route ->
+                                    castHandler?.connectToRoute(route)
+                                },
+                                onDisconnect = {
+                                    castHandler?.disconnect()
+                                }
+                            )
+                        }
                     }
             ) {
                 Image(
@@ -156,32 +171,6 @@ fun CastButton(
                 )
             }
         }
-    }
-    
-    // Cast device selection dialog
-    if (showCastDialog) {
-        val currentRoute = if (isCasting) {
-            mediaRouter?.routes?.find { route ->
-                routeSelector?.let { selector -> 
-                    route.matchesSelector(selector) && route.isSelected
-                } == true
-            }
-        } else null
-
-        CastDeviceDialog(
-            routes = availableRoutes,
-            isConnecting = isConnecting,
-            currentlyConnectedRoute = currentRoute,
-            onRouteSelected = { route ->
-                castHandler?.connectToRoute(route)
-                showCastDialog = false
-            },
-            onDisconnect = {
-                castHandler?.disconnect()
-                showCastDialog = false
-            },
-            onDismiss = { showCastDialog = false }
-        )
     }
 }
 
@@ -198,80 +187,4 @@ private fun updateRoutes(
         route.matchesSelector(selector) && !route.isDefault
     }
     onUpdate(routes)
-}
-
-@Composable
-private fun CastDeviceDialog(
-    routes: List<MediaRouter.RouteInfo>,
-    isConnecting: Boolean,
-    currentlyConnectedRoute: MediaRouter.RouteInfo?,
-    onRouteSelected: (MediaRouter.RouteInfo) -> Unit,
-    onDisconnect: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    if (isConnecting) {
-        AlertDialog(
-            onDismissRequest = onDismiss,
-            title = { Text("Connecting...") },
-            text = { Text("Looking for Cast devices...") },
-            confirmButton = {
-                TextButton(onClick = onDismiss) {
-                    Text("Cancel")
-                }
-            }
-        )
-        return
-    }
-    
-    if (currentlyConnectedRoute != null) {
-        AlertDialog(
-            onDismissRequest = onDismiss,
-            title = { Text("Stop Casting?") },
-            text = { Text("Disconnect from ${currentlyConnectedRoute.name}?") },
-            confirmButton = {
-                TextButton(onClick = onDisconnect) {
-                    Text("Stop")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = onDismiss) {
-                    Text("Cancel")
-                }
-            }
-        )
-    } else if (routes.isNotEmpty()) {
-        AlertDialog(
-            onDismissRequest = onDismiss,
-            title = { Text("Select Cast Device") },
-            text = {
-                Column {
-                    routes.forEach { route ->
-                        TextButton(
-                            onClick = { onRouteSelected(route) },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(route.name ?: "Unknown Device")
-                        }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(onClick = onDismiss) {
-                    Text("Cancel")
-                }
-            }
-        )
-    } else {
-        AlertDialog(
-            onDismissRequest = onDismiss,
-            title = { Text("No Devices Found") },
-            text = { Text("Make sure your Cast device is powered on and on the same network.") },
-            confirmButton = {
-                TextButton(onClick = onDismiss) {
-                    Text("OK")
-                }
-            }
-        )
-    }
 }
