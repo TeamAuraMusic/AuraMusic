@@ -52,6 +52,9 @@ class WakeWordService : Service() {
         super.onCreate()
         instance = this
         createNotificationChannel()
+        // Must call startForeground() immediately in onCreate() when started via
+        // startForegroundService() to avoid ForegroundServiceDidNotStartInTimeException
+        startForeground(NOTIFICATION_ID, buildNotification())
         
         wakeWordDetector.setOnWakeWordDetectedListener {
             android.util.Log.d("WakeWordService", "Wake word callback fired, forwarding to VoiceCommandManager")

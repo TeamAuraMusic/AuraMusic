@@ -246,6 +246,8 @@
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="com.auramusic.app.widget.PLAY_PAUSE" />
                 <action android:name="com.auramusic.app.widget.LIKE" />
+                <action android:name="com.auramusic.app.widget.NEXT" />
+                <action android:name="com.auramusic.app.widget.PREVIOUS" />
                 <action android:name="com.auramusic.app.widget.UPDATE_WIDGET" />
             </intent-filter>
 
@@ -262,6 +264,8 @@
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="com.auramusic.app.widget.TURNTABLE_PLAY_PAUSE" />
+                <action android:name="com.auramusic.app.widget.TURNTABLE_NEXT" />
+                <action android:name="com.auramusic.app.widget.TURNTABLE_PREVIOUS" />
                 <action android:name="com.auramusic.app.widget.TURNTABLE_LIKE" />
                 <action android:name="com.auramusic.app.widget.UPDATE_TURNTABLE_WIDGET" />
             </intent-filter>
@@ -279,6 +283,8 @@
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="com.auramusic.app.widget.COMPACT_SQUARE_PLAY_PAUSE" />
+                <action android:name="com.auramusic.app.widget.COMPACT_SQUARE_PREVIOUS" />
+                <action android:name="com.auramusic.app.widget.COMPACT_SQUARE_NEXT" />
                 <action android:name="com.auramusic.app.widget.COMPACT_SQUARE_UPDATE" />
             </intent-filter>
 

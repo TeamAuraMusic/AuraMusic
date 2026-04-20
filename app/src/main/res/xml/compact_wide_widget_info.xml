@@ -14,5 +14,6 @@
     android:previewLayout="@layout/widget_compact_wide"
     android:description="@string/widget_compact_wide_desc"
     android:targetCellWidth="4"
-    android:targetCellHeight="1">
+    android:targetCellHeight="1"
+    android:widgetFeatures="reconfigurable|configuration_optional">
 </appwidget-provider>

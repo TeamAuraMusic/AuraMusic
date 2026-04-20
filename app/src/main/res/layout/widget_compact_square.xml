@@ -27,17 +27,25 @@
             android:layout_height="28dp"
             android:background="@drawable/widget_button_bg"
             android:padding="4dp"
+            android:clickable="true"
             android:src="@drawable/ic_widget_skip_previous" />
 
-        <ImageView
-            android:id="@+id/widget_compact_play_pause"
+        <FrameLayout
+            android:id="@+id/widget_compact_play_container"
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp"
-            android:background="@drawable/widget_button_bg"
-            android:padding="4dp"
-            android:src="@drawable/ic_widget_play_low" />
+            android:layout_marginEnd="8dp">
+
+            <ImageView
+                android:id="@+id/widget_compact_play_pause"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/widget_button_bg"
+                android:padding="4dp"
+                android:src="@drawable/ic_widget_play_low" />
+
+        </FrameLayout>
 
         <ImageView
             android:id="@+id/widget_compact_next"
@@ -45,13 +53,9 @@
             android:layout_height="28dp"
             android:background="@drawable/widget_button_bg"
             android:padding="4dp"
+            android:clickable="true"
             android:src="@drawable/ic_widget_skip_next" />
 
     </LinearLayout>
-
-    <FrameLayout
-        android:id="@+id/widget_compact_play_container"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
 
 </RelativeLayout>

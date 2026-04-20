@@ -14,5 +14,6 @@
     android:previewLayout="@layout/widget_compact_square"
     android:description="@string/widget_compact_square_desc"
     android:targetCellWidth="2"
-    android:targetCellHeight="2">
+    android:targetCellHeight="2"
+    android:widgetFeatures="reconfigurable|configuration_optional">
 </appwidget-provider>

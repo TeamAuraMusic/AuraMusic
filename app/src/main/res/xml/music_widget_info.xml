@@ -14,5 +14,6 @@
     android:previewLayout="@layout/widget_music_player"
     android:description="@string/widget_music_player_desc"
     android:targetCellWidth="4"
-    android:targetCellHeight="2">
+    android:targetCellHeight="2"
+    android:widgetFeatures="reconfigurable|configuration_optional">
 </appwidget-provider>
