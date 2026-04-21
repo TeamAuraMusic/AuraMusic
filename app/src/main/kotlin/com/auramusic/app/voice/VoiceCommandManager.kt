@@ -99,8 +99,6 @@ fun startListening(mode: RecognitionMode) {
                             // Longer silence timeouts so SpeechRecognizer waits for user to actually speak
                             putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 5000L)
                             putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 4000L)
-                            // Give user more time before initial speech timeout
-                            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 5000L)
                         }
                     }
                 }
