@@ -1933,12 +1933,13 @@ fun BottomSheetPlayer(
                                     modifier = Modifier.size(24.dp)
                                 )
                             }
-}
+                        }
                     }
                 }
             }
+        }
 
-            when (LocalConfiguration.current.orientation) {
+        when (LocalConfiguration.current.orientation) {
             Configuration.ORIENTATION_LANDSCAPE -> {
                 // Calculate vertical padding like OuterTune
                 val density = LocalDensity.current
