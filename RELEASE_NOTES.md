@@ -1,3 +1,57 @@
+# AuraMusic v2.1.0 (Build 18) Release Notes
+
+> [!WARNING]
+> When hands-free wake word is enabled, it may cause high battery drain, occasional false triggers during playback, and background microphone usage on Android 14+. Use with caution.
+
+## What's New
+- Major release with voice command improvements, Google Cast support, and widget redesigns
+- Added hands-free "Hey Aura" wake word detection using VOSK offline speech recognition
+- Added voice commands with interactive overlay and text-to-speech feedback
+- Added Google Cast support for GMS variant
+- Redesigned widgets with modern UI and full-cover album art
+- Improved voice command accuracy and wake word sensitivity
+- Fixed ANR issues and memory leaks in VOSK service
+
+### Hands-Free Wake Word Detection
+- Offline wake word detection using VOSK (no internet required)
+- Downloads ~40MB English model on first launch
+- Added audio filtering (AEC, noise suppression, RMS energy) to reduce false triggers
+- Lowered detection thresholds for maximum sensitivity
+- Auto-restarts after voice command execution
+
+### Voice Commands
+- Interactive overlay with wave animations (Siri/Gemini-like)
+- Text-to-Speech feedback with multi-voice selection and audio ducking
+- Commands: play, search, pause, skip, seek, shuffle, repeat, theme toggle, lyrics toggle, video toggle, downloads, speed control
+- Automatic volume restoration after voice commands
+
+### Google Cast Support (GMS variant only)
+- Added Cast device discovery and selection
+- Cast picker sheet for easy device selection
+- Compatible with Chromecast and smart TVs
+
+### Widget Redesigns
+- Modernized compact square, compact wide, and music player widgets
+- Increased compact square widget to 4x4 size
+- Added full-cover album art backgrounds
+- Removed turntable widget
+
+### Old Player Design Enhancements
+- Added sleep timer and lyrics buttons to queue bar
+- Added shuffle button with 4-dot animation
+- Added kebab menu with animations
+
+### Bug Fixes
+- Fixed ForegroundServiceDidNotStartInTimeException on Android 14+/SDK 36
+- Fixed ANR in VOSK native cleanup blocking main thread
+- Fixed security exception when starting microphone FGS from background on Android 14+
+- Fixed VOSK detector memory leaks
+- Fixed mic contention between wake word and voice recognition
+- Fixed TTS volume muting after voice commands
+- Fixed widget loading when service not running
+
+---
+
 # AuraMusic v2.0.0 (Build 17) Release Notes
 
 ## What's New
