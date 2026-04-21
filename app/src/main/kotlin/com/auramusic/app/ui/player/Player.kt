@@ -280,6 +280,7 @@ fun BottomSheetPlayer(
     val currentSong by playerConnection.currentSong.collectAsState(initial = null)
     val automix by playerConnection.service.automixItems.collectAsState()
     val repeatMode by playerConnection.repeatMode.collectAsState()
+    val shuffleModeEnabled by playerConnection.shuffleModeEnabled.collectAsState()
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
     val isMuted by playerConnection.isMuted.collectAsState()
@@ -1702,14 +1703,30 @@ fun BottomSheetPlayer(
                         ) {
                             Box(modifier = Modifier.weight(1f)) {
                                 ResizableIconButton(
+                                    icon = if (shuffleModeEnabled) R.drawable.shuffle_on else R.drawable.shuffle,
+                                    color = if (shuffleModeEnabled) MaterialTheme.colorScheme.primary else TextBackgroundColor,
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .padding(4.dp)
+                                        .align(Alignment.Center)
+                                        .alpha(if (isListenTogetherGuest) 0.5f else 1f),
+                                    enabled = !isListenTogetherGuest,
+                                    onClick = {
+                                        playerConnection.player.toggleShuffleModeEnabled()
+                                    }
+                                )
+                            }
+
+                            Box(modifier = Modifier.weight(1f)) {
+                                ResizableIconButton(
                                     icon = when (repeatMode) {
                                         Player.REPEAT_MODE_OFF, Player.REPEAT_MODE_ALL -> R.drawable.repeat
                                         Player.REPEAT_MODE_ONE -> R.drawable.repeat_one
                                         else -> throw IllegalStateException()
                                     },
-                                    color = TextBackgroundColor,
+                                    color = if (repeatMode != Player.REPEAT_MODE_OFF) MaterialTheme.colorScheme.primary else TextBackgroundColor,
                                     modifier = Modifier
-                                        .size(32.dp)
+                                        .size(28.dp)
                                         .padding(4.dp)
                                         .align(Alignment.Center)
                                         .alpha(if (isListenTogetherGuest) 0.5f else 1f),
@@ -1734,13 +1751,13 @@ fun BottomSheetPlayer(
                                 )
                             }
 
-                            Spacer(Modifier.width(8.dp))
+                            Spacer(Modifier.width(4.dp))
 
                             Box(
                                 modifier =
                                 Modifier
-                                    .size(72.dp)
-                                    .clip(RoundedCornerShape(playPauseRoundness))
+                                    .size(68.dp)
+                                    .clip(RoundedCornerShape(34.dp))
                                     .background(textButtonColor)
                                     .clickable {
                                         if (isListenTogetherGuest) {
@@ -1781,11 +1798,11 @@ fun BottomSheetPlayer(
                                     modifier =
                                     Modifier
                                         .align(Alignment.Center)
-                                        .size(36.dp),
+                                        .size(32.dp),
                                 )
                             }
 
-                            Spacer(Modifier.width(8.dp))
+                            Spacer(Modifier.width(4.dp))
 
                             Box(modifier = Modifier.weight(1f)) {
                                 ResizableIconButton(
@@ -1807,10 +1824,25 @@ fun BottomSheetPlayer(
                                     color = if (currentSong?.song?.liked == true) MaterialTheme.colorScheme.error else TextBackgroundColor,
                                     modifier =
                                     Modifier
-                                        .size(32.dp)
+                                        .size(28.dp)
                                         .padding(4.dp)
                                         .align(Alignment.Center),
                                     onClick = playerConnection::toggleLike,
+                                )
+                            }
+
+                            Box(modifier = Modifier.weight(1f)) {
+                                ResizableIconButton(
+                                    icon = R.drawable.queue_music,
+                                    color = TextBackgroundColor,
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .padding(4.dp)
+                                        .align(Alignment.Center),
+                                    onClick = {
+                                        // Expand queue - trigger queue sheet
+                                        queueSheetState.expand()
+                                    }
                                 )
                             }
                         }
