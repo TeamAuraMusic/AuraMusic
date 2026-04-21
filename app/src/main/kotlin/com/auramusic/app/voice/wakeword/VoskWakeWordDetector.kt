@@ -56,8 +56,8 @@ class VoskWakeWordDetector @Inject constructor(
         private const val MODEL_URL = "https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip"
         private const val WAKE_WORD = "aura"
         private const val WAKE_WORD_GRAMMAR = "[\"hey aura\", \"hello aura\", \"ok aura\", \"[unk]\"]"
-        private const val MIN_CONFIDENCE = 0.55f  // Minimum average confidence (0-1)
-        private const val MIN_RMS = 0.008f  // Minimum audio energy to trigger (0-1 normalized)
+        private const val MIN_CONFIDENCE = 0.30f  // Minimum average confidence (0-1)
+        private const val MIN_RMS = 0.001f  // Minimum audio energy to trigger (0-1 normalized)
     }
 
     private fun computeRMS(buffer: ShortArray, length: Int): Float {
