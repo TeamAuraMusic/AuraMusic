@@ -293,7 +293,7 @@ class AuraMusicWidgetManager @Inject constructor(
 
         // Set click intents
         views.setOnClickPendingIntent(R.id.widget_wide_album_art, getOpenAppIntent())
-        views.setOnClickPendingIntent(R.id.widget_wide_play_container, getPlayPauseIntent())
+        views.setOnClickPendingIntent(R.id.widget_wide_play_pause, getPlayPauseIntent())
         views.setOnClickPendingIntent(R.id.widget_wide_like_button, getLikeIntent())
 
         return views
