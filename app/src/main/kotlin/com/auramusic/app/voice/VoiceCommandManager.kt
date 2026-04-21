@@ -58,7 +58,7 @@ class VoiceCommandManager @Inject constructor(
         android.util.Log.d("VoiceCommandManager", "WakeWordDetected emitted=$emitted")
     }
 
-    fun startListening(mode: RecognitionMode) {
+fun startListening(mode: RecognitionMode) {
         if (!isAvailable()) {
             _events.tryEmit(VoiceRecognitionEvent.Error(-1, "Speech recognition not available", false))
             return
@@ -70,13 +70,18 @@ class VoiceCommandManager @Inject constructor(
             try {
                 // Disable system sound effects (like Google mic click sounds)
                 disableSystemSoundEffects()
-
+ 
                 // Destroy previous recognizer to avoid stale state
                 speechRecognizer?.destroy()
+                speechRecognizer = null
+                
+                // Small delay to prevent recognizer busy errors from rapid restarts
+                Thread.sleep(100)
+                
                 speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context).apply {
                     setRecognitionListener(createRecognitionListener())
                 }
-
+ 
                 val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                     putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
@@ -90,15 +95,17 @@ class VoiceCommandManager @Inject constructor(
                             putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 7000L)
                         }
                         RecognitionMode.COMMAND -> {
-                            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 2000L)
-                            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
+                            // Shorter silence timeout for command mode, wait longer for user to speak
+                            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 3000L)
+                            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 2000L)
                         }
                     }
                 }
-
+ 
                 speechRecognizer?.startListening(intent)
                 _isListening.value = true
             } catch (e: Exception) {
+                android.util.Log.e("VoiceCommandManager", "Failed to start listening", e)
                 _events.tryEmit(VoiceRecognitionEvent.Error(-1, "Failed to start: ${e.message}", true))
                 _isListening.value = false
             }

@@ -1068,7 +1068,7 @@ fun PlayerSettings(
                     )
                     
                     Text(
-                        text = "Say \"Hey Aura\", \"Hello Aura\", \"Aura\", or your custom wake word to activate",
+                        text = "Say \"OK Aura\", \"Hey Aura\", or \"Hello Aura\" to activate",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center

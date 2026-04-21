@@ -337,22 +337,30 @@ import javax.inject.Inject
             return
         }
 
-        // Command/Manual mode errors
+        // Command/Manual mode errors - retry listening instead of showing error
         if (event.recoverable && _uiState.value.isVisible) {
-            val errorMsg = if (event.code == android.speech.SpeechRecognizer.ERROR_NO_MATCH ||
-                event.code == android.speech.SpeechRecognizer.ERROR_SPEECH_TIMEOUT
-            ) {
-                "I didn't catch that"
+            consecutiveErrors++
+            if (consecutiveErrors < maxConsecutiveErrors) {
+                // Small delay then restart listening instead of showing error
+                viewModelScope.launch {
+                    delay(300)
+                    if (_uiState.value.isVisible && _uiState.value.mode != VoiceMode.WAKE_WORD) {
+                        _uiState.update {
+                            it.copy(phase = VoicePhase.LISTENING, recognizedText = "")
+                        }
+                        voiceCommandManager.startListening(RecognitionMode.COMMAND)
+                    }
+                }
             } else {
-                event.message
+                val errorMsg = "Let\'s try again later"
+                _uiState.update {
+                    it.copy(phase = VoicePhase.ERROR, errorMessage = errorMsg)
+                }
+                if (voiceFeedbackManager.isEnabled()) {
+                    voiceFeedbackManager.speak(errorMsg)
+                }
+                scheduleOverlayDismiss()
             }
-            _uiState.update {
-                it.copy(phase = VoicePhase.ERROR, errorMessage = errorMsg)
-            }
-            if (voiceFeedbackManager.isEnabled()) {
-                voiceFeedbackManager.speak(errorMsg)
-            }
-            scheduleOverlayDismiss()
         } else {
             val errorMsg = event.message
             _uiState.update {
