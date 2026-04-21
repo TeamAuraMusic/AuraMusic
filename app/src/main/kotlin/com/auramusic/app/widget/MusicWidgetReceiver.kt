@@ -5,12 +5,16 @@
 
 package com.auramusic.app.widget
 
+import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.widget.RemoteViews
+import com.auramusic.app.MainActivity
+import com.auramusic.app.R
 import com.auramusic.app.playback.MusicService
 
 class MusicWidgetReceiver : AppWidgetProvider() {
@@ -35,8 +39,45 @@ class MusicWidgetReceiver : AppWidgetProvider() {
             } catch (e: Exception) {
                 // Service might be restricted in background
             }
+        } else {
+            // Even when service isn't running, show default content when user adds widget
+            // This ensures widget displays properly before user opens the app
+            appWidgetIds.forEach { widgetId ->
+                val views = RemoteViews(context.packageName, R.layout.widget_music_player)
+                views.setTextViewText(R.id.widget_song_title, context.getString(R.string.no_song_playing))
+                views.setTextViewText(R.id.widget_artist_name, context.getString(R.string.tap_to_open))
+                views.setImageViewResource(R.id.widget_play_pause, R.drawable.ic_widget_play)
+                views.setImageViewResource(R.id.widget_like_button, R.drawable.ic_widget_heart_outline_nav)
+                views.setOnClickPendingIntent(R.id.widget_album_art, getOpenAppIntent(context))
+                views.setOnClickPendingIntent(R.id.widget_play_pause, getActionIntent(context, ACTION_PLAY_PAUSE))
+                views.setOnClickPendingIntent(R.id.widget_previous, getActionIntent(context, ACTION_PREVIOUS))
+                views.setOnClickPendingIntent(R.id.widget_next, getActionIntent(context, ACTION_NEXT))
+                views.setOnClickPendingIntent(R.id.widget_like_button, getActionIntent(context, ACTION_LIKE))
+                appWidgetManager.updateAppWidget(widgetId, views)
+            }
         }
-        // If service is not running, widget shows default layout until user opens app
+    }
+
+    private fun getOpenAppIntent(context: Context): PendingIntent {
+        val intent = Intent(context, MainActivity::class.java)
+        return PendingIntent.getActivity(
+            context,
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+    }
+
+    private fun getActionIntent(context: Context, action: String): PendingIntent {
+        val intent = Intent(context, MusicService::class.java).apply {
+            this.action = action
+        }
+        return PendingIntent.getService(
+            context,
+            action.hashCode(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
     }
 
     override fun onAppWidgetOptionsChanged(
