@@ -56,6 +56,26 @@ class VoskWakeWordDetector @Inject constructor(
         private const val MODEL_URL = "https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip"
         private const val WAKE_WORD = "aura"
         private const val WAKE_WORD_GRAMMAR = "[\"hey aura\", \"hello aura\", \"ok aura\", \"[unk]\"]"
+        private const val MIN_CONFIDENCE = 0.70f  // Minimum average confidence (0-1)
+        private const val MIN_RMS = 0.02f  // Minimum audio energy to trigger (0-1 normalized)
+    }
+
+    private fun computeRMS(buffer: ShortArray, length: Int): Float {
+        var sum = 0L
+        for (i in 0 until length) {
+            val sample = buffer[i].toInt()
+            sum += sample * sample
+        }
+        val mean = sum.toFloat() / length
+        return kotlin.math.sqrt(mean.toDouble()).toFloat() / Short.MAX_VALUE.toFloat()
+    }
+
+    private fun extractAverageConfidence(json: String): Float? {
+        // Parse "result": [{"conf": 0.95, "word": "hey"}, {"conf": 0.98, "word": "aura"}]
+        val confidences = Regex("\"conf\"\\s*:\\s*([0-9.]+)").findAll(json).mapNotNull {
+            it.groupValues[1].toFloatOrNull()
+        }.toList()
+        return if (confidences.isNotEmpty()) confidences.average().toFloat() else null
     }
 
     private fun showToast(message: String) {
@@ -418,6 +438,20 @@ class VoskWakeWordDetector @Inject constructor(
                             val isWakePhrase = textMatch == "hey aura" || textMatch == "hello aura" || textMatch == "ok aura"
                             if (isWakePhrase) {
                                 android.util.Log.d("VoskWakeWordDetector", "DETECTED in final: $finalJson")
+                                
+                                // Confidence threshold check
+                                val confidence = extractAverageConfidence(finalJson)
+                                if (confidence == null || confidence < MIN_CONFIDENCE) {
+                                    android.util.Log.d("VoskWakeWordDetector", "Wake word rejected: confidence too low (${confidence ?: "null"})")
+                                    continue
+                                }
+                                
+                                // RMS/audio energy check - ensure actual speech was captured
+                                val rms = computeRMS(buffer, read)
+                                if (rms < MIN_RMS) {
+                                    android.util.Log.d("VoskWakeWordDetector", "Wake word rejected: audio energy too low (rms=$rms)")
+                                    continue
+                                }
                                 
                                 val now = System.currentTimeMillis()
                                 if (now - lastWakeWordTime < WAKE_WORD_COOLDOWN_MS) {
