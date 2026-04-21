@@ -1332,13 +1332,11 @@ fun BottomSheetPlayer(
                                 }
                             },
                     ) {
-                        Icon(
-                            painter = painterResource(R.drawable.menu),
+                        Image(
+                            painter = painterResource(R.drawable.more_horiz),
                             contentDescription = stringResource(R.string.more_options),
-                            tint = iconButtonColor,
-                            modifier = Modifier
-                                .align(Alignment.Center)
-                                .size(24.dp),
+                            colorFilter = ColorFilter.tint(iconButtonColor),
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 }
