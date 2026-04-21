@@ -399,6 +399,17 @@ class VoskWakeWordDetector @Inject constructor(
                                 }
                                 lastWakeWordTime = now
                                 
+                                // Reset recognizer to prevent lattice state issues
+                                try {
+                                    recognizer?.close()
+                                    model?.let { currentModel ->
+                                        recognizer = Recognizer(currentModel, SAMPLE_RATE.toFloat(), WAKE_WORD_GRAMMAR)
+                                        android.util.Log.d("VoskWakeWordDetector", "Recognizer reset after detection")
+                                    }
+                                } catch (e: Exception) {
+                                    android.util.Log.e("VoskWakeWordDetector", "Failed to reset recognizer", e)
+                                }
+                                
                                 withContext(Dispatchers.Main) {
                                     showToast("Wake word detected!")
                                 }
