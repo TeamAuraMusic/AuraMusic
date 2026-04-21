@@ -125,6 +125,8 @@ import javax.inject.Inject
 
     private fun restartWakeWordService() {
         try {
+            // Stop any existing service first to prevent microphone loops
+            WakeWordService.stop(context)
             WakeWordService.start(context)
         } catch (e: Exception) {
             e.printStackTrace()
