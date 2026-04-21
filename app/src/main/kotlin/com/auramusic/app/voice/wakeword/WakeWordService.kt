@@ -34,17 +34,27 @@ class WakeWordService : Service() {
             private set
 
         fun start(context: Context) {
-            val intent = Intent(context, WakeWordService::class.java)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
+            try {
+                val intent = Intent(context, WakeWordService::class.java)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(intent)
+                } else {
+                    context.startService(intent)
+                }
+            } catch (e: Exception) {
+                // On Android 12+ ForegroundServiceStartNotAllowedException, or
+                // on Xiaomi/MIUI SecurityException when launching from background
+                android.util.Log.e("WakeWordService", "Cannot start wake word service", e)
             }
         }
 
         fun stop(context: Context) {
-            val intent = Intent(context, WakeWordService::class.java)
-            context.stopService(intent)
+            try {
+                val intent = Intent(context, WakeWordService::class.java)
+                context.stopService(intent)
+            } catch (e: Exception) {
+                android.util.Log.e("WakeWordService", "Cannot stop wake word service", e)
+            }
         }
     }
 
@@ -56,10 +66,10 @@ class WakeWordService : Service() {
         // startForegroundService() to avoid ForegroundServiceDidNotStartInTimeException
         try {
             startForeground(NOTIFICATION_ID, buildNotification())
-        } catch (e: SecurityException) {
-            // Android 14+ may block microphone FGS from background on some devices (Xiaomi MIUI)
-            android.util.Log.e("WakeWordService", "Failed to start foreground service - may be in background", e)
-            // Stop self to avoid ANR
+        } catch (e: Exception) {
+            // Android 14+/SDK 36 may block microphone FGS from background on some devices (Xiaomi MIUI)
+            // Catch all exceptions (SecurityException, ForegroundServiceStartNotAllowedException, etc.)
+            android.util.Log.e("WakeWordService", "Failed to start foreground service", e)
             stopSelf()
             instance = null
             return
@@ -76,7 +86,14 @@ class WakeWordService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        startForeground(NOTIFICATION_ID, buildNotification())
+        try {
+            startForeground(NOTIFICATION_ID, buildNotification())
+        } catch (e: Exception) {
+            android.util.Log.e("WakeWordService", "Failed to call startForeground in onStartCommand", e)
+            stopSelf()
+            instance = null
+            return START_NOT_STICKY
+        }
         wakeWordDetector.start()
         return START_STICKY
     }
