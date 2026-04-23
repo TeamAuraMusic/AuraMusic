@@ -64,123 +64,234 @@ object ShareUtils {
                 } catch (e: Exception) { null }
             }
 
-            // Extract dominant color from thumbnail, fallback to dark
-            val dominantColor = if (albumArtBitmap != null) {
-                val palette = Palette.from(albumArtBitmap).generate()
-                palette.getDarkMutedColor(
-                    palette.getMutedColor(
-                        palette.getDominantColor(Color.parseColor("#1a1a2e"))
-                    )
-                )
-            } else {
-                Color.parseColor("#1a1a2e")
-            }
+            // Extract vibrant colors from thumbnail for modern design
+            val palette = albumArtBitmap?.let { Palette.from(it).generate() }
+            val dominantColor = palette?.getDominantColor(Color.parseColor("#6366f1")) ?: Color.parseColor("#6366f1")
+            val vibrantColor = palette?.getVibrantColor(Color.parseColor("#8b5cf6")) ?: Color.parseColor("#8b5cf6")
+            val mutedColor = palette?.getMutedColor(Color.parseColor("#1e1b4b")) ?: Color.parseColor("#1e1b4b")
 
-            // Draw gradient background using thumbnail colors
+            // Create modern multi-layer gradient background
             val bgPaint = Paint().apply {
                 shader = LinearGradient(
-                    0f, 0f, 0f, cardHeight.toFloat(),
+                    0f, 0f, cardWidth.toFloat(), cardHeight.toFloat(),
                     intArrayOf(
-                        darkenColor(dominantColor, 0.4f),
-                        darkenColor(dominantColor, 0.15f)
+                        darkenColor(dominantColor, 0.6f),
+                        darkenColor(mutedColor, 0.3f),
+                        darkenColor(vibrantColor, 0.8f),
+                        darkenColor(dominantColor, 0.9f)
                     ),
-                    null,
+                    floatArrayOf(0f, 0.4f, 0.7f, 1f),
                     Shader.TileMode.CLAMP
                 )
             }
             canvas.drawRect(0f, 0f, cardWidth.toFloat(), cardHeight.toFloat(), bgPaint)
 
-            // Draw app icon
-            val appIconSize = 56
+            // Add subtle overlay pattern
+            val overlayPaint = Paint().apply {
+                color = Color.parseColor("#0A000000")
+                alpha = 30
+            }
+            canvas.drawRect(0f, 0f, cardWidth.toFloat(), cardHeight.toFloat(), overlayPaint)
+
+            // Draw album art with modern styling
+            val albumArtSize = (cardWidth * 0.65).toInt()
+            if (albumArtBitmap != null) {
+                val scaledArt = Bitmap.createScaledBitmap(albumArtBitmap, albumArtSize, albumArtSize, true)
+                val albumLeft = ((cardWidth - albumArtSize) / 2).toFloat()
+                val albumTop = (cardHeight * 0.18).toFloat()
+
+                // Draw shadow effect
+                val shadowPaint = Paint().apply {
+                    color = Color.parseColor("#40000000")
+                    setShadowLayer(20f, 0f, 10f, Color.parseColor("#40000000"))
+                    isAntiAlias = true
+                }
+                val shadowRect = RectF(albumLeft + 8, albumTop + 8, albumLeft + albumArtSize + 8, albumTop + albumArtSize + 8)
+                canvas.drawRoundRect(shadowRect, 32f, 32f, shadowPaint)
+
+                // Draw album art with rounded corners
+                val artPaint = Paint().apply { isAntiAlias = true }
+                val artRect = RectF(albumLeft, albumTop, albumLeft + albumArtSize, albumTop + albumArtSize)
+                val path = android.graphics.Path().apply {
+                    addRoundRect(artRect, 32f, 32f, android.graphics.Path.Direction.CW)
+                }
+                canvas.save()
+                canvas.clipPath(path)
+                canvas.drawBitmap(scaledArt, albumLeft, albumTop, artPaint)
+                canvas.restore()
+
+                // Add subtle inner glow
+                val glowPaint = Paint().apply {
+                    style = Paint.Style.STROKE
+                    strokeWidth = 4f
+                    color = Color.WHITE
+                    alpha = 100
+                    isAntiAlias = true
+                }
+                canvas.drawRoundRect(artRect, 32f, 32f, glowPaint)
+            }
+
+            // Modern app branding at top
+            val brandingY = cardHeight * 0.08f
+
+            // Draw app icon with modern styling
+            val appIconSize = 64
             try {
                 val iconDrawable = context.packageManager.getApplicationIcon(context.packageName)
                 val iconBitmap = Bitmap.createBitmap(appIconSize, appIconSize, Bitmap.Config.ARGB_8888)
                 val iconCanvas = Canvas(iconBitmap)
                 iconDrawable.setBounds(0, 0, appIconSize, appIconSize)
                 iconDrawable.draw(iconCanvas)
-                canvas.drawBitmap(iconBitmap, 60f, 50f, null)
+
+                // Add icon background
+                val iconBgPaint = Paint().apply {
+                    color = Color.WHITE
+                    alpha = 200
+                    isAntiAlias = true
+                }
+                canvas.drawCircle(60f + appIconSize/2, brandingY - 10, appIconSize/2 + 8f, iconBgPaint)
+                canvas.drawBitmap(iconBitmap, 60f, brandingY - appIconSize/2 - 10, null)
             } catch (_: Exception) {}
 
-            // Draw "AuraMusic" text with brand gradient (orange to pink)
+            // Modern AuraMusic logo with gradient
             val logoPaint = Paint().apply {
-                textSize = 48f
-                typeface = Typeface.create("sans-serif-bold", Typeface.BOLD)
+                textSize = 52f
+                typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
                 isAntiAlias = true
                 shader = LinearGradient(
-                    130f, 0f, 400f, 0f,
-                    Color.parseColor("#F97316"),
-                    Color.parseColor("#EC4899"),
+                    140f, brandingY - 20, 420f, brandingY - 20,
+                    intArrayOf(
+                        Color.parseColor("#F59E0B"),
+                        Color.parseColor("#F97316"),
+                        Color.parseColor("#EC4899"),
+                        Color.parseColor("#8B5CF6")
+                    ),
+                    null,
                     Shader.TileMode.CLAMP
                 )
             }
-            canvas.drawText("AuraMusic", 130f, 90f, logoPaint)
+            canvas.drawText("AuraMusic", 140f, brandingY + 8, logoPaint)
 
-            // Draw album art centered with rounded corners
-            val albumArtSize = (cardWidth * 0.55).toInt()
-            if (albumArtBitmap != null) {
-                val scaledArt = Bitmap.createScaledBitmap(albumArtBitmap, albumArtSize, albumArtSize, true)
-                val albumLeft = ((cardWidth - albumArtSize) / 2).toFloat()
-                val albumTop = (cardHeight * 0.14).toFloat()
+            // Modern "Now Playing" badge
+            val badgeWidth = 280f
+            val badgeHeight = 60f
+            val badgeX = 60f
+            val badgeY = cardHeight * 0.72f
 
-                // Draw with rounded corners
-                val artPaint = Paint().apply { isAntiAlias = true }
-                val artRect = RectF(albumLeft, albumTop, albumLeft + albumArtSize, albumTop + albumArtSize)
-                val path = android.graphics.Path().apply {
-                    addRoundRect(artRect, 24f, 24f, android.graphics.Path.Direction.CW)
-                }
-                canvas.save()
-                canvas.clipPath(path)
-                canvas.drawBitmap(scaledArt, albumLeft, albumTop, artPaint)
-                canvas.restore()
-            }
-
-            // "Now Playing" label
-            val nowPlayingPaint = Paint().apply {
-                color = Color.parseColor("#80FFFFFF")
-                textSize = 40f
-                typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+            // Badge background with gradient
+            val badgeBgPaint = Paint().apply {
+                shader = LinearGradient(
+                    badgeX, badgeY, badgeX + badgeWidth, badgeY,
+                    intArrayOf(
+                        Color.parseColor("#FFFFFF"),
+                        Color.parseColor("#F8FAFC")
+                    ),
+                    null,
+                    Shader.TileMode.CLAMP
+                )
+                alpha = 220
                 isAntiAlias = true
             }
-            canvas.drawText("Now Playing", 60f, (cardHeight * 0.72).toFloat(), nowPlayingPaint)
+            val badgeRect = RectF(badgeX, badgeY - badgeHeight, badgeX + badgeWidth, badgeY)
+            canvas.drawRoundRect(badgeRect, badgeHeight/2, badgeHeight/2, badgeBgPaint)
 
-            // Song title
-            val titlePaint = Paint().apply {
-                color = Color.WHITE
-                textSize = 72f
+            // Badge border
+            val badgeBorderPaint = Paint().apply {
+                style = Paint.Style.STROKE
+                strokeWidth = 2f
+                color = Color.parseColor("#E2E8F0")
+                alpha = 150
+                isAntiAlias = true
+            }
+            canvas.drawRoundRect(badgeRect, badgeHeight/2, badgeHeight/2, badgeBorderPaint)
+
+            // "Now Playing" text in badge
+            val badgeTextPaint = Paint().apply {
+                color = Color.parseColor("#1E293B")
+                textSize = 24f
+                typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+                isAntiAlias = true
+            }
+            val badgeText = "♪ Now Playing"
+            val badgeTextWidth = badgeTextPaint.measureText(badgeText)
+            canvas.drawText(badgeText, badgeX + (badgeWidth - badgeTextWidth)/2, badgeY - badgeHeight/2 + 8, badgeTextPaint)
+
+            // Song information with modern typography
+            val contentY = cardHeight * 0.82f
+            val maxTextWidth = cardWidth - 120
+
+            // Song title with drop shadow effect
+            val titleShadowPaint = Paint().apply {
+                color = Color.parseColor("#000000")
+                textSize = 76f
                 typeface = Typeface.create("sans-serif-bold", Typeface.BOLD)
+                alpha = 100
                 isAntiAlias = true
             }
-            val maxTitleWidth = cardWidth - 120
             var titleText = songData.title
-            while (titlePaint.measureText(titleText) > maxTitleWidth && titleText.isNotEmpty()) {
+            while (titleShadowPaint.measureText(titleText) > maxTextWidth && titleText.isNotEmpty()) {
                 titleText = titleText.dropLast(1)
             }
             if (titleText != songData.title) titleText += "…"
-            canvas.drawText(titleText, 60f, (cardHeight * 0.78).toFloat(), titlePaint)
 
-            // Artist name
-            val artistPaint = Paint().apply {
-                color = Color.parseColor("#B3FFFFFF")
-                textSize = 52f
-                typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+            val titlePaint = Paint().apply {
+                color = Color.WHITE
+                textSize = 76f
+                typeface = Typeface.create("sans-serif-bold", Typeface.BOLD)
                 isAntiAlias = true
+                setShadowLayer(8f, 0f, 4f, Color.parseColor("#40000000"))
+            }
+            canvas.drawText(titleText, 60f + 2, contentY + 2, titleShadowPaint)
+            canvas.drawText(titleText, 60f, contentY, titlePaint)
+
+            // Artist name with modern styling
+            val artistY = contentY + 90
+            val artistPaint = Paint().apply {
+                color = Color.parseColor("#E2E8F0")
+                textSize = 48f
+                typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+                alpha = 240
+                isAntiAlias = true
+                setShadowLayer(4f, 0f, 2f, Color.parseColor("#20000000"))
             }
             var artistText = songData.artist
-            while (artistPaint.measureText(artistText) > maxTitleWidth && artistText.isNotEmpty()) {
+            while (artistPaint.measureText(artistText) > maxTextWidth && artistText.isNotEmpty()) {
                 artistText = artistText.dropLast(1)
             }
             if (artistText != songData.artist) artistText += "…"
-            canvas.drawText(artistText, 60f, (cardHeight * 0.85).toFloat(), artistPaint)
+            canvas.drawText(artistText, 60f, artistY, artistPaint)
 
-            // Deep link URL at bottom
+            // Modern footer with deep link
+            val footerY = cardHeight - 80
             val deepLink = "auramusic.site/play/${songData.id}"
-            val linkPaint = Paint().apply {
-                color = Color.parseColor("#99FFFFFF")
-                textSize = 36f
+
+            // Footer background bar
+            val footerBgPaint = Paint().apply {
+                color = Color.parseColor("#FFFFFF")
+                alpha = 120
+            }
+            canvas.drawRect(0f, footerY - 20, cardWidth.toFloat(), cardHeight.toFloat(), footerBgPaint)
+
+            // Footer text
+            val footerPaint = Paint().apply {
+                color = Color.parseColor("#374151")
+                textSize = 32f
                 typeface = Typeface.create("sans-serif", Typeface.NORMAL)
                 isAntiAlias = true
             }
-            canvas.drawText(deepLink, 60f, (cardHeight * 0.93).toFloat(), linkPaint)
+            val footerText = "Tap to listen on AuraMusic"
+            val footerTextWidth = footerPaint.measureText(footerText)
+            canvas.drawText(footerText, (cardWidth - footerTextWidth)/2, footerY + 15, footerPaint)
+
+            // QR-like link (simplified)
+            val linkPaint = Paint().apply {
+                color = Color.parseColor("#6B7280")
+                textSize = 28f
+                typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+                isAntiAlias = true
+            }
+            val linkTextWidth = linkPaint.measureText(deepLink)
+            canvas.drawText(deepLink, (cardWidth - linkTextWidth)/2, footerY + 50, linkPaint)
 
             val cacheDir = File(context.cacheDir, "share_cards")
             if (!cacheDir.exists()) cacheDir.mkdirs()
