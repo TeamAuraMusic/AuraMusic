@@ -281,7 +281,7 @@ object ShareUtils {
             }
             val footerText = "Tap to listen on AuraMusic"
             val footerTextWidth = footerPaint.measureText(footerText)
-            canvas.drawText(footerText, ((cardWidth - footerTextWidth)/2).toFloat(), footerY + 15, footerPaint)
+            canvas.drawText(footerText, ((cardWidth.toFloat() - footerTextWidth)/2), footerY.toFloat() + 15f, footerPaint)
 
             // QR-like link (simplified)
             val linkPaint = Paint().apply {
@@ -291,7 +291,7 @@ object ShareUtils {
                 isAntiAlias = true
             }
             val linkTextWidth = linkPaint.measureText(deepLink)
-            canvas.drawText(deepLink, ((cardWidth - linkTextWidth)/2).toFloat(), footerY + 50, linkPaint)
+            canvas.drawText(deepLink, ((cardWidth.toFloat() - linkTextWidth)/2), footerY.toFloat() + 50f, linkPaint)
 
             val cacheDir = File(context.cacheDir, "share_cards")
             if (!cacheDir.exists()) cacheDir.mkdirs()
