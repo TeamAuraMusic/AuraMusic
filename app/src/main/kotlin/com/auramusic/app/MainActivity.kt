@@ -240,13 +240,8 @@ class MainActivity : ComponentActivity() {
                             val playerConnection = this@MainActivity.playerConnection
                             playerConnection?.playQueue(YouTubeQueue.radio(localSong.toMediaMetadata()))
                         } else {
-                             // Fetch from YouTube Music and play
-                            YouTube.search(videoId).onSuccess { songs ->
-                                val song = songs.firstOrNull()
-                                if (song != null && song is com.auramusic.innertube.models.SongItem) {
-                                    playerConnection?.playQueue(YouTubeQueue.radio(song.toMediaMetadata()))
-                                }
-                            }
+                            // Could not find song, just open the app
+                            // User can search for it manually
                         }
                     } catch (e: Exception) {
                         e.printStackTrace()

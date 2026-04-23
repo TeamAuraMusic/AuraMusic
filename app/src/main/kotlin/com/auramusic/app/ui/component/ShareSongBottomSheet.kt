@@ -125,12 +125,7 @@ fun ShareSongBottomSheet(
 fun SharePlatformButton(platformItem: SharePlatformItem, isGenerating: Boolean = false, onClick: () -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable(enabled = !isGenerating) { onClick() }) {
         Box(
-            modifier = Modifier.size(56.dp).drawBehind {
-                drawCircle(
-                    color = platformItem.color.copy(alpha = 0.15f),
-                    radius = size.minDimension / 2
-                )
-            }.padding(12.dp),
+            modifier = Modifier.size(56.dp).clip(CircleShape).background(platformItem.color.copy(alpha = 0.15f)).padding(12.dp),
             contentAlignment = Alignment.Center
         ) {
             if (isGenerating) {
