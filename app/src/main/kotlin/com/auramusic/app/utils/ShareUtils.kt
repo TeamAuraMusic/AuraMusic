@@ -8,6 +8,7 @@ package com.auramusic.app.utils
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.LinearGradient
@@ -22,6 +23,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
+import java.net.URL
 
 object ShareUtils {
 
@@ -73,14 +75,9 @@ object ShareUtils {
             val albumArtSize = (cardWidth * 0.55).toInt()
             val albumArtBitmap = songData.thumbnailUrl?.let { url ->
                 try {
-                    val request = ImageRequest.Builder(context)
-                        .data(url)
-                        .size(albumArtSize, albumArtSize)
-                        .build()
-                    val result = context.imageLoader.execute(request)
-                    if (result is SuccessResult) {
-                        result.image.toBitmap()
-                    } else null
+                    // Load image from URL directly
+                    val inputStream = URL(url).openStream()
+                    BitmapFactory.decodeStream(inputStream)
                 } catch (e: Exception) { null }
             }
 

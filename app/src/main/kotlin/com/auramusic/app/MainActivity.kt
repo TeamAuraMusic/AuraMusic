@@ -234,7 +234,7 @@ class MainActivity : ComponentActivity() {
                         // Try to get song from local database first
                         val database = this@MainActivity.database
                         val localSong = database.song(videoId).first()
-                        
+
                         if (localSong != null) {
                             // Song exists locally, play it directly
                             val playerConnection = this@MainActivity.playerConnection
@@ -243,7 +243,7 @@ class MainActivity : ComponentActivity() {
                             // Fetch from YouTube Music and play
                             YouTube.search(listOf(videoId)).onSuccess { songs ->
                                 val song = songs.firstOrNull()
-                                if (song != null) {
+                                if (song != null && song is com.auramusic.innertube.models.SongItem) {
                                     playerConnection?.playQueue(YouTubeQueue.radio(song.toMediaMetadata()))
                                 }
                             }

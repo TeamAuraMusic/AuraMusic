@@ -45,6 +45,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.background
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
@@ -78,6 +79,9 @@ import com.auramusic.app.db.entities.ArtistEntity
 import com.auramusic.app.db.entities.Event
 import com.auramusic.app.db.entities.PlaylistSong
 import com.auramusic.app.db.entities.Song
+import com.auramusic.app.ui.component.LocalBottomSheetPageState
+import com.auramusic.app.ui.component.ShareSongBottomSheet
+import com.auramusic.app.utils.ShareUtils
 import com.auramusic.app.extensions.toMediaItem
 import com.auramusic.app.models.toMediaMetadata
 import com.auramusic.app.playback.ExoDownloadService
