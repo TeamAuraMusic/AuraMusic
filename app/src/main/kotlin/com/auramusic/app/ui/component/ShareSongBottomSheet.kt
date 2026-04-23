@@ -5,7 +5,10 @@
 
 package com.auramusic.app.ui.component
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,24 +19,26 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.background
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -47,10 +52,7 @@ import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
 import com.auramusic.app.R
 import com.auramusic.app.utils.ShareUtils
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import java.io.File
 
 @Composable
 fun ShareSongBottomSheet(
@@ -58,14 +60,24 @@ fun ShareSongBottomSheet(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
+    var cardFile by remember { mutableStateOf<File?>(null) }
+    var isGenerating by remember { mutableStateOf(true) }
+
+    // Pre-generate the share card when the sheet opens
+    LaunchedEffect(songData) {
+        isGenerating = true
+        cardFile = ShareUtils.generateShareCard(context, songData)
+        isGenerating = false
+    }
+
     val platforms = listOf(
         SharePlatformItem(ShareUtils.SharePlatform.INSTAGRAM, R.drawable.instagram, Color(0xFFE4405F)),
         SharePlatformItem(ShareUtils.SharePlatform.FACEBOOK, R.drawable.facebook, Color(0xFF1877F2)),
         SharePlatformItem(ShareUtils.SharePlatform.WHATSAPP, R.drawable.whatsapp, Color(0xFF25D366)),
-        SharePlatformItem(ShareUtils.SharePlatform.TWITTER, R.drawable.twitter, Color(0xFF1DA1F2)),
+        SharePlatformItem(ShareUtils.SharePlatform.TWITTER, R.drawable.twitter, Color(0xFF000000)),
         SharePlatformItem(ShareUtils.SharePlatform.TELEGRAM, R.drawable.telegram, Color(0xFF0088CC)),
         SharePlatformItem(ShareUtils.SharePlatform.SNAPCHAT, R.drawable.snapchat, Color(0xFFFFFC00)),
-        SharePlatformItem(ShareUtils.SharePlatform.TIKTOK, R.drawable.tiktok, Color(0xFF000000)),
+        SharePlatformItem(ShareUtils.SharePlatform.TIKTOK, R.drawable.tiktok, Color(0xFFEE1D52)),
         SharePlatformItem(ShareUtils.SharePlatform.GENERIC, R.drawable.share, MaterialTheme.colorScheme.primary)
     )
 
@@ -104,16 +116,16 @@ fun ShareSongBottomSheet(
                 Text("Share to", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start)
                 Spacer(Modifier.height(12.dp))
 
-                LazyVerticalGrid(columns = GridCells.Fixed(4), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    items(platforms) { platformItem ->
-                        SharePlatformButton(platformItem, onClick = {
-                            GlobalScope.launch(Dispatchers.IO) {
-                                val cardFile = ShareUtils.generateShareCard(context, songData)
-                                withContext(Dispatchers.Main) {
-                                    ShareUtils.shareToSocialMedia(context, songData, platformItem.platform, cardFile)
-                                    onDismiss()
-                                }
-                            }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    platforms.forEach { platformItem ->
+                        SharePlatformButton(platformItem, isGenerating = isGenerating, onClick = {
+                            ShareUtils.shareToSocialMedia(context, songData, platformItem.platform, cardFile)
+                            onDismiss()
                         })
                     }
                 }
@@ -130,9 +142,14 @@ fun SharePlatformButton(platformItem: SharePlatformItem, isGenerating: Boolean =
             contentAlignment = Alignment.Center
         ) {
             if (isGenerating) {
-                androidx.compose.material3.CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
             } else {
-                androidx.compose.foundation.Image(painter = painterResource(platformItem.iconRes), contentDescription = platformItem.platform.displayName, modifier = Modifier.size(32.dp))
+                Image(
+                    painter = painterResource(platformItem.iconRes),
+                    contentDescription = platformItem.platform.displayName,
+                    modifier = Modifier.size(32.dp),
+                    colorFilter = ColorFilter.tint(platformItem.color)
+                )
             }
         }
         Spacer(Modifier.height(6.dp))

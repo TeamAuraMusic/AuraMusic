@@ -13,12 +13,11 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Paint
+import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
 import androidx.core.graphics.createBitmap
-import coil3.imageLoader
-import coil3.request.ImageRequest
-import coil3.request.SuccessResult
+import androidx.palette.graphics.Palette
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -40,7 +39,7 @@ object ShareUtils {
         INSTAGRAM("Instagram", "com.instagram.android"),
         FACEBOOK("Facebook", "com.facebook.katana"),
         WHATSAPP("WhatsApp", "com.whatsapp"),
-        TWITTER("X (Twitter)", "com.twitter.android"),
+        TWITTER("X", "com.twitter.android"),
         TELEGRAM("Telegram", "org.telegram.messenger"),
         SNAPCHAT("Snapchat", "com.snapchat.android"),
         TIKTOK("TikTok", "com.zhiliaoapp.musically"),
@@ -57,72 +56,85 @@ object ShareUtils {
             val bitmap = createBitmap(cardWidth, cardHeight)
             val canvas = Canvas(bitmap)
 
-            val dominantColor = Color.parseColor("#1DB954")
-
-            val paint = Paint().apply {
-                shader = LinearGradient(
-                    0f, 0f, 0f, cardHeight.toFloat(),
-                    intArrayOf(
-                        darkenColor(dominantColor, 0.3f),
-                        darkenColor(dominantColor, 0.7f)
-                    ),
-                    null,
-                    Shader.TileMode.CLAMP
-                )
-            }
-            canvas.drawRect(0f, 0f, cardWidth.toFloat(), cardHeight.toFloat(), paint)
-
-            val albumArtSize = (cardWidth * 0.55).toInt()
+            // Load album art
             val albumArtBitmap = songData.thumbnailUrl?.let { url ->
                 try {
-                    // Load image from URL directly
                     val inputStream = URL(url).openStream()
                     BitmapFactory.decodeStream(inputStream)
                 } catch (e: Exception) { null }
             }
 
-            if (albumArtBitmap != null) {
-                val albumLeft = (cardWidth - albumArtSize) / 2
-                val albumTop = (cardHeight * 0.12).toInt()
-                canvas.drawBitmap(albumArtBitmap, albumLeft.toFloat(), albumTop.toFloat(), null)
+            // Extract dominant color from thumbnail, fallback to dark
+            val dominantColor = if (albumArtBitmap != null) {
+                val palette = Palette.from(albumArtBitmap).generate()
+                palette.getDarkMutedColor(
+                    palette.getMutedColor(
+                        palette.getDominantColor(Color.parseColor("#1a1a2e"))
+                    )
+                )
+            } else {
+                Color.parseColor("#1a1a2e")
             }
 
+            // Draw gradient background using thumbnail colors
+            val bgPaint = Paint().apply {
+                shader = LinearGradient(
+                    0f, 0f, 0f, cardHeight.toFloat(),
+                    intArrayOf(
+                        darkenColor(dominantColor, 0.4f),
+                        darkenColor(dominantColor, 0.15f)
+                    ),
+                    null,
+                    Shader.TileMode.CLAMP
+                )
+            }
+            canvas.drawRect(0f, 0f, cardWidth.toFloat(), cardHeight.toFloat(), bgPaint)
+
+            // Draw app icon
+            val appIconSize = 56
+            try {
+                val iconDrawable = context.packageManager.getApplicationIcon(context.packageName)
+                val iconBitmap = Bitmap.createBitmap(appIconSize, appIconSize, Bitmap.Config.ARGB_8888)
+                val iconCanvas = Canvas(iconBitmap)
+                iconDrawable.setBounds(0, 0, appIconSize, appIconSize)
+                iconDrawable.draw(iconCanvas)
+                canvas.drawBitmap(iconBitmap, 60f, 50f, null)
+            } catch (_: Exception) {}
+
+            // Draw "AuraMusic" text with brand gradient (orange to pink)
             val logoPaint = Paint().apply {
-                color = Color.WHITE
                 textSize = 48f
-                typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
-                isAntiAlias = true
-            }
-            canvas.drawText("AuraMusic", 60f, 90f, logoPaint)
-
-            val titlePaint = Paint().apply {
-                color = Color.WHITE
-                textSize = 72f
                 typeface = Typeface.create("sans-serif-bold", Typeface.BOLD)
                 isAntiAlias = true
+                shader = LinearGradient(
+                    130f, 0f, 400f, 0f,
+                    Color.parseColor("#F97316"),
+                    Color.parseColor("#EC4899"),
+                    Shader.TileMode.CLAMP
+                )
+            }
+            canvas.drawText("AuraMusic", 130f, 90f, logoPaint)
+
+            // Draw album art centered with rounded corners
+            val albumArtSize = (cardWidth * 0.55).toInt()
+            if (albumArtBitmap != null) {
+                val scaledArt = Bitmap.createScaledBitmap(albumArtBitmap, albumArtSize, albumArtSize, true)
+                val albumLeft = ((cardWidth - albumArtSize) / 2).toFloat()
+                val albumTop = (cardHeight * 0.14).toFloat()
+
+                // Draw with rounded corners
+                val artPaint = Paint().apply { isAntiAlias = true }
+                val artRect = RectF(albumLeft, albumTop, albumLeft + albumArtSize, albumTop + albumArtSize)
+                val path = android.graphics.Path().apply {
+                    addRoundRect(artRect, 24f, 24f, android.graphics.Path.Direction.CW)
+                }
+                canvas.save()
+                canvas.clipPath(path)
+                canvas.drawBitmap(scaledArt, albumLeft, albumTop, artPaint)
+                canvas.restore()
             }
 
-            val maxTitleWidth = cardWidth - 120
-            var titleText = songData.title
-            while (titlePaint.measureText("$titleText...") > maxTitleWidth && titleText.isNotEmpty()) {
-                titleText = titleText.dropLast(1)
-            }
-            if (!songData.title.startsWith(titleText)) titleText += "..."
-            canvas.drawText(titleText, 60f, (cardHeight * 0.78).toFloat(), titlePaint)
-
-            val artistPaint = Paint().apply {
-                color = Color.parseColor("#B3FFFFFF")
-                textSize = 52f
-                typeface = Typeface.create("sans-serif", Typeface.NORMAL)
-                isAntiAlias = true
-            }
-            var artistText = songData.artist
-            while (artistPaint.measureText("$artistText...") > maxTitleWidth && artistText.isNotEmpty()) {
-                artistText = artistText.dropLast(1)
-            }
-            if (!songData.artist.startsWith(artistText)) artistText += "..."
-            canvas.drawText(artistText, 60f, (cardHeight * 0.85).toFloat(), artistPaint)
-
+            // "Now Playing" label
             val nowPlayingPaint = Paint().apply {
                 color = Color.parseColor("#80FFFFFF")
                 textSize = 40f
@@ -131,14 +143,44 @@ object ShareUtils {
             }
             canvas.drawText("Now Playing", 60f, (cardHeight * 0.72).toFloat(), nowPlayingPaint)
 
-            // Add "Tap to play" text at bottom
-            val tapPaint = Paint().apply {
-                color = Color.parseColor("#1DB954")
-                textSize = 44f
-                typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            // Song title
+            val titlePaint = Paint().apply {
+                color = Color.WHITE
+                textSize = 72f
+                typeface = Typeface.create("sans-serif-bold", Typeface.BOLD)
                 isAntiAlias = true
             }
-            canvas.drawText("Tap to play in AuraMusic", 60f, (cardHeight * 0.93).toFloat(), tapPaint)
+            val maxTitleWidth = cardWidth - 120
+            var titleText = songData.title
+            while (titlePaint.measureText(titleText) > maxTitleWidth && titleText.isNotEmpty()) {
+                titleText = titleText.dropLast(1)
+            }
+            if (titleText != songData.title) titleText += "…"
+            canvas.drawText(titleText, 60f, (cardHeight * 0.78).toFloat(), titlePaint)
+
+            // Artist name
+            val artistPaint = Paint().apply {
+                color = Color.parseColor("#B3FFFFFF")
+                textSize = 52f
+                typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+                isAntiAlias = true
+            }
+            var artistText = songData.artist
+            while (artistPaint.measureText(artistText) > maxTitleWidth && artistText.isNotEmpty()) {
+                artistText = artistText.dropLast(1)
+            }
+            if (artistText != songData.artist) artistText += "…"
+            canvas.drawText(artistText, 60f, (cardHeight * 0.85).toFloat(), artistPaint)
+
+            // Deep link URL at bottom
+            val deepLink = "auramusic.site/play/${songData.id}"
+            val linkPaint = Paint().apply {
+                color = Color.parseColor("#99FFFFFF")
+                textSize = 36f
+                typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+                isAntiAlias = true
+            }
+            canvas.drawText(deepLink, 60f, (cardHeight * 0.93).toFloat(), linkPaint)
 
             val cacheDir = File(context.cacheDir, "share_cards")
             if (!cacheDir.exists()) cacheDir.mkdirs()
@@ -160,9 +202,8 @@ object ShareUtils {
         platform: SharePlatform,
         cardFile: File? = null
     ) {
-        // Use AuraMusic deep link that opens the app directly
         val deepLink = "https://www.auramusic.site/play/${songData.id}"
-        
+
         val shareText = buildString {
             append("🎵 ${songData.title} - ${songData.artist}\n")
             append("Tap to play in AuraMusic: $deepLink")
@@ -232,9 +273,9 @@ object ShareUtils {
     }
 
     private fun darkenColor(color: Int, factor: Float): Int {
-        val r = (android.graphics.Color.red(color) * factor).toInt().coerceIn(0, 255)
-        val g = (android.graphics.Color.green(color) * factor).toInt().coerceIn(0, 255)
-        val b = (android.graphics.Color.blue(color) * factor).toInt().coerceIn(0, 255)
+        val r = (Color.red(color) * factor).toInt().coerceIn(0, 255)
+        val g = (Color.green(color) * factor).toInt().coerceIn(0, 255)
+        val b = (Color.blue(color) * factor).toInt().coerceIn(0, 255)
         return Color.rgb(r, g, b)
     }
 }
