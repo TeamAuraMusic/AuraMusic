@@ -120,7 +120,6 @@ fun SongMenu(
     val syncUtils = LocalSyncUtils.current
     val listenTogetherManager = LocalListenTogetherManager.current
     val scope = rememberCoroutineScope()
-    var refetchIconDegree by remember { mutableFloatStateOf(0f) }
     var showShareDialog by remember { mutableStateOf(false) }
 
     val cacheViewModel = hiltViewModel<CachePlaylistViewModel>()
@@ -380,66 +379,6 @@ fun SongMenu(
                             onDismiss()
                             showShareDialog = true
                         }
-                    )
-                ),
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp)
-            )
-        }
-        item {
-            Material3MenuGroup(
-                items = listOfNotNull(
-                    if (listenTogetherManager != null && listenTogetherManager.isInRoom && !listenTogetherManager.isHost) {
-                        Material3MenuItemData(
-                            icon = {
-                                Icon(
-                                    painter = painterResource(R.drawable.sync),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(28.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            },
-                            text = stringResource(R.string.add_to_listen_together),
-                            onClick = {
-                                onDismiss()
-                                listenTogetherManager.addSongToQueue(song)
-                            }
-                        )
-                    } else null,
-                    if (navController.currentBackStackEntry?.destination?.route != "settings") {
-                        Material3MenuItemData(
-                            icon = {
-                                Icon(
-                                    painter = painterResource(R.drawable.info),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(28.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            },
-                            text = stringResource(R.string.details),
-                            onClick = {
-                                navController.navigate("artist/${orderedArtists.joinToString(",") { it.id ?: "" }")
-                                onDismiss()
-                            }
-                        )
-                    } else null,
-                )
-            )
-        }
-    }
-
-    if (showShareDialog) {
-        ShareSongBottomSheet(
-            songData = ShareUtils.SongShareData(
-                id = song.id,
-                title = song.song.title,
-                artist = orderedArtists.joinToString(", ") { it.name },
-                album = song.song.albumName,
-                thumbnailUrl = song.thumbnailUrl
-            ),
-            onDismiss = { showShareDialog = false }
-        )
-    }
-}
                     )
                 if (showShareDialog) {
                     ShareSongBottomSheet(

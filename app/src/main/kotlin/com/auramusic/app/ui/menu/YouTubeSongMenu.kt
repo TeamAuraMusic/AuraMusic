@@ -114,11 +114,11 @@ fun YouTubeSongMenu(
             }
         }
     }
-    var showShareDialog by remember { mutableStateOf(false) }
 
     var showChoosePlaylistDialog by rememberSaveable {  
         mutableStateOf(false)  
     }  
+    var showShareDialog by remember { mutableStateOf(false) }
 
     AddToPlaylistDialog(  
         isVisible = showChoosePlaylistDialog,  
@@ -177,23 +177,10 @@ fun YouTubeSongMenu(
                             maxLines = 1,  
                             overflow = TextOverflow.Ellipsis,  
                         )  
-                }
-        }
-    }
-
-    if (showShareDialog) {
-        ShareSongBottomSheet(
-            songData = ShareUtils.SongShareData(
-                id = song.id,
-                title = song.title,
-                artist = song.artists.joinToString(", ") { it.name },
-                album = song.album?.name,
-                thumbnailUrl = song.thumbnail
-            ),
-            onDismiss = { showShareDialog = false }
-        )
-    }
-}
+                    }  
+                }  
+            }  
+        }  
     }  
 
     ListItem(  
