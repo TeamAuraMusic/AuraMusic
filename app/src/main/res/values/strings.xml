@@ -139,6 +139,7 @@
     <string name="add_to_library_desc">Add to library</string>
     <string name="edit">Edit</string>
     <string name="share">Share</string>
+    <string name="share_song">Share Song</string>
     <string name="share_selected">Share selected</string>
     <string name="choose_from_library">Choose from library</string>
     <string name="remove_custom_image">Remove custom image</string>

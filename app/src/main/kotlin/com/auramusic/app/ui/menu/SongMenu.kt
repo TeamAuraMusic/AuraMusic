@@ -374,12 +374,18 @@ fun SongMenu(
                         text = stringResource(R.string.share),
                         onClick = {
                             onDismiss()
-                            val intent = Intent().apply {
-                                action = Intent.ACTION_SEND
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_TEXT, "https://music.youtube.com/watch?v=${song.id}")
+                            bottomSheetPageState.show {
+                                ShareSongBottomSheet(
+                                    songData = ShareUtils.SongShareData(
+                                        id = song.id,
+                                        title = song.song.title,
+                                        artist = orderedArtists.joinToString(", ") { it.name },
+                                        album = song.song.albumName,
+                                        thumbnailUrl = song.thumbnailUrl
+                                    ),
+                                    onDismiss = { bottomSheetPageState.hide() }
+                                )
                             }
-                            context.startActivity(Intent.createChooser(intent, null))
                         }
                     )
                 ),

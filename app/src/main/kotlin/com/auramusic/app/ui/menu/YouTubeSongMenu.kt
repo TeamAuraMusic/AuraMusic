@@ -303,13 +303,20 @@ fun YouTubeSongMenu(
                         },
                         text = stringResource(R.string.share),
                         onClick = {
-                            val intent = Intent().apply {
-                                action = Intent.ACTION_SEND
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_TEXT, song.shareLink)
-                            }
-                            context.startActivity(Intent.createChooser(intent, null))
                             onDismiss()
+                            val bottomSheetPageState = LocalBottomSheetPageState.current
+                            bottomSheetPageState.show {
+                                ShareSongBottomSheet(
+                                    songData = ShareUtils.SongShareData(
+                                        id = song.id,
+                                        title = song.title,
+                                        artist = song.artists.joinToString(", ") { it.name },
+                                        album = song.album?.name,
+                                        thumbnailUrl = song.thumbnail
+                                    ),
+                                    onDismiss = { bottomSheetPageState.hide() }
+                                )
+                            }
                         }
                     )
                 ),
