@@ -113,7 +113,14 @@ fun YouTubeSongMenu(
                 MediaMetadata.Artist(id = artistId, name = it.name)
             }
         }
-    }
+        
+        item {
+            Spacer(modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp))
+        }
+        
+        item {
+            Spacer(modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp))
+        }
 
     var showChoosePlaylistDialog by rememberSaveable {  
         mutableStateOf(false)  
@@ -330,15 +337,9 @@ fun YouTubeSongMenu(
                 )
             }
         }
-        
-        item {
-            Spacer(modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp))
-        }
-        }
 
         item {
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp)
-            )
+            Spacer(modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp))
         }
 
         item {
