@@ -113,81 +113,74 @@ fun YouTubeSongMenu(
                 MediaMetadata.Artist(id = artistId, name = it.name)
             }
         }
-        
-        item {
-            Spacer(modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp))
-        }
-        
-        item {
-            Spacer(modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp))
-        }
+    }
 
-    var showChoosePlaylistDialog by rememberSaveable {  
-        mutableStateOf(false)  
-    }  
+    var showChoosePlaylistDialog by rememberSaveable {
+        mutableStateOf(false)
+    }
     var showShareDialog by remember { mutableStateOf(false) }
 
-    AddToPlaylistDialog(  
-        isVisible = showChoosePlaylistDialog,  
-        onGetSong = { playlist ->  
-            database.transaction {  
-                insert(song.toMediaMetadata())  
-            }  
-            coroutineScope.launch(Dispatchers.IO) {  
-                playlist.playlist.browseId?.let { browseId ->  
-                    YouTube.addToPlaylist(browseId, song.id)  
-                }  
-            }  
-            listOf(song.id)  
-        },  
-        onDismiss = { showChoosePlaylistDialog = false }  
-    )  
+    AddToPlaylistDialog(
+        isVisible = showChoosePlaylistDialog,
+        onGetSong = { playlist ->
+            database.transaction {
+                insert(song.toMediaMetadata())
+            }
+            coroutineScope.launch(Dispatchers.IO) {
+                playlist.playlist.browseId?.let { browseId ->
+                    YouTube.addToPlaylist(browseId, song.id)
+                }
+            }
+            listOf(song.id)
+        },
+        onDismiss = { showChoosePlaylistDialog = false }
+    )
 
-    var showSelectArtistDialog by rememberSaveable {  
-        mutableStateOf(false)  
-    }  
+    var showSelectArtistDialog by rememberSaveable {
+        mutableStateOf(false)
+    }
 
-    if (showSelectArtistDialog) {  
-        ListDialog(  
-            onDismiss = { showSelectArtistDialog = false },  
-        ) {  
-            items(artists) { artist ->  
-                Row(  
-                    verticalAlignment = Alignment.CenterVertically,  
-                    modifier =  
-                    Modifier  
-                        .height(ListItemHeight)  
-                        .clickable {  
-                            navController.navigate("artist/${artist.id}")  
-                            showSelectArtistDialog = false  
-                            onDismiss()  
-                        }  
-                        .padding(horizontal = 12.dp),  
-                ) {  
-                    Box(  
-                        contentAlignment = Alignment.CenterStart,  
-                        modifier =  
-                        Modifier  
-                            .fillParentMaxWidth()  
-                            .height(ListItemHeight)  
-                            .clickable {  
-                                navController.navigate("artist/${artist.id}")  
-                                showSelectArtistDialog = false  
-                                onDismiss()  
-                            }  
-                            .padding(horizontal = 24.dp),  
-                    ) {  
-                        Text(  
-                            text = artist.name,  
-                            fontSize = 18.sp,  
-                            fontWeight = FontWeight.Bold,  
-                            maxLines = 1,  
-                            overflow = TextOverflow.Ellipsis,  
-                        )  
-                    }  
-                }  
-            }  
-        }  
+    if (showSelectArtistDialog) {
+        ListDialog(
+            onDismiss = { showSelectArtistDialog = false },
+        ) {
+            items(artists) { artist ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier =
+                    Modifier
+                        .height(ListItemHeight)
+                        .clickable {
+                            navController.navigate("artist/${artist.id}")
+                            showSelectArtistDialog = false
+                            onDismiss()
+                        }
+                        .padding(horizontal = 12.dp),
+                ) {
+                    Box(
+                        contentAlignment = Alignment.CenterStart,
+                        modifier =
+                        Modifier
+                            .fillParentMaxWidth()
+                            .height(ListItemHeight)
+                            .clickable {
+                                navController.navigate("artist/${artist.id}")
+                                showSelectArtistDialog = false
+                                onDismiss()
+                            }
+                            .padding(horizontal = 24.dp),
+                    ) {
+                        Text(
+                            text = artist.name,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            }
+        }
     }  
 
     ListItem(  
