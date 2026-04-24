@@ -377,7 +377,6 @@ fun SongMenu(
                         },
                         text = stringResource(R.string.share),
                         onClick = {
-                            onDismiss()
                             showShareDialog = true
                         }
                     )
@@ -396,7 +395,10 @@ fun SongMenu(
                         album = song.song.albumName,
                         thumbnailUrl = song.thumbnailUrl
                     ),
-                    onDismiss = { showShareDialog = false }
+                    onDismiss = {
+                        showShareDialog = false
+                        onDismiss()
+                    }
                 )
             }
         }

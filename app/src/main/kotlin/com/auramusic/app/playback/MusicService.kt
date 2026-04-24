@@ -1723,7 +1723,7 @@ class MusicService :
                 scope.launch {
                     try {
                         // Wait for currentMediaMetadata to update from onPlayerEvents
-                        delay(300)
+                        delay(100)
                         
                         val isVideoAvailable = checkVideoAvailability(newMediaId)
                         val isVideoSong = mediaItem.metadata?.isVideoSong == true
@@ -2853,6 +2853,12 @@ class MusicService :
     override fun onBind(intent: Intent?) = super.onBind(intent) ?: binder
 
     override fun onTaskRemoved(rootIntent: Intent?) {
+        if (!player.playWhenReady || !player.isPlaying) {
+            player.pause()
+            if (isVideoMode) {
+                player.stop()
+            }
+        }
         super.onTaskRemoved(rootIntent)
     }
 
@@ -3006,6 +3012,8 @@ class MusicService :
     val isVideoAvailable: StateFlow<Boolean> = _isVideoAvailable.asStateFlow()
     private val _currentVideoId = MutableStateFlow<String?>(null)
     val currentVideoId: StateFlow<String?> = _currentVideoId.asStateFlow()
+    // Cache for resolved video search results to avoid re-fetching
+    private val videoSearchCache = java.util.concurrent.ConcurrentHashMap<String, com.auramusic.flow.FlowVideo.VideoSearchResult>()
     // Cache for video captions to avoid re-fetching on player collapse/expand
     val captionCache = java.util.concurrent.ConcurrentHashMap<String, String>()
     val captionAttemptedIds = java.util.Collections.synchronizedSet(mutableSetOf<String>())
@@ -3116,12 +3124,23 @@ class MusicService :
                     
                     // For video songs: try direct lookup first (they have real video content)
                     // For regular songs: skip direct lookup and search for official music video
-                    val searchResult = withContext(Dispatchers.IO) {
-                        FlowPlayerUtils.getVideoStreamUrlWithFallback(songTitle, artistName, mediaId, isVideoSong)
+                    // Check cache first for faster video loading
+                    val cachedSearchResult = videoSearchCache[mediaId]
+                    val searchResult = if (cachedSearchResult != null) {
+                        Timber.d("setVideoMode: Using cached video search result for $mediaId")
+                        Result.success(cachedSearchResult)
+                    } else {
+                        withContext(Dispatchers.IO) {
+                            FlowPlayerUtils.getVideoStreamUrlWithFallback(songTitle, artistName, mediaId, isVideoSong)
+                        }
                     }
 
                     if (searchResult.isSuccess) {
                         val videoData = searchResult.getOrNull()
+                        // Cache the search result for future use
+                        if (videoData != null && cachedSearchResult == null) {
+                            videoSearchCache[mediaId] = videoData
+                        }
                         Timber.d("setVideoMode: Fallback search result: ${videoData?.videoId}")
                         android.util.Log.d("MusicService", ">>> Found video via search: ${videoData?.videoId}")
                         

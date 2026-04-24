@@ -1488,7 +1488,7 @@ private fun VideoLyricsOverlay(
     // [3] Glow text style with shadow
     val glowStyle = TextStyle(
         color = Color.White,
-        fontSize = 15.sp,
+        fontSize = 13.sp,
         fontWeight = FontWeight.SemiBold,
         textAlign = TextAlign.Center,
         shadow = Shadow(
@@ -1555,7 +1555,7 @@ private fun VideoLyricsOverlay(
                 Text(
                     text = nextLine,
                     color = Color.White.copy(alpha = 0.45f),
-                    fontSize = 12.sp,
+                    fontSize = 11.sp,
                     textAlign = TextAlign.Center,
                     style = TextStyle(
                         shadow = Shadow(

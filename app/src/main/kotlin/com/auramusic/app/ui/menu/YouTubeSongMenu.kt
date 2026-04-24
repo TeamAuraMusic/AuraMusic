@@ -306,7 +306,6 @@ fun YouTubeSongMenu(
                         },
                         text = stringResource(R.string.share),
                         onClick = {
-                            onDismiss()
                             showShareDialog = true
                         }
                     )
@@ -326,7 +325,10 @@ fun YouTubeSongMenu(
                         album = song.album?.name,
                         thumbnailUrl = song.thumbnail
                     ),
-                    onDismiss = { showShareDialog = false }
+                    onDismiss = {
+                        showShareDialog = false
+                        onDismiss()
+                    }
                 )
             }
         }
