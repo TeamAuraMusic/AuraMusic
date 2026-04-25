@@ -220,6 +220,9 @@ fun AppearanceSettings(
     val (lyricsTextSize, onLyricsTextSizeChange) = rememberPreference(LyricsTextSizeKey, defaultValue = 24f)
     val (lyricsLineSpacing, onLyricsLineSpacingChange) = rememberPreference(LyricsLineSpacingKey, defaultValue = 1.3f)
     val (lyricsGlowEffect, onLyricsGlowEffectChange) = rememberPreference(LyricsGlowEffectKey, defaultValue = false)
+
+    val (karaokeModeEnabled, onKaraokeModeEnabledChange) = rememberPreference(KaraokeModeKey, false)
+    val (karaokeVocalSuppression, onKaraokeVocalSuppressionChange) = rememberPreference(KaraokeVocalSuppressionKey, 0.8f)
     val (sliderStyle, onSliderStyleChange) = rememberEnumPreference(
         SliderStyleKey,
         defaultValue = SliderStyle.DEFAULT
@@ -1453,6 +1456,46 @@ fun AppearanceSettings(
                         )
                     },
                     onClick = { onLyricsScrollChange(!lyricsScroll) }
+                )
+            )
+        )
+
+        Spacer(modifier = Modifier.height(27.dp))
+
+        Material3SettingsGroup(
+            title = stringResource(R.string.karaoke),
+            items = listOf(
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.mic),
+                    title = { Text(stringResource(R.string.karaoke_mode)) },
+                    description = { Text(stringResource(R.string.karaoke_mode_desc)) },
+                    action = {
+                        Switch(
+                            checked = karaokeModeEnabled,
+                            onCheckedChange = { enabled ->
+                                onKaraokeModeEnabledChange(enabled)
+                                // Also update the equalizer service if needed
+                            },
+                            thumbContent = if (karaokeModeEnabled) {
+                                {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.check),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(SwitchDefaults.IconSize)
+                                    )
+                                }
+                            } else null
+                        )
+                    },
+                    onClick = { onKaraokeModeEnabledChange(!karaokeModeEnabled) }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.volume_down),
+                    title = { Text(stringResource(R.string.karaoke_vocal_suppression)) },
+                    description = { Text("${(karaokeVocalSuppression * 100).toInt()}%") },
+                    onClick = {
+                        // Show slider dialog for vocal suppression strength
+                    }
                 )
             )
         )

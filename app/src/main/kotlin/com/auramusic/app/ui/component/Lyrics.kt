@@ -187,7 +187,8 @@ import kotlin.time.Duration.Companion.seconds
 fun Lyrics(
     sliderPositionProvider: () -> Long?,
     modifier: Modifier = Modifier,
-    showLyrics: Boolean
+    showLyrics: Boolean,
+    karaokeModeEnabled: Boolean = false
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val menuState = LocalMenuState.current
@@ -213,7 +214,8 @@ fun Lyrics(
     val romanizeChineseLyrics by rememberPreference(LyricsRomanizeChineseKey, true)
     val lyricsGlowEffect by rememberPreference(LyricsGlowEffectKey, false)
     val lyricsAnimationStyle by rememberEnumPreference(LyricsAnimationStyleKey, LyricsAnimationStyle.NONE)
-    val lyricsTextSize by rememberPreference(LyricsTextSizeKey, 24f)
+    val baseLyricsTextSize by rememberPreference(LyricsTextSizeKey, 24f)
+    val lyricsTextSize = if (karaokeModeEnabled) (baseLyricsTextSize * 1.5f).coerceAtMost(48f) else baseLyricsTextSize
     val lyricsLineSpacing by rememberPreference(LyricsLineSpacingKey, 1.3f)
     
     val openRouterApiKey by rememberPreference(OpenRouterApiKey, "")

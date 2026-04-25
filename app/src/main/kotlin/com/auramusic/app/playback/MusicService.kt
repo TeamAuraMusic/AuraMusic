@@ -126,6 +126,7 @@ import com.auramusic.app.db.entities.RelatedSongMap
 import com.auramusic.app.di.DownloadCache
 import com.auramusic.app.di.PlayerCache
 import com.auramusic.app.eq.EqualizerService
+import com.auramusic.app.eq.audio.VocalSuppressionAudioProcessor
 import com.auramusic.app.eq.audio.CustomEqualizerAudioProcessor
 import com.auramusic.app.eq.data.EQProfileRepository
 import com.auramusic.app.extensions.SilentHandler
@@ -844,7 +845,10 @@ class MusicService :
     private fun createExoPlayer(): ExoPlayer {
         val eqProcessor = CustomEqualizerAudioProcessor()
         equalizerService.addAudioProcessor(eqProcessor)
-        
+
+        val vocalSuppressionProcessor = VocalSuppressionAudioProcessor()
+        equalizerService.addVocalSuppressionProcessor(vocalSuppressionProcessor)
+
         val silenceProcessor = SilenceDetectorAudioProcessor { handleLongSilenceDetected() }
         
         // Set initial state
@@ -856,7 +860,7 @@ class MusicService :
 
         val player = ExoPlayer.Builder(this)
             .setMediaSourceFactory(createMediaSourceFactory())
-            .setRenderersFactory(createRenderersFactory(eqProcessor, silenceProcessor))
+            .setRenderersFactory(createRenderersFactory(eqProcessor, vocalSuppressionProcessor, silenceProcessor))
             .setHandleAudioBecomingNoisy(true)
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .setAudioAttributes(
@@ -2680,6 +2684,7 @@ class MusicService :
 
     private fun createRenderersFactory(
         eqProcessor: CustomEqualizerAudioProcessor,
+        vocalSuppressionProcessor: VocalSuppressionAudioProcessor,
         silenceProcessor: SilenceDetectorAudioProcessor
     ) =
         object : DefaultRenderersFactory(this) {
@@ -2696,6 +2701,7 @@ class MusicService :
                         // 2. Inject processor into audio pipeline
                         arrayOf(
                             eqProcessor,
+                            vocalSuppressionProcessor,
                             silenceProcessor,
                         ),
                         SilenceSkippingAudioProcessor(2_000_000, 20_000, 256),

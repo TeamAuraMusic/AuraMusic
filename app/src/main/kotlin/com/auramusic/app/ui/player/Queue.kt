@@ -148,8 +148,10 @@ fun Queue(
     iconButtonColor: Color,
     pureBlack: Boolean,
     showInlineLyrics: Boolean,
+    karaokeModeEnabled: Boolean = false,
     playerBackground: PlayerBackgroundStyle = PlayerBackgroundStyle.DEFAULT,
     onToggleLyrics: () -> Unit = {},
+    onToggleKaraoke: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
@@ -334,6 +336,19 @@ fun Queue(
                         icon = R.drawable.lyrics,
                         onClick = onToggleLyrics,
                         isActive = showInlineLyrics,
+                        shape = repeatShape,
+                        modifier = Modifier.size(buttonSize),
+                        textButtonColor = textButtonColor,
+                        iconButtonColor = iconButtonColor,
+                        iconSize = iconSize,
+                        textBackgroundColor = TextBackgroundColor,
+                        playerBackground = playerBackground
+                    )
+
+                    PlayerQueueButton(
+                        icon = R.drawable.mic,
+                        onClick = onToggleKaraoke,
+                        isActive = karaokeModeEnabled,
                         shape = repeatShape,
                         modifier = Modifier.size(buttonSize),
                         textButtonColor = textButtonColor,

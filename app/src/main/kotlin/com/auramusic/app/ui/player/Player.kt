@@ -619,6 +619,8 @@ fun BottomSheetPlayer(
     }
 
     val (showInlineLyrics, onShowInlineLyricsChange) = rememberPreference(ShowLyricsKey, false)
+    val (karaokeModeEnabled, onKaraokeModeEnabledChange) = rememberPreference(KaraokeModeKey, false)
+    val (karaokeVocalSuppression, onKaraokeVocalSuppressionChange) = rememberPreference(KaraokeVocalSuppressionKey, 0.8f)
 
     var isFullScreen by rememberSaveable {
         mutableStateOf(false)
@@ -648,6 +650,18 @@ fun BottomSheetPlayer(
     fun onLyricsToggle() {
         hasUserToggledLyrics = true
         onShowInlineLyricsChange(!showInlineLyrics)
+    }
+
+    fun onKaraokeToggle() {
+        val newState = !karaokeModeEnabled
+        onKaraokeModeEnabledChange(newState)
+
+        // Toggle vocal suppression in the equalizer service
+        if (newState) {
+            equalizerService.enableVocalSuppression(karaokeVocalSuppression)
+        } else {
+            equalizerService.disableVocalSuppression()
+        }
     }
 
     // Position update - only for local playback
@@ -2006,23 +2020,27 @@ fun BottomSheetPlayer(
             Queue(
                 state = queueSheetState,
                 playerBottomSheetState = state,
-            navController = navController,
-            background =
-            if (useBlackBackground) {
-                Color.Black
-            } else {
-                MaterialTheme.colorScheme.surfaceContainer
-            },
-            onBackgroundColor = onBackgroundColor,
-            TextBackgroundColor = TextBackgroundColor,
-            textButtonColor = textButtonColor,
-            iconButtonColor = iconButtonColor,
-            pureBlack = pureBlack,
-            showInlineLyrics = showInlineLyrics,
-            playerBackground = playerBackground,
-            onToggleLyrics = {
-                onLyricsToggle()
-            },
+                navController = navController,
+                background =
+                if (useBlackBackground) {
+                    Color.Black
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainer
+                },
+                onBackgroundColor = onBackgroundColor,
+                TextBackgroundColor = TextBackgroundColor,
+                textButtonColor = textButtonColor,
+                iconButtonColor = iconButtonColor,
+                pureBlack = pureBlack,
+                showInlineLyrics = showInlineLyrics,
+                karaokeModeEnabled = karaokeModeEnabled,
+                playerBackground = playerBackground,
+                onToggleLyrics = {
+                    onLyricsToggle()
+                },
+                onToggleKaraoke = {
+                    onKaraokeToggle()
+                },
             )
         }
     }
@@ -2111,7 +2129,8 @@ fun InlineLyricsView(
                         Lyrics(
                             sliderPositionProvider = positionProvider,
                             modifier = Modifier.padding(horizontal = 24.dp),
-                            showLyrics = showLyrics
+                            showLyrics = showLyrics,
+                            karaokeModeEnabled = karaokeModeEnabled
                         )
                     }
                 }

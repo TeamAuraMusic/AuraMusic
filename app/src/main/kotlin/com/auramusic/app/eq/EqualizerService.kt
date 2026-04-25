@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import androidx.annotation.OptIn
 import androidx.media3.common.util.UnstableApi
 import com.auramusic.app.eq.audio.CustomEqualizerAudioProcessor
+import com.auramusic.app.eq.audio.VocalSuppressionAudioProcessor
 import com.auramusic.app.eq.data.ParametricEQ
 import com.auramusic.app.eq.data.SavedEQProfile
 import timber.log.Timber
@@ -20,8 +21,14 @@ class EqualizerService @Inject constructor() {
 
     @SuppressLint("UnsafeOptInUsageError")
     private val audioProcessors = mutableListOf<CustomEqualizerAudioProcessor>()
+
+    @SuppressLint("UnsafeOptInUsageError")
+    private val vocalSuppressionProcessors = mutableListOf<VocalSuppressionAudioProcessor>()
+
     private var pendingProfile: SavedEQProfile? = null
     private var shouldDisable: Boolean = false
+    private var vocalSuppressionEnabled = false
+    private var vocalSuppressionStrength = 0.7f
 
     companion object {
         private const val TAG = "EqualizerService"
@@ -147,11 +154,76 @@ class EqualizerService @Inject constructor() {
     }
 
     /**
+     * Add a vocal suppression audio processor instance
+     */
+    @OptIn(UnstableApi::class)
+    fun addVocalSuppressionProcessor(processor: VocalSuppressionAudioProcessor) {
+        vocalSuppressionProcessors.add(processor)
+        Timber.tag(TAG).d("Vocal suppression processor added. Total: ${vocalSuppressionProcessors.size}")
+
+        // Apply current vocal suppression state
+        if (vocalSuppressionEnabled) {
+            processor.enable(vocalSuppressionStrength)
+        } else {
+            processor.disable()
+        }
+    }
+
+    /**
+     * Remove a vocal suppression audio processor instance
+     */
+    @OptIn(UnstableApi::class)
+    fun removeVocalSuppressionProcessor(processor: VocalSuppressionAudioProcessor) {
+        vocalSuppressionProcessors.remove(processor)
+        Timber.tag(TAG).d("Vocal suppression processor removed. Total: ${vocalSuppressionProcessors.size}")
+    }
+
+    /**
+     * Enable vocal suppression
+     */
+    @OptIn(UnstableApi::class)
+    fun enableVocalSuppression(strength: Float = 0.7f): Result<Unit> = runCatching {
+        vocalSuppressionStrength = strength.coerceIn(0f, 1f)
+        vocalSuppressionEnabled = true
+
+        vocalSuppressionProcessors.forEach { processor ->
+            processor.enable(strength)
+        }
+
+        Timber.tag(TAG).d("Vocal suppression enabled with strength: $strength")
+    }
+
+    /**
+     * Disable vocal suppression
+     */
+    @OptIn(UnstableApi::class)
+    fun disableVocalSuppression(): Result<Unit> = runCatching {
+        vocalSuppressionEnabled = false
+
+        vocalSuppressionProcessors.forEach { processor ->
+            processor.disable()
+        }
+
+        Timber.tag(TAG).d("Vocal suppression disabled")
+    }
+
+    /**
+     * Check if vocal suppression is enabled
+     */
+    fun isVocalSuppressionEnabled(): Boolean = vocalSuppressionEnabled
+
+    /**
+     * Get current vocal suppression strength
+     */
+    fun getVocalSuppressionStrength(): Float = vocalSuppressionStrength
+
+    /**
      * Release resources (not needed for AudioProcessor, but kept for API compatibility)
      */
     fun release() {
         // AudioProcessor is managed by ExoPlayer, we just clear our reference
         audioProcessors.clear()
+        vocalSuppressionProcessors.clear()
         Timber.tag(TAG).d("Audio processor references cleared")
     }
 }
