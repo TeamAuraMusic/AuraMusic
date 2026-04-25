@@ -622,7 +622,7 @@ fun BottomSheetPlayer(
 
     val (showInlineLyrics, onShowInlineLyricsChange) = rememberPreference(ShowLyricsKey, false)
     val (karaokeModeEnabled, onKaraokeModeEnabledChange) = rememberPreference(KaraokeModeKey, false)
-    val (karaokeVocalSuppression, onKaraokeVocalSuppressionChange) = rememberPreference(KaraokeVocalSuppressionKey, 0.6f)
+    val (karaokeVocalSuppression, onKaraokeVocalSuppressionChange) = rememberPreference(KaraokeVocalSuppressionKey, 1.0f)
 
     var isFullScreen by rememberSaveable {
         mutableStateOf(false)
@@ -658,10 +658,18 @@ fun BottomSheetPlayer(
         val newState = !karaokeModeEnabled
         onKaraokeModeEnabledChange(newState)
 
-        // Toggle vocal suppression in the equalizer service
+        // Toggle vocal (centre-channel) suppression in the equalizer
+        // service. Full strength gives the cleanest "instrumental only"
+        // result on stereo masters where vocals are panned dead-centre
+        // (the same convention Apple Music's Sing feature relies on).
         if (newState) {
-            // Use a moderate suppression strength by default
-            playerConnection.service.equalizerService.enableVocalSuppression(karaokeVocalSuppression.coerceIn(0.3f, 0.8f))
+            playerConnection.service.equalizerService
+                .enableVocalSuppression(karaokeVocalSuppression.coerceIn(0f, 1f))
+            // Auto-show lyrics so the user has something to sing along with.
+            if (!showInlineLyrics) {
+                hasUserToggledLyrics = true
+                onShowInlineLyricsChange(true)
+            }
         } else {
             playerConnection.service.equalizerService.disableVocalSuppression()
         }

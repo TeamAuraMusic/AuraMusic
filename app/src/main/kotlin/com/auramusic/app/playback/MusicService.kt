@@ -97,6 +97,8 @@ import com.auramusic.app.constants.EnableLastFMScrobblingKey
 import com.auramusic.app.constants.HideExplicitKey
 import com.auramusic.app.constants.HideVideoSongsKey
 import com.auramusic.app.constants.HistoryDuration
+import com.auramusic.app.constants.KaraokeModeKey
+import com.auramusic.app.constants.KaraokeVocalSuppressionKey
 import com.auramusic.app.constants.LastFMUseNowPlaying
 import com.auramusic.app.constants.MediaSessionConstants.CommandToggleLike
 import com.auramusic.app.constants.MediaSessionConstants.CommandToggleRepeatMode
@@ -856,6 +858,17 @@ class MusicService :
             val skipSilence = dataStore.get(SkipSilenceKey, false)
             val instantSkip = dataStore.get(SkipSilenceInstantKey, false)
             silenceProcessor.instantModeEnabled = skipSilence && instantSkip
+
+            // Restore persisted karaoke (vocal-suppression) state so that the
+            // setting survives app restarts even if the user never re-toggles
+            // it from the player UI.
+            val karaokeEnabled = dataStore.get(KaraokeModeKey, false)
+            val karaokeStrength = dataStore.get(KaraokeVocalSuppressionKey, 1.0f)
+            if (karaokeEnabled) {
+                equalizerService.enableVocalSuppression(karaokeStrength)
+            } else {
+                equalizerService.disableVocalSuppression()
+            }
         }
 
         val player = ExoPlayer.Builder(this)

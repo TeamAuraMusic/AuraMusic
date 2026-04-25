@@ -425,8 +425,8 @@
     <string name="karaoke">Karaoke</string>
     <string name="apple_music_style">Apple Music style</string>
     <string name="karaoke_mode">Karaoke mode</string>
-    <string name="karaoke_mode_desc">Enable karaoke mode with vocal suppression and enhanced lyrics</string>
-    <string name="karaoke_vocal_suppression">Vocal suppression</string>
+    <string name="karaoke_mode_desc">Removes the lead vocal so only the instrumental plays — sing along with the synced lyrics. Works best on stereo songs where the vocal is mixed centre.</string>
+    <string name="karaoke_vocal_suppression">Vocal suppression strength</string>
     <string name="lyrics_glow_effect">Lyrics glow effect</string>
     <string name="lyrics_glow_effect_desc">Enable glow effect on current lyric line</string>
     <string name="lyrics_click_change">Lyrics click to change</string>

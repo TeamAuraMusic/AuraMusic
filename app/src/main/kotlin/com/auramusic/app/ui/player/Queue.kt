@@ -319,10 +319,25 @@ fun Queue(
                     )
 
                     PlayerQueueButton(
-                        icon = R.drawable.bedtime,
-                        onClick = { showSleepTimerDialog = true },
-                        isActive = sleepTimerEnabled,
-                        enabled = !isListenTogetherGuest,
+                        icon = R.drawable.lyrics,
+                        onClick = onToggleLyrics,
+                        isActive = showInlineLyrics,
+                        shape = middleShape,
+                        modifier = Modifier.size(buttonSize),
+                        textButtonColor = textButtonColor,
+                        iconButtonColor = iconButtonColor,
+                        iconSize = iconSize,
+                        textBackgroundColor = TextBackgroundColor,
+                        playerBackground = playerBackground
+                    )
+
+                    // Karaoke (between Lyrics and Sleep timer), in its own
+                    // boxed pill button — distinct from the plain mic icon
+                    // used by hum-to-search.
+                    PlayerQueueButton(
+                        icon = R.drawable.karaoke,
+                        onClick = onToggleKaraoke,
+                        isActive = karaokeModeEnabled,
                         shape = middleShape,
                         modifier = Modifier.size(buttonSize),
                         textButtonColor = textButtonColor,
@@ -333,22 +348,10 @@ fun Queue(
                     )
 
                     PlayerQueueButton(
-                        icon = R.drawable.lyrics,
-                        onClick = onToggleLyrics,
-                        isActive = showInlineLyrics,
-                        shape = repeatShape,
-                        modifier = Modifier.size(buttonSize),
-                        textButtonColor = textButtonColor,
-                        iconButtonColor = iconButtonColor,
-                        iconSize = iconSize,
-                        textBackgroundColor = TextBackgroundColor,
-                        playerBackground = playerBackground
-                    )
-
-                    PlayerQueueButton(
-                        icon = R.drawable.mic,
-                        onClick = onToggleKaraoke,
-                        isActive = karaokeModeEnabled,
+                        icon = R.drawable.bedtime,
+                        onClick = { showSleepTimerDialog = true },
+                        isActive = sleepTimerEnabled,
+                        enabled = !isListenTogetherGuest,
                         shape = repeatShape,
                         modifier = Modifier.size(buttonSize),
                         textButtonColor = textButtonColor,

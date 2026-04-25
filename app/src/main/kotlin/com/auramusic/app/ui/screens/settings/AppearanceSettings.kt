@@ -61,6 +61,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.auramusic.app.LocalPlayerAwareWindowInsets
+import com.auramusic.app.LocalPlayerConnection
 import com.auramusic.app.R
 import com.auramusic.app.constants.ChipSortTypeKey
 import com.auramusic.app.constants.CropAlbumArtKey
@@ -224,7 +225,16 @@ fun AppearanceSettings(
     val (lyricsGlowEffect, onLyricsGlowEffectChange) = rememberPreference(LyricsGlowEffectKey, defaultValue = false)
 
     val (karaokeModeEnabled, onKaraokeModeEnabledChange) = rememberPreference(KaraokeModeKey, false)
-    val (karaokeVocalSuppression, onKaraokeVocalSuppressionChange) = rememberPreference(KaraokeVocalSuppressionKey, 0.8f)
+    val (karaokeVocalSuppression, onKaraokeVocalSuppressionChange) = rememberPreference(KaraokeVocalSuppressionKey, 1.0f)
+    val playerConnection = LocalPlayerConnection.current
+    fun applyKaraoke(enabled: Boolean, strength: Float) {
+        val service = playerConnection?.service ?: return
+        if (enabled) {
+            service.equalizerService.enableVocalSuppression(strength.coerceIn(0f, 1f))
+        } else {
+            service.equalizerService.disableVocalSuppression()
+        }
+    }
     val (sliderStyle, onSliderStyleChange) = rememberEnumPreference(
         SliderStyleKey,
         defaultValue = SliderStyle.DEFAULT
@@ -1468,7 +1478,7 @@ fun AppearanceSettings(
             title = stringResource(R.string.karaoke),
             items = listOf(
                 Material3SettingsItem(
-                    icon = painterResource(R.drawable.mic),
+                    icon = painterResource(R.drawable.karaoke),
                     title = { Text(stringResource(R.string.karaoke_mode)) },
                     description = { Text(stringResource(R.string.karaoke_mode_desc)) },
                     trailingContent = {
@@ -1476,7 +1486,7 @@ fun AppearanceSettings(
                             checked = karaokeModeEnabled,
                             onCheckedChange = { enabled ->
                                 onKaraokeModeEnabledChange(enabled)
-                                // Also update the equalizer service if needed
+                                applyKaraoke(enabled, karaokeVocalSuppression)
                             },
                             thumbContent = if (karaokeModeEnabled) {
                                 {
@@ -1489,15 +1499,30 @@ fun AppearanceSettings(
                             } else null
                         )
                     },
-                    onClick = { onKaraokeModeEnabledChange(!karaokeModeEnabled) }
+                    onClick = {
+                        val newState = !karaokeModeEnabled
+                        onKaraokeModeEnabledChange(newState)
+                        applyKaraoke(newState, karaokeVocalSuppression)
+                    }
                 ),
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.volume_down),
                     title = { Text(stringResource(R.string.karaoke_vocal_suppression)) },
-                    description = { Text("${(karaokeVocalSuppression * 100).toInt()}%") },
-                    onClick = {
-                        // Show slider dialog for vocal suppression strength
-                    }
+                    description = {
+                        Column {
+                            Text("${(karaokeVocalSuppression * 100).toInt()}%")
+                            Slider(
+                                value = karaokeVocalSuppression,
+                                onValueChange = { v ->
+                                    onKaraokeVocalSuppressionChange(v)
+                                    if (karaokeModeEnabled) applyKaraoke(true, v)
+                                },
+                                valueRange = 0f..1f,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    },
+                    onClick = {}
                 )
             )
         )
