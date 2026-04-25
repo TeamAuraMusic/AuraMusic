@@ -1,8 +1,17 @@
 package com.auramusic.app.eq.audio
 
 import android.media.audiofx.Equalizer
+import androidx.media3.common.C
+import androidx.media3.common.audio.AudioProcessor
+import androidx.media3.common.util.UnstableApi
+import com.auramusic.app.eq.data.ParametricEQ
+import com.auramusic.app.eq.data.ParametricEQBand
+import timber.log.Timber
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import kotlin.math.PI
 import kotlin.math.cos
+import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
 

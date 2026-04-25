@@ -71,6 +71,8 @@ import com.auramusic.app.constants.EnableHighRefreshRateKey
 import com.auramusic.app.constants.GridItemSize
 import com.auramusic.app.constants.GridItemsSizeKey
 import com.auramusic.app.constants.HidePlayerThumbnailKey
+import com.auramusic.app.constants.KaraokeModeKey
+import com.auramusic.app.constants.KaraokeVocalSuppressionKey
 import com.auramusic.app.constants.LibraryFilter
 import com.auramusic.app.constants.LyricsAnimationStyle
 import com.auramusic.app.constants.LyricsAnimationStyleKey
@@ -1469,7 +1471,7 @@ fun AppearanceSettings(
                     icon = painterResource(R.drawable.mic),
                     title = { Text(stringResource(R.string.karaoke_mode)) },
                     description = { Text(stringResource(R.string.karaoke_mode_desc)) },
-                    action = {
+                    trailingContent = {
                         Switch(
                             checked = karaokeModeEnabled,
                             onCheckedChange = { enabled ->

@@ -2699,11 +2699,9 @@ class MusicService :
                 .setAudioProcessorChain(
                     DefaultAudioSink.DefaultAudioProcessorChain(
                         // 2. Inject processor into audio pipeline
-                        arrayOf(
-                            eqProcessor,
-                            vocalSuppressionProcessor,
-                            silenceProcessor,
-                        ),
+                        eqProcessor,
+                        vocalSuppressionProcessor,
+                        silenceProcessor,
                         SilenceSkippingAudioProcessor(2_000_000, 20_000, 256),
                         SonicAudioProcessor(),
                     ),

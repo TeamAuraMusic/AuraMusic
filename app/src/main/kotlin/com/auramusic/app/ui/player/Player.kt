@@ -658,9 +658,9 @@ fun BottomSheetPlayer(
 
         // Toggle vocal suppression in the equalizer service
         if (newState) {
-            equalizerService.enableVocalSuppression(karaokeVocalSuppression)
+            playerConnection.service.equalizerService.enableVocalSuppression(karaokeVocalSuppression)
         } else {
-            equalizerService.disableVocalSuppression()
+            playerConnection.service.equalizerService.disableVocalSuppression()
         }
     }
 
