@@ -1926,6 +1926,7 @@ fun BottomSheetPlayer(
                                 InlineLyricsView(
                                     mediaMetadata = mediaMetadata,
                                     showLyrics = showLyrics,
+                                    karaokeModeEnabled = karaokeModeEnabled,
                                     positionProvider = { effectivePosition }
                                 )
                             } else {
@@ -1992,6 +1993,7 @@ fun BottomSheetPlayer(
                                 InlineLyricsView(
                                     mediaMetadata = mediaMetadata,
                                     showLyrics = showLyrics,
+                                    karaokeModeEnabled = false, // TODO: Pass actual karaoke mode state
                                     positionProvider = { effectivePosition }
                                 )
                             } else {
@@ -2067,6 +2069,7 @@ fun BottomSheetPlayer(
 fun InlineLyricsView(
     mediaMetadata: MediaMetadata?,
     showLyrics: Boolean,
+    karaokeModeEnabled: Boolean = false,
     positionProvider: () -> Long
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
