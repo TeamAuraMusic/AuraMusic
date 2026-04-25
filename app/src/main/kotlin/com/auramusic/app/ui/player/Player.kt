@@ -622,7 +622,7 @@ fun BottomSheetPlayer(
 
     val (showInlineLyrics, onShowInlineLyricsChange) = rememberPreference(ShowLyricsKey, false)
     val (karaokeModeEnabled, onKaraokeModeEnabledChange) = rememberPreference(KaraokeModeKey, false)
-    val (karaokeVocalSuppression, onKaraokeVocalSuppressionChange) = rememberPreference(KaraokeVocalSuppressionKey, 0.8f)
+    val (karaokeVocalSuppression, onKaraokeVocalSuppressionChange) = rememberPreference(KaraokeVocalSuppressionKey, 0.6f)
 
     var isFullScreen by rememberSaveable {
         mutableStateOf(false)
@@ -660,7 +660,8 @@ fun BottomSheetPlayer(
 
         // Toggle vocal suppression in the equalizer service
         if (newState) {
-            playerConnection.service.equalizerService.enableVocalSuppression(karaokeVocalSuppression)
+            // Use a moderate suppression strength by default
+            playerConnection.service.equalizerService.enableVocalSuppression(karaokeVocalSuppression.coerceIn(0.3f, 0.8f))
         } else {
             playerConnection.service.equalizerService.disableVocalSuppression()
         }
