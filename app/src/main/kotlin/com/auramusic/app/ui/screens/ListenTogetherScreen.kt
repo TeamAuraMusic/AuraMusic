@@ -85,18 +85,24 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.auramusic.app.LocalDatabase
 import com.auramusic.app.LocalListenTogetherManager
 import com.auramusic.app.LocalPlayerAwareWindowInsets
 import com.auramusic.app.R
 import com.auramusic.app.constants.AppBarHeight
 import com.auramusic.app.constants.ListenTogetherUsernameKey
+import com.auramusic.app.db.entities.PlaylistEntity
+import com.auramusic.app.db.entities.PlaylistSongMap
+import com.auramusic.app.db.entities.SongEntity
 import com.auramusic.app.listentogether.ConnectionState
 import com.auramusic.app.listentogether.JoinRequestPayload
 import com.auramusic.app.listentogether.ListenTogetherEvent
 import com.auramusic.app.listentogether.RoomRole
 import com.auramusic.app.listentogether.SuggestionReceivedPayload
+import com.auramusic.app.listentogether.TrackInfo
 import com.auramusic.app.listentogether.UserInfo
 import com.auramusic.app.utils.rememberPreference
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -105,6 +111,7 @@ fun ListenTogetherScreen(
     navController: NavController
 ) {
     val context = LocalContext.current
+    val database = LocalDatabase.current
     val listenTogetherManager = LocalListenTogetherManager.current
     val windowInsets = LocalPlayerAwareWindowInsets.current
 
@@ -118,6 +125,8 @@ fun ListenTogetherScreen(
     val userId by listenTogetherManager.userId.collectAsState()
     val pendingJoinRequests by listenTogetherManager.pendingJoinRequests.collectAsState()
     val pendingSuggestions by listenTogetherManager.pendingSuggestions.collectAsState()
+    val collabPlaylistName by listenTogetherManager.collabPlaylistName.collectAsState()
+    val collabPlaylistTracks by listenTogetherManager.collabPlaylistTracks.collectAsState()
 
     var savedUsername by rememberPreference(ListenTogetherUsernameKey, "")
     var roomCodeInput by rememberSaveable { mutableStateOf("") }
@@ -308,6 +317,59 @@ fun ListenTogetherScreen(
                             onReject = { listenTogetherManager.rejectSuggestion(it, "Rejected by host") }
                         )
                     }
+                }
+
+                // Collaborative playlist section
+                item {
+                    CollaborativePlaylistSection(
+                        collabPlaylistName = collabPlaylistName,
+                        collabPlaylistTracks = collabPlaylistTracks,
+                        onStartPlaylist = { name ->
+                            listenTogetherManager.startCollabPlaylist(name)
+                            Toast.makeText(context, R.string.collab_playlist_created, Toast.LENGTH_SHORT).show()
+                        },
+                        onRemoveTrack = { trackId ->
+                            listenTogetherManager.removeFromCollabPlaylist(trackId)
+                        },
+                        onClearPlaylist = {
+                            listenTogetherManager.clearCollabPlaylist()
+                        },
+                        onSaveToLibrary = { name, tracks ->
+                            coroutineScope.launch(Dispatchers.IO) {
+                                val playlistId = PlaylistEntity.generatePlaylistId()
+                                database.query {
+                                    insert(
+                                        PlaylistEntity(
+                                            id = playlistId,
+                                            name = name,
+                                            bookmarkedAt = java.time.LocalDateTime.now(),
+                                            isEditable = true
+                                        )
+                                    )
+                                    tracks.forEachIndexed { index, track ->
+                                        insert(
+                                            SongEntity(
+                                                id = track.id,
+                                                title = track.title,
+                                                duration = (track.duration / 1000).toInt(),
+                                                thumbnailUrl = track.thumbnail
+                                            )
+                                        )
+                                        insert(
+                                            PlaylistSongMap(
+                                                songId = track.id,
+                                                playlistId = playlistId,
+                                                position = index
+                                            )
+                                        )
+                                    }
+                                }
+                                launch(Dispatchers.Main) {
+                                    Toast.makeText(context, R.string.collab_playlist_saved, Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        }
+                    )
                 }
 
                 // Leave room button
@@ -1193,6 +1255,228 @@ private fun JoinCreateRoomSection(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(stringResource(R.string.join_room), fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CollaborativePlaylistSection(
+    collabPlaylistName: String?,
+    collabPlaylistTracks: List<TrackInfo>,
+    onStartPlaylist: (String) -> Unit,
+    onRemoveTrack: (String) -> Unit,
+    onClearPlaylist: () -> Unit,
+    onSaveToLibrary: (String, List<TrackInfo>) -> Unit
+) {
+    var showNameDialog by remember { mutableStateOf(false) }
+    var playlistNameInput by remember { mutableStateOf("") }
+
+    if (showNameDialog) {
+        DefaultDialog(
+            onDismiss = { showNameDialog = false },
+            icon = {
+                Icon(
+                    painter = painterResource(R.drawable.playlist_add),
+                    contentDescription = null,
+                    modifier = Modifier.size(28.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = stringResource(R.string.create_collab_playlist),
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            buttons = {
+                TextButton(onClick = { showNameDialog = false }) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+                TextButton(
+                    onClick = {
+                        val name = playlistNameInput.trim().ifBlank {
+                            "Listen Together Session"
+                        }
+                        onStartPlaylist(name)
+                        showNameDialog = false
+                        playlistNameInput = ""
+                    }
+                ) {
+                    Text(stringResource(android.R.string.ok))
+                }
+            }
+        ) {
+            OutlinedTextField(
+                value = playlistNameInput,
+                onValueChange = { playlistNameInput = it },
+                label = { Text(stringResource(R.string.collab_playlist_name)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            )
+        }
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.playlist_add),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = stringResource(R.string.collaborative_playlist),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f)
+                )
+                if (collabPlaylistName != null) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer
+                    ) {
+                        Text(
+                            text = stringResource(R.string.collab_playlist_tracks, collabPlaylistTracks.size),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            if (collabPlaylistName == null) {
+                Button(
+                    onClick = { showNameDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.add),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        stringResource(R.string.start_collab_playlist),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            } else {
+                Text(
+                    text = collabPlaylistName,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                if (collabPlaylistTracks.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.collab_playlist_empty),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp)
+                    )
+                } else {
+                    collabPlaylistTracks.forEach { track ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = track.title,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = track.artist,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                            IconButton(
+                                onClick = { onRemoveTrack(track.id) },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.close),
+                                    contentDescription = stringResource(R.string.collab_playlist_remove_song),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                HorizontalDivider()
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    FilledTonalButton(
+                        onClick = {
+                            if (collabPlaylistTracks.isNotEmpty()) {
+                                onSaveToLibrary(collabPlaylistName, collabPlaylistTracks)
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        enabled = collabPlaylistTracks.isNotEmpty()
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.library_add),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            stringResource(R.string.save_to_library),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    OutlinedButton(
+                        onClick = onClearPlaylist,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            stringResource(R.string.collab_playlist_clear),
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
                 }
             }

@@ -85,6 +85,7 @@ import com.auramusic.app.R
 import com.auramusic.app.db.entities.RecognitionHistory
 import com.auramusic.app.ui.component.IconButton
 import com.auramusic.app.ui.utils.backToMain
+import com.auramusic.app.recognition.HummingRecognitionService
 import com.auramusic.shazamkit.models.RecognitionResult
 import com.auramusic.shazamkit.models.RecognitionStatus
 import kotlinx.coroutines.Dispatchers
@@ -104,22 +105,31 @@ fun RecognitionScreen(
     LaunchedEffect(Unit) {
         com.auramusic.app.recognition.MusicRecognitionService.reset()
     }
+    LaunchedEffect(Unit) {
+        HummingRecognitionService.reset()
+    }
     
     // Reset recognition status when leaving the screen
     DisposableEffect(Unit) {
         onDispose {
             com.auramusic.app.recognition.MusicRecognitionService.reset()
+            HummingRecognitionService.reset()
         }
     }
-    
-    // Observe recognition status from service for real-time updates (Listening -> Processing -> Result)
-    val recognitionStatus by com.auramusic.app.recognition.MusicRecognitionService.recognitionStatus.collectAsState()
     
     var hasPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) 
                 == PackageManager.PERMISSION_GRANTED
         )
+    }
+    var isHumMode by remember { mutableStateOf(false) }
+    
+    // Observe recognition status from service for real-time updates (Listening -> Processing -> Result)
+    val recognitionStatus by if (isHumMode) {
+        HummingRecognitionService.recognitionStatus.collectAsState()
+    } else {
+        com.auramusic.app.recognition.MusicRecognitionService.recognitionStatus.collectAsState()
     }
     
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -136,7 +146,11 @@ fun RecognitionScreen(
     fun startRecognition() {
         if (hasPermission) {
             coroutineScope.launch {
-                com.auramusic.app.recognition.MusicRecognitionService.recognize(context)
+                if (isHumMode) {
+                    HummingRecognitionService.recognize(context)
+                } else {
+                    com.auramusic.app.recognition.MusicRecognitionService.recognize(context)
+                }
             }
         } else {
             permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
@@ -145,6 +159,7 @@ fun RecognitionScreen(
     
     fun resetToReady() {
         com.auramusic.app.recognition.MusicRecognitionService.reset()
+        HummingRecognitionService.reset()
     }
 
     fun saveToHistory(result: RecognitionResult) {
@@ -189,6 +204,24 @@ fun RecognitionScreen(
                     }
                 },
                 actions = {
+                    FilledTonalButton(
+                        onClick = {
+                            isHumMode = !isHumMode
+                            resetToReady()
+                        },
+                        modifier = Modifier.padding(end = 4.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(if (isHumMode) R.drawable.mic else R.drawable.music_note),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = if (isHumMode) stringResource(R.string.switch_to_listen) else stringResource(R.string.switch_to_hum),
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
                     IconButton(onClick = { navController.navigate("recognition_history") }) {
                         Icon(
                             painter = painterResource(R.drawable.history),
@@ -216,11 +249,15 @@ fun RecognitionScreen(
             ) { status ->
                 when (status) {
                     is RecognitionStatus.Ready -> {
-                        ReadyState(onStartRecognition = ::startRecognition)
+                        ReadyState(onStartRecognition = ::startRecognition, isHumMode = isHumMode)
                     }
                     is RecognitionStatus.Listening -> {
                         ListeningState(
-                            onCancel = { com.auramusic.app.recognition.MusicRecognitionService.reset() }
+                            onCancel = {
+                                com.auramusic.app.recognition.MusicRecognitionService.reset()
+                                HummingRecognitionService.reset()
+                            },
+                            isHumMode = isHumMode
                         )
                     }
                     is RecognitionStatus.Processing -> {
@@ -265,7 +302,8 @@ fun RecognitionScreen(
 
 @Composable
 private fun ReadyState(
-    onStartRecognition: () -> Unit
+    onStartRecognition: () -> Unit,
+    isHumMode: Boolean = false
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -295,7 +333,7 @@ private fun ReadyState(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.mic),
+                    painter = painterResource(if (isHumMode) R.drawable.music_note else R.drawable.mic),
                     contentDescription = null,
                     modifier = Modifier.size(64.dp),
                     tint = MaterialTheme.colorScheme.onPrimary
@@ -304,16 +342,26 @@ private fun ReadyState(
         }
         
         Text(
-            text = stringResource(R.string.tap_to_recognize),
+            text = stringResource(if (isHumMode) R.string.tap_to_hum else R.string.tap_to_recognize),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface
         )
+        if (isHumMode) {
+            Text(
+                text = stringResource(R.string.hum_description),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 32.dp)
+            )
+        }
     }
 }
 
 @Composable
 private fun ListeningState(
-    onCancel: () -> Unit
+    onCancel: () -> Unit,
+    isHumMode: Boolean = false
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val scale by infiniteTransition.animateFloat(
@@ -363,7 +411,7 @@ private fun ListeningState(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.mic),
+                    painter = painterResource(if (isHumMode) R.drawable.music_note else R.drawable.mic),
                     contentDescription = null,
                     modifier = Modifier.size(64.dp),
                     tint = MaterialTheme.colorScheme.onPrimary
@@ -372,7 +420,7 @@ private fun ListeningState(
         }
         
         Text(
-            text = stringResource(R.string.listening),
+            text = stringResource(if (isHumMode) R.string.humming else R.string.listening),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.primary
         )

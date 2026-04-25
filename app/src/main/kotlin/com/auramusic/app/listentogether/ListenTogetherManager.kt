@@ -28,6 +28,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -99,6 +101,12 @@ class ListenTogetherManager @Inject constructor(
     val events = client.events
     val blockedUsernames = client.blockedUsernames
     val pendingSuggestions = client.pendingSuggestions
+
+    // Collaborative playlist - tracks played/approved during a session
+    private val _collabPlaylistTracks = MutableStateFlow<List<TrackInfo>>(emptyList())
+    val collabPlaylistTracks: StateFlow<List<TrackInfo>> = _collabPlaylistTracks.asStateFlow()
+    private val _collabPlaylistName = MutableStateFlow<String?>(null)
+    val collabPlaylistName: StateFlow<String?> = _collabPlaylistName.asStateFlow()
 
     val isInRoom: Boolean get() = client.isInRoom
     val isHost: Boolean get() = client.isHost
@@ -812,6 +820,11 @@ class ListenTogetherManager @Inject constructor(
                     action.trackInfo?.let { track ->
                         Timber.tag(TAG).d("Guest: CHANGE_TRACK to ${track.title}, queue size=${action.queue?.size}")
                         
+                        // Auto-add to collaborative playlist if active
+                        if (_collabPlaylistName.value != null) {
+                            addToCollabPlaylist(track)
+                        }
+                        
                         // If we have a queue, use it! This is the "smart" sync path.
                         if (action.queue != null && action.queue.isNotEmpty()) {
                             val queueTitle = action.queueTitle
@@ -1316,6 +1329,11 @@ class ListenTogetherManager @Inject constructor(
         
         Timber.tag(TAG).d("Sending track change: ${trackInfo.title}, duration: $durationMs")
         
+        // Auto-add to collaborative playlist if active
+        if (_collabPlaylistName.value != null) {
+            addToCollabPlaylist(trackInfo)
+        }
+        
         // Also grab current queue to send along with track change
         val currentQueue = try {
             playerConnection?.queueWindows?.value?.map { it.toTrackInfo() }
@@ -1481,6 +1499,42 @@ class ListenTogetherManager @Inject constructor(
      * Get current session age
      */
     fun getSessionAge(): Long = client.getSessionAge()
+
+    /**
+     * Start a collaborative playlist for this session
+     */
+    fun startCollabPlaylist(name: String) {
+        _collabPlaylistName.value = name
+        _collabPlaylistTracks.value = emptyList()
+        Timber.tag(TAG).d("Started collaborative playlist: $name")
+    }
+
+    /**
+     * Add a track to the collaborative playlist
+     */
+    fun addToCollabPlaylist(track: TrackInfo) {
+        val current = _collabPlaylistTracks.value.toMutableList()
+        if (current.none { it.id == track.id }) {
+            current.add(track)
+            _collabPlaylistTracks.value = current
+            Timber.tag(TAG).d("Added to collab playlist: ${track.title}")
+        }
+    }
+
+    /**
+     * Remove a track from the collaborative playlist
+     */
+    fun removeFromCollabPlaylist(trackId: String) {
+        _collabPlaylistTracks.value = _collabPlaylistTracks.value.filter { it.id != trackId }
+    }
+
+    /**
+     * Clear the collaborative playlist
+     */
+    fun clearCollabPlaylist() {
+        _collabPlaylistTracks.value = emptyList()
+        _collabPlaylistName.value = null
+    }
 
     // Heartbeat timer
     private var heartbeatJob: Job? = null

@@ -759,6 +759,23 @@
     <string name="kick_user_desc">Remove this user from the room</string>
     <string name="permanently_kick_user_desc">Remove and block this user from joining again</string>
     <string name="transfer_ownership_desc">Transfer host privileges to another user</string>
+    <string name="collaborative_playlist">Collaborative playlist</string>
+    <string name="create_collab_playlist">Create collaborative playlist</string>
+    <string name="collab_playlist_name">Playlist name</string>
+    <string name="collab_playlist_created">Collaborative playlist created</string>
+    <string name="collab_playlist_add_song">Song added to collaborative playlist</string>
+    <string name="collab_playlist_remove_song">Song removed from collaborative playlist</string>
+    <string name="collab_playlist_badge">Collaborative</string>
+    <string name="collab_playlist_members">%d members</string>
+    <string name="add_to_collab_playlist">Add to collaborative playlist</string>
+    <string name="start_collab_playlist">Start Collaborative Playlist</string>
+    <string name="collab_playlist_tracks">%d tracks</string>
+    <string name="collab_playlist_empty">Songs played during this session will appear here</string>
+    <string name="collab_playlist_saved">Collaborative playlist saved to library</string>
+    <string name="save_to_library">Save to Library</string>
+    <string name="no_tracks_to_save">No tracks to save</string>
+    <string name="collab_playlist_clear">Clear playlist</string>
+    <string name="collab_playlist_default_name">Listen Together Session</string>
 
     <!-- Music Recognition -->
     <string name="recognize_music">Recognize music</string>
@@ -774,6 +791,13 @@
     <string name="no_match_found">No match found</string>
     <string name="try_again">Try again</string>
     <string name="recognition_error">Recognition error</string>
+    <string name="hum_to_search">Hum to search</string>
+    <string name="tap_to_hum">Tap and hum a song</string>
+    <string name="humming">Humming…</string>
+    <string name="hum_description">Hum, sing, or whistle a melody to find the song</string>
+    <string name="hum_no_match">Couldn\'t identify the melody. Try humming more clearly.</string>
+    <string name="switch_to_hum">Hum a song</string>
+    <string name="switch_to_listen">Listen to music</string>
 
     <!-- Error messages -->
     <string name="error_generic">An error occurred</string>
