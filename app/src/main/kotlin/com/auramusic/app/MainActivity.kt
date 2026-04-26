@@ -7,6 +7,7 @@ package com.auramusic.app
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.app.PendingIntent
 import android.content.ComponentName
 import android.content.Intent
@@ -332,10 +333,15 @@ class MainActivity : ComponentActivity() {
 
         // For TV builds, use TV activity directly
         if (BuildConfig.FLAVOR.contains("tv")) {
-            val intent = Intent(this, TvMainActivity::class.java)
-            startActivity(intent)
-            finish()
-            return
+            try {
+                val tvActivityClass = Class.forName("com.auramusic.app.TvMainActivity")
+                val intent = Intent(this, tvActivityClass.asSubclass(Activity::class.java))
+                startActivity(intent)
+                finish()
+                return
+            } catch (e: ClassNotFoundException) {
+                // TV activity not found, continue with normal UI
+            }
         }
 
         window.decorView.layoutDirection = View.LAYOUT_DIRECTION_LTR
