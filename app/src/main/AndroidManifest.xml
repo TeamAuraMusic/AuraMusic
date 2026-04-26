@@ -57,20 +57,7 @@
             android:exported="true"
             android:launchMode="singleTask"
             android:theme="@style/Theme.AuraMusic"
-            android:windowSoftInputMode="adjustResize" />
-
-        <activity
-            android:name=".TvMainActivity"
-            android:exported="true"
-            android:theme="@style/Theme.Leanback"
-            android:screenOrientation="landscape"
-            tools:ignore="MissingClass">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <action android:name="android.intent.action.VIEW" />
