@@ -5,99 +5,78 @@
 
 package com.auramusic.app.viewmodels
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.auramusic.innertube.YouTube
-import com.auramusic.innertube.models.AlbumItem
-import com.auramusic.innertube.models.ArtistItem
-import com.auramusic.innertube.models.PlaylistItem
-import com.auramusic.innertube.models.SongItem
-import com.auramusic.innertube.models.YTItem
-import com.auramusic.innertube.models.filterExplicit
-import com.auramusic.innertube.models.filterVideoSongs
-import com.auramusic.innertube.pages.SearchResult
 import com.auramusic.app.db.MusicDatabase
-import com.auramusic.app.db.entities.Album
-import com.auramusic.app.db.entities.Artist
-import com.auramusic.app.db.entities.LocalItem
-import com.auramusic.app.db.entities.Playlist
-import com.auramusic.app.db.entities.Song
-import com.auramusic.app.utils.dataStore
-import com.auramusic.app.constants.HideExplicitKey
-import com.auramusic.app.constants.HideVideoSongsKey
-import com.auramusic.app.constants.InnerTubeCookieKey
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
-data class CombinedSearchResult(
-    val localItems: List<LocalItem> = emptyList(),
-    val ytItems: List<YTItem> = emptyList(),
-    val isLoading: Boolean = false
-)
 
 @HiltViewModel
 class TvSearchViewModel
 @Inject
 constructor(
-    @ApplicationContext private val context: Context,
     private val database: MusicDatabase,
 ) : ViewModel() {
     val query = MutableStateFlow("")
 
-    private val _searchResults = MutableStateFlow<CombinedSearchResult>(CombinedSearchResult())
-    val searchResults: StateFlow<CombinedSearchResult> = _searchResults
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading
 
-    private val _isSearching = MutableStateFlow(false)
-    val isSearching: StateFlow<Boolean> = _isSearching
+    private val _searchResults = MutableStateFlow<List<Any>>(emptyList())
+    val searchResults: StateFlow<List<Any>> = _searchResults
 
-    private val _recentSearches = MutableStateFlow<List<String>>(emptyList())
-    val recentSearches: StateFlow<List<String>> = _recentSearches
-
-    // Local database search results
-    private val localSongs = MutableStateFlow<List<Song>>(emptyList())
-    private val localArtists = MutableStateFlow<List<Artist>>(emptyList())
-    private val localAlbums = MutableStateFlow<List<Album>>(emptyList())
-    private val localPlaylists = MutableStateFlow<List<Playlist>>(emptyList())
-
-    // YouTube search results
-    private val ytSongs = MutableStateFlow<List<SongItem>>(emptyList())
-    private val ytAlbums = MutableStateFlow<List<AlbumItem>>(emptyList())
-    private val ytArtists = MutableStateFlow<List<ArtistItem>>(emptyList())
-    private val ytPlaylists = MutableStateFlow<List<PlaylistItem>>(emptyList())
-
-    val result = combine(
-        localSongs,
-        localArtists,
-        localAlbums,
-        localPlaylists,
-        ytSongs,
-        ytAlbums,
-        ytArtists,
-        ytPlaylists,
-        _isSearching
-    ) { localSongs, localArtists, localAlbums, localPlaylists, ytSongs, ytAlbums, ytArtists, ytPlaylists, isSearching ->
-        val localItems = (localSongs + localArtists + localAlbums + localPlaylists)
-        val ytItems = (ytSongs + ytAlbums + ytArtists + ytPlaylists)
-        CombinedSearchResult(localItems, ytItems, isSearching)
-    }.stateIn(viewModelScope, SharingStarted.Lazily, CombinedSearchResult())
-
-    fun setQuery(newQuery: String) {
+    fun updateQuery(newQuery: String) {
         query.value = newQuery
-        if (newQuery.isNotEmpty()) {
+        if (newQuery.isNotBlank()) {
             performSearch(newQuery)
         } else {
             clearResults()
         }
+    }
+
+    private fun performSearch(query: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            // Perform local search
+            try {
+                val results = mutableListOf<Any>()
+
+                // Search songs
+                val songs = database.searchSongs("%$query%", 10).collect { songList ->
+                    results.addAll(songList)
+                }
+
+                // Search artists
+                val artists = database.searchArtists("%$query%", 5).collect { artistList ->
+                    results.addAll(artistList)
+                }
+
+                // Search albums
+                val albums = database.searchAlbums("%$query%", 5).collect { albumList ->
+                    results.addAll(albumList)
+                }
+
+                // Search playlists
+                val playlists = database.searchPlaylists("%$query%", 5).collect { playlistList ->
+                    results.addAll(playlistList)
+                }
+
+                _searchResults.value = results
+            } catch (e: Exception) {
+                _searchResults.value = emptyList()
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    private fun clearResults() {
+        _searchResults.value = emptyList()
+    }
+}
     }
 
     private fun performSearch(query: String) {

@@ -82,42 +82,17 @@ import com.auramusic.app.viewmodels.TvSearchViewModel
 import com.auramusic.innertube.models.WatchEndpoint
 import com.auramusic.innertube.models.EpisodeItem
 import com.auramusic.innertube.models.PodcastItem
-import com.auramusic.innertube.models.SimilarRecommendation
-import kotlinx.coroutines.launch
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.key.type
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
-import coil3.compose.AsyncImage
-import com.auramusic.app.db.entities.Album
-import com.auramusic.app.db.entities.Artist
-import com.auramusic.app.db.entities.LocalItem
-import com.auramusic.app.db.entities.Playlist
-import com.auramusic.app.db.entities.Song
-import com.auramusic.app.playback.PlayerConnection
-import com.auramusic.app.playback.queues.YouTubeQueue
-
-import com.auramusic.app.viewmodels.HomeViewModel
-import com.auramusic.app.viewmodels.LocalFilter
-import com.auramusic.app.viewmodels.LocalSearchViewModel
-import com.auramusic.app.viewmodels.TvSearchViewModel
 import com.auramusic.innertube.models.AlbumItem
 import com.auramusic.innertube.models.ArtistItem
 import com.auramusic.innertube.models.EpisodeItem
 import com.auramusic.innertube.models.PlaylistItem
 import com.auramusic.innertube.models.PodcastItem
+import com.auramusic.innertube.models.SimilarRecommendation
 import com.auramusic.innertube.models.SongItem
 import com.auramusic.innertube.models.YTItem
 import com.auramusic.innertube.models.filterExplicit
 import com.auramusic.innertube.models.filterVideoSongs
+import kotlinx.coroutines.launch
 import com.auramusic.innertube.pages.ExplorePage
 import com.auramusic.innertube.pages.HomePage
 import com.auramusic.innertube.pages.HomePage.Section
@@ -689,12 +664,10 @@ private fun TvLibraryScreen(playerConnection: PlayerConnection?) {
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun TvSearchScreen(playerConnection: PlayerConnection?) {
-    val localViewModel: LocalSearchViewModel = hiltViewModel()
     val tvSearchViewModel: TvSearchViewModel = hiltViewModel()
-    val query by tvSearchViewModel.queryFlow.collectAsState()
+    val query by tvSearchViewModel.query.collectAsState()
     val searchResults by tvSearchViewModel.searchResults.collectAsState()
-    val isSearching by tvSearchViewModel.isSearching.collectAsState()
-    val recentSearches by tvSearchViewModel.recentSearches.collectAsState()
+    val isLoading by tvSearchViewModel.isLoading.collectAsState()
 
     Column(
         modifier = Modifier
@@ -704,8 +677,8 @@ private fun TvSearchScreen(playerConnection: PlayerConnection?) {
     ) {
         OutlinedTextField(
             value = query,
-            onValueChange = { tvSearchViewModel.setQuery(it) },
-            label = { Text("Search YouTube and your library") },
+            onValueChange = { tvSearchViewModel.updateQuery(it) },
+            label = { Text("Search your library") },
             singleLine = true,
             modifier = Modifier
                 .fillMaxWidth()
@@ -718,36 +691,82 @@ private fun TvSearchScreen(playerConnection: PlayerConnection?) {
         )
 
         if (query.isEmpty()) {
-            // Show recent searches
-            if (recentSearches.isNotEmpty()) {
-                Column {
-                    Text(
-                        text = "Recent Searches",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onBackground,
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    recentSearches.forEach { search ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { tvSearchViewModel.setQuery(search) }
-                                .padding(vertical = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
+            // Show hint when no search has been performed yet
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = 64.dp),
+            ) {
+                Text(
+                    text = "Search your music library",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                )
+                Text(
+                    text = "Songs, artists, albums, and playlists",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                )
+            }
+        } else if (isLoading) {
+            // Show loading indicator
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator()
+            }
+        } else {
+            // Show search results
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(32.dp)) {
+                val songs = searchResults.filterIsInstance<Song>()
+                val artists = searchResults.filterIsInstance<Artist>()
+                val albums = searchResults.filterIsInstance<Album>()
+                val playlists = searchResults.filterIsInstance<Playlist>()
+
+                if (songs.isNotEmpty()) {
+                    item {
+                        SongRow(
+                            title = "Songs",
+                            songs = songs,
+                            onSongClick = { song -> playerConnection?.playSong(song) },
+                        )
+                    }
+                }
+                if (artists.isNotEmpty()) {
+                    item { LocalItemRow(title = "Artists", items = artists) }
+                }
+                if (albums.isNotEmpty()) {
+                    item { LocalItemRow(title = "Albums", items = albums) }
+                }
+                if (playlists.isNotEmpty()) {
+                    item { LocalItemRow(title = "Playlists", items = playlists) }
+                }
+
+                if (searchResults.isEmpty() && query.isNotEmpty()) {
+                    item {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth().padding(top = 64.dp),
                         ) {
                             Text(
-                                text = search,
+                                text = "No results for \"$query\".",
                                 style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurface,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_history),
-                                contentDescription = "Recent search",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            Text(
+                                text = "Try different keywords or browse your library",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                             )
                         }
+                    }
+                }
+            }
+        }
+    }
+}
                     }
                     if (recentSearches.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(8.dp))

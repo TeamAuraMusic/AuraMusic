@@ -37,42 +37,34 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.media3.exoplayer.offline.Download
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.auramusic.app.db.entities.Song
 import com.auramusic.app.extensions.toMediaItem
 import com.auramusic.app.playback.PlayerConnection
 import com.auramusic.app.playback.queues.ListQueue
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.stateIn
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.lifecycleScope
+import com.auramusic.app.viewmodels.LibraryAlbumsViewModel
+import com.auramusic.app.viewmodels.LibraryArtistsViewModel
+import com.auramusic.app.viewmodels.LibraryPlaylistsViewModel
 
 /* ------------------------------ Album ------------------------------ */
 
 @Composable
 fun TvAlbumDetailScreen(albumId: String, playerConnection: PlayerConnection?) {
-    val context = LocalContext.current
-    val database = remember { context.tvDatabase() }
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val scope = remember(lifecycleOwner) { lifecycleOwner.lifecycleScope }
+    val albumsViewModel: LibraryAlbumsViewModel = hiltViewModel()
 
-    val album by remember(albumId) {
-        database.album(albumId).stateIn(scope, SharingStarted.Eagerly, null)
-    }.collectAsState()
+    val albums by albumsViewModel.allAlbums.collectAsStateWithLifecycle()
+    val album = albums.find { it.album.id == albumId }
 
-    val songs by remember(albumId) {
-        database.albumSongs(albumId).stateIn(scope, SharingStarted.Eagerly, emptyList())
-    }.collectAsState()
+    val songs by albumsViewModel.getAlbumSongs(albumId).collectAsStateWithLifecycle(emptyList())
 
     DetailLayout(
         title = album?.album?.title.orEmpty().ifEmpty { "Album" },
         subtitle = album?.artists?.joinToString(", ") { it.name }.orEmpty(),
-        meta = album?.let { "${it.songCount} songs" }.orEmpty(),
+        meta = "${songs.size} songs",
         thumbnailUrl = album?.album?.thumbnailUrl,
         songs = songs,
         playerConnection = playerConnection,
@@ -84,25 +76,17 @@ fun TvAlbumDetailScreen(albumId: String, playerConnection: PlayerConnection?) {
 
 @Composable
 fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?) {
-    val context = LocalContext.current
-    val database = remember { context.tvDatabase() }
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val scope = remember(lifecycleOwner) { lifecycleOwner.lifecycleScope }
+    val artistsViewModel: LibraryArtistsViewModel = hiltViewModel()
 
-    val artist by remember(artistId) {
-        database.artist(artistId).stateIn(scope, SharingStarted.Eagerly, null)
-    }.collectAsState()
-
-    val songs by remember(artistId) {
-        database.artistSongsPreview(artistId, 50).stateIn(scope, SharingStarted.Eagerly, emptyList())
-    }.collectAsState()
+    val artists by artistsViewModel.allArtists.collectAsStateWithLifecycle()
+    val artist = artists.find { it.artist.id == artistId }
 
     DetailLayout(
         title = artist?.artist?.name.orEmpty().ifEmpty { "Artist" },
-        subtitle = "",
+        subtitle = "Artist",
         meta = artist?.let { "${it.songCount} songs" }.orEmpty(),
         thumbnailUrl = artist?.artist?.thumbnailUrl,
-        songs = songs,
+        songs = emptyList(), // TODO: Implement artist songs loading
         playerConnection = playerConnection,
         playAllTitle = artist?.artist?.name,
     )
@@ -112,20 +96,13 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?) 
 
 @Composable
 fun TvPlaylistDetailScreen(playlistId: String, playerConnection: PlayerConnection?) {
-    val context = LocalContext.current
-    val database = remember { context.tvDatabase() }
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val scope = remember(lifecycleOwner) { lifecycleOwner.lifecycleScope }
+    val playlistsViewModel: LibraryPlaylistsViewModel = hiltViewModel()
 
-    val playlist by remember(playlistId) {
-        database.playlist(playlistId).stateIn(scope, SharingStarted.Eagerly, null)
-    }.collectAsState()
+    val playlists by playlistsViewModel.allPlaylists.collectAsStateWithLifecycle()
+    val playlist = playlists.find { it.playlist.id == playlistId }
 
-    val playlistSongs by remember(playlistId) {
-        database.playlistSongs(playlistId).stateIn(scope, SharingStarted.Eagerly, emptyList())
-    }.collectAsState()
-
-    val songs = remember(playlistSongs) { playlistSongs.map { it.song } }
+    // TODO: Implement playlist songs loading
+    val songs = emptyList<Song>()
 
     DetailLayout(
         title = playlist?.playlist?.name.orEmpty().ifEmpty { "Playlist" },
