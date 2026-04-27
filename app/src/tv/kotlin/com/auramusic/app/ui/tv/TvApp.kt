@@ -78,24 +78,13 @@ import com.auramusic.app.viewmodels.LibraryPlaylistsViewModel
 import com.auramusic.app.viewmodels.LibrarySongsViewModel
 import com.auramusic.app.viewmodels.LocalFilter
 import com.auramusic.app.viewmodels.LocalSearchViewModel
+import com.auramusic.app.viewmodels.CombinedSearchResult
 import com.auramusic.app.viewmodels.TvSearchViewModel
-import com.auramusic.innertube.models.WatchEndpoint
-import com.auramusic.innertube.models.EpisodeItem
-import com.auramusic.innertube.models.PodcastItem
 import com.auramusic.innertube.models.AlbumItem
 import com.auramusic.innertube.models.ArtistItem
-import com.auramusic.innertube.models.EpisodeItem
 import com.auramusic.innertube.models.PlaylistItem
-import com.auramusic.innertube.models.PodcastItem
-import com.auramusic.innertube.models.SimilarRecommendation
 import com.auramusic.innertube.models.SongItem
 import com.auramusic.innertube.models.YTItem
-import com.auramusic.innertube.models.filterExplicit
-import com.auramusic.innertube.models.filterVideoSongs
-import kotlinx.coroutines.launch
-import com.auramusic.innertube.pages.ExplorePage
-import com.auramusic.innertube.pages.HomePage
-import com.auramusic.innertube.pages.HomePage.Section
 import kotlinx.coroutines.launch
 
 /**
@@ -215,11 +204,9 @@ private fun TvHomeScreen(playerConnection: PlayerConnection?) {
     val viewModel: HomeViewModel = hiltViewModel()
     val quickPicks by viewModel.quickPicks.collectAsState()
     val forgottenFavorites by viewModel.forgottenFavorites.collectAsState()
+    val homePage by viewModel.homePage.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
-    val homePage by viewModel.homePage.collectAsState()
-    val explorePage by viewModel.explorePage.collectAsState()
-    val similarRecommendations by viewModel.similarRecommendations.collectAsState()
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -257,96 +244,31 @@ private fun TvHomeScreen(playerConnection: PlayerConnection?) {
             }
         }
 
-        // YouTube Home Page Sections (Live Internet Content)
-        if (homePage?.sections?.isNotEmpty() == true) {
-            items(homePage!!.sections.size) { index ->
-                val section = homePage!!.sections[index]
-                YouTubeSectionRow(
-                    title = section.title,
-                    items = section.items,
-                    playerConnection = playerConnection,
-                    onYTItemClick = { ytItem ->
-                        when (ytItem) {
-                            is SongItem -> playerConnection?.playQueue(
-                                YouTubeQueue(endpoint = WatchEndpoint(videoId = ytItem.id))
-                            )
-                            is AlbumItem -> {}
-                            is ArtistItem -> {}
-                            is PlaylistItem -> {}
-                            is EpisodeItem -> {}
-                            is PodcastItem -> {}
+        // Display home page sections from YouTube
+        homePage?.sections?.forEachIndexed { index, section ->
+            if (section.items.isNotEmpty()) {
+                item {
+                    YouTubeSectionRow(
+                        title = section.title,
+                        items = section.items,
+                        playerConnection = playerConnection,
+                        onYTItemClick = { item ->
+                            when (item) {
+                                is com.auramusic.innertube.models.SongItem -> {
+                                    playerConnection?.playYouTubeSong(item)
+                                }
+                                // Add other item types as needed
+                                else -> {
+                                    // Handle navigation to artist/album/playlist pages
+                                }
+                            }
                         }
-                    }
-                )
+                    )
+                }
             }
         }
 
-        // Similar Recommendations
-        if (!similarRecommendations.isNullOrEmpty()) {
-            items(similarRecommendations.size) { index ->
-                val recommendation = similarRecommendations[index]
-                YouTubeSectionRow(
-                    title = when (recommendation.title) {
-                        is Song -> recommendation.title.song.title
-                        is Album -> recommendation.title.album.title
-                        is Artist -> recommendation.title.artist.name
-                        else -> "Recommended for you"
-                    },
-                    items = recommendation.items,
-                    playerConnection = playerConnection,
-                    onYTItemClick = { ytItem ->
-                        when (ytItem) {
-                            is SongItem -> playerConnection?.playQueue(
-                                YouTubeQueue(endpoint = WatchEndpoint(videoId = ytItem.id))
-                            )
-                            is AlbumItem -> {}
-                            is ArtistItem -> {}
-                            is PlaylistItem -> {}
-                            is EpisodeItem -> {}
-                            is PodcastItem -> {}
-                        }
-                    }
-                )
-            }
-        }
-
-        // Explore Page - New Releases and Trending
-        if (explorePage?.newReleaseAlbums?.isNotEmpty() == true) {
-            item {
-                YouTubeAlbumRow(
-                    title = "New Releases",
-                    albums = explorePage!!.newReleaseAlbums,
-                    onAlbumClick = {}
-                )
-            }
-        }
-
-        if (explorePage?.podcasts?.isNotEmpty() == true) {
-            items(explorePage!!.podcasts.size) { index ->
-                val podcastSection = explorePage!!.podcasts[index]
-                YouTubeSectionRow(
-                    title = podcastSection.title,
-                    items = podcastSection.items,
-                    playerConnection = playerConnection,
-                    onYTItemClick = {}
-                )
-            }
-        }
-
-        if (explorePage?.mixes?.isNotEmpty() == true) {
-            items(explorePage!!.mixes.size) { index ->
-                val mixSection = explorePage!!.mixes[index]
-                YouTubeSectionRow(
-                    title = mixSection.title,
-                    items = mixSection.items,
-                    playerConnection = playerConnection,
-                    onYTItemClick = {}
-                )
-            }
-        }
-
-        if (quickPicks.isNullOrEmpty() && forgottenFavorites.isNullOrEmpty() &&
-            homePage?.sections?.isEmpty() == true && similarRecommendations.isNullOrEmpty()) {
+        if (quickPicks.isNullOrEmpty() && forgottenFavorites.isNullOrEmpty() && homePage?.sections.isNullOrEmpty() != false) {
             item {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -668,6 +590,7 @@ private fun TvSearchScreen(playerConnection: PlayerConnection?) {
     val query by tvSearchViewModel.query.collectAsState()
     val searchResults by tvSearchViewModel.searchResults.collectAsState()
     val isLoading by tvSearchViewModel.isLoading.collectAsState()
+    val recentSearches by tvSearchViewModel.recentSearches.collectAsState()
 
     Column(
         modifier = Modifier
@@ -678,7 +601,7 @@ private fun TvSearchScreen(playerConnection: PlayerConnection?) {
         OutlinedTextField(
             value = query,
             onValueChange = { tvSearchViewModel.updateQuery(it) },
-            label = { Text("Search your library") },
+            label = { Text("Search YouTube and your library") },
             singleLine = true,
             modifier = Modifier
                 .fillMaxWidth()
@@ -691,22 +614,56 @@ private fun TvSearchScreen(playerConnection: PlayerConnection?) {
         )
 
         if (query.isEmpty()) {
-            // Show hint when no search has been performed yet
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth().padding(top = 64.dp),
-            ) {
-                Text(
-                    text = "Search your music library",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                )
-                Text(
-                    text = "Songs, artists, albums, and playlists",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                )
+            // Show recent searches or hint
+            if (recentSearches.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(
+                        text = "Recent searches",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(recentSearches) { searchQuery ->
+                            Text(
+                                text = searchQuery,
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { tvSearchViewModel.updateQuery(searchQuery) }
+                                    .padding(vertical = 8.dp),
+                            )
+                        }
+                    }
+                    if (recentSearches.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Clear Recent Searches",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .clickable { tvSearchViewModel.clearRecentSearches() }
+                                .padding(vertical = 8.dp),
+                        )
+                    }
+                }
+            } else {
+                // Show hint when no search has been performed yet
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(top = 64.dp),
+                ) {
+                    Text(
+                        text = "Search YouTube and your library",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    )
+                    Text(
+                        text = "Songs, artists, albums, and playlists",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    )
+                }
             }
         } else if (isLoading) {
             // Show loading indicator
@@ -717,21 +674,113 @@ private fun TvSearchScreen(playerConnection: PlayerConnection?) {
                 CircularProgressIndicator()
             }
         } else {
-            // Show search results
+            // Show combined search results
             LazyColumn(verticalArrangement = Arrangement.spacedBy(32.dp)) {
-                val songs = searchResults.filterIsInstance<Song>()
-                val artists = searchResults.filterIsInstance<Artist>()
-                val albums = searchResults.filterIsInstance<Album>()
-                val playlists = searchResults.filterIsInstance<Playlist>()
+                val localSongs = searchResults.localItems.filterIsInstance<Song>()
+                val localArtists = searchResults.localItems.filterIsInstance<Artist>()
+                val localAlbums = searchResults.localItems.filterIsInstance<Album>()
+                val localPlaylists = searchResults.localItems.filterIsInstance<Playlist>()
 
-                if (songs.isNotEmpty()) {
+                val ytSongs = searchResults.ytItems.filterIsInstance<com.auramusic.innertube.models.SongItem>()
+                val ytArtists = searchResults.ytItems.filterIsInstance<com.auramusic.innertube.models.ArtistItem>()
+                val ytAlbums = searchResults.ytItems.filterIsInstance<com.auramusic.innertube.models.AlbumItem>()
+                val ytPlaylists = searchResults.ytItems.filterIsInstance<com.auramusic.innertube.models.PlaylistItem>()
+
+                // Local results
+                if (localSongs.isNotEmpty()) {
                     item {
                         SongRow(
-                            title = "Songs",
-                            songs = songs,
+                            title = "Local Songs",
+                            songs = localSongs,
                             onSongClick = { song -> playerConnection?.playSong(song) },
                         )
                     }
+                }
+                if (localArtists.isNotEmpty()) {
+                    item { LocalItemRow(title = "Local Artists", items = localArtists) }
+                }
+                if (localAlbums.isNotEmpty()) {
+                    item { LocalItemRow(title = "Local Albums", items = localAlbums) }
+                }
+                if (localPlaylists.isNotEmpty()) {
+                    item { LocalItemRow(title = "Local Playlists", items = localPlaylists) }
+                }
+
+                // YouTube results
+                if (ytSongs.isNotEmpty()) {
+                    item {
+                        YouTubeSectionRow(
+                            title = "YouTube Songs",
+                            items = ytSongs,
+                            playerConnection = playerConnection,
+                            onYTItemClick = { item ->
+                                when (item) {
+                                    is com.auramusic.innertube.models.SongItem -> {
+                                        playerConnection?.playYouTubeSong(item)
+                                    }
+                                    else -> {
+                                        // Handle other types if needed
+                                    }
+                                }
+                            }
+                        )
+                    }
+                }
+                if (ytArtists.isNotEmpty()) {
+                    item {
+                        YouTubeSectionRow(
+                            title = "YouTube Artists",
+                            items = ytArtists,
+                            playerConnection = playerConnection,
+                            onYTItemClick = { /* Handle artist click */ }
+                        )
+                    }
+                }
+                if (ytAlbums.isNotEmpty()) {
+                    item {
+                        YouTubeSectionRow(
+                            title = "YouTube Albums",
+                            items = ytAlbums,
+                            playerConnection = playerConnection,
+                            onYTItemClick = { /* Handle album click */ }
+                        )
+                    }
+                }
+                if (ytPlaylists.isNotEmpty()) {
+                    item {
+                        YouTubeSectionRow(
+                            title = "YouTube Playlists",
+                            items = ytPlaylists,
+                            playerConnection = playerConnection,
+                            onYTItemClick = { /* Handle playlist click */ }
+                        )
+                    }
+                }
+
+                if (searchResults.localItems.isEmpty() && searchResults.ytItems.isEmpty() && query.isNotEmpty()) {
+                    item {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth().padding(top = 64.dp),
+                        ) {
+                            Text(
+                                text = "No results for \"$query\".",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                text = "Try different keywords or browse your library",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
                 }
                 if (artists.isNotEmpty()) {
                     item { LocalItemRow(title = "Artists", items = artists) }
