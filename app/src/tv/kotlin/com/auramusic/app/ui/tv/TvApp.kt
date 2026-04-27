@@ -84,6 +84,7 @@ import com.auramusic.innertube.models.AlbumItem
 import com.auramusic.innertube.models.ArtistItem
 import com.auramusic.innertube.models.PlaylistItem
 import com.auramusic.innertube.models.SongItem
+import com.auramusic.innertube.models.WatchEndpoint
 import com.auramusic.innertube.models.YTItem
 import kotlinx.coroutines.launch
 
@@ -255,7 +256,7 @@ private fun TvHomeScreen(playerConnection: PlayerConnection?) {
                         onYTItemClick = { item ->
                             when (item) {
                                 is com.auramusic.innertube.models.SongItem -> {
-                                    playerConnection?.playYouTubeSong(item)
+                                    playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id)))
                                 }
                                 // Add other item types as needed
                                 else -> {
@@ -434,8 +435,8 @@ private fun YouTubeMediaCard(
             )
             Text(
                 text = when (item) {
-                    is SongItem -> item.artists.joinToString(", ") { it.name }
-                    is AlbumItem -> item.artists.joinToString(", ") { it.name }
+                    is SongItem -> item.artists?.joinToString(", ") { it.name } ?: ""
+                    is AlbumItem -> item.artists?.joinToString(", ") { it.name } ?: ""
                     is ArtistItem -> "Artist"
                     is PlaylistItem -> item.author?.name ?: "Playlist"
                     else -> ""
@@ -511,7 +512,7 @@ private fun YouTubeAlbumCard(
                 maxLines = 1,
             )
             Text(
-                text = album.artists.joinToString(", ") { it.name },
+                text = album.artists?.joinToString(", ") { it.name } ?: "",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -632,9 +633,7 @@ private fun TvSearchScreen(playerConnection: PlayerConnection?) {
                                     .clickable { tvSearchViewModel.updateQuery(searchQuery) }
                                     .padding(vertical = 8.dp),
                             )
-                        }
-                    }
-                    if (recentSearches.isNotEmpty()) {
+}
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "Clear Recent Searches",
@@ -716,7 +715,7 @@ private fun TvSearchScreen(playerConnection: PlayerConnection?) {
                             onYTItemClick = { item ->
                                 when (item) {
                                     is com.auramusic.innertube.models.SongItem -> {
-                                        playerConnection?.playYouTubeSong(item)
+                                        playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id)))
                                     }
                                     else -> {
                                         // Handle other types if needed
@@ -781,53 +780,8 @@ private fun TvSearchScreen(playerConnection: PlayerConnection?) {
         }
     }
 }
-                }
-                if (artists.isNotEmpty()) {
-                    item { LocalItemRow(title = "Artists", items = artists) }
-                }
-                if (albums.isNotEmpty()) {
-                    item { LocalItemRow(title = "Albums", items = albums) }
-                }
-                if (playlists.isNotEmpty()) {
-                    item { LocalItemRow(title = "Playlists", items = playlists) }
-                }
+                    }
 
-                if (searchResults.isEmpty() && query.isNotEmpty()) {
-                    item {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth().padding(top = 64.dp),
-                        ) {
-                            Text(
-                                text = "No results for \"$query\".",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Text(
-                                text = "Try different keywords or browse your library",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-                    }
-                    if (recentSearches.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Clear Recent Searches",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier
-                                .clickable { tvSearchViewModel.clearRecentSearches() }
-                                .padding(vertical = 8.dp),
-                        )
-                    }
                 }
             } else {
                 // Show hint when no search has been performed yet
@@ -955,33 +909,6 @@ private fun TvSearchScreen(playerConnection: PlayerConnection?) {
                                 onYTItemClick = {}
                             )
                         }
-                    }
-                }
-
-                // No results
-                if (searchResults.localItems.isEmpty() && searchResults.ytItems.isEmpty()) {
-                    item {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth().padding(top = 64.dp),
-                        ) {
-                            Text(
-                                text = "No results for \"$query\".",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Text(
-                                text = "Try different keywords or browse your library",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
 }
 
 /* -------------------------- Shared rows -------------------------- */
