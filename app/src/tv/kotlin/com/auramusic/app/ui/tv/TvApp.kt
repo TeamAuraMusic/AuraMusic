@@ -46,6 +46,7 @@ import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.RepeatOne
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -93,11 +94,16 @@ import com.auramusic.app.viewmodels.CombinedSearchResult
 import com.auramusic.app.viewmodels.TvSearchViewModel
 import com.auramusic.innertube.models.AlbumItem
 import com.auramusic.innertube.models.ArtistItem
+import com.auramusic.innertube.models.EpisodeItem
 import com.auramusic.innertube.models.PlaylistItem
+import com.auramusic.innertube.models.PodcastItem
 import com.auramusic.innertube.models.SongItem
 import com.auramusic.innertube.models.WatchEndpoint
 import com.auramusic.innertube.models.YTItem
+import com.auramusic.app.utils.formatAsDuration
+import com.auramusic.app.models.toMediaMetadata
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Top-level Compose entry point for the Android TV variant.
@@ -116,8 +122,10 @@ import kotlinx.coroutines.launch
 @Composable
 fun TvApp(playerConnection: PlayerConnection?) {
     var section by remember { mutableStateOf(TvSection.HOME) }
+    val navigator = rememberTvNavigator()
 
-    Surface(
+    CompositionLocalProvider(LocalTvNavigator provides navigator) {
+        Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
     ) {
@@ -292,42 +300,43 @@ private fun TvHomeScreen(playerConnection: PlayerConnection?) {
                         title = "Trending Now",
                         items = heroItems,
                         playerConnection = playerConnection,
-                        onYTItemClick = { item ->
-                            val navigator = rememberTvNavigator()
-                            when (item) {
-                                is com.auramusic.innertube.models.SongItem -> {
-                                    playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id)))
-                                }
-                                is com.auramusic.innertube.models.AlbumItem -> {
-                                    item.browseId?.let { browseId ->
-                                        navigator.navigate(TvDestination.Album(browseId))
-                                    } ?: run {
-                                        playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(playlistId = item.playlistId)))
-                                    }
-                                }
-                                is com.auramusic.innertube.models.ArtistItem -> {
-                                    item.id?.let { artistId ->
-                                        navigator.navigate(TvDestination.Artist(artistId))
-                                    }
-                                }
-                                is com.auramusic.innertube.models.PlaylistItem -> {
-                                    item.browseId?.let { browseId ->
-                                        navigator.navigate(TvDestination.Playlist(browseId))
-                                    } ?: run {
-                                        playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(playlistId = item.playlistId)))
-                                    }
-                                }
-                                is com.auramusic.innertube.models.EpisodeItem -> {
-                                    playerConnection?.playQueue(YouTubeQueue.radio(item.toMediaMetadata()))
-                                }
-                                is com.auramusic.innertube.models.PodcastItem -> {
-                                    item.id?.let { podcastId ->
-                                        // Navigate to podcast detail (could reuse playlist destination)
-                                        navigator.navigate(TvDestination.Playlist(podcastId))
-                                    }
-                                }
-                            }
-                        }
+                         onYTItemClick = { item ->
+                             val navigator = rememberTvNavigator()
+                             when (item) {
+                                 is SongItem -> {
+                                     playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id)))
+                                 }
+                                 is AlbumItem -> {
+                                     item.browseId?.let { browseId ->
+                                         navigator.navigate(TvDestination.Album(browseId))
+                                     } ?: run {
+                                         playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(playlistId = item.playlistId)))
+                                     }
+                                 }
+                                 is ArtistItem -> {
+                                     item.id?.let { artistId ->
+                                         navigator.navigate(TvDestination.Artist(artistId))
+                                     }
+                                 }
+                                 is PlaylistItem -> {
+                                     item.browseId?.let { browseId ->
+                                         navigator.navigate(TvDestination.Playlist(browseId))
+                                     } ?: run {
+                                         playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(playlistId = item.playlistId)))
+                                     }
+                                 }
+                                 is EpisodeItem -> {
+                                     playerConnection?.playQueue(YouTubeQueue.radio(item.toMediaMetadata()))
+                                 }
+                                 is PodcastItem -> {
+                                     item.id?.let { podcastId ->
+                                         // Navigate to podcast detail (could reuse playlist destination)
+                                         navigator.navigate(TvDestination.Playlist(podcastId))
+                                     }
+                                 }
+                             }
+    }
+
                     )
                 }
             }
@@ -361,31 +370,31 @@ private fun TvHomeScreen(playerConnection: PlayerConnection?) {
                         }
                     }.filterNotNull(),
                     playerConnection = playerConnection,
-                    onYTItemClick = { item ->
-                        // Handle speed dial item clicks
-                        val navigator = rememberTvNavigator()
-                        when (item) {
-                            is com.auramusic.innertube.models.SongItem -> {
-                                playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id)))
-                            }
-                            is com.auramusic.innertube.models.AlbumItem -> {
-                                item.browseId?.let { browseId ->
-                                    navigator.navigate(TvDestination.Album(browseId))
-                                }
-                            }
-                            is com.auramusic.innertube.models.ArtistItem -> {
-                                item.id?.let { artistId ->
-                                    navigator.navigate(TvDestination.Artist(artistId))
-                                }
-                            }
-                            is com.auramusic.innertube.models.PlaylistItem -> {
-                                item.browseId?.let { browseId ->
-                                    navigator.navigate(TvDestination.Playlist(browseId))
-                                }
-                            }
-                            else -> {}
-                        }
-                    }
+                     onYTItemClick = { item ->
+                         // Handle speed dial item clicks
+                         val navigator = rememberTvNavigator()
+                         when (item) {
+                             is SongItem -> {
+                                 playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id)))
+                             }
+                             is AlbumItem -> {
+                                 item.browseId?.let { browseId ->
+                                     navigator.navigate(TvDestination.Album(browseId))
+                                 }
+                             }
+                             is ArtistItem -> {
+                                 item.id?.let { artistId ->
+                                     navigator.navigate(TvDestination.Artist(artistId))
+                                 }
+                             }
+                             is PlaylistItem -> {
+                                 item.browseId?.let { browseId ->
+                                     navigator.navigate(TvDestination.Playlist(browseId))
+                                 }
+                             }
+                             else -> {}
+                         }
+                     }
                 )
             }
         }
@@ -415,6 +424,7 @@ private fun TvHomeScreen(playerConnection: PlayerConnection?) {
                 LocalItemRow(
                     title = "Keep listening",
                     items = keepListening!!,
+                    playerConnection = playerConnection,
                 )
             }
         }
@@ -439,18 +449,18 @@ private fun TvHomeScreen(playerConnection: PlayerConnection?) {
                     title = "Your YouTube Playlists",
                     items = playlists.take(10),
                     playerConnection = playerConnection,
-                    onYTItemClick = { item ->
-                        when (item) {
-                            is com.auramusic.innertube.models.PlaylistItem -> {
-                                item.browseId?.let { browseId ->
-                                    rememberTvNavigator().navigate(TvDestination.Playlist(browseId))
-                                } ?: run {
-                                    playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(playlistId = item.playlistId)))
-                                }
-                            }
-                            else -> {}
-                        }
-                    }
+                     onYTItemClick = { item ->
+                         when (item) {
+                             is PlaylistItem -> {
+                                 item.browseId?.let { browseId ->
+                                     rememberTvNavigator().navigate(TvDestination.Playlist(browseId))
+                                 } ?: run {
+                                     playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(playlistId = item.playlistId)))
+                                 }
+                             }
+                             else -> {}
+                         }
+                     }
                 )
             }
         }
@@ -463,34 +473,34 @@ private fun TvHomeScreen(playerConnection: PlayerConnection?) {
                         title = section.title,
                         items = section.items,
                         playerConnection = playerConnection,
-                        onYTItemClick = { item ->
-                            val navigator = rememberTvNavigator()
-                            when (item) {
-                                is com.auramusic.innertube.models.SongItem -> {
-                                    playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id)))
-                                }
-                                is com.auramusic.innertube.models.AlbumItem -> {
-                                    item.browseId?.let { browseId ->
-                                        navigator.navigate(TvDestination.Album(browseId))
-                                    } ?: run {
-                                        playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(playlistId = item.playlistId)))
-                                    }
-                                }
-                                is com.auramusic.innertube.models.ArtistItem -> {
-                                    item.id?.let { artistId ->
-                                        navigator.navigate(TvDestination.Artist(artistId))
-                                    }
-                                }
-                                is com.auramusic.innertube.models.PlaylistItem -> {
-                                    item.browseId?.let { browseId ->
-                                        navigator.navigate(TvDestination.Playlist(browseId))
-                                    } ?: run {
-                                        playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(playlistId = item.playlistId)))
-                                    }
-                                }
-                                else -> {}
-                            }
-                        }
+                         onYTItemClick = { item ->
+                             val navigator = rememberTvNavigator()
+                             when (item) {
+                                 is SongItem -> {
+                                     playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id)))
+                                 }
+                                 is AlbumItem -> {
+                                     item.browseId?.let { browseId ->
+                                         navigator.navigate(TvDestination.Album(browseId))
+                                     } ?: run {
+                                         playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(playlistId = item.playlistId)))
+                                     }
+                                 }
+                                 is ArtistItem -> {
+                                     item.id?.let { artistId ->
+                                         navigator.navigate(TvDestination.Artist(artistId))
+                                     }
+                                 }
+                                 is PlaylistItem -> {
+                                     item.browseId?.let { browseId ->
+                                         navigator.navigate(TvDestination.Playlist(browseId))
+                                     } ?: run {
+                                         playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(playlistId = item.playlistId)))
+                                     }
+                                 }
+                                 else -> {}
+                             }
+                         }
                     )
                 }
             }
@@ -512,55 +522,6 @@ private fun TvHomeScreen(playerConnection: PlayerConnection?) {
                     songs = forgottenFavorites!!,
                     onSongClick = { song -> playerConnection?.playSong(song) },
                 )
-            }
-        }
-
-        // Display home page sections from YouTube
-        homePage?.sections?.forEachIndexed { index, section ->
-            if (section.items.isNotEmpty()) {
-                item {
-                        YouTubeSectionRow(
-                            title = section.title,
-                            items = section.items,
-                            playerConnection = playerConnection,
-                            onYTItemClick = { item ->
-                                val navigator = rememberTvNavigator()
-                                when (item) {
-                                    is com.auramusic.innertube.models.SongItem -> {
-                                        playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id)))
-                                    }
-                                    is com.auramusic.innertube.models.AlbumItem -> {
-                                        // Navigate to album detail screen
-                                        item.browseId?.let { browseId ->
-                                            navigator.navigate(TvDestination.Album(browseId))
-                                        } ?: run {
-                                            // Fallback: play the album
-                                            item.browseId?.let { browseId ->
-                                                playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(playlistId = browseId)))
-                                            }
-                                        }
-                                    }
-                                    is com.auramusic.innertube.models.ArtistItem -> {
-                                        // Navigate to artist detail screen
-                                        item.id?.let { artistId ->
-                                            navigator.navigate(TvDestination.Artist(artistId))
-                                        }
-                                    }
-                                    is com.auramusic.innertube.models.PlaylistItem -> {
-                                        // Navigate to playlist detail screen
-                                        item.browseId?.let { browseId ->
-                                            navigator.navigate(TvDestination.Playlist(browseId))
-                                        } ?: run {
-                                            // Fallback: play the playlist
-                                            item.browseId?.let { browseId ->
-                                                playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(playlistId = browseId)))
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        )
-                }
             }
         }
 
@@ -594,7 +555,7 @@ private fun TvHomeScreen(playerConnection: PlayerConnection?) {
 }
 
 @Composable
-private fun YouTubeSectionRow(
+fun YouTubeSectionRow(
     title: String,
     items: List<YTItem>,
     playerConnection: PlayerConnection?,
@@ -622,7 +583,7 @@ private fun YouTubeSectionRow(
 }
 
 @Composable
-private fun YouTubeAlbumRow(
+fun YouTubeAlbumRow(
     title: String,
     albums: List<AlbumItem>,
     onAlbumClick: (AlbumItem) -> Unit,
@@ -649,8 +610,7 @@ private fun YouTubeAlbumRow(
 }
 
 @Composable
-@Composable
-private fun YouTubeMediaCard(
+fun YouTubeMediaCard(
     item: YTItem,
     onClick: () -> Unit,
 ) {
@@ -746,8 +706,7 @@ private fun YouTubeMediaCard(
 }
 
 @Composable
-@Composable
-private fun YouTubeAlbumCard(
+fun YouTubeAlbumCard(
     album: AlbumItem,
     onClick: () -> Unit,
 ) {
@@ -847,13 +806,13 @@ private fun TvLibraryScreen(playerConnection: PlayerConnection?) {
             }
         }
         if (playlists.isNotEmpty()) {
-            item { LocalItemRow(title = "Playlists", items = playlists) }
+            item { LocalItemRow(title = "Playlists", items = playlists, playerConnection = playerConnection) }
         }
         if (artists.isNotEmpty()) {
-            item { LocalItemRow(title = "Artists", items = artists) }
+            item { LocalItemRow(title = "Artists", items = artists, playerConnection = playerConnection) }
         }
         if (albums.isNotEmpty()) {
-            item { LocalItemRow(title = "Albums", items = albums) }
+            item { LocalItemRow(title = "Albums", items = albums, playerConnection = playerConnection) }
         }
 
         if (songs.isEmpty() && playlists.isEmpty() && artists.isEmpty() && albums.isEmpty()) {
@@ -1012,7 +971,7 @@ private fun TvSearchScreen(playerConnection: PlayerConnection?) {
 
 @Composable
 @Composable
-private fun TvRecentSearchItem(query: String, onClick: () -> Unit) {
+fun TvRecentSearchItem(query: String, onClick: () -> Unit) {
     var isFocused by remember { mutableStateOf(false) }
 
     Surface(
@@ -1052,7 +1011,7 @@ private fun TvRecentSearchItem(query: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun TvSearchResultItem(item: LocalItem, onClick: () -> Unit) {
+fun TvSearchResultItem(item: LocalItem, onClick: () -> Unit) {
     var isFocused by remember { mutableStateOf(false) }
 
     Surface(
@@ -1128,7 +1087,7 @@ private fun TvSearchResultItem(item: LocalItem, onClick: () -> Unit) {
 }
 
 @Composable
-private fun TvYTSearchResultItem(item: YTItem, onClick: () -> Unit) {
+fun TvYTSearchResultItem(item: YTItem, onClick: () -> Unit) {
     var isFocused by remember { mutableStateOf(false) }
 
     Surface(
@@ -1234,7 +1193,7 @@ private fun TvYTSearchResultItem(item: YTItem, onClick: () -> Unit) {
     }
 }
 
-private fun handleSearchItemClick(item: LocalItem, playerConnection: PlayerConnection?) {
+fun handleSearchItemClick(item: LocalItem, playerConnection: PlayerConnection?) {
     val navigator = LocalTvNavigator.current
     when (item) {
         is Song -> playerConnection?.playSong(item)
@@ -1244,35 +1203,35 @@ private fun handleSearchItemClick(item: LocalItem, playerConnection: PlayerConne
     }
 }
 
-private fun handleYTSearchItemClick(item: YTItem, playerConnection: PlayerConnection?) {
+fun handleYTSearchItemClick(item: YTItem, playerConnection: PlayerConnection?) {
     val navigator = LocalTvNavigator.current
     when (item) {
-        is com.auramusic.innertube.models.SongItem -> {
+        is SongItem -> {
             playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id)))
         }
-        is com.auramusic.innertube.models.AlbumItem -> {
+        is AlbumItem -> {
             item.browseId?.let { browseId ->
                 navigator.navigate(TvDestination.Album(browseId))
             } ?: run {
                 playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(playlistId = item.playlistId)))
             }
         }
-        is com.auramusic.innertube.models.ArtistItem -> {
+        is ArtistItem -> {
             item.id?.let { artistId ->
                 navigator.navigate(TvDestination.Artist(artistId))
             }
         }
-        is com.auramusic.innertube.models.PlaylistItem -> {
+        is PlaylistItem -> {
             item.browseId?.let { browseId ->
                 navigator.navigate(TvDestination.Playlist(browseId))
             } ?: run {
                 playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(playlistId = item.playlistId)))
             }
         }
-        is com.auramusic.innertube.models.EpisodeItem -> {
+        is EpisodeItem -> {
             playerConnection?.playQueue(YouTubeQueue.radio(item.toMediaMetadata()))
         }
-        is com.auramusic.innertube.models.PodcastItem -> {
+        is PodcastItem -> {
             item.id?.let { podcastId ->
                 navigator.navigate(TvDestination.Playlist(podcastId))
             }
@@ -1285,7 +1244,7 @@ private fun handleYTSearchItemClick(item: YTItem, playerConnection: PlayerConnec
 /* -------------------------- Shared rows -------------------------- */
 
 @Composable
-private fun SongRow(
+fun SongRow(
     title: String,
     songs: List<Song>,
     onSongClick: (Song) -> Unit,
@@ -1314,7 +1273,7 @@ private fun SongRow(
 }
 
 @Composable
-private fun LocalItemRow(title: String, items: List<LocalItem>) {
+fun LocalItemRow(title: String, items: List<LocalItem>, playerConnection: PlayerConnection?) {
     val navigator = LocalTvNavigator.current
 
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -1352,7 +1311,7 @@ private fun LocalItemRow(title: String, items: List<LocalItem>) {
                         title = item.song.title,
                         subtitle = item.artists.joinToString(", ") { it.name },
                         thumbnailUrl = item.song.thumbnailUrl,
-                        onClick = { playerConnection?.playSong(item as Song) },
+                        onClick = { playerConnection?.playSong(item) },
                     )
                 }
             }
@@ -1367,7 +1326,7 @@ private fun LocalItemRow(title: String, items: List<LocalItem>) {
  */
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
-private fun MediaCard(
+fun MediaCard(
     title: String,
     subtitle: String,
     thumbnailUrl: String?,
@@ -1441,7 +1400,7 @@ private fun MediaCard(
 }
 
 @Composable
-private fun TvMiniPlayer(
+fun TvMiniPlayer(
     playerConnection: PlayerConnection?,
     onPlayerClick: () -> Unit,
 ) {
@@ -1537,7 +1496,7 @@ private fun TvMiniPlayer(
     }
 }
 
-private fun PlayerConnection?.playSong(song: Song) {
+fun PlayerConnection?.playSong(song: Song) {
     this?.playQueue(
         YouTubeQueue(endpoint = WatchEndpoint(videoId = song.song.id)),
     )
