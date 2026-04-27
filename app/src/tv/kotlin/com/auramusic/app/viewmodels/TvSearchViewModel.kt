@@ -8,6 +8,7 @@ package com.auramusic.app.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.auramusic.app.db.MusicDatabase
+import com.auramusic.app.db.entities.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,8 +26,11 @@ constructor(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
-    private val _searchResults = MutableStateFlow<List<Any>>(emptyList())
-    val searchResults: StateFlow<List<Any>> = _searchResults
+    private val _searchResults = MutableStateFlow<CombinedSearchResult>(CombinedSearchResult())
+    val searchResults: StateFlow<CombinedSearchResult> = _searchResults
+
+    private val _recentSearches = MutableStateFlow<List<String>>(emptyList())
+    val recentSearches: StateFlow<List<String>> = _recentSearches
 
     fun updateQuery(newQuery: String) {
         query.value = newQuery
@@ -37,35 +41,51 @@ constructor(
         }
     }
 
-    private fun performSearch(query: String) {
+    private fun performSearch(searchQuery: String) {
+        if (searchQuery.isBlank()) {
+            clearResults()
+            return
+        }
+
+        _isLoading.value = true
+        query.value = searchQuery
+
         viewModelScope.launch {
-            _isLoading.value = true
             try {
-                val results = mutableListOf<Any>()
+                // Perform local database search
+                val localResults = mutableListOf<LocalItem>()
 
                 // Search songs
-                database.searchSongs("%$query%", 10).collect { songList ->
-                    results.addAll(songList)
+                database.searchSongs("%$searchQuery%", 10).collect { songList ->
+                    localResults.addAll(songList)
                 }
 
                 // Search artists
-                database.searchArtists("%$query%", 5).collect { artistList ->
-                    results.addAll(artistList)
+                database.searchArtists("%$searchQuery%", 5).collect { artistList ->
+                    localResults.addAll(artistList)
                 }
 
                 // Search albums
-                database.searchAlbums("%$query%", 5).collect { albumList ->
-                    results.addAll(albumList)
+                database.searchAlbums("%$searchQuery%", 5).collect { albumList ->
+                    localResults.addAll(albumList)
                 }
 
                 // Search playlists
-                database.searchPlaylists("%$query%", 5).collect { playlistList ->
-                    results.addAll(playlistList)
+                database.searchPlaylists("%$searchQuery%", 5).collect { playlistList ->
+                    localResults.addAll(playlistList)
                 }
 
-                _searchResults.value = results
+                _searchResults.value = CombinedSearchResult(
+                    localItems = localResults,
+                    ytItems = emptyList(), // For now, just local search
+                    isLoading = false
+                )
             } catch (e: Exception) {
-                _searchResults.value = emptyList()
+                _searchResults.value = CombinedSearchResult(
+                    localItems = emptyList(),
+                    ytItems = emptyList(),
+                    isLoading = false
+                )
             } finally {
                 _isLoading.value = false
             }
@@ -73,9 +93,19 @@ constructor(
     }
 
     private fun clearResults() {
-        _searchResults.value = emptyList()
+        _searchResults.value = CombinedSearchResult()
+    }
+
+    fun clearRecentSearches() {
+        _recentSearches.value = emptyList()
     }
 }
+
+data class CombinedSearchResult(
+    val localItems: List<LocalItem> = emptyList(),
+    val ytItems: List<com.auramusic.innertube.models.YTItem> = emptyList(),
+    val isLoading: Boolean = false,
+)
 
     private fun performSearch(query: String) {
         viewModelScope.launch {

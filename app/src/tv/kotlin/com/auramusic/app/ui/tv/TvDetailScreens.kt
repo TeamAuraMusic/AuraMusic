@@ -40,7 +40,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.auramusic.app.LocalDatabase
 import com.auramusic.app.db.entities.Song
@@ -56,11 +55,12 @@ import com.auramusic.app.viewmodels.LibraryPlaylistsViewModel
 @Composable
 fun TvAlbumDetailScreen(albumId: String, playerConnection: PlayerConnection?) {
     val albumsViewModel: LibraryAlbumsViewModel = hiltViewModel()
+    val database = LocalDatabase.current
 
-    val albums by albumsViewModel.allAlbums.collectAsStateWithLifecycle()
+    val albums by albumsViewModel.allAlbums.collectAsState()
     val album = albums.find { it.album.id == albumId }
 
-    val songs by remember(albumId) { database.albumSongs(albumId) }.collectAsStateWithLifecycle(emptyList())
+    val songs by remember(albumId) { database.albumSongs(albumId) }.collectAsState(emptyList())
 
     DetailLayout(
         title = album?.album?.title.orEmpty().ifEmpty { "Album" },
