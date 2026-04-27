@@ -68,7 +68,6 @@ import com.auramusic.app.R
 import com.auramusic.app.db.entities.Song
 import com.auramusic.app.playback.PlayerConnection
 import com.auramusic.app.playback.queues.YouTubeQueue
-import com.auramusic.app.utils.formatAsDuration
 import com.auramusic.innertube.models.WatchEndpoint
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -189,38 +188,38 @@ fun TvPlayerScreen(
                     )
                 }
 
-                // Progress bar and time
-                Column(
-                    modifier = Modifier.fillMaxWidth(0.8f),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    LinearProgressIndicator(
-                        progress = { progress },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(8.dp)
-                            .clip(RoundedCornerShape(4.dp)),
-                        color = MaterialTheme.colorScheme.primary,
-                        trackColor = Color.White.copy(alpha = 0.3f),
-                    )
+                // // Progress bar and time
+                // Column(
+                //     modifier = Modifier.fillMaxWidth(0.8f),
+                //     horizontalAlignment = Alignment.CenterHorizontally,
+                //     verticalArrangement = Arrangement.spacedBy(16.dp),
+                // ) {
+                //     LinearProgressIndicator(
+                //         progress = { progress },
+                //         modifier = Modifier
+                //             .fillMaxWidth()
+                //             .height(8.dp)
+                //             .clip(RoundedCornerShape(4.dp)),
+                //         color = MaterialTheme.colorScheme.primary,
+                //         trackColor = Color.White.copy(alpha = 0.3f),
+                //     )
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Text(
-                            text = currentPosition.milliseconds.formatAsDuration(),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = Color.White.copy(alpha = 0.8f),
-                        )
-                        Text(
-                            text = duration.milliseconds.formatAsDuration(),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = Color.White.copy(alpha = 0.8f),
-                        )
-                    }
-                }
+                //     Row(
+                //         modifier = Modifier.fillMaxWidth(),
+                //         horizontalArrangement = Arrangement.SpaceBetween,
+                //     ) {
+                //         Text(
+                //             text = currentPosition.milliseconds.formatAsDuration(),
+                //             style = MaterialTheme.typography.bodyLarge,
+                //             color = Color.White.copy(alpha = 0.8f),
+                //         )
+                //         Text(
+                //             text = duration.milliseconds.formatAsDuration(),
+                //             style = MaterialTheme.typography.bodyLarge,
+                //             color = Color.White.copy(alpha = 0.8f),
+                //         )
+                //     }
+                // }
 
                 // Control buttons
                 Row(
@@ -250,30 +249,30 @@ fun TvPlayerScreen(
                     )
                 }
 
-                // Additional controls
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(24.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    TvPlayerControlButton(
-                        onClick = { playerConnection?.toggleShuffle() },
-                        icon = Icons.Filled.Shuffle,
-                        contentDescription = "Shuffle",
-                        tint = if (playerConnection?.shuffleModeEnabled?.value == true)
-                            MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f),
-                    )
+                // // Additional controls
+                // Row(
+                //     horizontalArrangement = Arrangement.spacedBy(24.dp),
+                //     verticalAlignment = Alignment.CenterVertically,
+                // ) {
+                //     TvPlayerControlButton(
+                //         onClick = { playerConnection?.toggleShuffle() },
+                //         icon = Icons.Filled.Shuffle,
+                //         contentDescription = "Shuffle",
+                //         tint = if (playerConnection?.shuffleModeEnabled?.value == true)
+                //             MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f),
+                //     )
 
-                    TvPlayerControlButton(
-                        onClick = { playerConnection?.toggleRepeatMode() },
-                        icon = when (playerConnection?.repeatMode?.value) {
-                            PlayerConnection.RepeatMode.ONE -> Icons.Filled.RepeatOne
-                            else -> Icons.Filled.Repeat
-                        },
-                        contentDescription = "Repeat",
-                        tint = if (playerConnection?.repeatMode?.value != PlayerConnection.RepeatMode.OFF)
-                            MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f),
-                    )
-                }
+                //     TvPlayerControlButton(
+                //         onClick = { playerConnection?.toggleRepeatMode() },
+                //         icon = when (playerConnection?.repeatMode?.value) {
+                //             PlayerConnection.RepeatMode.ONE -> Icons.Filled.RepeatOne
+                //             else -> Icons.Filled.Repeat
+                //         },
+                //         contentDescription = "Repeat",
+                //         tint = if (playerConnection?.repeatMode?.value != PlayerConnection.RepeatMode.OFF)
+                //             MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f),
+                //     )
+                // }
             }
         }
     }
@@ -390,8 +389,15 @@ fun TvQueueScreen(
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     )
-                }
-            }
         }
+    }
+}
+
+fun kotlin.time.Duration.formatAsDuration(): String {
+    val totalSeconds = inWholeSeconds
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return "%02d:%02d".format(minutes, seconds)
+}
     }
 }

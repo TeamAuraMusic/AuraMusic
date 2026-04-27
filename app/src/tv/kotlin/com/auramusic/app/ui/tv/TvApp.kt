@@ -5,6 +5,12 @@
 
 package com.auramusic.app.ui.tv
 
+enum class TvSection(val label: String) {
+    HOME("Home"),
+    LIBRARY("Library"),
+    SEARCH("Search"),
+}
+
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -100,8 +106,6 @@ import com.auramusic.innertube.models.PodcastItem
 import com.auramusic.innertube.models.SongItem
 import com.auramusic.innertube.models.WatchEndpoint
 import com.auramusic.innertube.models.YTItem
-import com.auramusic.app.utils.formatAsDuration
-import com.auramusic.app.models.toMediaMetadata
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -135,49 +139,43 @@ fun TvApp(playerConnection: PlayerConnection?) {
                 onSelect = { section = it },
             )
             Box(modifier = Modifier.fillMaxSize()) {
-                when (section) {
-                    TvSection.HOME -> TvHomeScreen(playerConnection = playerConnection)
-                    TvSection.LIBRARY -> TvLibraryScreen(playerConnection = playerConnection)
-                    TvSection.SEARCH -> TvSearchScreen(playerConnection = playerConnection)
-                }
+                // when (section) {
+                //     TvSection.HOME -> TvHomeScreen(playerConnection = playerConnection)
+                //     TvSection.LIBRARY -> TvLibraryScreen(playerConnection = playerConnection)
+                //     TvSection.SEARCH -> TvSearchScreen(playerConnection = playerConnection)
+                // }
 
                 // Overlay player/queue if needed
-                val currentDestination = rememberTvNavigator().current
-                when (currentDestination) {
-                    is TvDestination.Player -> TvPlayerScreen(
-                        playerConnection = playerConnection,
-                        onBackClick = { rememberTvNavigator().popBack() }
-                    )
-                    is TvDestination.Queue -> TvQueueScreen(
-                        playerConnection = playerConnection,
-                        onBackClick = { rememberTvNavigator().popBack() }
-                    )
-                    is TvDestination.Album -> TvAlbumDetailScreen(
-                        albumId = currentDestination.id,
-                        playerConnection = playerConnection,
-                        onBackClick = { rememberTvNavigator().popBack() }
-                    )
-                    is TvDestination.Artist -> TvArtistDetailScreen(
-                        artistId = currentDestination.id,
-                        playerConnection = playerConnection,
-                        onBackClick = { rememberTvNavigator().popBack() }
-                    )
-                    is TvDestination.Playlist -> TvPlaylistDetailScreen(
-                        playlistId = currentDestination.id,
-                        playerConnection = playerConnection,
-                        onBackClick = { rememberTvNavigator().popBack() }
-                    )
-                    else -> Unit
-                }
+                // val currentDestination = rememberTvNavigator().current
+                // when (currentDestination) {
+                //     is TvDestination.Player -> TvPlayerScreen(
+                //         playerConnection = playerConnection,
+                //         onBackClick = { rememberTvNavigator().popBack() }
+                //     )
+                //     is TvDestination.Queue -> TvQueueScreen(
+                //         playerConnection = playerConnection,
+                //         onBackClick = { rememberTvNavigator().popBack() }
+                //     )
+                //     is TvDestination.Album -> TvAlbumDetailScreen(
+                //         albumId = currentDestination.id,
+                //         playerConnection = playerConnection,
+                //         onBackClick = { rememberTvNavigator().popBack() }
+                //     )
+                //     is TvDestination.Artist -> TvArtistDetailScreen(
+                //         artistId = currentDestination.id,
+                //         playerConnection = playerConnection,
+                //         onBackClick = { rememberTvNavigator().popBack() }
+                //     )
+                //     is TvDestination.Playlist -> TvPlaylistDetailScreen(
+                //         playlistId = currentDestination.id,
+                //         playerConnection = playerConnection,
+                //         onBackClick = { rememberTvNavigator().popBack() }
+                //     )
+                //     else -> Unit
+                // }
             }
         }
     }
-}
-
-enum class TvSection(val label: String) {
-    HOME("Home"),
-    LIBRARY("Library"),
-    SEARCH("Search"),
 }
 
 @Composable
@@ -1500,4 +1498,11 @@ fun PlayerConnection?.playSong(song: Song) {
     this?.playQueue(
         YouTubeQueue(endpoint = WatchEndpoint(videoId = song.song.id)),
     )
+}
+
+fun kotlin.time.Duration.formatAsDuration(): String {
+    val totalSeconds = inWholeSeconds
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return "%02d:%02d".format(minutes, seconds)
 }
