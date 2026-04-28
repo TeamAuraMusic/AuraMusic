@@ -527,6 +527,14 @@ class PlayerConnection(
         }
     }
 
+    fun toggleShuffle() {
+        try {
+            player.shuffleModeEnabled = !player.shuffleModeEnabled
+        } catch (e: Exception) {
+            Timber.tag(TAG).e(e, "Error in toggleShuffle")
+        }
+    }
+
     fun dispose() {
         try {
             attachedPlayer?.removeListener(this)

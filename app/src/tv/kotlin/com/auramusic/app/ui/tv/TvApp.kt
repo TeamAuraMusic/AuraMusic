@@ -100,7 +100,7 @@ import com.auramusic.innertube.models.PodcastItem
 import com.auramusic.innertube.models.SongItem
 import com.auramusic.innertube.models.WatchEndpoint
 import com.auramusic.innertube.models.YTItem
-import com.auramusic.app.utils.formatAsDuration
+import com.auramusic.app.utils.makeTimeString
 import com.auramusic.app.models.toMediaMetadata
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
@@ -1500,4 +1500,72 @@ fun PlayerConnection?.playSong(song: Song) {
     this?.playQueue(
         YouTubeQueue(endpoint = WatchEndpoint(videoId = song.song.id)),
     )
+}
+
+/* -------------------------- Detail Screens -------------------------- */
+
+@Composable
+fun TvAlbumDetailScreen(
+    albumId: String,
+    playerConnection: PlayerConnection?,
+    onBackClick: () -> Unit,
+) {
+    // Stub implementation - navigate to album details (could reuse mobile screen or implement simple)
+    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Text("Album Details", style = MaterialTheme.typography.headlineMedium)
+            Text("Album ID: $albumId", style = MaterialTheme.typography.bodyLarge)
+            Button(onClick = onBackClick) {
+                Text("Back")
+            }
+        }
+    }
+}
+
+@Composable
+fun TvArtistDetailScreen(
+    artistId: String,
+    playerConnection: PlayerConnection?,
+    onBackClick: () -> Unit,
+) {
+    // Stub implementation
+    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Text("Artist Details", style = MaterialTheme.typography.headlineMedium)
+            Text("Artist ID: $artistId", style = MaterialTheme.typography.bodyLarge)
+            Button(onClick = onBackClick) {
+                Text("Back")
+            }
+        }
+    }
+}
+
+@Composable
+fun TvPlaylistDetailScreen(
+    playlistId: String,
+    playerConnection: PlayerConnection?,
+    onBackClick: () -> Unit,
+) {
+    // Stub implementation
+    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Text("Playlist Details", style = MaterialTheme.typography.headlineMedium)
+            Text("Playlist ID: $playlistId", style = MaterialTheme.typography.bodyLarge)
+            Button(onClick = onBackClick) {
+                Text("Back")
+            }
+        }
+    }
 }
