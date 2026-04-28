@@ -75,7 +75,22 @@ import com.auramusic.app.R
 import com.auramusic.app.db.entities.Song
 import com.auramusic.app.playback.PlayerConnection
 import com.auramusic.app.playback.queues.YouTubeQueue
-import com.auramusic.app.utils.makeTimeString
+// Copied from main to avoid dependency
+fun makeTimeString(duration: Long?): String {
+    if (duration == null || duration < 0) return ""
+    var sec = duration / 1000
+    val day = sec / 86400
+    sec %= 86400
+    val hour = sec / 3600
+    sec %= 3600
+    val minute = sec / 60
+    sec %= 60
+    return when {
+        day > 0 -> "%d:%02d:%02d:%02d".format(day, hour, minute, sec)
+        hour > 0 -> "%d:%02d:%02d".format(hour, minute, sec)
+        else -> "%d:%02d".format(minute, sec)
+    }
+}
 import com.auramusic.innertube.models.WatchEndpoint
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
