@@ -132,9 +132,9 @@ fun TvApp(playerConnection: PlayerConnection?) {
 
     CompositionLocalProvider(LocalTvNavigator provides navigator) {
         Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background,
-    ) {
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background,
+        ) {
         Column(modifier = Modifier.fillMaxSize()) {
             TvNavigationBar(
                 current = section,

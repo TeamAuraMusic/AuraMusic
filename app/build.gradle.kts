@@ -114,7 +114,7 @@ android {
             kotlin.srcDirs("src/gms/kotlin")
         }
         getByName("tv") {
-            kotlin.srcDirs("src/tv/kotlin")
+            kotlin.srcDirs("src/main/kotlin", "src/tv/kotlin")
             res.srcDirs("src/tv/res")
         }
     }

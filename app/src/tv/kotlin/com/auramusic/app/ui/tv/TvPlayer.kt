@@ -79,6 +79,7 @@ import com.auramusic.app.utils.makeTimeString
 import com.auramusic.innertube.models.WatchEndpoint
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * TV-compatible full-screen player with large controls optimized for remote control navigation.
