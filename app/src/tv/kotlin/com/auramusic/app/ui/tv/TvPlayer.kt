@@ -102,104 +102,55 @@ fun TvPlayerScreen(
             delay(1000) // Update every second
         }
     }
-}
 
-@Composable
-fun TvQueueItem(
-    mediaItem: androidx.media3.common.MediaItem,
-    isCurrentSong: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var isFocused by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
-    val bringIntoViewRequester = remember { BringIntoViewRequester() }
-    val scale by animateFloatAsState(
-        targetValue = if (isFocused) 1.06f else 1f,
-        label = "tvQueueItemScale",
-    )
-    val borderColor = if (isFocused) {
-        MaterialTheme.colorScheme.primary
-    } else if (isCurrentSong) {
-        MaterialTheme.colorScheme.secondary
-    } else {
-        Color.Transparent
-    }
+    val progress = if (duration > 0) currentPosition.toFloat() / duration.toFloat() else 0f
 
     Surface(
-        onClick = onClick,
-        modifier = modifier
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .bringIntoViewRequester(bringIntoViewRequester)
-            .onFocusChanged { focusState ->
-                isFocused = focusState.isFocused
-                if (focusState.isFocused) {
-                    scope.launch { bringIntoViewRequester.bringIntoView() }
-                }
-            }
-            .border(width = 3.dp, color = borderColor, shape = RoundedCornerShape(12.dp)),
-        shape = RoundedCornerShape(12.dp),
-        color = if (isCurrentSong) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface,
-        tonalElevation = 4.dp,
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background,
     ) {
-        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            // Thumbnail
-            Box(
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Background with album art blur
+            currentSong?.song?.thumbnailUrl?.let { thumbnailUrl ->
+                AsyncImage(
+                    model = thumbnailUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Black.copy(alpha = 0.7f),
+                                    Color.Black.copy(alpha = 0.9f)
+                                )
+                            )
+                        )
+                )
+            } ?: Box(
                 modifier = Modifier
-                    .size(56.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center,
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.9f))
+            )
+
+            // Back button
+            IconButton(
+                onClick = onBackClick,
+                modifier = Modifier
+                    .padding(24.dp)
+                    .size(64.dp)
+                    .align(Alignment.TopStart),
             ) {
-                mediaItem.mediaMetadata.artworkUri?.let { uri ->
-                    AsyncImage(
-                        model = uri,
-                        contentDescription = mediaItem.mediaMetadata.title,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                } ?: Icon(
-                    painterResource(R.drawable.music_note),
-                    contentDescription = "Music note",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(24.dp)
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color.White,
+                    modifier = Modifier.size(32.dp)
                 )
             }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // Song info
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = mediaItem.mediaMetadata.title?.toString() ?: "Unknown",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                )
-                Text(
-                    text = mediaItem.mediaMetadata.artist?.toString() ?: "",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                )
-            }
-
-            // Duration
-            val durationMs = mediaItem.mediaMetadata.durationMs ?: 0L
-            if (durationMs > 0) {
-                Text(
-                    text = makeTimeString(durationMs),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-    }
-}
 
             Column(
                 modifier = Modifier.fillMaxSize(),
@@ -340,6 +291,103 @@ fun TvQueueItem(
                             MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f),
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun TvQueueItem(
+    mediaItem: androidx.media3.common.MediaItem,
+    isCurrentSong: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var isFocused by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    val scale by animateFloatAsState(
+        targetValue = if (isFocused) 1.06f else 1f,
+        label = "tvQueueItemScale",
+    )
+    val borderColor = if (isFocused) {
+        MaterialTheme.colorScheme.primary
+    } else if (isCurrentSong) {
+        MaterialTheme.colorScheme.secondary
+    } else {
+        Color.Transparent
+    }
+
+    Surface(
+        onClick = onClick,
+        modifier = modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .bringIntoViewRequester(bringIntoViewRequester)
+            .onFocusChanged { focusState ->
+                isFocused = focusState.isFocused
+                if (focusState.isFocused) {
+                    scope.launch { bringIntoViewRequester.bringIntoView() }
+                }
+            }
+            .border(width = 3.dp, color = borderColor, shape = RoundedCornerShape(12.dp)),
+        shape = RoundedCornerShape(12.dp),
+        color = if (isCurrentSong) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface,
+        tonalElevation = 4.dp,
+    ) {
+        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            // Thumbnail
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center,
+            ) {
+                mediaItem.mediaMetadata.artworkUri?.let { uri ->
+                    AsyncImage(
+                        model = uri,
+                        contentDescription = mediaItem.mediaMetadata.title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                } ?: Icon(
+                    painterResource(R.drawable.music_note),
+                    contentDescription = "Music note",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // Song info
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = mediaItem.mediaMetadata.title?.toString() ?: "Unknown",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                )
+                Text(
+                    text = mediaItem.mediaMetadata.artist?.toString() ?: "",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+            }
+
+            // Duration
+            val durationMs = mediaItem.mediaMetadata.durationMs ?: 0L
+            if (durationMs > 0) {
+                Text(
+                    text = makeTimeString(durationMs),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }
