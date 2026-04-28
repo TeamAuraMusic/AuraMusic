@@ -121,7 +121,7 @@ import kotlin.time.Duration.Companion.milliseconds
  */
 @Composable
 fun TvApp(playerConnection: PlayerConnection?) {
-    var section by remember { mutableStateOf(TvSection.HOME) }
+    var section by remember { mutableStateOf<TvSection>(TvSection.HOME) }
     val navigator = rememberTvNavigator()
 
     CompositionLocalProvider(LocalTvNavigator provides navigator) {
@@ -319,11 +319,7 @@ fun TvHomeScreen(playerConnection: PlayerConnection?) {
                                      }
                                  }
                                  is PlaylistItem -> {
-                                     item.browseId?.let { browseId ->
-                                         navigator.navigate(TvDestination.Playlist(browseId))
-                                     } ?: run {
-                                         playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(playlistId = item.playlistId)))
-                                     }
+                                     navigator.navigate(TvDestination.Playlist(item.id))
                                  }
                                  is EpisodeItem -> {
                                      playerConnection?.playQueue(YouTubeQueue.radio(item.toMediaMetadata()))
@@ -388,9 +384,7 @@ fun TvHomeScreen(playerConnection: PlayerConnection?) {
                                  }
                              }
                              is PlaylistItem -> {
-                                 item.browseId?.let { browseId ->
-                                     navigator.navigate(TvDestination.Playlist(browseId))
-                                 }
+                                 navigator.navigate(TvDestination.Playlist(item.id))
                              }
                              else -> {}
                          }
@@ -449,18 +443,14 @@ fun TvHomeScreen(playerConnection: PlayerConnection?) {
                     title = "Your YouTube Playlists",
                     items = playlists.take(10),
                     playerConnection = playerConnection,
-                     onYTItemClick = { item ->
-                         when (item) {
-                             is PlaylistItem -> {
-                                 item.browseId?.let { browseId ->
-                                     rememberTvNavigator().navigate(TvDestination.Playlist(browseId))
-                                 } ?: run {
-                                     playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(playlistId = item.playlistId)))
-                                 }
-                             }
-                             else -> {}
-                         }
-                     }
+                      onYTItemClick = { item ->
+                          when (item) {
+                              is PlaylistItem -> {
+                                  rememberTvNavigator().navigate(TvDestination.Playlist(item.id))
+                              }
+                              else -> {}
+                          }
+                      }
                 )
             }
         }
@@ -492,11 +482,7 @@ fun TvHomeScreen(playerConnection: PlayerConnection?) {
                                      }
                                  }
                                  is PlaylistItem -> {
-                                     item.browseId?.let { browseId ->
-                                         navigator.navigate(TvDestination.Playlist(browseId))
-                                     } ?: run {
-                                         playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(playlistId = item.playlistId)))
-                                     }
+                                     navigator.navigate(TvDestination.Playlist(item.id))
                                  }
                                  else -> {}
                              }
@@ -504,26 +490,6 @@ fun TvHomeScreen(playerConnection: PlayerConnection?) {
                     )
                 }
             }
-
-        if (!quickPicks.isNullOrEmpty()) {
-            item {
-                SongRow(
-                    title = "Quick picks",
-                    songs = quickPicks!!,
-                    onSongClick = { song -> playerConnection?.playSong(song) },
-                )
-            }
-        }
-
-        if (!forgottenFavorites.isNullOrEmpty()) {
-            item {
-                SongRow(
-                    title = "Forgotten favorites",
-                    songs = forgottenFavorites!!,
-                    onSongClick = { song -> playerConnection?.playSong(song) },
-                )
-            }
-        }
 
         if (quickPicks.isNullOrEmpty() && forgottenFavorites.isNullOrEmpty() && homePage?.sections.isNullOrEmpty() != false) {
             item {
@@ -970,7 +936,6 @@ fun TvSearchScreen(playerConnection: PlayerConnection?) {
 }
 
 @Composable
-@Composable
 fun TvRecentSearchItem(query: String, onClick: () -> Unit) {
     var isFocused by remember { mutableStateOf(false) }
 
@@ -1221,13 +1186,9 @@ fun handleYTSearchItemClick(item: YTItem, playerConnection: PlayerConnection?) {
                 navigator.navigate(TvDestination.Artist(artistId))
             }
         }
-        is PlaylistItem -> {
-            item.browseId?.let { browseId ->
-                navigator.navigate(TvDestination.Playlist(browseId))
-            } ?: run {
-                playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(playlistId = item.playlistId)))
-            }
-        }
+                                  is PlaylistItem -> {
+                                      navigator.navigate(TvDestination.Playlist(item.id))
+                                  }
         is EpisodeItem -> {
             playerConnection?.playQueue(YouTubeQueue.radio(item.toMediaMetadata()))
         }
@@ -1500,72 +1461,4 @@ fun PlayerConnection?.playSong(song: Song) {
     this?.playQueue(
         YouTubeQueue(endpoint = WatchEndpoint(videoId = song.song.id)),
     )
-}
-
-/* -------------------------- Detail Screens -------------------------- */
-
-@Composable
-fun TvAlbumDetailScreen(
-    albumId: String,
-    playerConnection: PlayerConnection?,
-    onBackClick: () -> Unit,
-) {
-    // Stub implementation - navigate to album details (could reuse mobile screen or implement simple)
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            Text("Album Details", style = MaterialTheme.typography.headlineMedium)
-            Text("Album ID: $albumId", style = MaterialTheme.typography.bodyLarge)
-            Button(onClick = onBackClick) {
-                Text("Back")
-            }
-        }
-    }
-}
-
-@Composable
-fun TvArtistDetailScreen(
-    artistId: String,
-    playerConnection: PlayerConnection?,
-    onBackClick: () -> Unit,
-) {
-    // Stub implementation
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            Text("Artist Details", style = MaterialTheme.typography.headlineMedium)
-            Text("Artist ID: $artistId", style = MaterialTheme.typography.bodyLarge)
-            Button(onClick = onBackClick) {
-                Text("Back")
-            }
-        }
-    }
-}
-
-@Composable
-fun TvPlaylistDetailScreen(
-    playlistId: String,
-    playerConnection: PlayerConnection?,
-    onBackClick: () -> Unit,
-) {
-    // Stub implementation
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            Text("Playlist Details", style = MaterialTheme.typography.headlineMedium)
-            Text("Playlist ID: $playlistId", style = MaterialTheme.typography.bodyLarge)
-            Button(onClick = onBackClick) {
-                Text("Back")
-            }
-        }
-    }
 }
