@@ -105,6 +105,12 @@ import com.auramusic.app.models.toMediaMetadata
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 
+enum class TvSection(val label: String) {
+    HOME("Home"),
+    LIBRARY("Library"),
+    SEARCH("Search"),
+}
+
 /**
  * Top-level Compose entry point for the Android TV variant.
  *
@@ -174,11 +180,7 @@ fun TvApp(playerConnection: PlayerConnection?) {
     }
 }
 
-enum class TvSection(val label: String) {
-    HOME("Home"),
-    LIBRARY("Library"),
-    SEARCH("Search"),
-}
+
 
 @Composable
 private fun TvNavigationBar(current: TvSection, onSelect: (TvSection) -> Unit) {
