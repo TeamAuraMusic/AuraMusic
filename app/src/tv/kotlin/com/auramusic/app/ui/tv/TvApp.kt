@@ -226,7 +226,7 @@ fun TvApp(playerConnection: PlayerConnection?) {
 
 
 @Composable
-private fun TvNavigationBar(current: TvSection, onSelect: (TvSection) -> Unit) {
+fun TvNavigationBar(current: TvSection, onSelect: (TvSection) -> Unit) {
     val firstButtonFocus = remember { FocusRequester() }
 
     LaunchedEffect(Unit) {
@@ -1672,4 +1672,5 @@ fun PlayerConnection?.playSong(song: Song) {
             startIndex = 0,
         ),
     )
+}
 }

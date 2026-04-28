@@ -121,7 +121,7 @@ fun TvPlaylistDetailScreen(playlistId: String, playerConnection: PlayerConnectio
         database.playlistSongs(playlistId).map { playlistSongs ->
             playlistSongs.map { it.song }
         }
-    }.collectAsState(emptyList<Song>())
+    }.collectAsState(emptyList())
 
     TvDetailLayout(
         title = playlist?.playlist?.name.orEmpty().ifEmpty { "Playlist" },
