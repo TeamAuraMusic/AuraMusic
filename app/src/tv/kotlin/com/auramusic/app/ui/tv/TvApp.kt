@@ -104,6 +104,8 @@ import com.auramusic.innertube.models.EpisodeItem
 import com.auramusic.innertube.models.PlaylistItem
 import com.auramusic.innertube.models.PodcastItem
 import com.auramusic.innertube.models.SongItem
+import com.auramusic.innertube.pages.HomePage
+import com.auramusic.innertube.pages.ExplorePage
 import androidx.compose.foundation.layout.width
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
@@ -422,7 +424,7 @@ fun TvHomeScreen(playerConnection: PlayerConnection?) {
                 SongRow(
                     title = "Quick picks",
                     songs = quickPicks!!,
-                    onSongClick = { song -> playerConnection?.playSong(song) },
+                    onSongClick = { song: Song -> playerConnection?.playSong(song) },
                 )
             }
         }
@@ -432,7 +434,7 @@ fun TvHomeScreen(playerConnection: PlayerConnection?) {
                 SongRow(
                     title = "Forgotten favorites",
                     songs = forgottenFavorites!!,
-                    onSongClick = { song -> playerConnection?.playSong(song) },
+                    onSongClick = { song: Song -> playerConnection?.playSong(song) },
                 )
             }
         }
