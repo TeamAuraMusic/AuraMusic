@@ -367,9 +367,9 @@ fun TvHomeScreen(playerConnection: PlayerConnection?) {
                                  is PlaylistItem -> {
                                      navigator.navigate(TvDestination.Playlist(item.id))
                                  }
-                                 is EpisodeItem -> {
-                                     playerConnection?.playQueue(YouTubeQueue.radio(item.toMediaMetadata()))
-                                 }
+                                  is EpisodeItem -> {
+                                      playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id)))
+                                  }
                                  is PodcastItem -> {
                                      item.id?.let { podcastId ->
                                          // Navigate to podcast detail (could reuse playlist destination)
