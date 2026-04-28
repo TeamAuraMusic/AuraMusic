@@ -450,10 +450,34 @@ fun TvHomeScreen(playerConnection: PlayerConnection?) {
         similarRecommendations?.takeIf { it.isNotEmpty() }?.let { recommendations ->
             recommendations.forEach { recommendation ->
                 item {
-                    SongRow(
+                    YouTubeSectionRow(
                         title = "Similar to ${recommendation.title}",
-                        songs = recommendation.songs,
-                        onSongClick = { song: Song -> playerConnection?.playSong(song) },
+                        items = recommendation.items,
+                        playerConnection = playerConnection,
+                        onYTItemClick = { item: YTItem ->
+                            val navigator = rememberTvNavigator()
+                            when (item) {
+                                is SongItem -> {
+                                    playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id)))
+                                }
+                                is AlbumItem -> {
+                                    item.browseId?.let { browseId ->
+                                        navigator.navigate(TvDestination.Album(browseId))
+                                    } ?: run {
+                                        playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(playlistId = item.playlistId)))
+                                    }
+                                }
+                                is ArtistItem -> {
+                                    item.id?.let { artistId ->
+                                        navigator.navigate(TvDestination.Artist(artistId))
+                                    }
+                                }
+                                is PlaylistItem -> {
+                                    navigator.navigate(TvDestination.Playlist(item.id))
+                                }
+                                else -> {}
+                            }
+                        }
                     )
                 }
             }
@@ -1215,7 +1239,7 @@ fun handleYTSearchItemClick(item: YTItem, playerConnection: PlayerConnection?) {
                                       navigator.navigate(TvDestination.Playlist(item.id))
                                   }
         is EpisodeItem -> {
-            playerConnection?.playQueue(YouTubeQueue.radio(item.toMediaMetadata()))
+            playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id)))
         }
         is PodcastItem -> {
             item.id?.let { podcastId ->
