@@ -130,7 +130,7 @@ enum class TvSection(val label: String) {
  * - Initial focus is requested on the navigation bar so the user can start
  *   navigating immediately without a touchscreen.
  */
-@Composable
+ @Composable
 fun TvApp(playerConnection: PlayerConnection?) {
     var section by remember { mutableStateOf<TvSection>(TvSection.HOME) }
     val navigator = rememberTvNavigator()
