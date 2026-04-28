@@ -83,25 +83,16 @@ import com.auramusic.app.db.entities.Playlist
 import com.auramusic.app.db.entities.Song
 import com.auramusic.app.playback.PlayerConnection
 import com.auramusic.app.playback.queues.YouTubeQueue
-import com.auramusic.app.viewmodels.HomeViewModel
-import com.auramusic.app.viewmodels.LibraryAlbumsViewModel
-import com.auramusic.app.viewmodels.LibraryArtistsViewModel
-import com.auramusic.app.viewmodels.LibraryPlaylistsViewModel
-import com.auramusic.app.viewmodels.LibrarySongsViewModel
-import com.auramusic.app.viewmodels.LocalFilter
-import com.auramusic.app.viewmodels.LocalSearchViewModel
-import com.auramusic.app.viewmodels.CombinedSearchResult
-import com.auramusic.app.viewmodels.TvSearchViewModel
-import com.auramusic.innertube.models.AlbumItem
-import com.auramusic.innertube.models.ArtistItem
-import com.auramusic.innertube.models.EpisodeItem
-import com.auramusic.innertube.models.PlaylistItem
-import com.auramusic.innertube.models.PodcastItem
-import com.auramusic.innertube.models.SongItem
 import com.auramusic.innertube.models.WatchEndpoint
 import com.auramusic.innertube.models.YTItem
 import com.auramusic.app.utils.makeTimeString
 import com.auramusic.app.models.toMediaMetadata
+import com.auramusic.app.db.entities.Artist
+import com.auramusic.app.db.entities.Album
+import com.auramusic.app.db.entities.Playlist
+import com.auramusic.app.db.entities.Song
+import com.auramusic.app.db.entities.SpeedDialItem
+import androidx.compose.foundation.layout.width
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -138,7 +129,7 @@ fun TvApp(playerConnection: PlayerConnection?) {
         Column(modifier = Modifier.fillMaxSize()) {
             TvNavigationBar(
                 current = section,
-                onSelect = { section = it },
+                onSelect = { selectedSection -> section = selectedSection },
             )
             Box(modifier = Modifier.fillMaxSize()) {
                 when (section) {
@@ -302,9 +293,9 @@ fun TvHomeScreen(playerConnection: PlayerConnection?) {
                         title = "Trending Now",
                         items = heroItems,
                         playerConnection = playerConnection,
-                         onYTItemClick = { item ->
-                             val navigator = rememberTvNavigator()
-                             when (item) {
+                         onYTItemClick = { item: YTItem ->
+                              val navigator = rememberTvNavigator()
+                              when (item) {
                                  is SongItem -> {
                                      playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id)))
                                  }
@@ -368,8 +359,8 @@ fun TvHomeScreen(playerConnection: PlayerConnection?) {
                         }
                     }.filterNotNull(),
                     playerConnection = playerConnection,
-                     onYTItemClick = { item ->
-                         // Handle speed dial item clicks
+                     onYTItemClick = { item: YTItem ->
+                          // Handle speed dial item clicks
                          val navigator = rememberTvNavigator()
                          when (item) {
                              is SongItem -> {
@@ -444,10 +435,10 @@ fun TvHomeScreen(playerConnection: PlayerConnection?) {
                 YouTubeSectionRow(
                     title = "Your YouTube Playlists",
                     items = playlists.take(10),
-                    playerConnection = playerConnection,
-                      onYTItemClick = { item ->
-                          when (item) {
-                              is PlaylistItem -> {
+                     playerConnection = playerConnection,
+                       onYTItemClick = { item: YTItem ->
+                           when (item) {
+                               is PlaylistItem -> {
                                   rememberTvNavigator().navigate(TvDestination.Playlist(item.id))
                               }
                               else -> {}
@@ -464,10 +455,10 @@ fun TvHomeScreen(playerConnection: PlayerConnection?) {
                     YouTubeSectionRow(
                         title = section.title,
                         items = section.items,
-                        playerConnection = playerConnection,
-                         onYTItemClick = { item ->
-                             val navigator = rememberTvNavigator()
-                             when (item) {
+                         playerConnection = playerConnection,
+                          onYTItemClick = { item: YTItem ->
+                              val navigator = rememberTvNavigator()
+                              when (item) {
                                  is SongItem -> {
                                      playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id)))
                                  }
@@ -1160,6 +1151,7 @@ fun TvYTSearchResultItem(item: YTItem, onClick: () -> Unit) {
     }
 }
 
+@Composable
 fun handleSearchItemClick(item: LocalItem, playerConnection: PlayerConnection?) {
     val navigator = LocalTvNavigator.current
     when (item) {
@@ -1170,6 +1162,7 @@ fun handleSearchItemClick(item: LocalItem, playerConnection: PlayerConnection?) 
     }
 }
 
+@Composable
 fun handleYTSearchItemClick(item: YTItem, playerConnection: PlayerConnection?) {
     val navigator = LocalTvNavigator.current
     when (item) {
@@ -1199,8 +1192,6 @@ fun handleYTSearchItemClick(item: YTItem, playerConnection: PlayerConnection?) {
                 navigator.navigate(TvDestination.Playlist(podcastId))
             }
         }
-    }
-}
     }
 }
 

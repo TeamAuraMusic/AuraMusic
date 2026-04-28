@@ -75,22 +75,6 @@ import com.auramusic.app.R
 import com.auramusic.app.db.entities.Song
 import com.auramusic.app.playback.PlayerConnection
 import com.auramusic.app.playback.queues.YouTubeQueue
-// Copied from main to avoid dependency
-fun makeTimeString(duration: Long?): String {
-    if (duration == null || duration < 0) return ""
-    var sec = duration / 1000
-    val day = sec / 86400
-    sec %= 86400
-    val hour = sec / 3600
-    sec %= 3600
-    val minute = sec / 60
-    sec %= 60
-    return when {
-        day > 0 -> "%d:%02d:%02d:%02d".format(day, hour, minute, sec)
-        hour > 0 -> "%d:%02d:%02d".format(hour, minute, sec)
-        else -> "%d:%02d".format(minute, sec)
-    }
-}
 import com.auramusic.innertube.models.WatchEndpoint
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
@@ -181,18 +165,12 @@ fun TvPlayerScreen(
                         .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.1f)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    currentSong?.song?.thumbnailUrl?.let { thumbnailUrl ->
-                        AsyncImage(
-                            model = thumbnailUrl,
-                            contentDescription = currentSong.song.title,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                    } ?: Icon(
-                        painterResource(R.drawable.music_note),
-                        contentDescription = "Music note",
-                        tint = Color.White.copy(alpha = 0.5f),
-                        modifier = Modifier.size(120.dp)
+                currentSong?.song?.let { song ->
+                    AsyncImage(
+                        model = song.thumbnailUrl,
+                        contentDescription = song.title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
                     )
                 }
 
@@ -297,7 +275,7 @@ fun TvPlayerScreen(
                     )
 
                     TvPlayerControlButton(
-                        onClick = { playerConnection?.toggleRepeatMode() },
+                        onClick = { playerConnection?.player?.toggleRepeatMode() },
                         icon = when (playerConnection?.repeatMode?.value) {
                             androidx.media3.common.Player.REPEAT_MODE_ONE -> Icons.Filled.RepeatOne
                             else -> Icons.Filled.Repeat
