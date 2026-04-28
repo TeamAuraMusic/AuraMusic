@@ -66,7 +66,7 @@ fun TvAlbumDetailScreen(albumId: String, playerConnection: PlayerConnection?, on
     val albums by albumsViewModel.allAlbums.collectAsState()
     val album = albums.find { it.album.id == albumId }
 
-    val songs by remember(albumId) { database.albumSongs(albumId) }.collectAsState(emptyList())
+    val songs by remember(albumId) { database.albumSongs(albumId) }.collectAsState(emptyList<List<Song>>())
 
     TvDetailLayout(
         title = album?.album?.title.orEmpty().ifEmpty { "Album" },
@@ -92,7 +92,7 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
 
     val songs by remember(artistId) {
         database.artistSongs(artistId, ArtistSongSortType.CREATE_DATE, true)
-    }.collectAsState(emptyList())
+    }.collectAsState(emptyList<List<Song>>())
 
     TvDetailLayout(
         title = artist?.artist?.name.orEmpty().ifEmpty { "Artist" },
@@ -120,7 +120,7 @@ fun TvPlaylistDetailScreen(playlistId: String, playerConnection: PlayerConnectio
         database.playlistSongs(playlistId).map { playlistSongs ->
             playlistSongs.map { it.song }
         }
-    }.collectAsState(emptyList())
+    }.collectAsState(emptyList<List<Song>>())
 
     TvDetailLayout(
         title = playlist?.playlist?.name.orEmpty().ifEmpty { "Playlist" },

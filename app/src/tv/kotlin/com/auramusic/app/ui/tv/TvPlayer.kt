@@ -90,6 +90,36 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 
+@Composable
+private fun TvPlayerControlButton(
+    onClick: () -> Unit,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String,
+    size: androidx.compose.ui.unit.Dp = 72.dp,
+    tint: Color = Color.White,
+) {
+    var isFocused by remember { mutableStateOf(false) }
+
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier
+            .size(size)
+            .onFocusChanged { isFocused = it.isFocused }
+            .border(
+                width = if (isFocused) 3.dp else 0.dp,
+                color = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                shape = CircleShape
+            ),
+    ) {
+        Icon(
+            icon,
+            contentDescription = contentDescription,
+            tint = tint,
+            modifier = Modifier.size(size * 0.6f)
+        )
+    }
+}
+
 /**
  * TV-compatible full-screen player with large controls optimized for remote control navigation.
  * Features large touch targets, clear visual hierarchy, and TV-friendly layout.
@@ -508,36 +538,6 @@ fun TvQueueItem(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun TvPlayerControlButton(
-    onClick: () -> Unit,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    contentDescription: String,
-    size: androidx.compose.ui.unit.Dp = 72.dp,
-    tint: Color = Color.White,
-) {
-    var isFocused by remember { mutableStateOf(false) }
-
-    IconButton(
-        onClick = onClick,
-        modifier = Modifier
-            .size(size)
-            .onFocusChanged { isFocused = it.isFocused }
-            .border(
-                width = if (isFocused) 3.dp else 0.dp,
-                color = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
-                shape = CircleShape
-            ),
-    ) {
-        Icon(
-            icon,
-            contentDescription = contentDescription,
-            tint = tint,
-            modifier = Modifier.size(size * 0.6f)
-        )
     }
 }
 
