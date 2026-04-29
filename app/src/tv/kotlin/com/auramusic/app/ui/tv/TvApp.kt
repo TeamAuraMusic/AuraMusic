@@ -223,6 +223,7 @@ fun TvApp(playerConnection: PlayerConnection?) {
             }
         }
     }
+    }
 }
 
 
@@ -414,6 +415,7 @@ fun TvHomeScreen(playerConnection: PlayerConnection?) {
                     }
                 )
             }
+        }
 
             if (!quickPicks.isNullOrEmpty()) {
                 item {
