@@ -108,6 +108,7 @@ import com.auramusic.innertube.pages.ExplorePage
 import androidx.compose.foundation.layout.width
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
+import com.auramusic.app.ui.tv.TvQueueScreen
 
 enum class TvSection(val label: String) {
     HOME("Home"),
@@ -310,6 +311,7 @@ fun TvHomeScreen(playerConnection: PlayerConnection?) {
     val pinnedSpeedDialItems by viewModel.pinnedSpeedDialItems.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val isPlaying by (playerConnection?.isPlaying?.collectAsState() ?: remember { mutableStateOf(false) })
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -317,7 +319,6 @@ fun TvHomeScreen(playerConnection: PlayerConnection?) {
         verticalArrangement = Arrangement.spacedBy(32.dp),
     ) {
         // Mini player (show when music is playing)
-        val isPlaying by (playerConnection?.isPlaying?.collectAsState() ?: remember { mutableStateOf(false) })
         if (isPlaying) {
             item {
                 TvMiniPlayer(
