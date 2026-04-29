@@ -108,7 +108,6 @@ import com.auramusic.innertube.pages.ExplorePage
 import androidx.compose.foundation.layout.width
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
-import com.auramusic.app.ui.tv.TvQueueScreen
 
 enum class TvSection(val label: String) {
     HOME("Home"),
