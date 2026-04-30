@@ -192,33 +192,41 @@ fun TvApp(playerConnection: PlayerConnection?) {
                     TvSection.SETTINGS -> TvSettingsScreen(onBackClick = { section = TvSection.HOME })
                 }
 
-                // Overlay player/queue if needed
+                // Overlay player/queue/detail screens if needed
                 val currentDestination = navigator.current
-                when (currentDestination) {
-                    is TvDestination.Player -> TvPlayerScreen(
-                        playerConnection = playerConnection,
-                        onBackClick = { navigator.popBack() }
-                    )
-                    is TvDestination.Queue -> TvQueueScreen(
-                        playerConnection = playerConnection,
-                        onBackClick = { navigator.popBack() }
-                    )
-                    is TvDestination.Album -> TvAlbumDetailScreen(
-                        albumId = currentDestination.id,
-                        playerConnection = playerConnection,
-                        onBackClick = { navigator.popBack() }
-                    )
-                    is TvDestination.Artist -> TvArtistDetailScreen(
-                        artistId = currentDestination.id,
-                        playerConnection = playerConnection,
-                        onBackClick = { navigator.popBack() }
-                    )
-                    is TvDestination.Playlist -> TvPlaylistDetailScreen(
-                        playlistId = currentDestination.id,
-                        playerConnection = playerConnection,
-                        onBackClick = { navigator.popBack() }
-                    )
-                    else -> Unit
+                if (currentDestination != TvDestination.Home) {
+                    // Full screen overlay for all destinations
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background,
+                    ) {
+                        when (currentDestination) {
+                            is TvDestination.Player -> TvPlayerScreen(
+                                playerConnection = playerConnection,
+                                onBackClick = { navigator.popBack() }
+                            )
+                            is TvDestination.Queue -> TvQueueScreen(
+                                playerConnection = playerConnection,
+                                onBackClick = { navigator.popBack() }
+                            )
+                            is TvDestination.Album -> TvAlbumDetailScreen(
+                                albumId = currentDestination.id,
+                                playerConnection = playerConnection,
+                                onBackClick = { navigator.popBack() }
+                            )
+                            is TvDestination.Artist -> TvArtistDetailScreen(
+                                artistId = currentDestination.id,
+                                playerConnection = playerConnection,
+                                onBackClick = { navigator.popBack() }
+                            )
+                            is TvDestination.Playlist -> TvPlaylistDetailScreen(
+                                playlistId = currentDestination.id,
+                                playerConnection = playerConnection,
+                                onBackClick = { navigator.popBack() }
+                            )
+                            else -> Unit
+                        }
+                    }
                 }
             }
         }
@@ -236,28 +244,53 @@ fun TvNavigationBar(current: TvSection, onSelect: (TvSection) -> Unit) {
         runCatching { firstButtonFocus.requestFocus() }
     }
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 48.dp, vertical = 24.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+        tonalElevation = 8.dp,
     ) {
-        Text(
-            text = "AuraMusic",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-        )
-        Spacer(modifier = Modifier.size(24.dp))
-        TvSection.entries.forEachIndexed { index, section ->
-            val isSelected = section == current
-            TvNavButton(
-                label = section.label,
-                isSelected = isSelected,
-                focusRequester = if (index == 0) firstButtonFocus else null,
-                onClick = { onSelect(section) },
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 48.dp, vertical = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // App logo/icon
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.primary),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    painterResource(R.drawable.music_note),
+                    contentDescription = "AuraMusic",
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
+            Text(
+                text = "AuraMusic",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(start = 12.dp)
             )
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            TvSection.entries.forEachIndexed { index, section ->
+                val isSelected = section == current
+                TvNavButton(
+                    label = section.label,
+                    isSelected = isSelected,
+                    focusRequester = if (index == 0) firstButtonFocus else null,
+                    onClick = { onSelect(section) },
+                )
+            }
         }
     }
 }
@@ -578,15 +611,32 @@ fun YouTubeSectionRow(
     playerConnection: PlayerConnection?,
     onYTItemClick: (YTItem) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onBackground,
-        )
+    Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+        // Section header with underline
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+            Box(
+                modifier = Modifier
+                    .width(120.dp)
+                    .height(3.dp)
+                    .background(
+                        brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                            )
+                        ),
+                        shape = RoundedCornerShape(1.5.dp)
+                    )
+            )
+        }
         LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(20.dp),
+            horizontalArrangement = Arrangement.spacedBy(24.dp),
             modifier = Modifier.fillMaxWidth(),
         ) {
             items(items) { item ->
@@ -706,18 +756,59 @@ fun YouTubeMediaCard(
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
             )
-            Text(
-                text = when (item) {
-                    is SongItem -> item.artists?.joinToString(", ") { it.name } ?: ""
-                    is AlbumItem -> item.artists?.joinToString(", ") { it.name } ?: ""
-                    is ArtistItem -> "Artist"
-                    is PlaylistItem -> item.author?.name ?: "Playlist"
-                    else -> ""
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = when (item) {
+                        is SongItem -> item.artists?.joinToString(", ") { it.name } ?: ""
+                        is AlbumItem -> item.artists?.joinToString(", ") { it.name } ?: ""
+                        is ArtistItem -> "Artist"
+                        is PlaylistItem -> item.author?.name ?: "Playlist"
+                        else -> ""
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f),
+                )
+
+                // Additional metadata
+                when (item) {
+                    is SongItem -> {
+                        val duration = item.duration
+                        if (duration != null) {
+                            Text(
+                                text = duration,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            )
+                        }
+                    }
+                    is AlbumItem -> {
+                        val year = item.year
+                        if (year != null) {
+                            Text(
+                                text = year.toString(),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            )
+                        }
+                    }
+                    is PlaylistItem -> {
+                        val count = item.songCount
+                        if (count != null) {
+                            Text(
+                                text = "$count songs",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -1262,15 +1353,32 @@ fun SongRow(
     songs: List<Song>,
     onSongClick: (Song) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onBackground,
-        )
+    Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+        // Section header with underline
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+            Box(
+                modifier = Modifier
+                    .width(120.dp)
+                    .height(3.dp)
+                    .background(
+                        brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                            )
+                        ),
+                        shape = RoundedCornerShape(1.5.dp)
+                    )
+            )
+        }
         LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(20.dp),
+            horizontalArrangement = Arrangement.spacedBy(24.dp),
             modifier = Modifier.fillMaxWidth(),
         ) {
             items(songs) { song ->
@@ -1369,15 +1477,32 @@ fun MediaCard(
 fun LocalItemRow(title: String, items: List<LocalItem>, playerConnection: PlayerConnection?) {
     val navigator = LocalTvNavigator.current
 
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onBackground,
-        )
+    Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+        // Section header with underline
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+            Box(
+                modifier = Modifier
+                    .width(120.dp)
+                    .height(3.dp)
+                    .background(
+                        brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                            )
+                        ),
+                        shape = RoundedCornerShape(1.5.dp)
+                    )
+            )
+        }
         LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(20.dp),
+            horizontalArrangement = Arrangement.spacedBy(24.dp),
             modifier = Modifier.fillMaxWidth(),
         ) {
             items(items) { item ->
@@ -1418,6 +1543,7 @@ fun TvMiniPlayer(
     playerConnection: PlayerConnection?,
     onPlayerClick: () -> Unit,
 ) {
+    val navigator = LocalTvNavigator.current
     val currentSong by (playerConnection?.currentSong?.collectAsState(null) ?: remember { mutableStateOf(null) })
     val isPlaying by (playerConnection?.isPlaying?.collectAsState(false) ?: remember { mutableStateOf(false) })
 
@@ -1501,6 +1627,19 @@ fun TvMiniPlayer(
                     Icon(
                         Icons.Filled.SkipNext,
                         contentDescription = "Next",
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+
+                // Queue button
+                IconButton(
+                    onClick = { navigator.navigate(TvDestination.Queue) },
+                    modifier = Modifier.size(48.dp),
+                ) {
+                    Icon(
+                        painterResource(R.drawable.queue_music),
+                        contentDescription = "Queue",
                         tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(24.dp)
                     )

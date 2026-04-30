@@ -210,243 +210,263 @@ fun TvPlayerScreen(
                 )
             }
 
-            Column(
+            Row(
                 modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.SpaceEvenly,
+                horizontalArrangement = Arrangement.spacedBy(48.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Album art
-                Box(
-                    modifier = Modifier
-                        .size(400.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.1f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                currentSong?.song?.let { song ->
-                    AsyncImage(
-                        model = song.thumbnailUrl,
-                        contentDescription = song.title,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                }
-
-                // Song info
+                // Left side: Album art and song info
                 Column(
+                    modifier = Modifier.weight(0.4f),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(horizontal = 48.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp),
                 ) {
-                    Text(
-                        text = currentSong?.song?.title ?: "No song playing",
-                        style = MaterialTheme.typography.headlineLarge.copy(
-                            fontSize = 36.sp,
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = Color.White,
-                        textAlign = TextAlign.Center,
-                        maxLines = 2,
-                    )
-
-                    Text(
-                        text = currentSong?.artists?.joinToString(", ") { it.name } ?: "",
-                        style = MaterialTheme.typography.headlineMedium.copy(fontSize = 24.sp),
-                        color = Color.White.copy(alpha = 0.8f),
-                        textAlign = TextAlign.Center,
-                        maxLines = 1,
-                    )
-                }
-
-                // Lyrics overlay
-                if (showLyrics) {
+                    // Album art
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp)
-                            .background(Color.Black.copy(alpha = 0.8f))
-                            .padding(horizontal = 48.dp),
+                            .size(300.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.1f)),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(
-                            text = "Lyrics not available for this song",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = Color.White.copy(alpha = 0.7f),
-                            textAlign = TextAlign.Center,
-                        )
+                        currentSong?.song?.let { song ->
+                            AsyncImage(
+                                model = song.thumbnailUrl,
+                                contentDescription = song.title,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
                     }
-                }
 
-                // Progress bar and time
-                Column(
-                    modifier = Modifier.fillMaxWidth(0.8f),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    LinearProgressIndicator(
-                        progress = { progress },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(8.dp)
-                            .clip(RoundedCornerShape(4.dp)),
-                        color = MaterialTheme.colorScheme.primary,
-                        trackColor = Color.White.copy(alpha = 0.3f),
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                    // Song info
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Text(
-                            text = makeTimeString(currentPosition),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = Color.White.copy(alpha = 0.8f),
+                            text = currentSong?.song?.title ?: "No song playing",
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = Color.White,
+                            textAlign = TextAlign.Center,
+                            maxLines = 2,
                         )
+
                         Text(
-                            text = makeTimeString(duration),
-                            style = MaterialTheme.typography.bodyLarge,
+                            text = currentSong?.artists?.joinToString(", ") { it.name } ?: "",
+                            style = MaterialTheme.typography.titleMedium,
                             color = Color.White.copy(alpha = 0.8f),
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
                         )
+                    }
+
+                    // Progress bar and time
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        LinearProgressIndicator(
+                            progress = { progress },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(6.dp)
+                                .clip(RoundedCornerShape(3.dp)),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = Color.White.copy(alpha = 0.3f),
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text(
+                                text = makeTimeString(currentPosition),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.White.copy(alpha = 0.8f),
+                            )
+                            Text(
+                                text = makeTimeString(duration),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.White.copy(alpha = 0.8f),
+                            )
+                        }
                     }
                 }
 
-                // Control buttons
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(24.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                // Right side: Controls and lyrics
+                Column(
+                    modifier = Modifier.weight(0.6f),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(32.dp),
                 ) {
-                    // Previous song
-                    TvPlayerControlButton(
-                        onClick = { playerConnection?.seekToPrevious() },
-                        icon = Icons.Filled.SkipPrevious,
-                        contentDescription = "Previous song",
-                    )
+                    if (showLyrics) {
+                        // Lyrics display
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(300.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color.Black.copy(alpha = 0.8f))
+                                .padding(24.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = "Lyrics not available for this song",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = Color.White.copy(alpha = 0.7f),
+                                textAlign = TextAlign.Center,
+                            )
+                        }
+                    } else {
+                        // Main controls when lyrics not shown
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(32.dp),
+                        ) {
+                            // Primary control buttons
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                // Previous song
+                                TvPlayerControlButton(
+                                    onClick = { playerConnection?.seekToPrevious() },
+                                    icon = Icons.Filled.SkipPrevious,
+                                    contentDescription = "Previous song",
+                                )
 
-                    // Rewind 10 seconds
-                    TvPlayerControlButton(
-                        onClick = {
-                            val currentPos = playerConnection?.currentPosition?.value ?: 0L
-                            val newPos = maxOf(0L, currentPos - 10000L) // 10 seconds back
-                            playerConnection?.player?.seekTo(newPos)
-                        },
-                        icon = Icons.Filled.FastRewind,
-                        contentDescription = "Rewind 10 seconds",
-                    )
+                                // Rewind 10 seconds
+                                TvPlayerControlButton(
+                                    onClick = {
+                                        val currentPos = playerConnection?.currentPosition?.value ?: 0L
+                                        val newPos = maxOf(0L, currentPos - 10000L) // 10 seconds back
+                                        playerConnection?.player?.seekTo(newPos)
+                                    },
+                                    icon = Icons.Filled.FastRewind,
+                                    contentDescription = "Rewind 10 seconds",
+                                )
 
-                    // Play/Pause (larger)
-                    TvPlayerControlButton(
-                        onClick = { playerConnection?.togglePlayPause() },
-                        icon = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                        contentDescription = if (isPlaying) "Pause" else "Play",
-                        size = 96.dp,
-                    )
+                                // Play/Pause (larger)
+                                TvPlayerControlButton(
+                                    onClick = { playerConnection?.togglePlayPause() },
+                                    icon = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                                    contentDescription = if (isPlaying) "Pause" else "Play",
+                                    size = 96.dp,
+                                )
 
-                    // Fast forward 10 seconds
-                    TvPlayerControlButton(
-                        onClick = {
-                            val currentPos = playerConnection?.currentPosition?.value ?: 0L
-                            val duration = playerConnection?.player?.duration?.takeIf { it != C.TIME_UNSET } ?: Long.MAX_VALUE
-                            val newPos = minOf(duration, currentPos + 10000L) // 10 seconds forward
-                            playerConnection?.player?.seekTo(newPos)
-                        },
-                        icon = Icons.Filled.FastForward,
-                        contentDescription = "Fast forward 10 seconds",
-                    )
+                                // Fast forward 10 seconds
+                                TvPlayerControlButton(
+                                    onClick = {
+                                        val currentPos = playerConnection?.currentPosition?.value ?: 0L
+                                        val duration = playerConnection?.player?.duration?.takeIf { it != C.TIME_UNSET } ?: Long.MAX_VALUE
+                                        val newPos = minOf(duration, currentPos + 10000L) // 10 seconds forward
+                                        playerConnection?.player?.seekTo(newPos)
+                                    },
+                                    icon = Icons.Filled.FastForward,
+                                    contentDescription = "Fast forward 10 seconds",
+                                )
 
-                    // Next song
-                    TvPlayerControlButton(
-                        onClick = { playerConnection?.seekToNext() },
-                        icon = Icons.Filled.SkipNext,
-                        contentDescription = "Next song",
-                    )
-                }
-
-                // Additional controls
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(24.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    TvPlayerControlButton(
-                        onClick = { playerConnection?.toggleShuffle() },
-                        icon = Icons.Filled.Shuffle,
-                        contentDescription = "Shuffle",
-                        tint = if (playerConnection?.shuffleModeEnabled?.value == true)
-                            MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f),
-                    )
-
-                    TvPlayerControlButton(
-                        onClick = {
-                            playerConnection?.player?.let { player ->
-                                val currentMode = player.repeatMode
-                                val newMode = when (currentMode) {
-                                    androidx.media3.common.Player.REPEAT_MODE_OFF -> androidx.media3.common.Player.REPEAT_MODE_ALL
-                                    androidx.media3.common.Player.REPEAT_MODE_ALL -> androidx.media3.common.Player.REPEAT_MODE_ONE
-                                    else -> androidx.media3.common.Player.REPEAT_MODE_OFF
-                                }
-                                player.repeatMode = newMode
-                            }
-                        },
-                        icon = when (playerConnection?.repeatMode?.value) {
-                            androidx.media3.common.Player.REPEAT_MODE_ONE -> Icons.Filled.RepeatOne
-                            else -> Icons.Filled.Repeat
-                        },
-                        contentDescription = "Repeat",
-                        tint = if (playerConnection?.repeatMode?.value != androidx.media3.common.Player.REPEAT_MODE_OFF)
-                            MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f),
-                    )
-
-                    TvPlayerControlButton(
-                        onClick = {
-                            playerConnection?.player?.let { player ->
-                                val currentSpeed = player.playbackParameters.speed
-                                val newSpeed = when (currentSpeed) {
-                                    1.0f -> 1.25f  // Normal -> 1.25x
-                                    1.25f -> 1.5f  // 1.25x -> 1.5x
-                                    1.5f -> 1.75f  // 1.5x -> 1.75x
-                                    1.75f -> 2.0f  // 1.75x -> 2x
-                                    2.0f -> 0.5f   // 2x -> 0.5x (slow)
-                                    0.5f -> 0.75f  // 0.5x -> 0.75x
-                                    else -> 1.0f   // Any other -> Normal
-                                }
-                                val params = androidx.media3.common.PlaybackParameters(newSpeed)
-                                player.setPlaybackParameters(params)
-                            }
-                        },
-                        icon = Icons.Filled.Speed,
-                        contentDescription = "Playback speed",
-                        tint = Color.White.copy(alpha = 0.7f),
-                    )
-
-                    TvPlayerControlButton(
-                        onClick = {
-                            val currentMinutes = sleepTimerMinutes
-                            val newMinutes = when (currentMinutes) {
-                                null -> 15     // Start with 15 minutes
-                                15 -> 30       // 15 -> 30 minutes
-                                30 -> 60       // 30 -> 60 minutes
-                                60 -> 120      // 60 -> 120 minutes
-                                else -> null   // Any other -> Cancel timer
+                                // Next song
+                                TvPlayerControlButton(
+                                    onClick = { playerConnection?.seekToNext() },
+                                    icon = Icons.Filled.SkipNext,
+                                    contentDescription = "Next song",
+                                )
                             }
 
-                            if (newMinutes != null) {
-                                sleepTimerEndTime = System.currentTimeMillis() + (newMinutes * 60 * 1000L)
-                                sleepTimerMinutes = newMinutes
-                            } else {
-                                sleepTimerEndTime = null
-                                sleepTimerMinutes = null
-                            }
-                        },
-                        icon = Icons.Filled.Bedtime,
-                        contentDescription = if (sleepTimerMinutes != null) "Cancel sleep timer (${sleepTimerMinutes} min)" else "Set sleep timer",
-                        tint = if (sleepTimerMinutes != null) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f),
-                    )
+                            // Additional controls
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                TvPlayerControlButton(
+                                    onClick = { playerConnection?.toggleShuffle() },
+                                    icon = Icons.Filled.Shuffle,
+                                    contentDescription = "Shuffle",
+                                    tint = if (playerConnection?.shuffleModeEnabled?.value == true)
+                                        MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f),
+                                )
 
-                    TvPlayerControlButton(
-                        onClick = { showLyrics = !showLyrics },
-                        icon = Icons.Filled.Lyrics,
-                        contentDescription = if (showLyrics) "Hide lyrics" else "Show lyrics",
-                        tint = if (showLyrics) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f),
-                    )
+                                TvPlayerControlButton(
+                                    onClick = {
+                                        playerConnection?.player?.let { player ->
+                                            val currentMode = player.repeatMode
+                                            val newMode = when (currentMode) {
+                                                androidx.media3.common.Player.REPEAT_MODE_OFF -> androidx.media3.common.Player.REPEAT_MODE_ALL
+                                                androidx.media3.common.Player.REPEAT_MODE_ALL -> androidx.media3.common.Player.REPEAT_MODE_ONE
+                                                else -> androidx.media3.common.Player.REPEAT_MODE_OFF
+                                            }
+                                            player.repeatMode = newMode
+                                        }
+                                    },
+                                    icon = when (playerConnection?.repeatMode?.value) {
+                                        androidx.media3.common.Player.REPEAT_MODE_ONE -> Icons.Filled.RepeatOne
+                                        else -> Icons.Filled.Repeat
+                                    },
+                                    contentDescription = "Repeat",
+                                    tint = if (playerConnection?.repeatMode?.value != androidx.media3.common.Player.REPEAT_MODE_OFF)
+                                        MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f),
+                                )
+
+                                TvPlayerControlButton(
+                                    onClick = {
+                                        playerConnection?.player?.let { player ->
+                                            val currentSpeed = player.playbackParameters.speed
+                                            val newSpeed = when (currentSpeed) {
+                                                1.0f -> 1.25f  // Normal -> 1.25x
+                                                1.25f -> 1.5f  // 1.25x -> 1.5x
+                                                1.5f -> 1.75f  // 1.5x -> 1.75x
+                                                1.75f -> 2.0f  // 1.75x -> 2x
+                                                2.0f -> 0.5f   // 2x -> 0.5x (slow)
+                                                0.5f -> 0.75f  // 0.5x -> 0.75x
+                                                else -> 1.0f   // Any other -> Normal
+                                            }
+                                            val params = androidx.media3.common.PlaybackParameters(newSpeed)
+                                            player.setPlaybackParameters(params)
+                                        }
+                                    },
+                                    icon = Icons.Filled.Speed,
+                                    contentDescription = "Playback speed",
+                                    tint = Color.White.copy(alpha = 0.7f),
+                                )
+
+                                TvPlayerControlButton(
+                                    onClick = {
+                                        val currentMinutes = sleepTimerMinutes
+                                        val newMinutes = when (currentMinutes) {
+                                            null -> 15     // Start with 15 minutes
+                                            15 -> 30       // 15 -> 30 minutes
+                                            30 -> 60       // 30 -> 60 minutes
+                                            60 -> 120      // 60 -> 120 minutes
+                                            else -> null   // Any other -> Cancel timer
+                                        }
+
+                                        if (newMinutes != null) {
+                                            sleepTimerEndTime = System.currentTimeMillis() + (newMinutes * 60 * 1000L)
+                                            sleepTimerMinutes = newMinutes
+                                        } else {
+                                            sleepTimerEndTime = null
+                                            sleepTimerMinutes = null
+                                        }
+                                    },
+                                    icon = Icons.Filled.Bedtime,
+                                    contentDescription = if (sleepTimerMinutes != null) "Cancel sleep timer (${sleepTimerMinutes} min)" else "Set sleep timer",
+                                    tint = if (sleepTimerMinutes != null) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f),
+                                )
+
+                                TvPlayerControlButton(
+                                    onClick = { showLyrics = !showLyrics },
+                                    icon = Icons.Filled.Lyrics,
+                                    contentDescription = if (showLyrics) "Hide lyrics" else "Show lyrics",
+                                    tint = if (showLyrics) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f),
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
