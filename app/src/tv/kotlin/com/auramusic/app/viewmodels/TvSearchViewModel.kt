@@ -19,6 +19,13 @@ import com.auramusic.app.db.entities.LocalItem
 import com.auramusic.app.db.entities.Playlist
 import com.auramusic.app.db.entities.Song
 import com.auramusic.innertube.YouTube
+import com.auramusic.innertube.YouTube.SearchFilter.Companion.FILTER_ALBUM
+import com.auramusic.innertube.YouTube.SearchFilter.Companion.FILTER_ARTIST
+import com.auramusic.innertube.YouTube.SearchFilter.Companion.FILTER_COMMUNITY_PLAYLIST
+import com.auramusic.innertube.YouTube.SearchFilter.Companion.FILTER_FEATURED_PLAYLIST
+import com.auramusic.innertube.YouTube.SearchFilter.Companion.FILTER_PODCAST
+import com.auramusic.innertube.YouTube.SearchFilter.Companion.FILTER_SONG
+import com.auramusic.innertube.YouTube.SearchFilter.Companion.FILTER_VIDEO
 import com.auramusic.innertube.models.YTItem
 import com.auramusic.innertube.models.filterExplicit
 import com.auramusic.innertube.models.filterVideoSongs
@@ -50,6 +57,8 @@ constructor(
     private val database: MusicDatabase,
 ) : ViewModel() {
     val query = MutableStateFlow("")
+
+    val filter = MutableStateFlow<String?>(null) // null means all
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
@@ -112,9 +121,26 @@ constructor(
                 val hideExplicit = context.dataStore.get(HideExplicitKey, false)
                 val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
 
-                // YouTube search
+                // YouTube search with current filter
+                val currentFilter = filter.value
                 val ytResults = try {
-                    YouTube.search(searchQuery, YouTube.SearchFilter.FILTER_SONG).getOrNull()?.items?.filterExplicit(hideExplicit)?.filterVideoSongs(hideVideoSongs).orEmpty()
+                    val searchFilter = when (currentFilter) {
+                        FILTER_SONG -> YouTube.SearchFilter.FILTER_SONG
+                        FILTER_VIDEO -> YouTube.SearchFilter.FILTER_VIDEO
+                        FILTER_ALBUM -> YouTube.SearchFilter.FILTER_ALBUM
+                        FILTER_ARTIST -> YouTube.SearchFilter.FILTER_ARTIST
+                        FILTER_COMMUNITY_PLAYLIST -> YouTube.SearchFilter.FILTER_COMMUNITY_PLAYLIST
+                        FILTER_FEATURED_PLAYLIST -> YouTube.SearchFilter.FILTER_FEATURED_PLAYLIST
+                        FILTER_PODCAST -> YouTube.SearchFilter.FILTER_PODCAST
+                        else -> null // All results
+                    }
+
+                    if (searchFilter != null) {
+                        YouTube.search(searchQuery, searchFilter).getOrNull()?.items?.filterExplicit(hideExplicit)?.filterVideoSongs(hideVideoSongs).orEmpty()
+                    } else {
+                        // For "all" filter, get summary results like mobile app
+                        YouTube.search(searchQuery).getOrNull()?.items?.filterExplicit(hideExplicit)?.filterVideoSongs(hideVideoSongs).orEmpty()
+                    }
                 } catch (e: Exception) {
                     emptyList()
                 }

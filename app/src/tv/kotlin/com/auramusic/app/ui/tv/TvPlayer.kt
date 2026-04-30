@@ -146,9 +146,9 @@ fun TvPlayerScreen(
 ) {
     val currentSong by (playerConnection?.currentSong?.collectAsState(null) ?: remember { mutableStateOf(null) })
     val isPlaying by (playerConnection?.isPlaying?.collectAsState(false) ?: remember { mutableStateOf(false) })
-    val currentPosition by (playerConnection?.currentPosition?.collectAsState(0L) ?: remember { mutableStateOf(0L) })
 
     var duration by remember { mutableStateOf(0L) }
+    var currentPosition by remember { mutableStateOf(0L) }
     var sleepTimerMinutes by remember { mutableStateOf<Int?>(null) }
     var sleepTimerEndTime by remember { mutableStateOf<Long?>(null) }
     var showLyrics by remember { mutableStateOf(false) }
@@ -166,8 +166,9 @@ fun TvPlayerScreen(
         while (true) {
             playerConnection?.player?.let { player ->
                 duration = player.duration.takeIf { it != C.TIME_UNSET } ?: 0L
+                currentPosition = player.currentPosition
             }
-            delay(1000) // Update every second
+            delay(100) // Update every 100ms for smooth progress bar
         }
     }
 
@@ -220,12 +221,19 @@ fun TvPlayerScreen(
             )
 
             // Back button
+            var backButtonFocused by remember { mutableStateOf(false) }
             IconButton(
                 onClick = onBackClick,
                 modifier = Modifier
                     .padding(24.dp)
                     .size(64.dp)
-                    .align(Alignment.TopStart),
+                    .align(Alignment.TopStart)
+                    .onFocusChanged { backButtonFocused = it.isFocused }
+                    .border(
+                        width = if (backButtonFocused) 3.dp else 0.dp,
+                        color = if (backButtonFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                        shape = CircleShape
+                    ),
             ) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
@@ -350,22 +358,32 @@ fun TvPlayerScreen(
                                     color = Color.White
                                 )
                             ) {
-                                com.auramusic.app.ui.component.Lyrics(
-                                    sliderPositionProvider = positionProvider,
-                                    modifier = Modifier.padding(horizontal = 24.dp),
-                                    showLyrics = true,
-                                    karaokeModeEnabled = karaokeModeEnabled
-                                )
+                                try {
+                                    com.auramusic.app.ui.component.Lyrics(
+                                        sliderPositionProvider = positionProvider,
+                                        modifier = Modifier.padding(horizontal = 24.dp),
+                                        showLyrics = true,
+                                        karaokeModeEnabled = karaokeModeEnabled
+                                    )
+                                } catch (e: Exception) {
+                                    // Fallback if lyrics component fails
+                                    Text(
+                                        text = "Lyrics not available",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = Color.White.copy(alpha = 0.7f),
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
                             }
                         }
                     } else {
-                        // Bottom controls row
+                        // All controls on the same line: main controls centered, secondary controls on the right
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            // Left side: Skip/play controls
+                            // Main playback controls - skip/forward/backwards/play/rewind in the center
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -378,8 +396,7 @@ fun TvPlayerScreen(
 
                                 TvPlayerControlButton(
                                     onClick = {
-                                        val currentPos = playerConnection?.currentPosition?.value ?: 0L
-                                        val newPos = maxOf(0L, currentPos - 10000L) // 10 seconds back
+                                        val newPos = maxOf(0L, currentPosition - 10000L) // 10 seconds back
                                         playerConnection?.player?.seekTo(newPos)
                                     },
                                     icon = Icons.Filled.FastRewind,
@@ -396,9 +413,8 @@ fun TvPlayerScreen(
 
                                 TvPlayerControlButton(
                                     onClick = {
-                                        val currentPos = playerConnection?.currentPosition?.value ?: 0L
                                         val duration = playerConnection?.player?.duration?.takeIf { it != C.TIME_UNSET } ?: Long.MAX_VALUE
-                                        val newPos = minOf(duration, currentPos + 10000L) // 10 seconds forward
+                                        val newPos = minOf(duration, currentPosition + 10000L) // 10 seconds forward
                                         playerConnection?.player?.seekTo(newPos)
                                     },
                                     icon = Icons.Filled.FastForward,
@@ -412,85 +428,85 @@ fun TvPlayerScreen(
                                 )
                             }
 
-                            // Right side: Other controls
+                            // Secondary controls - other buttons on the right
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                TvPlayerControlButton(
-                                    onClick = { playerConnection?.toggleShuffle() },
-                                    icon = Icons.Filled.Shuffle,
-                                    contentDescription = "Shuffle",
-                                    tint = if (playerConnection?.shuffleModeEnabled?.value == true)
-                                        MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f),
-                                )
+                            TvPlayerControlButton(
+                                onClick = { playerConnection?.toggleShuffle() },
+                                icon = Icons.Filled.Shuffle,
+                                contentDescription = "Shuffle",
+                                tint = if (playerConnection?.shuffleModeEnabled?.value == true)
+                                    MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f),
+                            )
 
-                                TvPlayerControlButton(
-                                    onClick = {
-                                        playerConnection?.player?.let { player ->
-                                            val currentMode = player.repeatMode
-                                            val newMode = when (currentMode) {
-                                                androidx.media3.common.Player.REPEAT_MODE_OFF -> androidx.media3.common.Player.REPEAT_MODE_ALL
-                                                androidx.media3.common.Player.REPEAT_MODE_ALL -> androidx.media3.common.Player.REPEAT_MODE_ONE
-                                                else -> androidx.media3.common.Player.REPEAT_MODE_OFF
-                                            }
-                                            player.repeatMode = newMode
+                            TvPlayerControlButton(
+                                onClick = {
+                                    playerConnection?.player?.let { player ->
+                                        val currentMode = player.repeatMode
+                                        val newMode = when (currentMode) {
+                                            androidx.media3.common.Player.REPEAT_MODE_OFF -> androidx.media3.common.Player.REPEAT_MODE_ALL
+                                            androidx.media3.common.Player.REPEAT_MODE_ALL -> androidx.media3.common.Player.REPEAT_MODE_ONE
+                                            else -> androidx.media3.common.Player.REPEAT_MODE_OFF
                                         }
-                                    },
-                                    icon = when (playerConnection?.repeatMode?.value) {
-                                        androidx.media3.common.Player.REPEAT_MODE_ONE -> Icons.Filled.RepeatOne
-                                        else -> Icons.Filled.Repeat
-                                    },
-                                    contentDescription = "Repeat",
-                                    tint = if (playerConnection?.repeatMode?.value != androidx.media3.common.Player.REPEAT_MODE_OFF)
-                                        MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f),
-                                )
+                                        player.repeatMode = newMode
+                                    }
+                                },
+                                icon = when (playerConnection?.repeatMode?.value) {
+                                    androidx.media3.common.Player.REPEAT_MODE_ONE -> Icons.Filled.RepeatOne
+                                    else -> Icons.Filled.Repeat
+                                },
+                                contentDescription = "Repeat",
+                                tint = if (playerConnection?.repeatMode?.value != androidx.media3.common.Player.REPEAT_MODE_OFF)
+                                    MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f),
+                            )
 
-                                TvPlayerControlButton(
-                                    onClick = {
-                                        playerConnection?.player?.let { player ->
-                                            val currentSpeed = player.playbackParameters.speed
-                                            val newSpeed = when (currentSpeed) {
-                                                1.0f -> 1.25f  // Normal -> 1.25x
-                                                1.25f -> 1.5f  // 1.25x -> 1.5x
-                                                1.5f -> 1.75f  // 1.5x -> 1.75x
-                                                1.75f -> 2.0f  // 1.75x -> 2x
-                                                2.0f -> 0.5f   // 2x -> 0.5x (slow)
-                                                0.5f -> 0.75f  // 0.5x -> 0.75x
-                                                else -> 1.0f   // Any other -> Normal
-                                            }
-                                            val params = androidx.media3.common.PlaybackParameters(newSpeed)
-                                            player.setPlaybackParameters(params)
+                            TvPlayerControlButton(
+                                onClick = {
+                                    playerConnection?.player?.let { player ->
+                                        val currentSpeed = player.playbackParameters.speed
+                                        val newSpeed = when (currentSpeed) {
+                                            1.0f -> 1.25f  // Normal -> 1.25x
+                                            1.25f -> 1.5f  // 1.25x -> 1.5x
+                                            1.5f -> 1.75f  // 1.5x -> 1.75x
+                                            1.75f -> 2.0f  // 1.75x -> 2x
+                                            2.0f -> 0.5f   // 2x -> 0.5x (slow)
+                                            0.5f -> 0.75f  // 0.5x -> 0.75x
+                                            else -> 1.0f   // Any other -> Normal
                                         }
-                                    },
-                                    icon = Icons.Filled.Speed,
-                                    contentDescription = "Playback speed",
-                                    tint = Color.White.copy(alpha = 0.7f),
-                                )
+                                        val params = androidx.media3.common.PlaybackParameters(newSpeed)
+                                        player.setPlaybackParameters(params)
+                                    }
+                                },
+                                icon = Icons.Filled.Speed,
+                                contentDescription = "Playback speed",
+                                tint = Color.White.copy(alpha = 0.7f),
+                            )
 
-                                TvPlayerControlButton(
-                                    onClick = {
-                                        val currentMinutes = sleepTimerMinutes
-                                        val newMinutes = when (currentMinutes) {
-                                            null -> 15     // Start with 15 minutes
-                                            15 -> 30       // 15 -> 30 minutes
-                                            30 -> 60       // 30 -> 60 minutes
-                                            60 -> 120      // 60 -> 120 minutes
-                                            else -> null   // Any other -> Cancel timer
-                                        }
+                            TvPlayerControlButton(
+                                onClick = {
+                                    val currentMinutes = sleepTimerMinutes
+                                    val newMinutes = when (currentMinutes) {
+                                        null -> 15     // Start with 15 minutes
+                                        15 -> 30       // 15 -> 30 minutes
+                                        30 -> 60       // 30 -> 60 minutes
+                                        60 -> 120      // 60 -> 120 minutes
+                                        else -> null   // Any other -> Cancel timer
+                                    }
 
-                                        if (newMinutes != null) {
-                                            sleepTimerEndTime = System.currentTimeMillis() + (newMinutes * 60 * 1000L)
-                                            sleepTimerMinutes = newMinutes
-                                        } else {
-                                            sleepTimerEndTime = null
-                                            sleepTimerMinutes = null
-                                        }
-                                    },
-                                    icon = Icons.Filled.Bedtime,
-                                    contentDescription = if (sleepTimerMinutes != null) "Cancel sleep timer (${sleepTimerMinutes} min)" else "Set sleep timer",
-                                    tint = if (sleepTimerMinutes != null) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f),
-                                )
+                                    if (newMinutes != null) {
+                                        sleepTimerEndTime = System.currentTimeMillis() + (newMinutes * 60 * 1000L)
+                                        sleepTimerMinutes = newMinutes
+                                    } else {
+                                        sleepTimerEndTime = null
+                                        sleepTimerMinutes = null
+                                    }
+                                },
+                                icon = Icons.Filled.Bedtime,
+                                contentDescription = if (sleepTimerMinutes != null) "Cancel sleep timer (${sleepTimerMinutes} min)" else "Set sleep timer",
+                                tint = if (sleepTimerMinutes != null) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f),
+                            )
 
                                 TvPlayerControlButton(
                                     onClick = { showLyrics = !showLyrics },

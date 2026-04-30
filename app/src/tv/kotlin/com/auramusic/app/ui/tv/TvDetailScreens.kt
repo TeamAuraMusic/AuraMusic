@@ -228,6 +228,25 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                     )
+
+                    // Artist about info like mobile app
+                    ytArtist.value?.let { artist ->
+                        artist.subscriberCount?.let { subscribers ->
+                            Text(
+                                text = "$subscribers subscribers",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        artist.monthlyListenerCount?.let { listeners ->
+                            Text(
+                                text = "$listeners monthly listeners",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         TvPrimaryButton(label = "Play all") {
@@ -247,6 +266,29 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
                             playerConnection.playAll(allSongs.shuffled(), displayTitle)
                         }
                     }
+                }
+            }
+        }
+
+        // Artist description section
+        ytArtist.value?.description?.let { description ->
+            item {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = "About",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
+                    Text(
+                        text = description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 20.sp,
+                    )
                 }
             }
         }

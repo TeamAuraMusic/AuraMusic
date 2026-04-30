@@ -48,11 +48,11 @@ import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.RepeatOne
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -106,6 +106,7 @@ import com.auramusic.innertube.models.SongItem
 import com.auramusic.innertube.pages.HomePage
 import com.auramusic.innertube.pages.ExplorePage
 import androidx.compose.foundation.layout.width
+import com.auramusic.app.ui.component.ChipsRow
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 import androidx.compose.foundation.pager.HorizontalPager
@@ -113,6 +114,57 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.res.stringResource
+
+private data class CarouselDimens(
+    val height: Dp,
+    val horizontalPadding: Dp,
+    val cornerRadius: Dp,
+    val playButtonSize: Dp,
+    val playIconSize: Dp,
+    val pageSpacing: Dp,
+    val indicatorWidth: Dp,
+    val indicatorDot: Dp,
+    val indicatorSpacing: Dp,
+)
+
+@Composable
+private fun rememberCarouselDimens(screenWidth: Dp): CarouselDimens {
+    val isSmallScreen = screenWidth < 360.dp
+    val isTablet = screenWidth >= 600.dp
+    return CarouselDimens(
+        height = when {
+            isTablet -> 400.dp  // Smaller than mobile tablet (500dp)
+            isSmallScreen -> 240.dp  // Smaller than mobile small screen (280dp)
+            else -> 240.dp  // Smaller than mobile default (280dp)
+        },
+        horizontalPadding = when {
+            isTablet -> 24.dp
+            isSmallScreen -> 12.dp
+            else -> 16.dp
+        },
+        cornerRadius = when {
+            isTablet -> 16.dp
+            isSmallScreen -> 10.dp
+            else -> 14.dp
+        },
+        playButtonSize = when {
+            isTablet -> 48.dp
+            isSmallScreen -> 32.dp
+            else -> 40.dp
+        },
+        playIconSize = when {
+            isTablet -> 24.dp
+            isSmallScreen -> 14.dp
+            else -> 20.dp
+        },
+        pageSpacing = if (isTablet) 14.dp else 10.dp,
+        indicatorWidth = if (isTablet) 20.dp else 16.dp,
+        indicatorDot = if (isTablet) 6.dp else 5.dp,
+        indicatorSpacing = if (isTablet) 12.dp else 8.dp,
+    )
+}
 
 enum class TvSection(val label: String) {
     HOME("Home"),
@@ -139,6 +191,21 @@ enum class TvSection(val label: String) {
 fun TvApp(playerConnection: PlayerConnection?) {
     var section by remember { mutableStateOf<TvSection>(TvSection.HOME) }
     val navigator = rememberTvNavigator()
+    val isPlaying by (playerConnection?.isPlaying?.collectAsState() ?: remember { mutableStateOf(false) })
+
+    // Keep screen on when music is playing
+    val view = LocalView.current
+    DisposableEffect(isPlaying) {
+        val window = (view.context as? android.app.Activity)?.window
+        if (isPlaying) {
+            window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+        onDispose {
+            window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
 
     // Handle keyboard shortcuts for TV remote
     val onPreviewKeyEvent: (androidx.compose.ui.input.key.KeyEvent) -> Boolean = { event ->
@@ -967,6 +1034,7 @@ fun TvSearchScreen(playerConnection: PlayerConnection?) {
     val navigator = LocalTvNavigator.current
     val tvSearchViewModel: TvSearchViewModel = hiltViewModel()
     val query by tvSearchViewModel.query.collectAsState()
+    val filter by tvSearchViewModel.filter.collectAsState()
     val searchResults by tvSearchViewModel.searchResults.collectAsState()
     val isLoading by tvSearchViewModel.isLoading.collectAsState()
     val recentSearches by tvSearchViewModel.recentSearches.collectAsState()
@@ -1030,7 +1098,32 @@ fun TvSearchScreen(playerConnection: PlayerConnection?) {
                 }
             }
         } else {
-            // Show search results grouped by type
+            // Filter chips like mobile search
+            ChipsRow(
+                chips = listOf(
+                    null to stringResource(R.string.filter_all),
+                    FILTER_SONG to stringResource(R.string.filter_songs),
+                    FILTER_VIDEO to stringResource(R.string.filter_videos),
+                    FILTER_ALBUM to stringResource(R.string.filter_albums),
+                    FILTER_ARTIST to stringResource(R.string.filter_artists),
+                    FILTER_COMMUNITY_PLAYLIST to stringResource(R.string.filter_community_playlists),
+                    FILTER_FEATURED_PLAYLIST to stringResource(R.string.filter_featured_playlists),
+                    FILTER_PODCAST to stringResource(R.string.podcasts),
+                ),
+                currentValue = filter,
+                onValueUpdate = {
+                    if (tvSearchViewModel.filter.value != it) {
+                        tvSearchViewModel.filter.value = it
+                        // Re-perform search with new filter
+                        if (query.isNotEmpty()) {
+                            tvSearchViewModel.updateQuery(query)
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            // Show search results
             val localSongs = searchResults.localItems.filterIsInstance<Song>().take(5)
             val localArtists = searchResults.localItems.filterIsInstance<Artist>().take(5)
             val localAlbums = searchResults.localItems.filterIsInstance<Album>().take(5)
@@ -1721,7 +1814,20 @@ fun TvHeroCarousel(
     playerConnection: PlayerConnection?,
     onYTItemClick: (YTItem) -> Unit,
 ) {
+    if (items.isEmpty()) return
+
     val pagerState = rememberPagerState(pageCount = { items.size })
+
+    // Auto-scroll functionality like mobile hero carousel
+    LaunchedEffect(pagerState, items.size) {
+        if (items.size > 1) {
+            while (true) {
+                delay(4000L) // Auto-scroll every 4 seconds like mobile
+                val nextPage = (pagerState.currentPage + 1) % items.size
+                pagerState.animateScrollToPage(nextPage)
+            }
+        }
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
         // Section header
@@ -1748,56 +1854,71 @@ fun TvHeroCarousel(
             )
         }
 
-        // Hero carousel
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier.fillMaxWidth(),
-            pageSpacing = 16.dp,
-            contentPadding = PaddingValues(horizontal = 48.dp)
-        ) { page ->
-            val item = items[page]
-            TvHeroCard(
-                item = item,
-                onClick = { onYTItemClick(item) }
-            )
-        }
-
-        // Page indicators
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            repeat(items.size) { index ->
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (pagerState.currentPage == index)
-                                MaterialTheme.colorScheme.primary
-                            else
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-                        )
+        // Hero carousel - smaller like mobile version
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val dimens = rememberCarouselDimens(maxWidth)
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(dimens.height),
+                pageSpacing = dimens.pageSpacing,
+                contentPadding = PaddingValues(horizontal = dimens.horizontalPadding)
+            ) { page ->
+                val item = items[page]
+                TvHeroCard(
+                    item = item,
+                    dimens = dimens,
+                    onClick = { onYTItemClick(item) }
                 )
-                if (index < items.size - 1) {
-                    Spacer(modifier = Modifier.width(8.dp))
+            }
+
+            // Page indicators like mobile version
+            if (items.size > 1) {
+                Spacer(modifier = Modifier.height(dimens.indicatorSpacing))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    items.forEachIndexed { index, _ ->
+                        val isSelected = pagerState.currentPage == index
+                        val width by animateDpAsState(
+                            targetValue = if (isSelected) dimens.indicatorWidth else dimens.indicatorDot,
+                            animationSpec = tween(300),
+                            label = "indicator_width"
+                        )
+                        Box(
+                            modifier = Modifier
+                                .padding(horizontal = 3.dp)
+                                .height(dimens.indicatorDot)
+                                .width(width)
+                                .clip(CircleShape)
+                                .background(
+                                    if (isSelected) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
+                                )
+                        )
+                    }
                 }
             }
         }
+
+
     }
 }
 
 @Composable
 fun TvHeroCard(
     item: YTItem,
+    dimens: CarouselDimens,
     onClick: () -> Unit,
 ) {
     var isFocused by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
     val scale by animateFloatAsState(
-        targetValue = if (isFocused) 1.05f else 1f,
+        targetValue = if (isFocused) 1.06f else 1f,
         label = "tvHeroCardScale",
     )
     val borderColor = if (isFocused) {
@@ -1810,7 +1931,7 @@ fun TvHeroCard(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(16f/9f)
+            .height(dimens.height)
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
@@ -1822,13 +1943,13 @@ fun TvHeroCard(
                     scope.launch { bringIntoViewRequester.bringIntoView() }
                 }
             }
-            .border(width = 4.dp, color = borderColor, shape = RoundedCornerShape(16.dp)),
-        shape = RoundedCornerShape(16.dp),
+            .border(width = 3.dp, color = borderColor, shape = RoundedCornerShape(dimens.cornerRadius)),
+        shape = RoundedCornerShape(dimens.cornerRadius),
         color = MaterialTheme.colorScheme.surfaceVariant,
-        tonalElevation = 8.dp,
+        tonalElevation = 4.dp,
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // Background image
+            // Background image - use FillBounds like mobile to cover without cropping
             AsyncImage(
                 model = when (item) {
                     is SongItem -> item.thumbnail
@@ -1838,7 +1959,7 @@ fun TvHeroCard(
                     else -> ""
                 },
                 contentDescription = null,
-                contentScale = ContentScale.Crop,
+                contentScale = ContentScale.FillBounds,
                 modifier = Modifier.fillMaxSize(),
             )
 
