@@ -781,7 +781,7 @@ fun YouTubeMediaCard(
                         val duration = item.duration
                         if (duration != null) {
                             Text(
-                                text = duration,
+                                text = makeTimeString(duration * 1000L),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                             )
