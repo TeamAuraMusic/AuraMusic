@@ -26,12 +26,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,8 +56,34 @@ import com.auramusic.app.viewmodels.LibraryArtistsViewModel
 import com.auramusic.app.viewmodels.LibraryPlaylistsViewModel
 import com.auramusic.innertube.YouTube
 import com.auramusic.innertube.models.SongItem
-import com.auramusic.innertube.models.ArtistItem
-import java.time.LocalDateTime
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+
+// Unified interface for both local and YouTube songs
+sealed class DisplaySong {
+    abstract val id: String
+    abstract val title: String
+    abstract val thumbnailUrl: String?
+    abstract val artists: String
+    abstract val duration: String?
+
+    data class LocalSong(val song: Song) : DisplaySong() {
+        override val id: String = song.id
+        override val title: String = song.title
+        override val thumbnailUrl: String? = song.thumbnailUrl
+        override val artists: String = song.artists.joinToString(", ") { it.name }
+        override val duration: String? = null // Local songs don't have duration in this format
+    }
+
+    data class YouTubeSong(val songItem: SongItem) : DisplaySong() {
+        override val id: String = songItem.id
+        override val title: String = songItem.title
+        override val thumbnailUrl: String? = songItem.thumbnail
+        override val artists: String = songItem.artists?.joinToString(", ") { it.name } ?: ""
+        override val duration: String? = songItem.duration
+    }
+}
 
 /* ------------------------------ Album ------------------------------ */
 
@@ -74,9 +97,9 @@ fun TvAlbumDetailScreen(albumId: String, playerConnection: PlayerConnection?, on
 
     val localSongs by remember(albumId) { database.albumSongs(albumId) }.collectAsState(emptyList<Song>())
 
-    // For YouTube albums, fetch from YouTube if no local data
-    var ytSongs by remember { mutableStateOf<List<SongItem>?>(null) }
-    var ytAlbum by remember { mutableStateOf<com.auramusic.innertube.models.AlbumItem?>(null) }
+    // YouTube data
+    val ytSongs = remember { mutableStateOf<List<SongItem>?>(null) }
+    val ytAlbum = remember { mutableStateOf<com.auramusic.innertube.models.AlbumItem?>(null) }
 
     LaunchedEffect(albumId) {
         if (localAlbum == null && localSongs.isEmpty()) {
@@ -89,46 +112,9 @@ fun TvAlbumDetailScreen(albumId: String, playerConnection: PlayerConnection?, on
     }
 
     val displaySongs = if (localSongs.isNotEmpty()) {
-        localSongs
+        localSongs.map { DisplaySong.LocalSong(it) }
     } else {
-        ytSongs.value?.map { songItem ->
-            Song(
-                song = com.auramusic.app.db.entities.Song(
-                    id = songItem.id,
-                    title = songItem.title,
-                    thumbnailUrl = songItem.thumbnail,
-                    duration = songItem.duration?.toString() ?: "",
-                    albumName = ytAlbum.value?.title,
-                    albumId = ytAlbum.value?.id,
-                    year = ytAlbum.value?.year?.toString(),
-                    inLibrary = null,
-                    isLocal = false,
-                    liked = false,
-                    totalPlayTime = 0,
-                    downloadState = 0
-                ),
-                artists = songItem.artists?.map { artist ->
-                    com.auramusic.app.db.entities.Artist(
-                        id = artist.id ?: "",
-                        name = artist.name,
-                        thumbnailUrl = artist.thumbnail,
-                        lastUpdateTime = LocalDateTime.now(),
-                        isLocal = false,
-                        isYouTubeArtist = true
-                    )
-                } ?: emptyList(),
-                album = ytAlbum.value?.let { album ->
-                    com.auramusic.app.db.entities.Album(
-                        id = album.id ?: "",
-                        title = album.title ?: "",
-                        thumbnailUrl = album.thumbnail,
-                        year = album.year?.toString(),
-                        lastUpdateTime = LocalDateTime.now(),
-                        isLocal = false
-                    )
-                }
-            )
-        } ?: emptyList()
+        ytSongs.value?.map { DisplaySong.YouTubeSong(it) } ?: emptyList()
     }
 
     val displayTitle = localAlbum?.album?.title ?: ytAlbum.value?.title ?: "Album"
@@ -141,7 +127,7 @@ fun TvAlbumDetailScreen(albumId: String, playerConnection: PlayerConnection?, on
         subtitle = displaySubtitle,
         meta = "$songCount songs",
         thumbnailUrl = displayThumbnail,
-        songs = displaySongs,
+        displaySongs = displaySongs,
         playerConnection = playerConnection,
         playAllTitle = displayTitle,
         onBackClick = onBackClick,
@@ -162,9 +148,9 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
         database.artistSongs(artistId, ArtistSongSortType.CREATE_DATE, true)
     }.collectAsState(emptyList<Song>())
 
-    // For YouTube artists, we need to fetch from YouTube if no local data
-    var ytSongs by remember { mutableStateOf<List<SongItem>?>(null) }
-    var ytArtist by remember { mutableStateOf<ArtistItem?>(null) }
+    // YouTube data
+    val ytSongs = remember { mutableStateOf<List<SongItem>?>(null) }
+    val ytArtist = remember { mutableStateOf<com.auramusic.innertube.models.ArtistItem?>(null) }
 
     LaunchedEffect(artistId) {
         if (localArtist == null && localSongs.isEmpty()) {
@@ -180,47 +166,9 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
     }
 
     val displaySongs = if (localSongs.isNotEmpty()) {
-        localSongs
+        localSongs.map { DisplaySong.LocalSong(it) }
     } else {
-        ytSongs.value?.map { songItem ->
-            // Convert SongItem to Song for compatibility
-            Song(
-                song = com.auramusic.app.db.entities.Song(
-                    id = songItem.id,
-                    title = songItem.title,
-                    thumbnailUrl = songItem.thumbnail,
-                    duration = songItem.duration?.toString() ?: "",
-                    albumName = songItem.album?.name,
-                    albumId = songItem.album?.id,
-                    year = null,
-                    inLibrary = null,
-                    isLocal = false,
-                    liked = false,
-                    totalPlayTime = 0,
-                    downloadState = 0
-                ),
-                artists = songItem.artists?.map { artist ->
-                    com.auramusic.app.db.entities.Artist(
-                        id = artist.id ?: "",
-                        name = artist.name,
-                        thumbnailUrl = artist.thumbnail,
-                        lastUpdateTime = LocalDateTime.now(),
-                        isLocal = false,
-                        isYouTubeArtist = true
-                    )
-                } ?: emptyList(),
-                album = songItem.album?.let { album ->
-                    com.auramusic.app.db.entities.Album(
-                        id = album.id ?: "",
-                        title = album.name ?: "",
-                        thumbnailUrl = album.thumbnail,
-                        year = album.year?.toString(),
-                        lastUpdateTime = LocalDateTime.now(),
-                        isLocal = false
-                    )
-                }
-            )
-        } ?: emptyList()
+        ytSongs.value?.map { DisplaySong.YouTubeSong(it) } ?: emptyList()
     }
 
     val displayTitle = localArtist?.artist?.name ?: ytArtist.value?.title ?: "Artist"
@@ -232,7 +180,7 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
         subtitle = "Artist",
         meta = "$songCount songs",
         thumbnailUrl = displayThumbnail,
-        songs = displaySongs,
+        displaySongs = displaySongs,
         playerConnection = playerConnection,
         playAllTitle = displayTitle,
         onBackClick = onBackClick,
@@ -252,9 +200,9 @@ fun TvPlaylistDetailScreen(playlistId: String, playerConnection: PlayerConnectio
     val localPlaylistSongs by database.playlistSongs(playlistId).collectAsState(emptyList())
     val localSongs = localPlaylistSongs.map { it.song }
 
-    // For YouTube playlists, fetch from YouTube if no local data
-    var ytSongs by remember { mutableStateOf<List<SongItem>?>(null) }
-    var ytPlaylist by remember { mutableStateOf<com.auramusic.innertube.models.PlaylistItem?>(null) }
+    // YouTube data
+    val ytSongs = remember { mutableStateOf<List<SongItem>?>(null) }
+    val ytPlaylist = remember { mutableStateOf<com.auramusic.innertube.models.PlaylistItem?>(null) }
 
     LaunchedEffect(playlistId) {
         if (localPlaylist == null && localSongs.isEmpty()) {
@@ -267,46 +215,9 @@ fun TvPlaylistDetailScreen(playlistId: String, playerConnection: PlayerConnectio
     }
 
     val displaySongs = if (localSongs.isNotEmpty()) {
-        localSongs
+        localSongs.map { DisplaySong.LocalSong(it) }
     } else {
-        ytSongs.value?.map { songItem ->
-            Song(
-                song = com.auramusic.app.db.entities.Song(
-                    id = songItem.id,
-                    title = songItem.title,
-                    thumbnailUrl = songItem.thumbnail,
-                    duration = songItem.duration?.toString() ?: "",
-                    albumName = songItem.album?.name,
-                    albumId = songItem.album?.id,
-                    year = null,
-                    inLibrary = null,
-                    isLocal = false,
-                    liked = false,
-                    totalPlayTime = 0,
-                    downloadState = 0
-                ),
-                artists = songItem.artists?.map { artist ->
-                    com.auramusic.app.db.entities.Artist(
-                        id = artist.id ?: "",
-                        name = artist.name,
-                        thumbnailUrl = artist.thumbnail,
-                        lastUpdateTime = LocalDateTime.now(),
-                        isLocal = false,
-                        isYouTubeArtist = true
-                    )
-                } ?: emptyList(),
-                album = songItem.album?.let { album ->
-                    com.auramusic.app.db.entities.Album(
-                        id = album.id ?: "",
-                        title = album.name ?: "",
-                        thumbnailUrl = album.thumbnail,
-                        year = album.year?.toString(),
-                        lastUpdateTime = LocalDateTime.now(),
-                        isLocal = false
-                    )
-                }
-            )
-        } ?: emptyList()
+        ytSongs.value?.map { DisplaySong.YouTubeSong(it) } ?: emptyList()
     }
 
     val displayTitle = localPlaylist?.playlist?.name ?: ytPlaylist.value?.title ?: "Playlist"
@@ -318,7 +229,7 @@ fun TvPlaylistDetailScreen(playlistId: String, playerConnection: PlayerConnectio
         subtitle = "",
         meta = "$songCount songs",
         thumbnailUrl = displayThumbnail,
-        songs = displaySongs,
+        displaySongs = displaySongs,
         playerConnection = playerConnection,
         playAllTitle = displayTitle,
         onBackClick = onBackClick,
@@ -333,7 +244,7 @@ private fun TvDetailLayout(
     subtitle: String,
     meta: String,
     thumbnailUrl: String?,
-    songs: List<Song>,
+    displaySongs: List<DisplaySong>,
     playerConnection: PlayerConnection?,
     playAllTitle: String?,
     onBackClick: () -> Unit,
@@ -407,10 +318,10 @@ private fun TvDetailLayout(
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         TvPrimaryButton(label = "Play all") {
-                            playerConnection.playAll(songs, playAllTitle)
+                            playerConnection.playAll(displaySongs, playAllTitle)
                         }
                         TvSecondaryButton(label = "Shuffle") {
-                            playerConnection.playAll(songs.shuffled(), playAllTitle)
+                            playerConnection.playAll(displaySongs.shuffled(), playAllTitle)
                         }
                     }
                 }
@@ -418,11 +329,11 @@ private fun TvDetailLayout(
         }
         item { Spacer(modifier = Modifier.height(8.dp)) }
 
-        items(songs) { song ->
-            SongRowItem(song = song) { playerConnection.playOne(song) }
+        items(displaySongs) { displaySong ->
+            SongRowItem(displaySong = displaySong) { playerConnection?.playDisplaySong(displaySong) }
         }
 
-        if (songs.isEmpty()) {
+        if (displaySongs.isEmpty()) {
             item {
                 Text(
                     text = "No songs in this collection.",
@@ -435,7 +346,7 @@ private fun TvDetailLayout(
 }
 
 @Composable
-private fun SongRowItem(song: Song, onClick: () -> Unit) {
+private fun SongRowItem(displaySong: DisplaySong, onClick: () -> Unit) {
     var isFocused by remember { mutableStateOf(false) }
     val borderColor = if (isFocused) {
         MaterialTheme.colorScheme.primary
@@ -460,50 +371,80 @@ private fun SongRowItem(song: Song, onClick: () -> Unit) {
                 .background(MaterialTheme.colorScheme.surfaceVariant),
         ) {
             AsyncImage(
-                model = song.song.thumbnailUrl,
-                contentDescription = song.song.title,
+                model = displaySong.thumbnailUrl,
+                contentDescription = displaySong.title,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             )
         }
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = song.song.title,
+                text = displaySong.title,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onBackground,
                 maxLines = 1,
             )
             Text(
-                text = song.artists.joinToString(", ") { it.name },
+                text = displaySong.artists,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
             )
         }
+        // Duration if available
+        displaySong.duration?.let { duration ->
+            Text(
+                text = duration,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
-private fun PlayerConnection?.playOne(song: Song) {
+private fun PlayerConnection?.playDisplaySong(displaySong: DisplaySong) {
     if (this == null) return
-    playQueue(
-        ListQueue(
-            title = song.song.title,
-            items = listOf(song.toMediaItem()),
-            startIndex = 0,
-        ),
-    )
+    when (displaySong) {
+        is DisplaySong.LocalSong -> {
+            playQueue(
+                ListQueue(
+                    title = displaySong.song.song.title,
+                    items = listOf(displaySong.song.toMediaItem()),
+                    startIndex = 0,
+                ),
+            )
+        }
+        is DisplaySong.YouTubeSong -> {
+            // For YouTube songs, use YouTubeQueue
+            playQueue(com.auramusic.app.playback.queues.YouTubeQueue(
+                com.auramusic.innertube.models.WatchEndpoint(videoId = displaySong.songItem.id)
+            ))
+        }
+    }
 }
 
-private fun PlayerConnection?.playAll(songs: List<Song>, title: String?) {
-    if (this == null || songs.isEmpty()) return
-    playQueue(
-        ListQueue(
-            title = title,
-            items = songs.map { it.toMediaItem() },
-            startIndex = 0,
-        ),
-    )
+private fun PlayerConnection?.playAll(displaySongs: List<DisplaySong>, title: String?) {
+    if (this == null || displaySongs.isEmpty()) return
+
+    val localSongs = displaySongs.filterIsInstance<DisplaySong.LocalSong>().map { it.song }
+    val ytSongs = displaySongs.filterIsInstance<DisplaySong.YouTubeSong>().map { it.songItem }
+
+    if (localSongs.isNotEmpty()) {
+        // If we have local songs, play them
+        playQueue(
+            ListQueue(
+                title = title,
+                items = localSongs.map { it.toMediaItem() },
+                startIndex = 0,
+            ),
+        )
+    } else if (ytSongs.isNotEmpty()) {
+        // If we only have YouTube songs, play the first one
+        playQueue(com.auramusic.app.playback.queues.YouTubeQueue(
+            com.auramusic.innertube.models.WatchEndpoint(videoId = ytSongs.first().id)
+        ))
+    }
 }
 
 
