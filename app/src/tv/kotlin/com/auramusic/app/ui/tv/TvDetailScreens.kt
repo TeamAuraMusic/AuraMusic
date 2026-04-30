@@ -167,26 +167,205 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
         }
     }
 
-    val displaySongs = if (localSongs.isNotEmpty()) {
-        localSongs.map { DisplaySong.LocalSong(it) }
-    } else {
-        ytSongs.value?.map { DisplaySong.YouTubeSong(it) } ?: emptyList()
-    }
-
     val displayTitle = localArtist?.artist?.name ?: ytArtist.value?.title ?: "Artist"
     val displayThumbnail = localArtist?.artist?.thumbnailUrl ?: ytArtist.value?.thumbnail
-    val songCount = displaySongs.size
 
-    TvDetailLayout(
-        title = displayTitle,
-        subtitle = "Artist",
-        meta = "$songCount songs",
-        thumbnailUrl = displayThumbnail,
-        displaySongs = displaySongs,
-        playerConnection = playerConnection,
-        playAllTitle = displayTitle,
-        onBackClick = onBackClick,
-    )
+    // Structure content similar to mobile app
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 48.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(32.dp),
+    ) {
+        // Header section
+        item {
+            IconButton(
+                onClick = onBackClick,
+                modifier = Modifier
+                    .padding(bottom = 16.dp)
+                    .size(64.dp),
+            ) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(220.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    AsyncImage(
+                        model = displayThumbnail,
+                        contentDescription = displayTitle,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = displayTitle,
+                        style = MaterialTheme.typography.headlineLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        maxLines = 2,
+                    )
+                    Text(
+                        text = "Artist",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        TvPrimaryButton(label = "Play all") {
+                            val allSongs = if (localSongs.isNotEmpty()) {
+                                localSongs.map { DisplaySong.LocalSong(it) }
+                            } else {
+                                ytSongs.value?.map { DisplaySong.YouTubeSong(it) } ?: emptyList()
+                            }
+                            playerConnection.playAll(allSongs, displayTitle)
+                        }
+                        TvSecondaryButton(label = "Shuffle") {
+                            val allSongs = if (localSongs.isNotEmpty()) {
+                                localSongs.map { DisplaySong.LocalSong(it) }
+                            } else {
+                                ytSongs.value?.map { DisplaySong.YouTubeSong(it) } ?: emptyList()
+                            }
+                            playerConnection.playAll(allSongs.shuffled(), displayTitle)
+                        }
+                    }
+                }
+            }
+        }
+
+        // Local Songs section
+        if (localSongs.isNotEmpty()) {
+            item {
+                Text(
+                    text = "Songs",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+            }
+            items(localSongs) { song ->
+                SongRowItem(displaySong = DisplaySong.LocalSong(song)) {
+                    playerConnection?.playSong(song)
+                }
+            }
+        }
+
+        // YouTube sections (Top songs, Albums, Videos, etc.)
+        ytArtist.value?.let { artist ->
+            // For TV, we'll show basic sections since we can't fetch full artist page
+            // Show a sample structure that would match mobile
+            if (ytSongs.value?.isNotEmpty() == true) {
+                item {
+                    Text(
+                        text = "Top Songs",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
+                }
+                items(ytSongs.value!!) { songItem ->
+                    SongRowItem(displaySong = DisplaySong.YouTubeSong(songItem)) {
+                        playerConnection?.playQueue(com.auramusic.app.playback.queues.YouTubeQueue(
+                            com.auramusic.innertube.models.WatchEndpoint(videoId = songItem.id)
+                        ))
+                    }
+                }
+            }
+
+            // Placeholder sections for Albums, Videos, etc.
+            item {
+                Text(
+                    text = "Albums",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+            }
+            item {
+                Text(
+                    text = "No albums available",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            item {
+                Text(
+                    text = "Videos",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+            }
+            item {
+                Text(
+                    text = "No videos available",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            item {
+                Text(
+                    text = "Featured On",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+            }
+            item {
+                Text(
+                    text = "No featured content available",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            item {
+                Text(
+                    text = "Playlists by Artist",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+            }
+            item {
+                Text(
+                    text = "No playlists available",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
+        if (localSongs.isEmpty() && ytSongs.value?.isEmpty() != false) {
+            item {
+                Text(
+                    text = "No content available for this artist.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
 }
 
 /* ------------------------------ Playlist ------------------------------ */
@@ -349,8 +528,8 @@ private fun TvDetailLayout(
 
 @Composable
 private fun SongRowItem(displaySong: DisplaySong, onClick: () -> Unit) {
-    var isFocused by remember { mutableStateOf(false) }
-    val borderColor = if (isFocused) {
+    val isFocusedState = remember { mutableStateOf(false) }
+    val borderColor = if (isFocusedState.value) {
         MaterialTheme.colorScheme.primary
     } else {
         Color.Transparent
@@ -362,7 +541,7 @@ private fun SongRowItem(displaySong: DisplaySong, onClick: () -> Unit) {
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
             .border(2.dp, borderColor, RoundedCornerShape(8.dp))
-            .onFocusChanged { isFocused = it.isFocused }
+            .onFocusChanged { isFocusedState.value = it.isFocused }
             .clickable(onClick = onClick)
             .padding(12.dp),
     ) {

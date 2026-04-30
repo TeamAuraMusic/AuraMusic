@@ -63,10 +63,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -88,6 +95,13 @@ import kotlinx.coroutines.launch
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.auramusic.app.utils.makeTimeString
+import com.auramusic.app.LocalPlayerConnection
+import com.auramusic.app.LocalMenuState
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalWindowInfo
+import com.auramusic.app.LocalListenTogetherManager
+import com.auramusic.app.ui.component.Lyrics
 
 @Composable
 private fun TvPlayerControlButton(
@@ -96,6 +110,7 @@ private fun TvPlayerControlButton(
     contentDescription: String,
     size: androidx.compose.ui.unit.Dp = 72.dp,
     tint: Color = Color.White,
+    focusRequester: FocusRequester? = null,
 ) {
     var isFocused by remember { mutableStateOf(false) }
 
@@ -103,6 +118,7 @@ private fun TvPlayerControlButton(
         onClick = onClick,
         modifier = Modifier
             .size(size)
+            .let { if (focusRequester != null) it.focusRequester(focusRequester) else it }
             .onFocusChanged { isFocused = it.isFocused }
             .border(
                 width = if (isFocused) 3.dp else 0.dp,
@@ -136,6 +152,15 @@ fun TvPlayerScreen(
     var sleepTimerMinutes by remember { mutableStateOf<Int?>(null) }
     var sleepTimerEndTime by remember { mutableStateOf<Long?>(null) }
     var showLyrics by remember { mutableStateOf(false) }
+
+    // Focus requesters for TV navigation
+    val playButtonFocus = remember { FocusRequester() }
+    val shuffleButtonFocus = remember { FocusRequester() }
+
+    LaunchedEffect(Unit) {
+        // Request focus on play button initially
+        runCatching { playButtonFocus.requestFocus() }
+    }
 
     LaunchedEffect(playerConnection?.player) {
         while (true) {
@@ -270,7 +295,7 @@ fun TvPlayerScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         LinearProgressIndicator(
-                            progress = { progress },
+                            progress = progress,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(6.dp)
@@ -314,32 +339,43 @@ fun TvPlayerScreen(
                                 .padding(24.dp),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Text(
-                                text = "Lyrics not available for this song",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = Color.White.copy(alpha = 0.7f),
-                                textAlign = TextAlign.Center,
-                            )
+                            val positionProvider = { currentPosition }
+                            val karaokeModeEnabled = false // TV doesn't need karaoke mode
+
+                            // Use the mobile Lyrics component with proper text styling
+                            androidx.compose.material3.ProvideTextStyle(
+                                value = MaterialTheme.typography.bodyMedium.copy(
+                                    fontSize = 18.sp,
+                                    textAlign = TextAlign.Center,
+                                    color = Color.White
+                                )
+                            ) {
+                                com.auramusic.app.ui.component.Lyrics(
+                                    sliderPositionProvider = positionProvider,
+                                    modifier = Modifier.padding(horizontal = 24.dp),
+                                    showLyrics = true,
+                                    karaokeModeEnabled = karaokeModeEnabled
+                                )
+                            }
                         }
                     } else {
-                        // Main controls when lyrics not shown
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(32.dp),
+                        // Bottom controls row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            // Primary control buttons
+                            // Left side: Skip/play controls
                             Row(
-                                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                // Previous song
                                 TvPlayerControlButton(
                                     onClick = { playerConnection?.seekToPrevious() },
                                     icon = Icons.Filled.SkipPrevious,
                                     contentDescription = "Previous song",
                                 )
 
-                                // Rewind 10 seconds
                                 TvPlayerControlButton(
                                     onClick = {
                                         val currentPos = playerConnection?.currentPosition?.value ?: 0L
@@ -350,15 +386,14 @@ fun TvPlayerScreen(
                                     contentDescription = "Rewind 10 seconds",
                                 )
 
-                                // Play/Pause (larger)
                                 TvPlayerControlButton(
                                     onClick = { playerConnection?.togglePlayPause() },
                                     icon = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                                     contentDescription = if (isPlaying) "Pause" else "Play",
-                                    size = 96.dp,
+                                    size = 80.dp,
+                                    focusRequester = playButtonFocus,
                                 )
 
-                                // Fast forward 10 seconds
                                 TvPlayerControlButton(
                                     onClick = {
                                         val currentPos = playerConnection?.currentPosition?.value ?: 0L
@@ -370,7 +405,6 @@ fun TvPlayerScreen(
                                     contentDescription = "Fast forward 10 seconds",
                                 )
 
-                                // Next song
                                 TvPlayerControlButton(
                                     onClick = { playerConnection?.seekToNext() },
                                     icon = Icons.Filled.SkipNext,
@@ -378,9 +412,9 @@ fun TvPlayerScreen(
                                 )
                             }
 
-                            // Additional controls
+                            // Right side: Other controls
                             Row(
-                                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 TvPlayerControlButton(

@@ -108,6 +108,9 @@ import com.auramusic.innertube.pages.ExplorePage
 import androidx.compose.foundation.layout.width
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.layout.aspectRatio
 
 enum class TvSection(val label: String) {
     HOME("Home"),
@@ -261,14 +264,14 @@ fun TvNavigationBar(current: TvSection, onSelect: (TvSection) -> Unit) {
                 modifier = Modifier
                     .size(48.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.primary),
+                    .background(Color.Black),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    painterResource(R.drawable.music_note),
+                    painterResource(R.drawable.ic_launcher_foreground),
                     contentDescription = "AuraMusic",
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(24.dp)
+                    tint = Color.Unspecified,
+                    modifier = Modifier.size(32.dp)
                 )
             }
 
@@ -378,7 +381,7 @@ fun TvHomeScreen(playerConnection: PlayerConnection?) {
             ?.takeIf { it.isNotEmpty() }
             ?.let { heroItems ->
                 item {
-                    YouTubeSectionRow(
+                    TvHeroCarousel(
                         title = "Trending Now",
                         items = heroItems,
                         playerConnection = playerConnection,
@@ -482,9 +485,16 @@ fun TvHomeScreen(playerConnection: PlayerConnection?) {
             // Similar recommendations
             similarRecommendations?.takeIf { it.isNotEmpty() }?.let { recommendations ->
                 recommendations.forEach { recommendation ->
+                    val titleName = when (recommendation.title) {
+                        is com.auramusic.app.db.entities.Artist -> recommendation.title.artist.name
+                        is com.auramusic.app.db.entities.Album -> recommendation.title.album.title
+                        is com.auramusic.app.db.entities.Playlist -> recommendation.title.playlist.name
+                        is com.auramusic.app.db.entities.Song -> recommendation.title.song.title
+                        else -> recommendation.title.toString()
+                    }
                     item {
                         YouTubeSectionRow(
-                            title = "Similar to ${recommendation.title}",
+                            title = "Similar to $titleName",
                             items = recommendation.items,
                             playerConnection = playerConnection,
                             onYTItemClick = { item: YTItem ->
@@ -1018,17 +1028,28 @@ fun TvSearchScreen(playerConnection: PlayerConnection?) {
                 }
             }
         } else {
-            // Show search results
-            if (searchResults.localItems.isNotEmpty()) {
+            // Show search results grouped by type
+            val localSongs = searchResults.localItems.filterIsInstance<Song>().take(5)
+            val localArtists = searchResults.localItems.filterIsInstance<Artist>().take(5)
+            val localAlbums = searchResults.localItems.filterIsInstance<Album>().take(5)
+            val localPlaylists = searchResults.localItems.filterIsInstance<Playlist>().take(5)
+
+            val ytSongs = searchResults.ytItems.filterIsInstance<com.auramusic.innertube.models.SongItem>().take(5)
+            val ytArtists = searchResults.ytItems.filterIsInstance<com.auramusic.innertube.models.ArtistItem>().take(5)
+            val ytAlbums = searchResults.ytItems.filterIsInstance<com.auramusic.innertube.models.AlbumItem>().take(5)
+            val ytPlaylists = searchResults.ytItems.filterIsInstance<com.auramusic.innertube.models.PlaylistItem>().take(5)
+
+            // Local Songs
+            if (localSongs.isNotEmpty()) {
                 item {
                     Text(
-                        text = "Local Results",
-                        style = MaterialTheme.typography.titleLarge,
+                        text = "Local Songs",
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onBackground,
                     )
                 }
-                items(searchResults.localItems.take(10)) { item ->
+                items(localSongs) { item ->
                     TvSearchResultItem(
                         item = item,
                         onClick = { handleSearchItemClick(item, playerConnection, navigator) },
@@ -1036,16 +1057,125 @@ fun TvSearchScreen(playerConnection: PlayerConnection?) {
                 }
             }
 
-            if (searchResults.ytItems.isNotEmpty()) {
+            // Local Artists
+            if (localArtists.isNotEmpty()) {
                 item {
                     Text(
-                        text = "YouTube Results",
-                        style = MaterialTheme.typography.titleLarge,
+                        text = "Local Artists",
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onBackground,
                     )
                 }
-                items(searchResults.ytItems.take(10)) { item ->
+                items(localArtists) { item ->
+                    TvSearchResultItem(
+                        item = item,
+                        onClick = { handleSearchItemClick(item, playerConnection, navigator) },
+                    )
+                }
+            }
+
+            // Local Albums
+            if (localAlbums.isNotEmpty()) {
+                item {
+                    Text(
+                        text = "Local Albums",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
+                }
+                items(localAlbums) { item ->
+                    TvSearchResultItem(
+                        item = item,
+                        onClick = { handleSearchItemClick(item, playerConnection, navigator) },
+                    )
+                }
+            }
+
+            // Local Playlists
+            if (localPlaylists.isNotEmpty()) {
+                item {
+                    Text(
+                        text = "Local Playlists",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
+                }
+                items(localPlaylists) { item ->
+                    TvSearchResultItem(
+                        item = item,
+                        onClick = { handleSearchItemClick(item, playerConnection, navigator) },
+                    )
+                }
+            }
+
+            // YouTube Songs
+            if (ytSongs.isNotEmpty()) {
+                item {
+                    Text(
+                        text = "YouTube Songs",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
+                }
+                items(ytSongs) { item ->
+                    TvYTSearchResultItem(
+                        item = item,
+                        onClick = { handleYTSearchItemClick(item, playerConnection, navigator) },
+                    )
+                }
+            }
+
+            // YouTube Artists
+            if (ytArtists.isNotEmpty()) {
+                item {
+                    Text(
+                        text = "YouTube Artists",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
+                }
+                items(ytArtists) { item ->
+                    TvYTSearchResultItem(
+                        item = item,
+                        onClick = { handleYTSearchItemClick(item, playerConnection, navigator) },
+                    )
+                }
+            }
+
+            // YouTube Albums
+            if (ytAlbums.isNotEmpty()) {
+                item {
+                    Text(
+                        text = "YouTube Albums",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
+                }
+                items(ytAlbums) { item ->
+                    TvYTSearchResultItem(
+                        item = item,
+                        onClick = { handleYTSearchItemClick(item, playerConnection, navigator) },
+                    )
+                }
+            }
+
+            // YouTube Playlists
+            if (ytPlaylists.isNotEmpty()) {
+                item {
+                    Text(
+                        text = "YouTube Playlists",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
+                }
+                items(ytPlaylists) { item ->
                     TvYTSearchResultItem(
                         item = item,
                         onClick = { handleYTSearchItemClick(item, playerConnection, navigator) },
@@ -1540,6 +1670,242 @@ fun LocalItemRow(title: String, items: List<LocalItem>, playerConnection: Player
 
 
 @Composable
+private fun TvMiniPlayerButton(
+    onClick: () -> Unit,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    painter: androidx.compose.ui.graphics.painter.Painter? = null,
+    contentDescription: String,
+) {
+    var isFocused by remember { mutableStateOf(false) }
+    val borderColor = if (isFocused) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        Color.Transparent
+    }
+
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier
+            .size(48.dp)
+            .onFocusChanged { isFocused = it.isFocused }
+            .border(
+                width = if (isFocused) 2.dp else 0.dp,
+                color = borderColor,
+                shape = RoundedCornerShape(8.dp)
+            ),
+    ) {
+        if (icon != null) {
+            Icon(
+                icon,
+                contentDescription = contentDescription,
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(24.dp)
+            )
+        } else if (painter != null) {
+            Icon(
+                painter,
+                contentDescription = contentDescription,
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun TvHeroCarousel(
+    title: String,
+    items: List<YTItem>,
+    playerConnection: PlayerConnection?,
+    onYTItemClick: (YTItem) -> Unit,
+) {
+    val pagerState = rememberPagerState(pageCount = { items.size })
+
+    Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+        // Section header
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+            Box(
+                modifier = Modifier
+                    .width(200.dp)
+                    .height(4.dp)
+                    .background(
+                        brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                            )
+                        ),
+                        shape = RoundedCornerShape(2.dp)
+                    )
+            )
+        }
+
+        // Hero carousel
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxWidth(),
+            pageSpacing = 16.dp,
+            contentPadding = PaddingValues(horizontal = 48.dp)
+        ) { page ->
+            val item = items[page]
+            TvHeroCard(
+                item = item,
+                onClick = { onYTItemClick(item) }
+            )
+        }
+
+        // Page indicators
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            repeat(items.size) { index ->
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (pagerState.currentPage == index)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                        )
+                )
+                if (index < items.size - 1) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TvHeroCard(
+    item: YTItem,
+    onClick: () -> Unit,
+) {
+    var isFocused by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    val scale by animateFloatAsState(
+        targetValue = if (isFocused) 1.05f else 1f,
+        label = "tvHeroCardScale",
+    )
+    val borderColor = if (isFocused) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        Color.Transparent
+    }
+
+    Surface(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(16f/9f)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .bringIntoViewRequester(bringIntoViewRequester)
+            .onFocusChanged { focusState ->
+                isFocused = focusState.isFocused
+                if (focusState.isFocused) {
+                    scope.launch { bringIntoViewRequester.bringIntoView() }
+                }
+            }
+            .border(width = 4.dp, color = borderColor, shape = RoundedCornerShape(16.dp)),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        tonalElevation = 8.dp,
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Background image
+            AsyncImage(
+                model = when (item) {
+                    is SongItem -> item.thumbnail
+                    is AlbumItem -> item.thumbnail
+                    is ArtistItem -> item.thumbnail
+                    is PlaylistItem -> item.thumbnail
+                    else -> ""
+                },
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+
+            // Gradient overlay
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.7f)
+                            )
+                        )
+                    )
+            )
+
+            // Content overlay
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(32.dp),
+                verticalArrangement = Arrangement.Bottom,
+                horizontalAlignment = Alignment.Start,
+            ) {
+                Text(
+                    text = when (item) {
+                        is SongItem -> item.title
+                        is AlbumItem -> item.title
+                        is ArtistItem -> item.title
+                        is PlaylistItem -> item.title
+                        else -> ""
+                    },
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    maxLines = 2,
+                )
+
+                Text(
+                    text = when (item) {
+                        is SongItem -> item.artists?.joinToString(", ") { it.name } ?: ""
+                        is AlbumItem -> item.artists?.joinToString(", ") { it.name } ?: ""
+                        is ArtistItem -> "Artist"
+                        is PlaylistItem -> item.author?.name ?: "Playlist"
+                        else -> ""
+                    },
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White.copy(alpha = 0.8f),
+                    maxLines = 1,
+                )
+
+                // Play button
+                Button(
+                    onClick = onClick,
+                    modifier = Modifier.padding(top = 16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    Text("Play")
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun TvMiniPlayer(
     playerConnection: PlayerConnection?,
     onPlayerClick: () -> Unit,
@@ -1597,54 +1963,30 @@ fun TvMiniPlayer(
 
             // Controls
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                IconButton(
+                TvMiniPlayerButton(
                     onClick = { playerConnection?.seekToPrevious() },
-                    modifier = Modifier.size(48.dp),
-                ) {
-                    Icon(
-                        Icons.Filled.SkipPrevious,
-                        contentDescription = "Previous",
-                        tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
+                    icon = Icons.Filled.SkipPrevious,
+                    contentDescription = "Previous",
+                )
 
-                IconButton(
+                TvMiniPlayerButton(
                     onClick = { playerConnection?.togglePlayPause() },
-                    modifier = Modifier.size(48.dp),
-                ) {
-                    Icon(
-                        if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                        contentDescription = if (isPlaying) "Pause" else "Play",
-                        tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
+                    icon = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                    contentDescription = if (isPlaying) "Pause" else "Play",
+                )
 
-                IconButton(
+                TvMiniPlayerButton(
                     onClick = { playerConnection?.seekToNext() },
-                    modifier = Modifier.size(48.dp),
-                ) {
-                    Icon(
-                        Icons.Filled.SkipNext,
-                        contentDescription = "Next",
-                        tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
+                    icon = Icons.Filled.SkipNext,
+                    contentDescription = "Next",
+                )
 
                 // Queue button
-                IconButton(
+                TvMiniPlayerButton(
                     onClick = { navigator.navigate(TvDestination.Queue) },
-                    modifier = Modifier.size(48.dp),
-                ) {
-                    Icon(
-                        painterResource(R.drawable.queue_music),
-                        contentDescription = "Queue",
-                        tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
+                    painter = painterResource(R.drawable.queue_music),
+                    contentDescription = "Queue",
+                )
             }
         }
     }
