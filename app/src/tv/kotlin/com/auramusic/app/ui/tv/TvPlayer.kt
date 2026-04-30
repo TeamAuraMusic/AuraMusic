@@ -472,7 +472,6 @@ fun TvPlayerScreen(
         }
     }
 }
-}
 
 @Composable
 fun TvQueueItem(

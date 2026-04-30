@@ -59,6 +59,7 @@ import com.auramusic.innertube.models.SongItem
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import com.auramusic.app.utils.makeTimeString
 
 // Unified interface for both local and YouTube songs
 sealed class DisplaySong {
@@ -81,7 +82,7 @@ sealed class DisplaySong {
         override val title: String = songItem.title
         override val thumbnailUrl: String? = songItem.thumbnail
         override val artists: String = songItem.artists?.joinToString(", ") { it.name } ?: ""
-        override val duration: String? = songItem.duration
+        override val duration: String? = songItem.duration?.let { makeTimeString(it * 1000L) }
     }
 }
 

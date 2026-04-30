@@ -798,10 +798,10 @@ fun YouTubeMediaCard(
                         }
                     }
                     is PlaylistItem -> {
-                        val count = item.songCount
-                        if (count != null) {
+                        val countText = item.songCountText
+                        if (countText != null) {
                             Text(
-                                text = "$count songs",
+                                text = countText,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                             )
