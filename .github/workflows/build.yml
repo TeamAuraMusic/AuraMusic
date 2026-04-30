@@ -82,11 +82,7 @@ jobs:
           sed -i 's|tinypinyin = "2.0.3"|tinypinyin = "2.0.1"|g' gradle/libs.versions.toml
           ./gradlew assembleFossTvUniversalRelease --no-daemon --no-configuration-cache
 
-      - name: Build TV GmsUniversalRelease APK
-        run: |
-          ./gradlew assembleGmsTvUniversalRelease --no-daemon --no-configuration-cache
-
-      - name: Upload Mobile FOSS APK
+       - name: Upload Mobile FOSS APK
         uses: actions/upload-artifact@v4
         with:
           name: MobileFossUniversalRelease
@@ -98,14 +94,8 @@ jobs:
           name: MobileGmsUniversalRelease
           path: app/build/outputs/apk/gmsMobileUniversal/release/*.apk
 
-      - name: Upload TV FOSS APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: TvFossUniversalRelease
-          path: app/build/outputs/apk/fossTvUniversal/release/*.apk
-
-      - name: Upload TV GMS APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: TvGmsUniversalRelease
-          path: app/build/outputs/apk/gmsTvUniversal/release/*.apk
+       - name: Upload TV FOSS APK
+         uses: actions/upload-artifact@v4
+         with:
+           name: TvFossUniversalRelease
+           path: app/build/outputs/apk/fossTvUniversal/release/*.apk

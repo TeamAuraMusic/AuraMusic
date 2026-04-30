@@ -507,7 +507,7 @@ private fun TvDetailLayout(
                     .onFocusChanged { backButtonFocusedState.value = it.isFocused }
                     .border(
                         width = if (backButtonFocusedState.value) 3.dp else 0.dp,
-                        color = if (backButtonFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                        color = if (backButtonFocusedState.value) MaterialTheme.colorScheme.primary else Color.Transparent,
                         shape = RoundedCornerShape(12.dp)
                     ),
             ) {
