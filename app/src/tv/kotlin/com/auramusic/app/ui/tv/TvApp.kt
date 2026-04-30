@@ -111,6 +111,8 @@ import kotlin.time.Duration.Companion.milliseconds
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.Brush
 
 enum class TvSection(val label: String) {
     HOME("Home"),

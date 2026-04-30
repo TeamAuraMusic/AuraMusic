@@ -96,7 +96,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.auramusic.app.utils.makeTimeString
 import com.auramusic.app.LocalPlayerConnection
-import com.auramusic.app.LocalMenuState
+import com.auramusic.app.ui.component.LocalMenuState
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalWindowInfo
