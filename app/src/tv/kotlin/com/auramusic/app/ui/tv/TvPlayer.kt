@@ -112,17 +112,17 @@ private fun TvPlayerControlButton(
     tint: Color = Color.White,
     focusRequester: FocusRequester? = null,
 ) {
-    var isFocused by remember { mutableStateOf(false) }
+    val isFocusedState = remember { mutableStateOf(false) }
 
     IconButton(
         onClick = onClick,
         modifier = Modifier
             .size(size)
             .let { if (focusRequester != null) it.focusRequester(focusRequester) else it }
-            .onFocusChanged { isFocused = it.isFocused }
+            .onFocusChanged { isFocusedState.value = it.isFocused }
             .border(
-                width = if (isFocused) 3.dp else 0.dp,
-                color = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                width = if (isFocusedState.value) 3.dp else 0.dp,
+                color = if (isFocusedState.value) MaterialTheme.colorScheme.primary else Color.Transparent,
                 shape = CircleShape
             ),
     ) {
@@ -358,22 +358,12 @@ fun TvPlayerScreen(
                                     color = Color.White
                                 )
                             ) {
-                                try {
-                                    com.auramusic.app.ui.component.Lyrics(
-                                        sliderPositionProvider = positionProvider,
-                                        modifier = Modifier.padding(horizontal = 24.dp),
-                                        showLyrics = true,
-                                        karaokeModeEnabled = karaokeModeEnabled
-                                    )
-                                } catch (e: Exception) {
-                                    // Fallback if lyrics component fails
-                                    Text(
-                                        text = "Lyrics not available",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = Color.White.copy(alpha = 0.7f),
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
+                                com.auramusic.app.ui.component.Lyrics(
+                                    sliderPositionProvider = positionProvider,
+                                    modifier = Modifier.padding(horizontal = 24.dp),
+                                    showLyrics = true,
+                                    karaokeModeEnabled = karaokeModeEnabled
+                                )
                             }
                         }
                     } else {
@@ -530,14 +520,14 @@ fun TvQueueItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var isFocused by remember { mutableStateOf(false) }
+    val isFocusedState = remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
     val scale by animateFloatAsState(
-        targetValue = if (isFocused) 1.06f else 1f,
+        targetValue = if (isFocusedState.value) 1.06f else 1f,
         label = "tvQueueItemScale",
     )
-    val borderColor = if (isFocused) {
+    val borderColor = if (isFocusedState.value) {
         MaterialTheme.colorScheme.primary
     } else if (isCurrentSong) {
         MaterialTheme.colorScheme.secondary
@@ -554,7 +544,7 @@ fun TvQueueItem(
             }
             .bringIntoViewRequester(bringIntoViewRequester)
             .onFocusChanged { focusState ->
-                isFocused = focusState.isFocused
+                isFocusedState.value = focusState.isFocused
                 if (focusState.isFocused) {
                     scope.launch { bringIntoViewRequester.bringIntoView() }
                 }

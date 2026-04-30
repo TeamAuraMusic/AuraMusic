@@ -26,23 +26,27 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import com.auramusic.app.LocalDatabase
@@ -56,7 +60,7 @@ import com.auramusic.app.viewmodels.LibraryAlbumsViewModel
 import com.auramusic.app.viewmodels.LibraryArtistsViewModel
 import com.auramusic.app.viewmodels.LibraryPlaylistsViewModel
 import com.auramusic.innertube.YouTube
-import com.auramusic.innertube.models.SongItem
+import com.auramusic.innertube.pages.ArtistPage
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -152,13 +156,13 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
 
     // YouTube data
     val ytSongs = remember { mutableStateOf<List<SongItem>?>(null) }
-    val ytArtist = remember { mutableStateOf<com.auramusic.innertube.models.ArtistItem?>(null) }
+    val ytArtistPage = remember { mutableStateOf<ArtistPage?>(null) }
 
     LaunchedEffect(artistId) {
         if (localArtist == null && localSongs.isEmpty()) {
             // Try to fetch from YouTube
             YouTube.artist(artistId).onSuccess { artistPage ->
-                ytArtist.value = artistPage.artist
+                ytArtistPage.value = artistPage
                 ytSongs.value = artistPage.sections
                     .flatMap { it.items }
                     .filterIsInstance<SongItem>()
@@ -167,8 +171,8 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
         }
     }
 
-    val displayTitle = localArtist?.artist?.name ?: ytArtist.value?.title ?: "Artist"
-    val displayThumbnail = localArtist?.artist?.thumbnailUrl ?: ytArtist.value?.thumbnail
+    val displayTitle = localArtist?.artist?.name ?: ytArtistPage.value?.artist?.title ?: "Artist"
+    val displayThumbnail = localArtist?.artist?.thumbnailUrl ?: ytArtistPage.value?.artist?.thumbnail
 
     // Structure content similar to mobile app
     LazyColumn(
@@ -229,20 +233,39 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
                         maxLines = 1,
                     )
 
-                    // Artist about info like mobile app
-                    ytArtist.value?.let { artist ->
-                        artist.subscriberCount?.let { subscribers ->
+                    // Artist about info like mobile app - positioned to the right of thumbnail
+                    ytArtistPage.value?.let { page ->
+                        page.subscriberCountText?.let { subscribers ->
                             Text(
-                                text = "$subscribers subscribers",
+                                text = subscribers,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        artist.monthlyListenerCount?.let { listeners ->
+                        page.monthlyListenerCount?.let { listeners ->
                             Text(
-                                text = "$listeners monthly listeners",
+                                text = listeners,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        // Artist description
+                        val description = page.description
+                        val descriptionRuns = page.descriptionRuns
+                        if (!description.isNullOrEmpty() || !descriptionRuns.isNullOrEmpty()) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "About",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onBackground,
+                            )
+                            Text(
+                                text = description ?: descriptionRuns?.joinToString("") { it.text } ?: "",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                lineHeight = 20.sp,
+                                maxLines = 3,
                             )
                         }
                     }
@@ -270,29 +293,6 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
             }
         }
 
-        // Artist description section
-        ytArtist.value?.description?.let { description ->
-            item {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(
-                        text = "About",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onBackground,
-                    )
-                    Text(
-                        text = description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        lineHeight = 20.sp,
-                    )
-                }
-            }
-        }
-
         // Local Songs section
         if (localSongs.isNotEmpty()) {
             item {
@@ -311,7 +311,7 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
         }
 
         // YouTube sections (Top songs, Albums, Videos, etc.)
-        ytArtist.value?.let { artist ->
+        ytArtistPage.value?.let { page ->
             // For TV, we'll show basic sections since we can't fetch full artist page
             // Show a sample structure that would match mobile
             if (ytSongs.value?.isNotEmpty() == true) {

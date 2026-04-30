@@ -107,22 +107,32 @@ import com.auramusic.innertube.models.ArtistItem
 import com.auramusic.innertube.models.EpisodeItem
 import com.auramusic.innertube.models.PlaylistItem
 import com.auramusic.innertube.models.PodcastItem
+import com.auramusic.innertube.models.PodcastItem
 import com.auramusic.innertube.models.SongItem
+import com.auramusic.innertube.YouTube.SearchFilter.Companion.FILTER_ALBUM
+import com.auramusic.innertube.YouTube.SearchFilter.Companion.FILTER_ARTIST
+import com.auramusic.innertube.YouTube.SearchFilter.Companion.FILTER_COMMUNITY_PLAYLIST
+import com.auramusic.innertube.YouTube.SearchFilter.Companion.FILTER_FEATURED_PLAYLIST
+import com.auramusic.innertube.YouTube.SearchFilter.Companion.FILTER_PODCAST
+import com.auramusic.innertube.YouTube.SearchFilter.Companion.FILTER_SONG
+import com.auramusic.innertube.YouTube.SearchFilter.Companion.FILTER_VIDEO
 import com.auramusic.innertube.pages.HomePage
 import com.auramusic.innertube.pages.ExplorePage
 import androidx.compose.foundation.layout.width
 import com.auramusic.app.ui.component.ChipsRow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.res.stringResource
 
-private data class CarouselDimens(
+data class CarouselDimens(
     val height: Dp,
     val horizontalPadding: Dp,
     val cornerRadius: Dp,
@@ -360,7 +370,7 @@ fun TvNavigationBar(current: TvSection, onSelect: (TvSection) -> Unit) {
             Spacer(modifier = Modifier.weight(1f))
 
             TvSection.entries.forEachIndexed { index, section ->
-                val isSelected = sectionState.value == current
+                val isSelected = section == current
                 TvNavButton(
                     label = section.label,
                     isSelected = isSelected,
@@ -1104,29 +1114,31 @@ fun TvSearchScreen(playerConnection: PlayerConnection?) {
             }
         } else {
             // Filter chips like mobile search
-            ChipsRow(
-                chips = listOf(
-                    null to stringResource(R.string.filter_all),
-                    FILTER_SONG to stringResource(R.string.filter_songs),
-                    FILTER_VIDEO to stringResource(R.string.filter_videos),
-                    FILTER_ALBUM to stringResource(R.string.filter_albums),
-                    FILTER_ARTIST to stringResource(R.string.filter_artists),
-                    FILTER_COMMUNITY_PLAYLIST to stringResource(R.string.filter_community_playlists),
-                    FILTER_FEATURED_PLAYLIST to stringResource(R.string.filter_featured_playlists),
-                    FILTER_PODCAST to stringResource(R.string.podcasts),
-                ),
-                currentValue = filter,
-                onValueUpdate = {
-                    if (tvSearchViewModel.filter.value != it) {
-                        tvSearchViewModel.filter.value = it
-                        // Re-perform search with new filter
-                        if (query.isNotEmpty()) {
-                            tvSearchViewModel.updateQuery(query)
+            item {
+                ChipsRow(
+                    chips = listOf(
+                        Pair(null as YouTube.SearchFilter?, stringResource(R.string.filter_all)),
+                        Pair(FILTER_SONG, stringResource(R.string.filter_songs)),
+                        Pair(FILTER_VIDEO, stringResource(R.string.filter_videos)),
+                        Pair(FILTER_ALBUM, stringResource(R.string.filter_albums)),
+                        Pair(FILTER_ARTIST, stringResource(R.string.filter_artists)),
+                        Pair(FILTER_COMMUNITY_PLAYLIST, stringResource(R.string.filter_community_playlists)),
+                        Pair(FILTER_FEATURED_PLAYLIST, stringResource(R.string.filter_featured_playlists)),
+                        Pair(FILTER_PODCAST, stringResource(R.string.podcasts)),
+                    ),
+                    currentValue = filter.value,
+                    onValueUpdate = {
+                        if (tvSearchViewModel.filter.value != it) {
+                            tvSearchViewModel.filter.value = it
+                            // Re-perform search with new filter
+                            if (query.isNotEmpty()) {
+                                tvSearchViewModel.updateQuery(query)
+                            }
                         }
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
 
             // Show search results
             val localSongs = searchResults.localItems.filterIsInstance<Song>().take(5)
@@ -1311,16 +1323,16 @@ fun TvSearchScreen(playerConnection: PlayerConnection?) {
 
 @Composable
 fun TvRecentSearchItem(query: String, onClick: () -> Unit) {
-    var isFocused by remember { mutableStateOf(false) }
+    val isFocusedState = remember { mutableStateOf(false) }
 
     Surface(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .onFocusChanged { isFocused = it.isFocused }
+            .onFocusChanged { isFocusedState.value = it.isFocused }
             .border(
-                width = if (isFocused) 2.dp else 0.dp,
-                color = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                width = if (isFocusedState.value) 2.dp else 0.dp,
+                color = if (isFocusedState.value) MaterialTheme.colorScheme.primary else Color.Transparent,
                 shape = RoundedCornerShape(8.dp)
             ),
         shape = RoundedCornerShape(8.dp),
@@ -1351,16 +1363,16 @@ fun TvRecentSearchItem(query: String, onClick: () -> Unit) {
 
 @Composable
 fun TvSearchResultItem(item: LocalItem, onClick: () -> Unit) {
-    var isFocused by remember { mutableStateOf(false) }
+    val isFocusedState = remember { mutableStateOf(false) }
 
     Surface(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .onFocusChanged { isFocused = it.isFocused }
+            .onFocusChanged { isFocusedState.value = it.isFocused }
             .border(
-                width = if (isFocused) 2.dp else 0.dp,
-                color = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                width = if (isFocusedState.value) 2.dp else 0.dp,
+                color = if (isFocusedState.value) MaterialTheme.colorScheme.primary else Color.Transparent,
                 shape = RoundedCornerShape(8.dp)
             ),
         shape = RoundedCornerShape(8.dp),
@@ -1429,16 +1441,16 @@ fun TvSearchResultItem(item: LocalItem, onClick: () -> Unit) {
 
 @Composable
 fun TvYTSearchResultItem(item: YTItem, onClick: () -> Unit) {
-    var isFocused by remember { mutableStateOf(false) }
+    val isFocusedState = remember { mutableStateOf(false) }
 
     Surface(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .onFocusChanged { isFocused = it.isFocused }
+            .onFocusChanged { isFocusedState.value = it.isFocused }
             .border(
-                width = if (isFocused) 2.dp else 0.dp,
-                color = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                width = if (isFocusedState.value) 2.dp else 0.dp,
+                color = if (isFocusedState.value) MaterialTheme.colorScheme.primary else Color.Transparent,
                 shape = RoundedCornerShape(8.dp)
             ),
         shape = RoundedCornerShape(8.dp),
@@ -1637,14 +1649,14 @@ fun MediaCard(
     thumbnailUrl: String?,
     onClick: () -> Unit,
 ) {
-    var isFocused by remember { mutableStateOf(false) }
+    val isFocusedState = remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
     val scale by animateFloatAsState(
-        targetValue = if (isFocused) 1.06f else 1f,
+        targetValue = if (isFocusedState.value) 1.06f else 1f,
         label = "tvCardScale",
     )
-    val borderColor = if (isFocused) {
+    val borderColor = if (isFocusedState.value) {
         MaterialTheme.colorScheme.primary
     } else {
         Color.Transparent
@@ -1776,8 +1788,8 @@ private fun TvMiniPlayerButton(
     painter: androidx.compose.ui.graphics.painter.Painter? = null,
     contentDescription: String,
 ) {
-    var isFocused by remember { mutableStateOf(false) }
-    val borderColor = if (isFocused) {
+    val isFocusedState = remember { mutableStateOf(false) }
+    val borderColor = if (isFocusedState.value) {
         MaterialTheme.colorScheme.primary
     } else {
         Color.Transparent
@@ -1787,9 +1799,9 @@ private fun TvMiniPlayerButton(
         onClick = onClick,
         modifier = Modifier
             .size(48.dp)
-            .onFocusChanged { isFocused = it.isFocused }
+            .onFocusChanged { isFocusedState.value = it.isFocused }
             .border(
-                width = if (isFocused) 2.dp else 0.dp,
+                width = if (isFocusedState.value) 2.dp else 0.dp,
                 color = borderColor,
                 shape = RoundedCornerShape(8.dp)
             ),
@@ -1919,14 +1931,14 @@ fun TvHeroCard(
     dimens: CarouselDimens,
     onClick: () -> Unit,
 ) {
-    var isFocused by remember { mutableStateOf(false) }
+    val isFocusedState = remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
     val scale by animateFloatAsState(
-        targetValue = if (isFocused) 1.06f else 1f,
+        targetValue = if (isFocusedState.value) 1.06f else 1f,
         label = "tvHeroCardScale",
     )
-    val borderColor = if (isFocused) {
+    val borderColor = if (isFocusedState.value) {
         MaterialTheme.colorScheme.primary
     } else {
         Color.Transparent
@@ -1940,15 +1952,15 @@ fun TvHeroCard(
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
-            }
-            .bringIntoViewRequester(bringIntoViewRequester)
-            .onFocusChanged { focusState ->
-                isFocusedState.value = focusState.isFocused
-                if (focusState.isFocused) {
-                    scope.launch { bringIntoViewRequester.bringIntoView() }
-                }
-            }
-            .border(width = 3.dp, color = borderColor, shape = RoundedCornerShape(12.dp)),
+             }
+             .bringIntoViewRequester(bringIntoViewRequester)
+             .onFocusChanged { focusState ->
+                 isFocusedState.value = focusState.isFocused
+                 if (focusState.isFocused) {
+                     scope.launch { bringIntoViewRequester.bringIntoView() }
+                 }
+             }
+             .border(width = 3.dp, color = borderColor, shape = RoundedCornerShape(12.dp)),
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surfaceVariant,
         tonalElevation = 4.dp,
@@ -2128,39 +2140,39 @@ fun TvSettingsCategoryItem(
     subtitle: String,
     onClick: () -> Unit,
 ) {
-    var isFocused by remember { mutableStateOf(false) }
+    val isFocusedState = remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
     val scale by animateFloatAsState(
-        targetValue = if (isFocused) 1.06f else 1f,
+        targetValue = if (isFocusedState.value) 1.06f else 1f,
         label = "tvSettingsItemScale",
     )
-    val borderColor = if (isFocused) {
+    val borderColor = if (isFocusedState.value) {
         MaterialTheme.colorScheme.primary
     } else {
         Color.Transparent
     }
 
-    Surface(
-        onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .bringIntoViewRequester(bringIntoViewRequester)
-            .onFocusChanged { focusState ->
-                isFocused = focusState.isFocused
-                if (focusState.isFocused) {
-                    scope.launch { bringIntoViewRequester.bringIntoView() }
-                }
-            }
-            .border(width = 3.dp, color = borderColor, shape = RoundedCornerShape(12.dp)),
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        tonalElevation = 4.dp,
-    ) {
+     Surface(
+         onClick = onClick,
+         modifier = Modifier
+             .size(width = 220.dp, height = 280.dp)
+             .graphicsLayer {
+                 scaleX = scale
+                 scaleY = scale
+             }
+             .bringIntoViewRequester(bringIntoViewRequester)
+             .onFocusChanged { focusState ->
+                 isFocusedState.value = focusState.isFocused
+                 if (focusState.isFocused) {
+                     scope.launch { bringIntoViewRequester.bringIntoView() }
+                 }
+             }
+             .border(width = 3.dp, color = borderColor, shape = RoundedCornerShape(12.dp)),
+         shape = RoundedCornerShape(12.dp),
+         color = MaterialTheme.colorScheme.surfaceVariant,
+         tonalElevation = 4.dp,
+     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()

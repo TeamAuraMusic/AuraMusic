@@ -58,7 +58,7 @@ constructor(
 ) : ViewModel() {
     val query = MutableStateFlow("")
 
-    val filter = MutableStateFlow<String?>(null) // null means all
+    val filter = MutableStateFlow<YouTube.SearchFilter?>(null) // null means all
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
@@ -124,14 +124,14 @@ constructor(
                 // YouTube search with current filter
                 val currentFilter = filter.value
                 val ytResults = try {
-                    val searchFilter = when (currentFilter) {
-                        FILTER_SONG -> YouTube.SearchFilter.FILTER_SONG
-                        FILTER_VIDEO -> YouTube.SearchFilter.FILTER_VIDEO
-                        FILTER_ALBUM -> YouTube.SearchFilter.FILTER_ALBUM
-                        FILTER_ARTIST -> YouTube.SearchFilter.FILTER_ARTIST
-                        FILTER_COMMUNITY_PLAYLIST -> YouTube.SearchFilter.FILTER_COMMUNITY_PLAYLIST
-                        FILTER_FEATURED_PLAYLIST -> YouTube.SearchFilter.FILTER_FEATURED_PLAYLIST
-                        FILTER_PODCAST -> YouTube.SearchFilter.FILTER_PODCAST
+                    val searchFilter = when (currentFilter?.value) {
+                        FILTER_SONG.value -> YouTube.SearchFilter.FILTER_SONG
+                        FILTER_VIDEO.value -> YouTube.SearchFilter.FILTER_VIDEO
+                        FILTER_ALBUM.value -> YouTube.SearchFilter.FILTER_ALBUM
+                        FILTER_ARTIST.value -> YouTube.SearchFilter.FILTER_ARTIST
+                        FILTER_COMMUNITY_PLAYLIST.value -> YouTube.SearchFilter.FILTER_COMMUNITY_PLAYLIST
+                        FILTER_FEATURED_PLAYLIST.value -> YouTube.SearchFilter.FILTER_FEATURED_PLAYLIST
+                        FILTER_PODCAST.value -> YouTube.SearchFilter.FILTER_PODCAST
                         else -> null // All results
                     }
 
@@ -139,7 +139,7 @@ constructor(
                         YouTube.search(searchQuery, searchFilter).getOrNull()?.items?.filterExplicit(hideExplicit)?.filterVideoSongs(hideVideoSongs).orEmpty()
                     } else {
                         // For "all" filter, get summary results like mobile app
-                        YouTube.search(searchQuery).getOrNull()?.items?.filterExplicit(hideExplicit)?.filterVideoSongs(hideVideoSongs).orEmpty()
+                        YouTube.searchSummary(searchQuery).getOrNull()?.items?.filterExplicit(hideExplicit)?.filterVideoSongs(hideVideoSongs).orEmpty()
                     }
                 } catch (e: Exception) {
                     emptyList()
