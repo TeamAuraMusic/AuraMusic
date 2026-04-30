@@ -798,7 +798,7 @@ fun YouTubeMediaCard(
             }
             .bringIntoViewRequester(bringIntoViewRequester)
             .onFocusChanged { focusState ->
-                isFocused = focusState.isFocused
+                isFocusedState.value = focusState.isFocused
                 if (focusState.isFocused) {
                     scope.launch { bringIntoViewRequester.bringIntoView() }
                 }
@@ -936,7 +936,7 @@ fun YouTubeAlbumCard(
             }
             .bringIntoViewRequester(bringIntoViewRequester)
             .onFocusChanged { focusState ->
-                isFocused = focusState.isFocused
+                isFocusedState.value = focusState.isFocused
                 if (focusState.isFocused) {
                     scope.launch { bringIntoViewRequester.bringIntoView() }
                 }
@@ -1126,7 +1126,7 @@ fun TvSearchScreen(playerConnection: PlayerConnection?) {
                         Pair(FILTER_FEATURED_PLAYLIST, stringResource(R.string.filter_featured_playlists)),
                         Pair(FILTER_PODCAST, stringResource(R.string.podcasts)),
                     ),
-                    currentValue = filter.value,
+                    currentValue = filter,
                     onValueUpdate = { newFilter: YouTube.SearchFilter? ->
                         if (tvSearchViewModel.filter.value != newFilter) {
                             tvSearchViewModel.filter.value = newFilter
@@ -1672,7 +1672,7 @@ fun MediaCard(
             }
             .bringIntoViewRequester(bringIntoViewRequester)
             .onFocusChanged { focusState ->
-                isFocused = focusState.isFocused
+                isFocusedState.value = focusState.isFocused
                 if (focusState.isFocused) {
                     scope.launch { bringIntoViewRequester.bringIntoView() }
                 }
