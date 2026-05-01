@@ -106,7 +106,7 @@ sealed class DisplaySong {
 /* ------------------------------ Album ------------------------------ */
 
 @Composable
-fun TvAlbumDetailScreen(albumId: String, playerConnection: PlayerConnection?, onBackClick: () -> Unit, focusRequester: FocusRequester? = null) {
+fun TvAlbumDetailScreen(albumId: String, playerConnection: PlayerConnection?, onBackClick: () -> Unit, focusRequester: FocusRequester? = null, onNavigateUp: (() -> Unit)? = null) {
     val albumsViewModel: LibraryAlbumsViewModel = hiltViewModel()
     val database = LocalDatabase.current
 
@@ -150,13 +150,14 @@ fun TvAlbumDetailScreen(albumId: String, playerConnection: PlayerConnection?, on
         playAllTitle = displayTitle,
         onBackClick = onBackClick,
         focusRequester = focusRequester,
+        onNavigateUp = onNavigateUp,
     )
 }
 
 /* ------------------------------ Artist ------------------------------ */
 
 @Composable
-fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, onBackClick: () -> Unit, focusRequester: FocusRequester? = null) {
+fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, onBackClick: () -> Unit, focusRequester: FocusRequester? = null, onNavigateUp: (() -> Unit)? = null) {
     val artistsViewModel: LibraryArtistsViewModel = hiltViewModel()
     val database = LocalDatabase.current
 
@@ -189,13 +190,22 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
 
     // Structure content similar to mobile app
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .onPreviewKeyEvent { event ->
+                if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionUp) {
+                    onNavigateUp?.invoke()
+                    true
+                } else {
+                    false
+                }
+            },
         contentPadding = PaddingValues(horizontal = 48.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(32.dp),
     ) {
         // Header section
         item {
-            val backButtonFocus = focusRequester ?: remember { FocusRequester() }
+            val backButtonFocus = remember { FocusRequester() }
 
             LaunchedEffect(Unit) {
                 runCatching { backButtonFocus.requestFocus() }
@@ -441,7 +451,7 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
 /* ------------------------------ Playlist ------------------------------ */
 
 @Composable
-fun TvPlaylistDetailScreen(playlistId: String, playerConnection: PlayerConnection?, onBackClick: () -> Unit, focusRequester: FocusRequester? = null) {
+ fun TvPlaylistDetailScreen(playlistId: String, playerConnection: PlayerConnection?, onBackClick: () -> Unit, focusRequester: FocusRequester? = null, onNavigateUp: (() -> Unit)? = null) {
     val playlistsViewModel: LibraryPlaylistsViewModel = hiltViewModel()
     val database = LocalDatabase.current
 
@@ -485,6 +495,7 @@ fun TvPlaylistDetailScreen(playlistId: String, playerConnection: PlayerConnectio
         playAllTitle = displayTitle,
         onBackClick = onBackClick,
         focusRequester = focusRequester,
+        onNavigateUp = onNavigateUp,
     )
 }
 
@@ -501,6 +512,7 @@ private fun TvDetailLayout(
     playAllTitle: String?,
     onBackClick: () -> Unit,
     focusRequester: FocusRequester? = null,
+    onNavigateUp: (() -> Unit)? = null,
 ) {
     val backButtonFocus = focusRequester ?: remember { FocusRequester() }
 
@@ -509,7 +521,16 @@ private fun TvDetailLayout(
     }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .onPreviewKeyEvent { event ->
+                if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionUp) {
+                    onNavigateUp?.invoke()
+                    true
+                } else {
+                    false
+                }
+            },
         contentPadding = PaddingValues(horizontal = 48.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {

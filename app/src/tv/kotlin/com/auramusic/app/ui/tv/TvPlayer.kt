@@ -243,7 +243,7 @@ fun TvPlayerScreen(
     var sleepTimerEndTime by remember { mutableStateOf<Long?>(null) }
     var showLyrics by remember { mutableStateOf(false) }
 
-    val playerConnection = LocalPlayerConnection.current ?: return
+    val playerConnection = playerConnection ?: LocalPlayerConnection.current ?: return
     val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
 
     // Focus requesters for TV navigation

@@ -78,7 +78,7 @@ import kotlinx.coroutines.launch
 @SuppressLint("SetJavaScriptEnabled")
 @OptIn(DelicateCoroutinesApi::class)
 @Composable
-fun TvLoginScreen(onBackClick: () -> Unit) {
+ fun TvLoginScreen(onBackClick: () -> Unit, focusRequester: FocusRequester? = null, onNavigateUp: (() -> Unit)? = null) {
     var visitorData by rememberPreference(VisitorDataKey, "")
     var dataSyncId by rememberPreference(DataSyncIdKey, "")
     var innerTubeCookie by rememberPreference(InnerTubeCookieKey, "")
@@ -193,10 +193,12 @@ fun TvLoginScreen(onBackClick: () -> Unit) {
 /* -------------------------- Account Settings -------------------------- */
 
 @Composable
-fun TvAccountSettingsScreen(
-    onBackClick: () -> Unit,
-    onLoginClick: () -> Unit,
-) {
+ fun TvAccountSettingsScreen(
+     onBackClick: () -> Unit,
+     onLoginClick: () -> Unit,
+     focusRequester: FocusRequester? = null,
+     onNavigateUp: (() -> Unit)? = null,
+ ) {
     val context = LocalContext.current
     val (innerTubeCookie, onInnerTubeCookieChange) = rememberPreference(InnerTubeCookieKey, "")
     val isLoggedIn = remember(innerTubeCookie) {
@@ -209,7 +211,16 @@ fun TvAccountSettingsScreen(
     val accountImageUrl by homeViewModel.accountImageUrl.collectAsState()
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .onPreviewKeyEvent { event ->
+                if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionUp) {
+                    onNavigateUp?.invoke()
+                    true
+                } else {
+                    false
+                }
+            },
         contentPadding = PaddingValues(horizontal = 48.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
@@ -300,13 +311,22 @@ fun TvAccountSettingsScreen(
 
 /* -------------------------- About -------------------------- */
 
-@Composable
-fun TvAboutScreen(onBackClick: () -> Unit) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 48.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp),
-    ) {
+ @Composable
+ fun TvAboutScreen(onBackClick: () -> Unit, focusRequester: FocusRequester? = null, onNavigateUp: (() -> Unit)? = null) {
+     LazyColumn(
+         modifier = Modifier
+             .fillMaxSize()
+             .onPreviewKeyEvent { event ->
+                 if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionUp) {
+                     onNavigateUp?.invoke()
+                     true
+                 } else {
+                     false
+                 }
+             },
+         contentPadding = PaddingValues(horizontal = 48.dp, vertical = 16.dp),
+         verticalArrangement = Arrangement.spacedBy(24.dp),
+     ) {
         item {
             TvSettingsHeader(title = "About", onBackClick = onBackClick)
         }
@@ -367,7 +387,7 @@ fun TvAboutScreen(onBackClick: () -> Unit) {
 /* -------------------------- Updater -------------------------- */
 
 @Composable
-fun TvUpdaterScreen(onBackClick: () -> Unit) {
+ fun TvUpdaterScreen(onBackClick: () -> Unit, focusRequester: FocusRequester? = null, onNavigateUp: (() -> Unit)? = null) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 48.dp, vertical = 16.dp),
@@ -413,7 +433,7 @@ fun TvUpdaterScreen(onBackClick: () -> Unit) {
 /* -------------------------- Playback / Content placeholders -------------------------- */
 
 @Composable
-fun TvPlaybackSettingsScreen(onBackClick: () -> Unit) {
+ fun TvPlaybackSettingsScreen(onBackClick: () -> Unit, focusRequester: FocusRequester? = null, onNavigateUp: (() -> Unit)? = null) {
     TvPlaceholderSettings(
         title = "Playback",
         body = "Audio quality, gapless playback and other playback settings " +
@@ -423,7 +443,7 @@ fun TvPlaybackSettingsScreen(onBackClick: () -> Unit) {
 }
 
 @Composable
-fun TvContentSettingsScreen(onBackClick: () -> Unit) {
+ fun TvContentSettingsScreen(onBackClick: () -> Unit, focusRequester: FocusRequester? = null, onNavigateUp: (() -> Unit)? = null) {
     TvPlaceholderSettings(
         title = "Content",
         body = "Content preferences (hide explicit, hide videos, sync rules) follow the values configured on the mobile app for now.",
