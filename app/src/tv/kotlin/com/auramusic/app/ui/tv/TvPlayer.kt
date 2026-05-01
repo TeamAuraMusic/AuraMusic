@@ -243,8 +243,13 @@ fun TvPlayerScreen(
     var sleepTimerEndTime by remember { mutableStateOf<Long?>(null) }
     var showLyrics by remember { mutableStateOf(false) }
 
-    val playerConnection = playerConnection ?: LocalPlayerConnection.current ?: return
-    val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
+    // Prefer the parameter; fall back to the composition local. Avoid an early
+    // return here because that produces a blank/white overlay when the player
+    // service hasn't fully initialised yet (e.g. right after tapping the mini
+    // player). The remainder of the screen uses null-safe calls already.
+    val playerConnection = playerConnection ?: LocalPlayerConnection.current
+    val currentLyrics by (playerConnection?.currentLyrics?.collectAsState(initial = null)
+        ?: remember { mutableStateOf(null) })
 
     // Focus requesters for TV navigation
     val playButtonFocus = remember { FocusRequester() }
