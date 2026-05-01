@@ -122,6 +122,7 @@ import com.auramusic.innertube.pages.HomePage
 import com.auramusic.app.constants.DarkModeKey
 import com.auramusic.app.ui.screens.settings.DarkMode
 import com.auramusic.app.utils.rememberEnumPreference
+import com.auramusic.app.utils.rememberPreference
 import android.os.Build
 import com.auramusic.innertube.pages.ExplorePage
 import androidx.compose.foundation.layout.width
@@ -309,7 +310,15 @@ enum class TvSection(val label: String) {
                           TvSection.HOME -> TvHomeScreen(playerConnection = playerConnection)
                           TvSection.LIBRARY -> TvLibraryScreen(playerConnection = playerConnection)
                           TvSection.SEARCH -> TvSearchScreen(playerConnection = playerConnection)
-                          TvSection.SETTINGS -> TvSettingsScreen(onBackClick = { sectionState.value = TvSection.HOME })
+                          TvSection.SETTINGS -> TvSettingsScreen(
+                              onBackClick = { sectionState.value = TvSection.HOME },
+                              onAppearanceClick = { navigator.navigate(TvDestination.AppearanceSettings) },
+                              onAccountClick = { navigator.navigate(TvDestination.AccountSettings) },
+                              onPlaybackClick = { navigator.navigate(TvDestination.PlaybackSettings) },
+                              onContentClick = { navigator.navigate(TvDestination.ContentSettings) },
+                              onUpdaterClick = { navigator.navigate(TvDestination.UpdaterScreen) },
+                              onAboutClick = { navigator.navigate(TvDestination.AboutScreen) },
+                          )
                       }
 
                       // Overlay player/queue/detail screens if needed
@@ -344,9 +353,33 @@ enum class TvSection(val label: String) {
                                    )
                                    TvDestination.Settings -> TvSettingsScreen(
                                        onBackClick = { navigator.popBack() },
-                                       onAppearanceClick = { navigator.navigate(TvDestination.AppearanceSettings) }
+                                       onAppearanceClick = { navigator.navigate(TvDestination.AppearanceSettings) },
+                                       onAccountClick = { navigator.navigate(TvDestination.AccountSettings) },
+                                       onPlaybackClick = { navigator.navigate(TvDestination.PlaybackSettings) },
+                                       onContentClick = { navigator.navigate(TvDestination.ContentSettings) },
+                                       onUpdaterClick = { navigator.navigate(TvDestination.UpdaterScreen) },
+                                       onAboutClick = { navigator.navigate(TvDestination.AboutScreen) },
                                    )
                                    TvDestination.AppearanceSettings -> TvAppearanceSettingsScreen(
+                                       onBackClick = { navigator.popBack() }
+                                   )
+                                   TvDestination.AccountSettings -> TvAccountSettingsScreen(
+                                       onBackClick = { navigator.popBack() },
+                                       onLoginClick = { navigator.navigate(TvDestination.Login) },
+                                   )
+                                   TvDestination.PlaybackSettings -> TvPlaybackSettingsScreen(
+                                       onBackClick = { navigator.popBack() }
+                                   )
+                                   TvDestination.ContentSettings -> TvContentSettingsScreen(
+                                       onBackClick = { navigator.popBack() }
+                                   )
+                                   TvDestination.AboutScreen -> TvAboutScreen(
+                                       onBackClick = { navigator.popBack() }
+                                   )
+                                   TvDestination.UpdaterScreen -> TvUpdaterScreen(
+                                       onBackClick = { navigator.popBack() }
+                                   )
+                                   TvDestination.Login -> TvLoginScreen(
                                        onBackClick = { navigator.popBack() }
                                    )
                                    else -> Unit
@@ -1176,15 +1209,46 @@ fun TvLibraryScreen(playerConnection: PlayerConnection?) {
     val albums by albumsViewModel.allAlbums.collectAsState()
     val playlists by playlistsViewModel.allPlaylists.collectAsState()
 
+    val (innerTubeCookie, _) = rememberPreference(
+        com.auramusic.app.constants.InnerTubeCookieKey,
+        "",
+    )
+    val isLoggedIn = remember(innerTubeCookie) {
+        "SAPISID" in com.auramusic.innertube.utils.parseCookieString(innerTubeCookie)
+    }
+
+    // When the user is signed in, kick off a one-shot sync of their YouTube
+    // Music library so liked songs / albums / playlists / subscribed artists
+    // appear here without needing to open the mobile app first.
+    LaunchedEffect(isLoggedIn) {
+        if (isLoggedIn) {
+            runCatching {
+                songsViewModel.syncLikedSongs()
+                albumsViewModel.sync()
+                artistsViewModel.sync()
+                playlistsViewModel.sync()
+            }
+        }
+    }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 48.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(32.dp),
     ) {
+        item {
+            Text(
+                text = if (isLoggedIn) "Your YouTube Music library" else "Your library",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+        }
+
         if (songs.isNotEmpty()) {
             item {
                 SongRow(
-                    title = "Songs",
+                    title = "Liked songs",
                     songs = songs,
                     onSongClick = { song: Song -> playerConnection?.playSong(song) },
                 )
@@ -1194,7 +1258,13 @@ fun TvLibraryScreen(playerConnection: PlayerConnection?) {
             item { LocalItemRow(title = "Playlists", localItems = playlists, playerConnection = playerConnection) }
         }
         if (artists.isNotEmpty()) {
-            item { LocalItemRow(title = "Artists", localItems = artists, playerConnection = playerConnection) }
+            item {
+                LocalItemRow(
+                    title = "Subscribed artists",
+                    localItems = artists,
+                    playerConnection = playerConnection,
+                )
+            }
         }
         if (albums.isNotEmpty()) {
             item { LocalItemRow(title = "Albums", localItems = albums, playerConnection = playerConnection) }
@@ -1208,12 +1278,15 @@ fun TvLibraryScreen(playerConnection: PlayerConnection?) {
                     modifier = Modifier.fillMaxWidth().padding(top = 64.dp),
                 ) {
                     Text(
-                        text = "Your library is empty.",
+                        text = if (isLoggedIn) "Syncing your library…" else "Your library is empty.",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
-                        text = "Sync your music from YouTube to get started",
+                        text = if (isLoggedIn)
+                            "Liked songs, playlists, albums and subscribed artists will appear here."
+                        else
+                            "Sign in from Settings → Account to sync your YouTube Music library.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     )
@@ -2257,41 +2330,29 @@ fun TvSettingsCategoryItem(
 }
 
 @Composable
-fun TvSettingsScreen(onBackClick: () -> Unit, onAppearanceClick: () -> Unit = {}) {
+fun TvSettingsScreen(
+    onBackClick: () -> Unit,
+    onAppearanceClick: () -> Unit = {},
+    onAccountClick: () -> Unit = {},
+    onPlaybackClick: () -> Unit = {},
+    onContentClick: () -> Unit = {},
+    onUpdaterClick: () -> Unit = {},
+    onAboutClick: () -> Unit = {},
+) {
+    val (innerTubeCookie, _) = rememberPreference(
+        com.auramusic.app.constants.InnerTubeCookieKey,
+        "",
+    )
+    val isLoggedIn = remember(innerTubeCookie) {
+        "SAPISID" in com.auramusic.innertube.utils.parseCookieString(innerTubeCookie)
+    }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 48.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        item {
-            // Back button and title
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(
-                    onClick = onBackClick,
-                    modifier = Modifier.size(64.dp),
-                ) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
-
-                Text(
-                    text = "Settings",
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground,
-                )
-
-                Spacer(modifier = Modifier.size(64.dp)) // Balance the back button
-            }
-        }
+        item { TvSettingsHeader(title = "Settings", onBackClick = onBackClick) }
 
         item {
             Text(
@@ -2302,12 +2363,22 @@ fun TvSettingsScreen(onBackClick: () -> Unit, onAppearanceClick: () -> Unit = {}
             )
         }
 
-        // Settings categories
+        item {
+            TvSettingsCategoryItem(
+                title = "Account",
+                subtitle = if (isLoggedIn)
+                    "Signed in to YouTube Music — manage account"
+                else
+                    "Sign in to sync liked songs, playlists and subscriptions",
+                onClick = onAccountClick,
+            )
+        }
+
         item {
             TvSettingsCategoryItem(
                 title = "Appearance",
                 subtitle = "Theme, colors, and display settings",
-                onClick = onAppearanceClick
+                onClick = onAppearanceClick,
             )
         }
 
@@ -2315,7 +2386,7 @@ fun TvSettingsScreen(onBackClick: () -> Unit, onAppearanceClick: () -> Unit = {}
             TvSettingsCategoryItem(
                 title = "Playback",
                 subtitle = "Audio quality, playback behavior",
-                onClick = { /* TODO: Navigate to playback settings */ }
+                onClick = onPlaybackClick,
             )
         }
 
@@ -2323,23 +2394,15 @@ fun TvSettingsScreen(onBackClick: () -> Unit, onAppearanceClick: () -> Unit = {}
             TvSettingsCategoryItem(
                 title = "Content",
                 subtitle = "Sync settings, content filters",
-                onClick = { /* TODO: Navigate to content settings */ }
-            )
-        }
-
-        item {
-            TvSettingsCategoryItem(
-                title = "Account",
-                subtitle = "YouTube account, sync preferences",
-                onClick = { /* TODO: Navigate to account settings */ }
+                onClick = onContentClick,
             )
         }
 
         item {
             TvSettingsCategoryItem(
                 title = "Check for Updates",
-                subtitle = "Check for new AuraMusic Tv versions",
-                onClick = { /* TODO: Implement update check */ }
+                subtitle = "Check for new AuraMusic TV versions",
+                onClick = onUpdaterClick,
             )
         }
 
@@ -2347,7 +2410,7 @@ fun TvSettingsScreen(onBackClick: () -> Unit, onAppearanceClick: () -> Unit = {}
             TvSettingsCategoryItem(
                 title = "About",
                 subtitle = "App version, licenses, and information",
-                onClick = { /* TODO: Navigate to about screen */ }
+                onClick = onAboutClick,
             )
         }
     }
