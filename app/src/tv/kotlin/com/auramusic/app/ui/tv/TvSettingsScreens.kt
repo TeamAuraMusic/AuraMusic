@@ -612,6 +612,7 @@ fun TvSettingsHeader(
     onBackClick: () -> Unit,
     focusRequester: FocusRequester? = null,
     onFocused: (() -> Unit)? = null,
+    onFocusChange: ((Boolean) -> Unit)? = null,
 ) {
     val backFocus = focusRequester ?: remember { FocusRequester() }
     if (focusRequester == null) {
@@ -634,6 +635,7 @@ fun TvSettingsHeader(
                 .focusRequester(backFocus)
                 .onFocusChanged { state ->
                     focused = state.isFocused
+                    onFocusChange?.invoke(state.isFocused)
                     if (state.isFocused) onFocused?.invoke()
                 }
                 .graphicsLayer { scaleX = scale; scaleY = scale }

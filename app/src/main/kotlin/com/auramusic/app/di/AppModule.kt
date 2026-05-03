@@ -87,7 +87,20 @@ object AppModule {
         @ApplicationContext context: Context,
         databaseProvider: DatabaseProvider,
     ): SimpleCache {
-        val cacheSize = context.dataStore[MaxSongCacheSizeKey] ?: 1024
+        // On TV (Android Leanback) we behave like a streaming app such as
+        // Spotify TV: the player cache is bounded to a small ring buffer so
+        // long listening sessions do not silently fill device storage with
+        // cached audio. The bounded LRU evictor keeps just enough on disk to
+        // smooth out network hiccups / re-seeks while constantly recycling
+        // older chunks.
+        val isTv = context.packageManager.hasSystemFeature(
+            android.content.pm.PackageManager.FEATURE_LEANBACK
+        )
+        val cacheSize = if (isTv) {
+            TV_PLAYER_CACHE_SIZE_MB
+        } else {
+            context.dataStore[MaxSongCacheSizeKey] ?: 1024
+        }
         return SimpleCache(
             context.filesDir.resolve("exoplayer"),
             when (cacheSize) {
@@ -97,6 +110,9 @@ object AppModule {
             databaseProvider,
         )
     }
+
+    // Small streaming-only buffer for TV (in MB).
+    private const val TV_PLAYER_CACHE_SIZE_MB = 64
 
     @Singleton
     @Provides

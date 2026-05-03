@@ -486,7 +486,7 @@ enum class TvSection(val label: String) {
             }
 
             Text(
-                text = "AuraMusic",
+                text = "AuraMusic Tv",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,

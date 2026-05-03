@@ -236,7 +236,11 @@ fun TvPlayerScreen(
     var currentPosition by remember { mutableStateOf(0L) }
     var sleepTimerMinutes by remember { mutableStateOf<Int?>(null) }
     var sleepTimerEndTime by remember { mutableStateOf<Long?>(null) }
-    var showLyrics by remember { mutableStateOf(false) }
+    // Wire to ShowLyricsKey so MusicService fetches lyrics for the current song
+    val (showLyrics, onShowLyricsChange) = com.auramusic.app.utils.rememberPreference(
+        com.auramusic.app.constants.ShowLyricsKey,
+        false,
+    )
 
     // Resolve player connection: prefer passed-in parameter, fall back to composition local.
     // We avoid early return to show loading UI when service not ready.
@@ -565,7 +569,7 @@ fun TvPlayerScreen(
                         )
 
                         TvPlayerControlButton(
-                            onClick = { showLyrics = !showLyrics },
+                            onClick = { onShowLyricsChange(!showLyrics) },
                             icon = Icons.Filled.Lyrics,
                             contentDescription = if (showLyrics) "Hide lyrics" else "Show lyrics",
                             tint = if (showLyrics) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f),
