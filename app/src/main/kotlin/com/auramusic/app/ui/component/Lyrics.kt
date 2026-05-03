@@ -694,7 +694,7 @@ fun Lyrics(
                 // Fast scroll for seeking to center the target line (300ms)
                 val seekCenterIndex = kotlin.math.max(0, currentLineIndex)
                 performSmoothPageScroll(seekCenterIndex, 500) // Fast seek duration
-            } else if ((lastPreviewTime == 0L || currentLineIndex != previousLineIndex) && scrollLyrics) {
+            } else if ((lastPreviewTime == 0L || currentLineIndex != previousLineIndex) && effectiveScrollLyrics) {
                 // Auto-scroll when lyrics settings allow it
                 if (currentLineIndex != previousLineIndex) {
                     // Calculate which line should be at the top to center the active group
@@ -933,7 +933,7 @@ fun Lyrics(
                                             showMaxSelectionToast = true
                                         }
                                     }
-                                } else if (isSynced && changeLyrics && !isGuest) {
+                                } else if (isSynced && effectiveChangeLyrics && !isGuest) {
                                     // Professional seek action with smooth animation
                                     val lyricsOffset = currentSong?.song?.lyricsOffset ?: 0
                                     playerConnection.seekTo((item.time - lyricsOffset).coerceAtLeast(0))
