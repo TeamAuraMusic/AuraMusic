@@ -12,21 +12,32 @@ import android.os.Bundle
 import android.os.IBinder
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.lifecycleScope
  import com.auramusic.app.LocalDatabase
  import com.auramusic.app.LocalPlayerConnection
+ import com.auramusic.app.constants.DarkModeKey
+ import com.auramusic.app.constants.DynamicThemeKey
+ import com.auramusic.app.constants.PureBlackKey
+ import com.auramusic.app.constants.SelectedThemeColorKey
  import com.auramusic.app.db.MusicDatabase
  import com.auramusic.app.listentogether.ListenTogetherManager
  import com.auramusic.app.playback.MusicService
  import com.auramusic.app.playback.MusicService.MusicBinder
  import com.auramusic.app.playback.PlayerConnection
  import com.auramusic.app.ui.component.LocalMenuState
-import com.auramusic.app.ui.theme.AuraMusicTheme
+ import com.auramusic.app.ui.theme.AuraMusicTheme
+import com.auramusic.app.ui.theme.DefaultThemeColor
+import com.auramusic.app.ui.screens.settings.DarkMode
 import com.auramusic.app.ui.tv.TvApp
 import com.auramusic.app.utils.SyncUtils
+import com.auramusic.app.utils.rememberEnumPreference
+import com.auramusic.app.utils.rememberPreference
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -87,17 +98,37 @@ class TvMainActivity : ComponentActivity() {
             syncUtils.tryAutoSync()
         }
         
-         setContent {
-             val playerConnection by playerConnectionFlow.collectAsState()
-             AuraMusicTheme {
-                 CompositionLocalProvider(
-                     LocalDatabase provides database,
-                     LocalPlayerConnection provides playerConnection
-                 ) {
-                     TvApp(playerConnection = playerConnection)
-                 }
-             }
-         }
+          setContent {
+              val playerConnection by playerConnectionFlow.collectAsState()
+
+              // Theme preferences
+              val darkMode by rememberEnumPreference(DarkModeKey, com.auramusic.app.ui.screens.settings.DarkMode.AUTO)
+              val isSystemInDarkTheme = isSystemInDarkTheme()
+              val useDarkTheme = when (darkMode) {
+                  com.auramusic.app.ui.screens.settings.DarkMode.AUTO -> isSystemInDarkTheme
+                  com.auramusic.app.ui.screens.settings.DarkMode.ON -> true
+                  com.auramusic.app.ui.screens.settings.DarkMode.OFF -> false
+              }
+
+              val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
+              val dynamicTheme by rememberPreference(DynamicThemeKey, defaultValue = true)
+              val selectedThemeColorInt by rememberPreference(SelectedThemeColorKey, defaultValue = DefaultThemeColor.toArgb())
+              val selectedThemeColor = Color(selectedThemeColorInt)
+              val themeColor = if (dynamicTheme) DefaultThemeColor else selectedThemeColor
+
+              AuraMusicTheme(
+                  darkTheme = useDarkTheme,
+                  pureBlack = pureBlack,
+                  themeColor = themeColor
+              ) {
+                  CompositionLocalProvider(
+                      LocalDatabase provides database,
+                      LocalPlayerConnection provides playerConnection
+                  ) {
+                      TvApp(playerConnection = playerConnection)
+                  }
+              }
+          }
     }
 
     override fun onStart() {

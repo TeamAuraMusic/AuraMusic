@@ -379,7 +379,7 @@ fun TvPlayerScreen(
                                         value = MaterialTheme.typography.bodyMedium.copy(
                                             fontSize = 18.sp,
                                             textAlign = TextAlign.Center,
-                                            color = Color.White
+                                            color = Color(0xFFFFFBFE).copy(alpha = 0.98f) // Brighter white with high alpha
                                         )
                                     ) {
                                         com.auramusic.app.ui.component.Lyrics(

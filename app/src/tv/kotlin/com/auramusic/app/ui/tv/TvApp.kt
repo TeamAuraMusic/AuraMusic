@@ -63,6 +63,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -2700,14 +2701,21 @@ fun TvSettingsScreen(
 }
 
 @Composable
-fun TvAppearanceSettingsScreen(
-    onBackClick: () -> Unit,
-    focusRequester: FocusRequester? = null,
-    onNavigateUp: (() -> Unit)? = null,
-) {
-    val (darkMode, onDarkModeChange) = rememberEnumPreference(DarkModeKey, DarkMode.AUTO)
-    val backButtonFocus = focusRequester ?: remember { FocusRequester() }
-    var focusedItemIndex by remember { mutableStateOf(0) }
+ fun TvAppearanceSettingsScreen(
+     onBackClick: () -> Unit,
+     focusRequester: FocusRequester? = null,
+     onNavigateUp: (() -> Unit)? = null,
+ ) {
+     val (darkMode, onDarkModeChange) = rememberEnumPreference(DarkModeKey, DarkMode.AUTO)
+
+     val dynamicThemeSupported = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S
+     val dynamicThemeState: MutableState<Boolean> = if (dynamicThemeSupported) {
+         rememberPreference(com.auramusic.app.constants.DynamicThemeKey, defaultValue = true)
+     } else {
+         remember { mutableStateOf(true) }
+     }
+     val backButtonFocus = focusRequester ?: remember { FocusRequester() }
+     var focusedItemIndex by remember { mutableStateOf(0) }
 
     LaunchedEffect(Unit) {
         runCatching { backButtonFocus.requestFocus() }
@@ -2805,14 +2813,12 @@ fun TvAppearanceSettingsScreen(
         }
 
         // Dynamic theme if supported
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+        if (dynamicThemeSupported) {
             item {
                 TvSettingsCategoryItem(
                     title = "Dynamic Colors",
-                    subtitle = "Use wallpaper colors for theme",
-                    onClick = {
-                        // TODO: Implement dynamic theme toggle
-                    },
+                    subtitle = if (dynamicThemeState.value) "Using wallpaper colors" else "Using custom colors",
+                    onClick = { dynamicThemeState.value = !dynamicThemeState.value },
                     icon = Icons.Filled.Palette,
                     modifier = Modifier.onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 2 },
                 )
