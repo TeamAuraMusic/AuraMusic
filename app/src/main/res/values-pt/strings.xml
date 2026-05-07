@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <resources>
     <!-- App name -->
     <string name="app_name">AuraMusic</string>
@@ -7,29 +6,26 @@
     <string name="update_channel_name">Atualizações</string>
     <string name="update_available_title">Atualização disponível</string>
     <string name="app_description">Aplicativo de streaming de música</string>
-
     <!-- Bottom navigation -->
     <string name="home">Início</string>
     <string name="songs">Músicas</string>
     <string name="artists">Artistas</string>
     <string name="albums">Álbuns</string>
-    <string name="playlists">Playlists</string>
+    <string name="playlists">Listas de reprodução</string>
     <string name="search">Buscar</string>
     <string name="together">Ouvir Juntos</string>
-
     <!-- Top bar -->
     <plurals name="n_selected">
         <item quantity="one">%d selecionado</item>
         <item quantity="other">%d selecionados</item>
     </plurals>
-
     <!-- Home -->
     <string name="history">Histórico</string>
     <string name="progress_percent">%s%%</string>
     <string name="stats">Estatísticas</string>
     <string name="mood_and_genres">Humor e Gêneros</string>
     <string name="podcasts">Podcasts</string>
-    <string name="mixes">Mixes</string>
+    <string name="mixes">Misturas</string>
     <string name="account">Conta</string>
     <string name="quick_picks">Escolhas rápidas</string>
     <string name="quick_picks_empty">Ouça músicas para gerar suas escolhas rápidas</string>
@@ -44,7 +40,6 @@
     <string name="charts">Paradas</string>
     <string name="trending">Em alta</string>
     <string name="trending_now">Em alta agora</string>
-
     <!-- Search -->
     <string name="search_yt_music">Buscar no YouTube Music…</string>
     <string name="search_library">Buscar na biblioteca…</string>
@@ -56,27 +51,23 @@
     <string name="filter_videos">Vídeos</string>
     <string name="filter_albums">Álbuns</string>
     <string name="filter_artists">Artistas</string>
-    <string name="filter_playlists">Playlists</string>
+    <string name="filter_playlists">Listas de reprodução</string>
     <string name="filter_community_playlists">Playlists da comunidade</string>
     <string name="filter_featured_playlists">Playlists em destaque</string>
     <string name="no_results_found">Nenhum resultado encontrado</string>
-
     <!-- Library -->
     <string name="library_song_empty">Músicas da biblioteca aparecerão aqui</string>
     <string name="library_artist_empty">Artistas da biblioteca aparecerão aqui</string>
     <string name="library_album_empty">Álbuns da biblioteca aparecerão aqui</string>
     <string name="library_playlist_empty">Suas playlists aparecerão aqui</string>
-
     <!-- Artist screen -->
     <string name="from_your_library">Da sua biblioteca</string>
     <string name="radio">Rádio</string>
     <string name="about_artist">Sobre o artista</string>
     <string name="subscribed">Inscrito</string>
     <string name="subscribe">Inscrever-se</string>
-
     <!-- Album screen -->
     <string name="other_versions">Outras versões</string>
-
     <!-- Playlist -->
     <string name="liked_songs">Músicas curtidas</string>
     <string name="downloaded_songs">Músicas baixadas</string>
@@ -93,7 +84,6 @@
     <string name="not_logged_in_youtube">Não logado no YouTube</string>
     <string name="sync_disabled">Sincronização desativada</string>
     <string name="playlist_add_local_to_synced_note">Adicionar músicas locais a playlists sincronizadas não é suportado</string>
-
     <!-- Button -->
     <string name="retry">Tentar novamente</string>
     <string name="shuffle">Aleatório</string>
@@ -132,7 +122,6 @@
     <string name="copy">Copiar</string>
     <string name="copy_link">Copiar link</string>
     <string name="copy_code">Copiar código</string>
-
     <!-- Menu -->
     <string name="details">Detalhes</string>
     <string name="start_radio">Iniciar rádio</string>
@@ -163,7 +152,6 @@
     <string name="advanced_desc">Configurações de áudio avançadas</string>
     <string name="resync">ressincronizar</string>
     <string name="manage_user">Gerenciar usuário</string>
-
     <!-- Sort menu -->
     <string name="sort_by_create_date">Data de adição</string>
     <string name="sort_by_name">Nome</string>
@@ -174,11 +162,10 @@
     <string name="sort_by_play_time">Tempo de reprodução</string>
     <string name="sort_by_custom">Ordem customizada</string>
     <string name="sort_by_last_updated">Última atualização</string>
-
     <!-- Dialog -->
     <string name="media_id">ID da mídia</string>
     <string name="mime_type">Tipo MIME</string>
-    <string name="codecs">Codecs</string>
+    <string name="codecs">Codificadores</string>
     <string name="bitrate">Taxa de bits</string>
     <string name="sample_rate">Taxa de amostragem</string>
     <string name="loudness">Volume</string>
@@ -195,16 +182,13 @@
     <string name="views">Visualizações</string>
     <string name="likes">Curtidas</string>
     <string name="dislikes">Não curtidas</string>
-
     <string name="edit_lyrics">Editar letras</string>
     <string name="search_lyrics">Buscar letras</string>
-
     <string name="edit_song">Editar música</string>
     <string name="song_title">Título da música</string>
     <string name="song_artists">Artistas da música</string>
     <string name="error_song_title_empty">O título da música não pode estar vazio.</string>
     <string name="error_song_artist_empty">O artista da música não pode estar vazio.</string>
-
     <string name="choose_playlist">Escolher playlist</string>
     <string name="edit_playlist">Editar playlist</string>
     <string name="create_playlist">Criar playlist</string>
@@ -213,17 +197,14 @@
     <string name="edit_playlist_cover">Editar capa da playlist</string>
     <string name="edit_playlist_cover_note">Escolha uma imagem da sua biblioteca</string>
     <string name="edit_playlist_cover_note_wait">Escolhendo imagem…</string>
-
     <string name="edit_artist">Editar artista</string>
     <string name="artist_name">Nome do artista</string>
     <string name="error_artist_name_empty">O nome do artista não pode estar vazio.</string>
-
     <string name="duplicates">Duplicatas</string>
     <string name="skip_duplicates">Pular duplicatas</string>
     <string name="add_anyway">Adicionar mesmo assim</string>
     <string name="duplicates_description_single">A música já está na sua playlist</string>
     <string name="duplicates_description_multiple">%d músicas já estão na sua playlist</string>
-
     <!-- Noun -->
     <plurals name="n_song">
         <item quantity="one">%d música</item>
@@ -265,14 +246,12 @@
         <item quantity="one">1 minuto</item>
         <item quantity="other">%d minutos</item>
     </plurals>
-
     <!-- Snackbar -->
     <string name="playlist_imported">Playlist importada</string>
     <string name="removed_song_from_playlist">Removido \"%s\" da playlist</string>
     <string name="playlist_synced">Playlist sincronizada</string>
     <string name="undo">Desfazer</string>
     <string name="already_in_playlist">Já está na playlist</string>
-
     <!-- Player -->
     <string name="lyrics_not_found">Letra não encontrada</string>
     <string name="sleep_timer">Timer de sono</string>
@@ -285,7 +264,6 @@
     <string name="error_playback_failed">Falha na reprodução</string>
     <string name="no_song_playing">Nenhuma música reproduzindo</string>
     <string name="tap_to_open">Toque para abrir</string>
-
     <!-- Player action -->
     <string name="action_like">Curtir</string>
     <string name="action_like_all">Curtir todas</string>
@@ -296,12 +274,10 @@
     <string name="repeat_mode_off">Repetição desativada</string>
     <string name="repeat_mode_one">Repetir música atual</string>
     <string name="repeat_mode_all">Repetir fila</string>
-
     <!-- Queue Title -->
     <string name="queue">Fila</string>
     <string name="queue_all_songs">Todas as músicas</string>
     <string name="queue_searched_songs">Músicas buscadas</string>
-
     <!-- Notification name -->
     <string name="music_player">AuraMusic</string>
     <string name="widget_music_player">Player de Música</string>
@@ -311,7 +287,6 @@
     <string name="widget_play_pause">Reproduzir/Pausar</string>
     <string name="widget_like_button">Curtir</string>
     <string name="widget_progress_fill">Progresso</string>
-
     <!-- Settings -->
     <string name="settings">Configurações</string>
     <string name="appearance">Aparência</string>
@@ -328,7 +303,7 @@
     <string name="dark_theme_follow_system">Seguir sistema</string>
     <string name="pure_black">Preto puro</string>
     <string name="customize_navigation_tabs">Personalizar abas de navegação</string>
-    <string name="player">Player</string>
+    <string name="player">Reprodutor</string>
     <string name="player_text_alignment">Alinhamento do texto do player</string>
     <string name="lyrics_text_position">Posição do texto da letra</string>
     <string name="sided">Lado</string>
@@ -375,7 +350,7 @@
         <item quantity="other">%d vezes</item>
     </plurals>
     <string name="none">Nenhum</string>
-    <string name="fade">Fade</string>
+    <string name="fade">Desvanecimento</string>
     <string name="glow">Brilho</string>
     <string name="slide">Deslizar</string>
     <string name="karaoke">Karaokê</string>
@@ -386,14 +361,13 @@
     <string name="lyrics_auto_scroll">Rolagem automática da letra</string>
     <string name="auto_scroll">Rolagem automática</string>
     <string name="lyrics_offset">Offset da letra</string>
-
     <!-- Appearance settings -->
     <string name="settings_section_ui">Interface</string>
     <string name="settings_section_player_content">Player e Conteúdo</string>
     <string name="settings_section_privacy">Privacidade</string>
     <string name="settings_section_storage">Armazenamento</string>
     <string name="settings_section_system">Sistema</string>
-    <string name="mini_player">Mini player</string>
+    <string name="mini_player">Mini reprodutor</string>
     <string name="new_mini_player_design">Novo design do mini player</string>
     <string name="pure_black_mini_player">Mini player preto puro</string>
     <string name="new_player_design">Novo design do player</string>
@@ -413,7 +387,6 @@
     <string name="font">Fonte</string>
     <string name="about">Sobre</string>
     <string name="general">Geral</string>
-
     <!-- Content settings -->
     <string name="content">Conteúdo</string>
     <string name="action_logout">Sair</string>
@@ -465,7 +438,6 @@
     <string name="weeks">Semanas</string>
     <string name="months">Meses</string>
     <string name="years">Anos</string>
-
     <!-- Lyrics -->
     <string name="enable_lrclib">Ativar provedor LrcLib</string>
     <string name="enable_kugou">Ativar KuGou</string>
@@ -481,7 +453,6 @@
     <string name="lyrics_provider_priority_desc">Arraste para reordenar provedores</string>
     <string name="confirm">Confirmar</string>
     <string name="show_wrapped_card">Mostrar cartão Wrapped</string>
-
     <!-- Player and audio -->
     <string name="player_and_audio">Player e áudio</string>
     <string name="audio_offload_description">Usar decodificação de áudio por hardware quando possível</string>
@@ -498,13 +469,13 @@
     </plurals>
     <string name="audio_quality_high">Alta</string>
     <string name="audio_quality_low">Baixa</string>
-    <string name="crossfade">Crossfade</string>
+    <string name="crossfade">Transição cruzada</string>
     <string name="crossfade_desc">Fade entre músicas</string>
     <string name="crossfade_duration">Duração do crossfade</string>
     <string name="crossfade_gapless">Reprodução sem intervalos</string>
     <string name="crossfade_gapless_desc">Reduzir silêncio entre faixas</string>
     <string name="crossfade_beta_message">Crossfade está em beta. Se encontrar problemas, por favor relate.</string>
-    <string name="crossfade_beta_title">Crossfade (Beta)</string>
+    <string name="crossfade_beta_title">Transição cruzada (Beta)</string>
     <string name="enable">Ativar</string>
     <string name="history_duration">Duração do histórico</string>
     <string name="skip_silence">Pular silêncio</string>
@@ -515,7 +486,7 @@
     <string name="audio_offload">Offload de áudio</string>
     <string name="audio_offload_desc">Usar decodificação de áudio por hardware quando possível</string>
     <string name="audio_offload_disabled_by_crossfade">Desativado por crossfade</string>
-    <string name="google_cast">Google Cast</string>
+    <string name="google_cast">Transmitir com Google Cast</string>
     <string name="google_cast_desc">Ativar suporte ao Google Cast</string>
     <string name="seek_seconds_addup">Botões de busca somam</string>
     <string name="seek_seconds_addup_description">Adicionar tempo de busca à posição atual</string>
@@ -540,7 +511,6 @@
     <string name="stop_music_on_task_clear">Parar música ao limpar tarefa</string>
     <string name="pause_music_when_media_is_muted">Pausar música quando mídia está mute</string>
     <string name="keep_screen_on_when_player_is_expanded">Manter tela ligada quando player está expandido</string>
-
     <!-- Storage -->
     <string name="storage">Armazenamento</string>
     <string name="cache">Cache</string>
@@ -561,7 +531,6 @@
     <string name="cache_size_warning_title">Aviso de cache</string>
     <string name="cache_size_warning_message">Seu cache está grande. Considere limpar para liberar espaço.</string>
     <string name="cache_size_warning_confirm">Limpar cache</string>
-
     <!-- Privacy -->
     <string name="privacy">Privacidade</string>
     <string name="listen_history">Histórico de reprodução</string>
@@ -576,7 +545,6 @@
     <string name="use_login_for_browse_desc">Isso pode influenciar o conteúdo que você vê e por exemplo mostra álbuns premium se você estiver logado com conta Premium</string>
     <string name="disable_screenshot">Desativar screenshot</string>
     <string name="disable_screenshot_desc">Quando esta opção está ligada, screenshots e a visualização do app em Recents são desativados.</string>
-
     <!-- Backup and restore -->
     <string name="backup_restore">Backup e restauração</string>
     <string name="action_backup">Backup</string>
@@ -590,7 +558,6 @@
     <string name="importing_csv">Importando CSV…</string>
     <string name="percentage_format">%d%%</string>
     <string name="recently_converted">Recently convertido</string>
-
     <!-- CSV import -->
     <string name="map_csv_columns">Mapear colunas CSV</string>
     <string name="first_row_is_header">Primeira linha é cabeçalho</string>
@@ -598,7 +565,6 @@
     <string name="song_title_column">Coluna título da música</string>
     <string name="youtube_url_column">Coluna URL do YouTube</string>
     <string name="column_label">Coluna %d</string>
-
     <!-- Discord -->
     <string name="discord_integration">Integração Discord</string>
     <string name="discord_information">AuraMusic usa a biblioteca KizzyRPC para definir o status da sua conta Discord. Isso envolve usar a conexão Discord Gateway, que pode ser considerada uma violação dos TOS do Discord. No entanto, não há casos conhecidos de contas de usuários serem suspensas por este motivo. Use por sua própria conta.\nAuraMusic apenas extrairá seu token, e todo o resto é armazenado localmente.</string>
@@ -611,7 +577,6 @@
     <string name="listening_to_metrolist">Ouvindo AuraMusic</string>
     <string name="listen_on_youtube_music">Ouvir no YouTube Music</string>
     <string name="visit_metrolist">Visitar AuraMusic</string>
-
     <!-- Last.fm -->
     <string name="lastfm_integration">Integração Last.fm</string>
     <string name="username">Nome de usuário</string>
@@ -625,7 +590,6 @@
     <string name="scrobble_min_track_duration">Duração mínima da faixa</string>
     <string name="scrobble_delay_percent">Atraso do scrobble</string>
     <string name="scrobble_delay_minutes">Atraso do scrobble (minutos)</string>
-
     <!-- Listen Together -->
     <string name="listen_together">Ouvir Juntos</string>
     <string name="listen_together_in_room">Na sala - toque para abrir</string>
@@ -695,7 +659,6 @@
     <string name="kick_user_desc">Remover este usuário da sala</string>
     <string name="permanently_kick_user_desc">Remover e bloquear este usuário de entrar novamente</string>
     <string name="transfer_ownership_desc">Transferir privilégios de host para outro usuário</string>
-
     <!-- Music Recognition -->
     <string name="recognize_music">Reconhecer música</string>
     <string name="recognition_history">Histórico de reconhecimento</string>
@@ -710,7 +673,6 @@
     <string name="no_match_found">Nenhuma correspondência encontrada</string>
     <string name="try_again">Tentar novamente</string>
     <string name="recognition_error">Erro de reconhecimento</string>
-
     <!-- Error messages -->
     <string name="error_generic">Ocorreu um erro</string>
     <string name="error_network">Erro de rede</string>
@@ -720,7 +682,6 @@
     <string name="error_title">Erro</string>
     <string name="error_eq_apply_failed">Falha ao aplicar configurações do equalizador</string>
     <string name="import_error_title">Erro de importação</string>
-
     <!-- Equalizer -->
     <string name="equalizer_header">Equalizador</string>
     <string name="import_profile">Importar perfil</string>
@@ -729,7 +690,6 @@
     <string name="eq_disabled">Equalizador desativado</string>
     <string name="delete_profile_desc">Excluir este perfil?</string>
     <string name="delete_profile_confirmation">Excluir perfil</string>
-
     <!-- Wrapped -->
     <string name="wrapped_ready_title">Seu %s Wrapped está pronto!</string>
     <string name="wrapped_ready_subtitle">Veja seu mês na música</string>
@@ -738,7 +698,7 @@
     <string name="wrapped_intro_title">Seu mês na música</string>
     <string name="wrapped_intro_subtitle">Descubra suas principais músicas, artistas e mais</string>
     <string name="wrapped_intro_button">Ver meu %s</string>
-    <string name="wrapped_logo_content_description">AuraMusic Wrapped</string>
+    <string name="wrapped_logo_content_description">Resumo AuraMusic</string>
     <string name="wrapped_thank_you">Obrigado por ouvir</string>
     <string name="wrapped_special_thanks">Agradecimento especial a você por apoiar o AuraMusic!</string>
     <string name="wrapped_close">Fechar</string>
@@ -766,7 +726,6 @@
     <string name="wrapped_create_playlist">Criar playlist</string>
     <string name="wrapped_playlist_saved">Playlist salva</string>
     <string name="wrapped_no_data">Nenhum dado disponível</string>
-
     <!-- AI Translation -->
     <string name="ai_lyrics_translation">Tradução de letras por IA</string>
     <string name="ai_translating_lyrics">Traduzindo letras…</string>
@@ -791,7 +750,6 @@
     <string name="ai_auto_translate">Tradução automática</string>
     <string name="ai_language_mismatch">Incompatibilidade de idioma</string>
     <string name="ai_language_mismatch_desc">O idioma das letras é diferente do idioma detectado</string>
-
     <!-- Romanization -->
     <string name="lyrics_romanize_title">Romanizar letras</string>
     <string name="lyrics_romanize_as_main">Usar romanização como letras principais</string>
@@ -814,19 +772,16 @@
     <string name="line_by_line_dialog_title">Linha por linha</string>
     <string name="line_by_line_dialog_desc">Mostrar romanização linha por linha</string>
     <string name="romanize_current_track">Romanizar faixa atual</string>
-
     <!-- Updater -->
     <string name="updater">Atualizador</string>
     <string name="check_for_updates">Verificar atualizações</string>
     <string name="update_notifications">Notificações de atualização</string>
-
     <!-- Changelog -->
-    <string name="changelog">Changelog</string>
+    <string name="changelog">Registro de alterações</string>
     <string name="changelog_empty">Nenhum release ainda</string>
     <string name="view_on_github">Ver no GitHub</string>
     <string name="github_releases_url">https://github.com/TeamAuraMusic/AuraMusic/releases</string>
     <string name="list_bullet">•</string>
-
     <!-- Theme colors -->
     <string name="palette_dynamic">Dinâmico</string>
     <string name="palette_crimson">Carmesim</string>
@@ -848,7 +803,6 @@
     <string name="palette_brown">Marrom</string>
     <string name="palette_grey">Cinza</string>
     <string name="palette_blue_grey">Cinza azulado</string>
-
     <!-- Theme mode -->
     <string name="cd_pure_black_mode">Modo preto puro</string>
     <string name="cd_light_mode">Modo claro</string>
@@ -856,10 +810,8 @@
     <string name="cd_system_mode">Modo sistema</string>
     <string name="cd_palette_item">Item da paleta de cores</string>
     <string name="cd_back">Voltar</string>
-
     <!-- Release notes -->
     <string name="release_notes">Notas de release</string>
-
     <!-- Crash reporter -->
     <string name="crash_title">AuraMusic travou</string>
     <string name="crash_description">Ocorreu um erro inesperado</string>
@@ -868,10 +820,21 @@
     <string name="crash_share_title">Compartilhar relatório de crash</string>
     <string name="crash_close">Fechar app</string>
     <string name="crash_share_logs">Compartilhar logs</string>
-
     <!-- Download descriptions -->
     <string name="download_desc">Baixar %s</string>
     <string name="download_playlist_desc">Baixar todas as músicas da playlist</string>
     <string name="download_in_progress_desc">Download em progresso</string>
     <string name="remove_download_playlist_desc">Remover músicas baixadas</string>
+    <string name="app_name_tv">AuraMúsica Tv</string>
+    <string name="speed_dial">Acesso rápido</string>
+    <string name="from_the_community">Da comunidade</string>
+    <string name="wrapped_top_album_title">Álbum Top</string>
+    <string name="wrapped_top_5_albums_title">Top 5 álbuns</string>
+    <string name="wrapped_artist_listening_time">%d minutos)</string>
+    <string name="top_music_videos">Top vídeos musicais</string>
+    <string name="today">Hoje</string>
+    <string name="yesterday">Ontem</string>
+    <string name="this_week">Esta semana</string>
+    <string name="last_week">Semana passada</string>
+    <string name="local_history">Histórico local</string>
 </resources>
