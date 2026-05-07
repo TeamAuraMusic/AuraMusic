@@ -1,0 +1,15 @@
+Aura Music es un reproductor de música de código abierto que te deja escuchar música directamente desde YouTube Music.
+
+Funciones:
+- Música directamente desde YouTube Music
+- Soporte para la visualización de videos.
+- Visualización de letras y traducciones. 
+- Configuración de la calidad de audio .
+- Reproducción en segundo plano.
+- Gestión de colas.
+- Búsqueda de canciones
+- Navegación entre los álbumes y artistas. 
+
+Ésta es la versión FOSS (Gratis y de Código Abierto), compatible con F-Droid. No incluye dependencias de Servicios de Google Play.
+
+Licenciado bajo GPL‐3.0

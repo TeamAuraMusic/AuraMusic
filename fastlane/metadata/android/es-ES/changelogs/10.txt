@@ -1,0 +1,4 @@
+- Lanzamiento inicial en F-Droid
+- Soporte para la reproducción de video
+- Visualización de letras y traducciones
+- Escucha música desde YouTube Music
