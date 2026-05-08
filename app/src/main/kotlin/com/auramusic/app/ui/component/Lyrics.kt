@@ -963,19 +963,16 @@ fun Lyrics(
                             currentPlaybackPosition - introLyricsOffset
                         val gapStartMs = 0L
                         val gapEndMs = introFirstVocalLine.time
-                        val visible = isAutoScrollEnabled &&
-                            introEffectivePosition >= gapStartMs &&
-                            introEffectivePosition <= gapEndMs
-                        if (visible) {
-                            IntroWavyIndicator(
-                                gapStartMs = gapStartMs,
-                                gapEndMs = gapEndMs,
-                                currentPositionMs = introEffectivePosition,
-                                visible = visible,
-                                color = expressiveAccent,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
+                        val visible = introEffectivePosition >= gapStartMs &&
+                            introEffectivePosition <= gapEndMs - 650L
+                        IntroWavyIndicator(
+                            gapStartMs = gapStartMs,
+                            gapEndMs = gapEndMs - 650L,
+                            currentPositionMs = introEffectivePosition,
+                            visible = visible,
+                            color = expressiveAccent,
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 }
             }
@@ -2149,22 +2146,24 @@ private fun IntroWavyIndicator(
     currentPositionMs: Long,
     visible: Boolean,
     color: Color,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     val alpha = remember { Animatable(0f) }
-    val rowHeight = remember { Animatable(0f) }
+    val rowHeightPx = remember { Animatable(0f) }
 
     LaunchedEffect(visible) {
         if (visible) {
-            alpha.animateTo(1f, animationSpec = tween(durationMillis = 200))
-            rowHeight.animateTo(1f, animationSpec = tween(durationMillis = 200))
+            rowHeightPx.animateTo(1f, tween(200))
+            alpha.animateTo(1f, tween(200))
         } else {
-            alpha.animateTo(0f, animationSpec = tween(durationMillis = 200))
-            rowHeight.animateTo(0f, animationSpec = tween(durationMillis = 200))
+            alpha.animateTo(0f, tween(200))
+            rowHeightPx.animateTo(0f, tween(200))
         }
     }
 
-    val targetHeight = 72.dp
+    val density = LocalDensity.current
+    val targetHeightDp = 72.dp
+
     val progress = if (gapEndMs > gapStartMs) {
         ((currentPositionMs - gapStartMs).toFloat() / (gapEndMs - gapStartMs).toFloat()).coerceIn(0f, 1f)
     } else 0f
@@ -2172,14 +2171,17 @@ private fun IntroWavyIndicator(
     val animatedProgress by animateFloatAsState(
         targetValue = progress,
         animationSpec = tween(durationMillis = 100, easing = LinearEasing),
-        label = "introProgress"
+        label = "intervalProgress"
     )
 
     Box(
         modifier = modifier
-            .height(targetHeight * rowHeight.value)
-            .padding(top = 16.dp * rowHeight.value)
-            .graphicsLayer { this.alpha = alpha.value },
+            .height(targetHeightDp * rowHeightPx.value)
+            .padding(top = 16.dp * rowHeightPx.value)
+            .graphicsLayer {
+                this.alpha = alpha.value
+                this.clip = true
+            },
         contentAlignment = Alignment.Center
     ) {
         CircularWavyProgressIndicator(
