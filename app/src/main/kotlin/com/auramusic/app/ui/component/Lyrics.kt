@@ -1,9 +1,10 @@
 /**
- * AuraMusic Project (C) 2026
+ * Auramusic Project (C) 2026
  * Licensed under GPL-3.0. See LICENSE file for details.
  */
 
 package com.auramusic.app.ui.component
+
 
 import android.annotation.SuppressLint
 import android.app.Activity
@@ -177,7 +178,6 @@ import com.auramusic.app.lyrics.LyricsUtils.romanizeChinese
 import com.auramusic.app.lyrics.LyricsUtils.romanizeCyrillic
 import com.auramusic.app.lyrics.LyricsUtils.romanizeJapanese
 import com.auramusic.app.lyrics.LyricsUtils.romanizeKorean
-import com.auramusic.app.lyrics.LyricsUtils.romanizeChinese
 import com.auramusic.app.lyrics.LyricsTranslationHelper
 import com.auramusic.app.ui.component.shimmer.ShimmerHost
 import com.auramusic.app.ui.component.shimmer.TextPlaceholder
@@ -193,6 +193,35 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.time.Duration.Companion.seconds
+
+/**
+ * Resolves a [FontFamily] from a user-provided font URI string. Falls back to the
+ * default font family if the URI is blank or the font cannot be loaded.
+ *
+ * The URI is expected to point to a TTF/OTF file accessible to the app (typically
+ * obtained through ACTION_OPEN_DOCUMENT with persistable URI permissions).
+ */
+@Composable
+fun rememberLyricsFontFamily(uriString: String): FontFamily? {
+    if (uriString.isBlank()) return null
+    val context = LocalContext.current
+    return remember(uriString) {
+        try {
+            val uri = android.net.Uri.parse(uriString)
+            val cacheFile = java.io.File(context.cacheDir, "lyrics_font_${uriString.hashCode()}.ttf")
+            if (!cacheFile.exists()) {
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    cacheFile.outputStream().use { output -> input.copyTo(output) }
+                } ?: return@remember null
+            }
+            val typeface = android.graphics.Typeface.createFromFile(cacheFile)
+            FontFamily(Typeface(typeface))
+        } catch (e: Exception) {
+            timber.log.Timber.e(e, "Failed to load custom lyrics font: $uriString")
+            null
+        }
+    }
+}
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedBoxWithConstraintsScope", "StringFormatInvalid")
@@ -731,7 +760,7 @@ fun Lyrics(
         if (isSeeking) {
             lastPreviewTime = 0L
         } else if (lastPreviewTime != 0L) {
-            delay(LyricsPreviewTime)
+            delay(2.seconds)
             lastPreviewTime = 0L
         }
     }
@@ -787,12 +816,12 @@ fun Lyrics(
                     performSmoothPageScroll(centerTargetIndex, 1500) // Auto scroll duration
                 }
             }
-        }
-        }
         if(currentLineIndex > 0) {
             shouldScrollToFirstLine = true
         }
         previousLineIndex = currentLineIndex
+        }
+        }
     }
 
     BoxWithConstraints(
@@ -964,6 +993,9 @@ fun Lyrics(
                     }
                 })
         ) {
+            val lyricsOffset = currentSong?.song?.lyricsOffset?.toLong() ?: 0L
+            val effectivePlaybackPosition = currentPlaybackPosition - lyricsOffset
+
             val displayedCurrentLineIndex = if (!isAutoScrollEnabled) {
                 currentLineIndex
             } else {
@@ -986,10 +1018,6 @@ fun Lyrics(
             }
 
 
-                }
-            }
-
-            if (lyrics == null) {
                 item {
                     ShimmerHost {
                         repeat(10) {
@@ -1008,20 +1036,17 @@ fun Lyrics(
                         }
                     }
                 }
-            } else {
-                val lyricsOffset = currentSong?.song?.lyricsOffset?.toLong() ?: 0L
-                val effectivePlaybackPosition = currentPlaybackPosition - lyricsOffset
 
                 itemsIndexed(
                     items = displayLines,
-                    key = { index, item ->
+                    key = { index: Int, item: LyricsEntry ->
                         when {
                             enhancedLyrics && item.isIntervalIndicator -> "interval-$index-${item.intervalGapStart}-${item.intervalGapEnd}"
                             item.isInstrumental -> "instrumental-$index-${item.time}"
                             else -> "line-$index-${item.time}"
                         }
                     }
-                ) { index, item ->
+                ) { index: Int, item: LyricsEntry ->
                     val isSelected = selectedIndices.contains(index)
                     val itemModifier = Modifier
                         .fillMaxWidth()
@@ -1080,7 +1105,7 @@ fun Lyrics(
                                     isSelectionModeActive = true
                                     selectedIndices.add(index)
                                 } else if (!isSelected && selectedIndices.size < maxSelectionLimit) {
-                                    // If already in selection mode and item not selected, add it if below limit
+                                    // If already at limit, show toast
                                     selectedIndices.add(index)
                                 } else if (!isSelected) {
                                     // If already at limit, show toast
@@ -1108,8 +1133,7 @@ fun Lyrics(
                             color = expressiveAccent,
                             modifier = Modifier.fillMaxWidth()
                         )
-                        return@itemsIndexed
-                    }
+                    } else {
 
                     // Check if this line shares the same time as the currently active line
                     // This enables synchronized word-by-word animation for both main and background vocals
@@ -2087,7 +2111,12 @@ fun Lyrics(
                                         putExtra(Intent.EXTRA_STREAM, uri)
                                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                     }
-                                    context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.share_lyrics)))
+                                    context.startActivity(
+                                        Intent.createChooser(
+                                            shareIntent,
+                                            context.getString(R.string.share_lyrics)
+                                        )
+                                    )
                                 } catch (e: Exception) {
                                     Toast.makeText(context, context.getString(R.string.failed_to_create_image, e.message), Toast.LENGTH_SHORT).show()
                                 } finally {
@@ -2104,6 +2133,8 @@ fun Lyrics(
         }
     }
 }
+}
+}
 
 /**
  * Compact "instrumental" indicator inserted between two lyric lines that are
@@ -2111,7 +2142,7 @@ fun Lyrics(
  * progress bar that fills as the silence elapses.
  */
 @Composable
-private fun InstrumentalIndicator(
+fun InstrumentalIndicator(
     modifier: Modifier,
     color: Color,
     progress: Float,
@@ -2170,7 +2201,7 @@ private fun InstrumentalIndicator(
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun IntervalIndicator(
+fun IntervalIndicator(
     gapStartMs: Long,
     gapEndMs: Long,
     currentPositionMs: Long,
@@ -2225,40 +2256,11 @@ private fun IntervalIndicator(
     }
 }
 
-/**
- * Resolves a [FontFamily] from a user-provided font URI string. Falls back to the
- * default font family if the URI is blank or the font cannot be loaded.
- *
- * The URI is expected to point to a TTF/OTF file accessible to the app (typically
- * obtained through ACTION_OPEN_DOCUMENT with persistable URI permissions).
- */
-@Composable
-fun rememberLyricsFontFamily(uriString: String): FontFamily? {
-    if (uriString.isBlank()) return null
-    val context = LocalContext.current
-    return remember(uriString) {
-        try {
-            val uri = android.net.Uri.parse(uriString)
-            val cacheFile = java.io.File(context.cacheDir, "lyrics_font_${uriString.hashCode()}.ttf")
-            if (!cacheFile.exists()) {
-                context.contentResolver.openInputStream(uri)?.use { input ->
-                    cacheFile.outputStream().use { output -> input.copyTo(output) }
-                } ?: return@remember null
-            }
-            val typeface = android.graphics.Typeface.createFromFile(cacheFile)
-            FontFamily(Typeface(typeface))
-        } catch (e: Exception) {
-            timber.log.Timber.e(e, "Failed to load custom lyrics font: $uriString")
-            null
-        }
-    }
-}
-
 // Professional page animation constants - slower for smoothness
-private const val AUTO_SCROLL_DURATION = 1500L // Much slower auto-scroll for smooth transitions
-private const val INITIAL_SCROLL_DURATION = 1000L // Slower initial positioning
-private const val SEEK_DURATION = 800L // Slower user interaction
-private const val FAST_SEEK_DURATION = 600L // Less aggressive seeking
+const val AUTO_SCROLL_DURATION = 1500L // Much slower auto-scroll for smooth transitions
+const val INITIAL_SCROLL_DURATION = 1000L // Slower initial positioning
+const val SEEK_DURATION = 800L // Slower user interaction
+const val FAST_SEEK_DURATION = 600L // Less aggressive seeking
 
 // Lyrics constants
-val LyricsPreviewTime = 2.seconds
+// val LyricsPreviewTime = 2.seconds // removed, used inline
