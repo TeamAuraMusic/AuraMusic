@@ -68,6 +68,7 @@ import com.auramusic.app.constants.CropAlbumArtKey
 import com.auramusic.app.constants.DefaultOpenTabKey
 import com.auramusic.app.constants.DynamicThemeKey
 import com.auramusic.app.constants.EnableDynamicIconKey
+import com.auramusic.app.constants.EnhancedLyricsKey
 import com.auramusic.app.constants.EnableHighRefreshRateKey
 import com.auramusic.app.constants.GridItemSize
 import com.auramusic.app.constants.GridItemsSizeKey
@@ -234,6 +235,7 @@ fun AppearanceSettings(
     val (instrumentalGapMs, onInstrumentalGapMsChange) = rememberPreference(LyricsInstrumentalGapMsKey, defaultValue = 5000)
     val (connectedLines, onConnectedLinesChange) = rememberPreference(LyricsConnectedLinesKey, defaultValue = true)
     val (customFontUri, onCustomFontUriChange) = rememberPreference(LyricsCustomFontUriKey, defaultValue = "")
+    val (enhancedLyrics, onEnhancedLyricsChange) = rememberPreference(EnhancedLyricsKey, defaultValue = false)
 
     val (karaokeModeEnabled, onKaraokeModeEnabledChange) = rememberPreference(KaraokeModeKey, false)
     val (karaokeVocalSuppression, onKaraokeVocalSuppressionChange) = rememberPreference(KaraokeVocalSuppressionKey, 1.0f)
@@ -1471,6 +1473,27 @@ fun AppearanceSettings(
                         )
                     },
                     onClick = { onLyricsGlowEffectChange(!lyricsGlowEffect) }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.lyrics),
+                    title = { Text(stringResource(R.string.enhanced_lyrics)) },
+                    description = { Text(stringResource(R.string.enhanced_lyrics_desc)) },
+                    trailingContent = {
+                        Switch(
+                            checked = enhancedLyrics,
+                            onCheckedChange = onEnhancedLyricsChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (enhancedLyrics) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = { onEnhancedLyricsChange(!enhancedLyrics) }
                 ),
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.lyrics),

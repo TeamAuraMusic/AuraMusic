@@ -434,6 +434,8 @@
     <string name="karaoke_vocal_suppression">Vocal suppression strength</string>
     <string name="lyrics_glow_effect">Lyrics glow effect</string>
     <string name="lyrics_glow_effect_desc">Enable glow effect on current lyric line</string>
+    <string name="enhanced_lyrics">Enhanced lyrics</string>
+    <string name="enhanced_lyrics_desc">Enable enhanced lyrics with intro wavy indicator and gap indicators</string>
     <string name="lyrics_click_change">Lyrics click to change</string>
     <string name="lyrics_auto_scroll">Lyrics auto scroll</string>
     <string name="auto_scroll">Auto scroll</string>

@@ -133,6 +133,7 @@ import com.auramusic.app.constants.LyricsClickKey
 import com.auramusic.app.constants.LyricsConnectedLinesKey
 import com.auramusic.app.constants.LyricsCustomFontUriKey
 import com.auramusic.app.constants.LyricsGlowEffectKey
+import com.auramusic.app.constants.EnhancedLyricsKey
 import com.auramusic.app.constants.LyricsInstrumentalGapMsKey
 import com.auramusic.app.constants.LyricsLineSpacingKey
 import com.auramusic.app.constants.LyricsRomanizeBelarusianKey
@@ -232,6 +233,7 @@ fun Lyrics(
     val romanizeCyrillicByLine by rememberPreference(LyricsRomanizeCyrillicByLineKey, false)
     val romanizeChineseLyrics by rememberPreference(LyricsRomanizeChineseKey, true)
     val lyricsGlowEffect by rememberPreference(LyricsGlowEffectKey, false)
+    val enhancedLyrics by rememberPreference(EnhancedLyricsKey, false)
     val lyricsAnimationStyle by rememberEnumPreference(LyricsAnimationStyleKey, LyricsAnimationStyle.NONE)
     val baseLyricsTextSize by rememberPreference(LyricsTextSizeKey, 24f)
     val lyricsTextSize = if (karaokeModeEnabled) (baseLyricsTextSize * 1.5f).coerceAtMost(48f) else baseLyricsTextSize
@@ -431,8 +433,39 @@ fun Lyrics(
 
     // Insert pseudo "instrumental" entries between lines whose gap is large
     // enough. Disabled when [instrumentalGapMs] <= 0 or for unsynced lyrics.
-    val displayLines = remember(lines, instrumentalGapMs, isSynced) {
-        if (!isSynced || instrumentalGapMs <= 0 || lines.size < 2) {
+    val displayLines = remember(lines, instrumentalGapMs, isSynced, enhancedLyrics) {
+        if (enhancedLyrics) {
+            // Enhanced lyrics: create interval indicators for gaps > 4 seconds
+            buildList {
+                val allLines = if (lines.isNotEmpty()) {
+                    listOf(LyricsEntry.HEAD_LYRICS_ENTRY) + lines
+                } else {
+                    emptyList()
+                }
+
+                for (i in allLines.indices) {
+                    val entry = allLines[i]
+                    if (entry.text.isNotBlank()) {
+                        add(entry)
+                    }
+                    if (i < allLines.size - 1) {
+                        val nextEntry = allLines[i + 1]
+                        val gap = nextEntry.time - entry.time
+                        if (gap > 4000L) {
+                            add(
+                                LyricsEntry(
+                                    time = entry.time,
+                                    text = "",
+                                    isIntervalIndicator = true,
+                                    intervalGapStart = entry.time,
+                                    intervalGapEnd = nextEntry.time
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+        } else if (!isSynced || instrumentalGapMs <= 0 || lines.size < 2) {
             lines
         } else {
             buildList {
@@ -952,28 +985,7 @@ fun Lyrics(
                 }
             }
 
-            // Intro wavy circular progress indicator before first vocal line
-            if (isSynced && lyrics != null) {
-                val introFirstVocalLine = displayLines.firstOrNull { !it.isInstrumental }
-                if (introFirstVocalLine != null && introFirstVocalLine.time > 500L) {
-                    item(key = "intro_wavy_indicator") {
-                        val introLyricsOffset =
-                            currentSong?.song?.lyricsOffset?.toLong() ?: 0L
-                        val introEffectivePosition =
-                            currentPlaybackPosition - introLyricsOffset
-                        val gapStartMs = 0L
-                        val gapEndMs = introFirstVocalLine.time
-                        val visible = introEffectivePosition >= gapStartMs &&
-                            introEffectivePosition <= gapEndMs - 650L
-                        IntroWavyIndicator(
-                            gapStartMs = gapStartMs,
-                            gapEndMs = gapEndMs - 650L,
-                            currentPositionMs = introEffectivePosition,
-                            visible = visible,
-                            color = expressiveAccent,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
+
                 }
             }
 
@@ -1002,7 +1014,13 @@ fun Lyrics(
 
                 itemsIndexed(
                     items = displayLines,
-                    key = { index, item -> "$index-${item.time}-${if (item.isInstrumental) "i" else "l"}" } // Add stable key
+                    key = { index, item ->
+                        when {
+                            enhancedLyrics && item.isIntervalIndicator -> "interval-$index-${item.intervalGapStart}-${item.intervalGapEnd}"
+                            item.isInstrumental -> "instrumental-$index-${item.time}"
+                            else -> "line-$index-${item.time}"
+                        }
+                    }
                 ) { index, item ->
                     val isSelected = selectedIndices.contains(index)
                     val itemModifier = Modifier
@@ -1077,7 +1095,22 @@ fun Lyrics(
                             else Color.Transparent
                         )
                         .padding(horizontal = 24.dp, vertical = 8.dp)
-                    
+
+                    // Handle interval indicators for enhanced lyrics
+                    if (enhancedLyrics && item.isIntervalIndicator) {
+                        val visible = effectivePlaybackPosition >= item.intervalGapStart &&
+                            effectivePlaybackPosition <= item.intervalGapEnd - 650L
+                        IntervalIndicator(
+                            gapStartMs = item.intervalGapStart,
+                            gapEndMs = item.intervalGapEnd - 650L,
+                            currentPositionMs = effectivePlaybackPosition,
+                            visible = visible,
+                            color = expressiveAccent,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        return@itemsIndexed
+                    }
+
                     // Check if this line shares the same time as the currently active line
                     // This enables synchronized word-by-word animation for both main and background vocals
                     val currentLineTime = if (displayedCurrentLineIndex >= 0 && displayedCurrentLineIndex < displayLines.size) {
@@ -1658,7 +1691,6 @@ fun Lyrics(
                 }
             }
         }
-        } // close ProvideTextStyle
         // Action buttons are now in the bottom bar
         // Removed the more button from bottom - it's now in the top header
     }
@@ -2070,7 +2102,6 @@ fun Lyrics(
                 }
             }
         }
-        } // إغلاق else block
     }
 }
 
@@ -2134,13 +2165,12 @@ private fun InstrumentalIndicator(
 }
 
 /**
- * Intro wavy circular progress indicator displayed once at the very top of
- * the lyrics list, before the first vocal line is highlighted. Uses Material
- * 3 Expressive's CircularWavyProgressIndicator.
+ * Interval indicator for enhanced lyrics - shows wavy circular progress indicator
+ * between lyrics lines when there's a gap > 4 seconds.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun IntroWavyIndicator(
+private fun IntervalIndicator(
     gapStartMs: Long,
     gapEndMs: Long,
     currentPositionMs: Long,

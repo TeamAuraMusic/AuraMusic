@@ -22,7 +22,10 @@ data class LyricsEntry(
     val agent: String? = null,
     val isBackground: Boolean = false,
     val isInstrumental: Boolean = false,
-    val endTime: Long = -1L
+    val endTime: Long = -1L,
+    val isIntervalIndicator: Boolean = false,
+    val intervalGapStart: Long = -1L,
+    val intervalGapEnd: Long = -1L
 ) : Comparable<LyricsEntry> {
     override fun compareTo(other: LyricsEntry): Int = (time - other.time).toInt()
 
