@@ -59,6 +59,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.CircularWavyProgressIndicator
+import androidx.compose.material3.WavyProgressIndicatorDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -946,6 +949,31 @@ fun Lyrics(
                             .fillMaxWidth()
                             .padding(horizontal = 12.dp, vertical = 8.dp)
                     )
+                }
+            }
+
+            // Intro wavy circular progress indicator before first vocal line
+            if (isSynced && lyrics != null) {
+                val introFirstVocalLine = displayLines.firstOrNull { !it.isInstrumental }
+                if (introFirstVocalLine != null && introFirstVocalLine.time > 500L) {
+                    item(key = "intro_wavy_indicator") {
+                        val introLyricsOffset =
+                            currentSong?.song?.lyricsOffset?.toLong() ?: 0L
+                        val introEffectivePosition =
+                            currentPlaybackPosition - introLyricsOffset
+                        val gapStartMs = 0L
+                        val gapEndMs = introFirstVocalLine.time
+                        val visible = isAutoScrollEnabled &&
+                            introEffectivePosition in gapStartMs..gapEndMs
+                        IntroWavyIndicator(
+                            gapStartMs = gapStartMs,
+                            gapEndMs = gapEndMs,
+                            currentPositionMs = introEffectivePosition,
+                            visible = visible,
+                            color = expressiveAccent,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
 
@@ -2101,6 +2129,63 @@ private fun InstrumentalIndicator(
                 .width(if (active) 96.dp else 72.dp)
                 .height(3.dp)
                 .clip(RoundedCornerShape(2.dp))
+        )
+    }
+}
+
+/**
+ * Intro wavy circular progress indicator displayed once at the very top of
+ * the lyrics list, before the first vocal line is highlighted. Uses Material
+ * 3 Expressive's CircularWavyProgressIndicator.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun IntroWavyIndicator(
+    gapStartMs: Long,
+    gapEndMs: Long,
+    currentPositionMs: Long,
+    visible: Boolean,
+    color: Color,
+    modifier: Modifier = Modifier,
+) {
+    val alpha = remember { Animatable(0f) }
+    val rowHeight = remember { Animatable(0f) }
+
+    LaunchedEffect(visible) {
+        if (visible) {
+            rowHeight.animateTo(1f, animationSpec = tween(200))
+            alpha.animateTo(1f, animationSpec = tween(200))
+        } else {
+            alpha.animateTo(0f, animationSpec = tween(200))
+            rowHeight.animateTo(0f, animationSpec = tween(200))
+        }
+    }
+
+    val targetHeight = 72.dp
+    val progress = if (gapEndMs > gapStartMs) {
+        ((currentPositionMs - gapStartMs).toFloat() / (gapEndMs - gapStartMs).toFloat()).coerceIn(0f, 1f)
+    } else 0f
+
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress,
+        animationSpec = tween(durationMillis = 100, easing = LinearEasing),
+        label = "introProgress"
+    )
+
+    Box(
+        modifier = modifier
+            .height(targetHeight * rowHeight.value)
+            .padding(top = 16.dp * rowHeight.value)
+            .graphicsLayer { this.alpha = alpha.value },
+        contentAlignment = Alignment.Center
+    ) {
+        CircularWavyProgressIndicator(
+            progress = { animatedProgress },
+            modifier = Modifier
+                .size(36.dp)
+                .alpha(alpha.value),
+            color = color,
+            trackColor = color.copy(alpha = 0.2f),
         )
     }
 }
