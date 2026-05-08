@@ -964,15 +964,18 @@ fun Lyrics(
                         val gapStartMs = 0L
                         val gapEndMs = introFirstVocalLine.time
                         val visible = isAutoScrollEnabled &&
-                            introEffectivePosition in gapStartMs..gapEndMs
-                        IntroWavyIndicator(
-                            gapStartMs = gapStartMs,
-                            gapEndMs = gapEndMs,
-                            currentPositionMs = introEffectivePosition,
-                            visible = visible,
-                            color = expressiveAccent,
-                            modifier = Modifier.fillMaxWidth()
-                        )
+                            introEffectivePosition >= gapStartMs &&
+                            introEffectivePosition <= gapEndMs
+                        if (visible) {
+                            IntroWavyIndicator(
+                                gapStartMs = gapStartMs,
+                                gapEndMs = gapEndMs,
+                                currentPositionMs = introEffectivePosition,
+                                visible = visible,
+                                color = expressiveAccent,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
                     }
                 }
             }
@@ -2153,11 +2156,11 @@ private fun IntroWavyIndicator(
 
     LaunchedEffect(visible) {
         if (visible) {
-            rowHeight.animateTo(1f, animationSpec = tween(200))
-            alpha.animateTo(1f, animationSpec = tween(200))
+            alpha.animateTo(1f, animationSpec = tween(durationMillis = 200))
+            rowHeight.animateTo(1f, animationSpec = tween(durationMillis = 200))
         } else {
-            alpha.animateTo(0f, animationSpec = tween(200))
-            rowHeight.animateTo(0f, animationSpec = tween(200))
+            alpha.animateTo(0f, animationSpec = tween(durationMillis = 200))
+            rowHeight.animateTo(0f, animationSpec = tween(durationMillis = 200))
         }
     }
 
