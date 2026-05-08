@@ -1915,7 +1915,7 @@ fun AppearanceSettings(
             title = stringResource(R.string.fonts),
             items = listOf(
                 Material3SettingsItem(
-                    icon = painterResource(R.drawable.palette),
+                    icon = painterResource(R.drawable.ic_font),
                     title = { Text(stringResource(R.string.app_font)) },
                     description = {
                         Text(
