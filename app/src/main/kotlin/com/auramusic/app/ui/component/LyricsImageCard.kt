@@ -54,6 +54,17 @@ import coil3.request.crossfade
 import com.auramusic.app.R
 import com.auramusic.app.models.MediaMetadata
 
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.graphics.toArgb
+import androidx.palette.graphics.Palette
+import coil3.ImageLoader
+import coil3.request.allowHardware
+import coil3.toBitmap
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
 @Composable
 fun rememberAdjustedFontSize(
     text: String,
@@ -143,6 +154,7 @@ fun LyricsImageCard(
     mediaMetadata: MediaMetadata,
     darkBackground: Boolean = true,
     backgroundColor: Color? = null,
+    backgroundStyle: LyricsBackgroundStyle = LyricsBackgroundStyle.SOLID,
     textColor: Color? = null,
     secondaryTextColor: Color? = null,
     textAlign: TextAlign = TextAlign.Center
@@ -158,7 +170,9 @@ fun LyricsImageCard(
     val padding = 28.dp
     val coverArtSize = 64.dp
 
-    val backgroundGradient = backgroundColor ?: if (darkBackground) Color(0xFF121212) else Color(0xFFF5F5F5)
+    val defaultBgColor = if (darkBackground) Color(0xFF121212) else Color(0xFFF5F5F5)
+    val backgroundSolidColor = backgroundColor ?: defaultBgColor
+
     val mainTextColor = textColor ?: if (darkBackground) Color.White else Color.Black
     val secondaryColor = secondaryTextColor ?: if (darkBackground) Color.White.copy(alpha = 0.7f) else Color.Black.copy(alpha = 0.7f)
 
@@ -169,20 +183,117 @@ fun LyricsImageCard(
             .build()
     )
 
+    // Calculate gradient colors if needed
+    var gradientBrush by remember { mutableStateOf<Brush?>(null) }
+
+    if (backgroundStyle == LyricsBackgroundStyle.GRADIENT) {
+        LaunchedEffect(mediaMetadata.thumbnailUrl) {
+            withContext(Dispatchers.IO) {
+                try {
+                    val loader = ImageLoader(context)
+                    val req = ImageRequest.Builder(context).data(mediaMetadata.thumbnailUrl).allowHardware(false).build()
+                    val result = loader.execute(req)
+                    val bmp = result.image?.toBitmap()
+                    if (bmp != null) {
+                        val palette = Palette.from(bmp).generate()
+                        val vibrant = palette.getVibrantColor(defaultBgColor.toArgb())
+                        val muted = palette.getMutedColor(defaultBgColor.toArgb())
+                        val darkVibrant = palette.getDarkVibrantColor(defaultBgColor.toArgb())
+
+                        val color1 = Color(vibrant)
+                        val color2 = Color(darkVibrant)
+
+                        gradientBrush = Brush.linearGradient(
+                            colors = listOf(color1, color2),
+                            tileMode = TileMode.Clamp
+                        )
+                    }
+                } catch (_: Exception) {}
+            }
+        }
+    }
+
     Box(
         modifier = Modifier
-            .background(backgroundGradient)
+            .background(Color.Black) // Base background
             .fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
+        // Background Layer
+        Box(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            when (backgroundStyle) {
+                LyricsBackgroundStyle.SOLID -> {
+                    Box(modifier = Modifier.fillMaxSize().background(backgroundSolidColor))
+                }
+                LyricsBackgroundStyle.BLUR -> {
+                    Image(
+                        painter = painter,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .blur(50.dp) // High blur for background
+                            .background(Color.Black.copy(alpha = 0.3f)) // Overlay to ensure text readability
+                    )
+                }
+                LyricsBackgroundStyle.GRADIENT -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(gradientBrush ?: androidx.compose.ui.graphics.Brush.linearGradient(listOf(backgroundSolidColor, backgroundSolidColor)))
+                    )
+                }
+            }
+        }
+
         Box(
             modifier = Modifier
-                .size(cardSizeDp)
+                .fillMaxSize()
                 .clip(RoundedCornerShape(cardCornerRadius))
-                .background(backgroundGradient)
-                .border(1.dp, mainTextColor.copy(alpha = 0.09f), RoundedCornerShape(cardCornerRadius)),
-            contentAlignment = Alignment.Center
+                // For the card itself, we can make it slightly transparent or match the background style
+                // but usually the card IS the background cut out.
+                // Here we simulate the card being transparent so the background shows through,
+                // OR we redraw the background inside the card if we want the "card on background" look.
+                // Based on previous code, the card had its own background.
+                // Let's apply the same background logic to the card box.
         ) {
+             when (backgroundStyle) {
+                LyricsBackgroundStyle.SOLID -> {
+                    Box(modifier = Modifier.fillMaxSize().background(backgroundSolidColor))
+                }
+                LyricsBackgroundStyle.BLUR -> {
+                    // For blur, we want the card to be a window to the blurred background?
+                    // Or have its own blurred background?
+                    // Typically "Share Lyrics" looks like a card on a background.
+                    // If we want the card to be seamless with the full image background, we can just use transparent.
+                    // But to ensure it looks like the generated image:
+                    Image(
+                        painter = painter,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .blur(50.dp)
+                            .background(Color.Black.copy(alpha = 0.3f))
+                    )
+                }
+                LyricsBackgroundStyle.GRADIENT -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(gradientBrush ?: androidx.compose.ui.graphics.Brush.linearGradient(listOf(backgroundSolidColor, backgroundSolidColor)))
+                    )
+                }
+            }
+
+            // Border
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .border(1.dp, mainTextColor.copy(alpha = 0.09f), RoundedCornerShape(cardCornerRadius))
+            )
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -298,7 +409,7 @@ fun LyricsImageCard(
                             contentDescription = null,
                             modifier = Modifier
                                 .size(16.dp),
-                            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(backgroundGradient) // الرمز بلون الخلفية
+                            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(backgroundSolidColor) // Try to use a contrasting color, fallback to solid bg color
                         )
                     }
 

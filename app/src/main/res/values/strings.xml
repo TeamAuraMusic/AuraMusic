@@ -393,9 +393,10 @@
     <string name="small">Small</string>
     <string name="big">Big</string>
     <string name="player_background_style">Player background style</string>
+    <string name="player_background_solid">Solid</string>
+    <string name="player_background_blur">Blur</string>
     <string name="follow_theme">Follow theme</string>
     <string name="gradient">Gradient</string>
-    <string name="player_background_blur">Blur</string>
     <string name="liquid_glass_effect">Liquid glass effect</string>
     <string name="liquid_glass_effect_desc">Apple-style frosted glass on mini player and cards</string>
     <string name="liquid_glass_blur_radius">Blur intensity</string>

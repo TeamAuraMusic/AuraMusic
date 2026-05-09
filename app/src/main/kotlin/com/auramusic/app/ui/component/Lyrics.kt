@@ -186,7 +186,7 @@ import com.auramusic.app.ui.screens.settings.DarkMode
 import com.auramusic.app.ui.screens.settings.LyricsPosition
 import com.auramusic.app.ui.utils.fadingEdge
 import com.auramusic.app.utils.ComposeToImage
-import com.auramusic.app.utils.ComposeToImage.BackgroundType
+import com.auramusic.app.ui.component.LyricsBackgroundStyle
 import com.auramusic.app.utils.rememberEnumPreference
 import com.auramusic.app.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
@@ -1924,7 +1924,7 @@ fun Lyrics(
         val (lyricsText, songTitle, artists) = shareDialogData!!
         val coverUrl = mediaMetadata?.thumbnailUrl
         val paletteColors = remember { mutableStateListOf<Color>() }
-        val backgroundType = remember { mutableStateOf(BackgroundType.SOLID) }
+        val backgroundStyle = remember { mutableStateOf(LyricsBackgroundStyle.SOLID) }
 
         val previewCardWidth = configuration.containerDpSize.width * 0.90f
         val previewPadding = 20.dp * 2
@@ -2015,6 +2015,7 @@ fun Lyrics(
                             lyricText = lyricsText,
                             mediaMetadata = mediaMetadata ?: return@Box,
                             backgroundColor = previewBackgroundColor,
+                            backgroundStyle = backgroundStyle.value,
                             textColor = previewTextColor,
                                 secondaryTextColor = previewSecondaryTextColor,
                                 textAlign = lyricsTextAlign
@@ -2072,11 +2073,35 @@ fun Lyrics(
                                     )
                             )
                         }
-                    }
+                        }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
 
-                    Button(
+                        Text(text = stringResource(id = R.string.player_background_style), style = MaterialTheme.typography.titleMedium)
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(vertical = 8.dp),
+                        ) {
+                            LyricsBackgroundStyle.entries.forEach { style ->
+                                val label =
+                                    when (style) {
+                                        LyricsBackgroundStyle.SOLID -> stringResource(R.string.player_background_solid)
+                                        LyricsBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur)
+                                        LyricsBackgroundStyle.GRADIENT -> stringResource(R.string.gradient)
+                                    }
+                                val selected = backgroundStyle.value == style
+
+                                androidx.compose.material3.FilterChip(
+                                    selected = selected,
+                                    onClick = { backgroundStyle.value = style },
+                                    label = { Text(label) },
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Button(
                         onClick = {
                             showColorPickerDialog = false
                             showProgressDialog = true
@@ -2093,15 +2118,15 @@ fun Lyrics(
                                         lyrics = lyricsText,
                                         width = (screenWidth * density.density).toInt(),
                                         height = (screenHeight * density.density).toInt(),
-                                        backgroundColor = previewBackgroundColor.toArgb(),
-                                        textColor = previewTextColor.toArgb(),
-                                        secondaryTextColor = previewSecondaryTextColor.toArgb(),
+                                         backgroundColor = previewBackgroundColor.toArgb(),
+                                         backgroundStyle = backgroundStyle.value,
+                                         textColor = previewTextColor.toArgb(),
+                                         secondaryTextColor = previewSecondaryTextColor.toArgb(),
                                          lyricsAlignment = when (lyricsTextPosition) {
                                              LyricsPosition.LEFT -> Layout.Alignment.ALIGN_NORMAL
                                              LyricsPosition.CENTER -> Layout.Alignment.ALIGN_CENTER
                                              LyricsPosition.RIGHT -> Layout.Alignment.ALIGN_OPPOSITE
-                                         },
-                                         backgroundType = backgroundType.value
+                                         }
                                     )
                                     val timestamp = System.currentTimeMillis()
                                     val filename = "lyrics_$timestamp"
