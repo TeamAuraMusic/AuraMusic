@@ -323,15 +323,15 @@ enum class TvSection(val label: String) {
                          topBarFocusRequester = topBarFocusRequester,
                      )
 
-                     // Set up focus for content screens - focus content when section changes
-                     LaunchedEffect(sectionState.value, currentDestination) {
-                         kotlinx.coroutines.delay(100)
-                         when {
-                             currentDestination != TvDestination.Home -> runCatching { overlayFocusRequester.requestFocus() }
-                             sectionState.value == TvSection.HOME -> runCatching { homeFocusRequester.requestFocus() }
-                             else -> runCatching { detailFocusRequester.requestFocus() }
-                         }
-                     }
+                      // Set up focus for content screens - focus content when section changes
+                      LaunchedEffect(sectionState.value, currentDestination) {
+                          kotlinx.coroutines.delay(100)
+                          when {
+                              currentDestination != TvDestination.Home && currentDestination != TvDestination.Settings -> runCatching { overlayFocusRequester.requestFocus() }
+                              sectionState.value == TvSection.HOME -> runCatching { homeFocusRequester.requestFocus() }
+                              else -> runCatching { detailFocusRequester.requestFocus() }
+                          }
+                      }
 
                      Box(modifier = Modifier.fillMaxSize()) {
                          when (sectionState.value) {
@@ -2613,22 +2613,20 @@ fun TvSettingsScreen(
         listOf(firstItemFocus) + List(7) { FocusRequester() }
     }
 
-    // Re-claim focus on the previously focused item whenever a sub-settings overlay
-    // closes (destination returns to Settings). Without this, when the user
-    // backs out of Account / Appearance / Playback / Content / Updater /
-    // About the focus drifts up to the top nav bar instead of restoring
-    // to the item they were on.
-    val navigator = LocalTvNavigator.current
-    val currentDestination = navigator.current
-    LaunchedEffect(currentDestination) {
-        if (currentDestination == TvDestination.Settings) {
-            // Wait one frame so the previously-focused overlay has fully
-            // released focus before we claim it.
-            kotlinx.coroutines.delay(50)
-            val index = focusedItemIndex.coerceIn(0, allFocusRequesters.size - 1)
-            runCatching { allFocusRequesters[index].requestFocus() }
-        }
+// Re-claim focus on the previously focused item whenever a sub-settings overlay
+// closes (destination returns to Settings). Without this, when the user
+// backs out of Account / Appearance / Playback / Content / Updater /
+// About the focus drifts to the mini player instead of restoring
+// to the item they were on.
+val navigator = LocalTvNavigator.current
+val currentDestination = navigator.current
+LaunchedEffect(currentDestination) {
+    if (currentDestination == TvDestination.Settings) {
+        // Request focus immediately to prevent mini player from stealing it
+        val index = focusedItemIndex.coerceIn(0, allFocusRequesters.size - 1)
+        runCatching { allFocusRequesters[index].requestFocus() }
     }
+}
 
     LaunchedEffect(Unit) {
         runCatching { firstItemFocus.requestFocus() }
