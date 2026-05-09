@@ -477,7 +477,11 @@ fun Lyrics(
                     if (entry.text.isNotBlank()) {
                         add(entry)
                     }
-                    if (i < allLines.size - 1) {
+                    // Only show the intro interval indicator before the first
+                    // real lyric line (between the synthetic HEAD entry and
+                    // the first vocal line). Do not show it between regular
+                    // lyric lines.
+                    if (entry === LyricsEntry.HEAD_LYRICS_ENTRY && i < allLines.size - 1) {
                         val nextEntry = allLines[i + 1]
                         val gap = nextEntry.time - entry.time
                         if (gap > 4000L) {
@@ -1016,26 +1020,6 @@ fun Lyrics(
                     )
                 }
             }
-
-
-                item {
-                    ShimmerHost {
-                        repeat(10) {
-                            Box(
-                                contentAlignment = when (lyricsTextPosition) {
-                                    LyricsPosition.LEFT -> Alignment.CenterStart
-                                    LyricsPosition.CENTER -> Alignment.Center
-                                    LyricsPosition.RIGHT -> Alignment.CenterEnd
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 24.dp, vertical = 4.dp)
-                            ) {
-                                TextPlaceholder()
-                            }
-                        }
-                    }
-                }
 
                 itemsIndexed(
                     items = displayLines,
