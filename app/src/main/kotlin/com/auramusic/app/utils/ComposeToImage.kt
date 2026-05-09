@@ -27,6 +27,7 @@ import androidx.core.graphics.createBitmap
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.withClip
 import androidx.core.graphics.withTranslation
+import androidx.palette.graphics.Palette
 import coil3.ImageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
@@ -39,6 +40,10 @@ import java.io.FileOutputStream
 
 object ComposeToImage {
 
+    enum class BackgroundType {
+        SOLID, GRADIENT, BLUR
+    }
+
     suspend fun createLyricsImage(
         context: Context,
         coverArtUrl: String?,
@@ -50,7 +55,8 @@ object ComposeToImage {
         backgroundColor: Int? = null,
         textColor: Int? = null,
         secondaryTextColor: Int? = null,
-        lyricsAlignment: Layout.Alignment = Layout.Alignment.ALIGN_CENTER
+        lyricsAlignment: Layout.Alignment = Layout.Alignment.ALIGN_CENTER,
+        backgroundType: BackgroundType = BackgroundType.SOLID
     ): Bitmap = withContext(Dispatchers.Default) {
         val cardSize = minOf(width, height) - 32
         val bitmap = createBitmap(cardSize, cardSize)
@@ -64,13 +70,8 @@ object ComposeToImage {
         val mainTextColor = textColor ?: defaultTextColor
         val secondaryTxtColor = secondaryTextColor ?: defaultSecondaryTextColor
 
-        val backgroundPaint = Paint().apply {
-            color = bgColor
-            isAntiAlias = true
-        }
         val cornerRadius = 20f
         val backgroundRect = RectF(0f, 0f, cardSize.toFloat(), cardSize.toFloat())
-        canvas.drawRoundRect(backgroundRect, cornerRadius, cornerRadius, backgroundPaint)
 
         var coverArtBitmap: Bitmap? = null
         if (coverArtUrl != null) {
@@ -84,6 +85,63 @@ object ComposeToImage {
                 val result = imageLoader.execute(request)
                 coverArtBitmap = result.image?.toBitmap()
             } catch (_: Exception) {}
+        }
+
+        when (backgroundType) {
+            BackgroundType.SOLID -> {
+                val backgroundPaint = Paint().apply {
+                    color = bgColor
+                    isAntiAlias = true
+                }
+                canvas.drawRoundRect(backgroundRect, cornerRadius, cornerRadius, backgroundPaint)
+            }
+            BackgroundType.GRADIENT -> {
+                if (coverArtBitmap != null) {
+                    val palette = androidx.palette.graphics.Palette.from(coverArtBitmap).generate()
+                    val dominantColor = palette.getDominantColor(bgColor)
+                    val vibrantColor = palette.getVibrantColor(dominantColor)
+                    val gradientPaint = Paint().apply {
+                        shader = android.graphics.LinearGradient(
+                            0f, 0f, cardSize.toFloat(), cardSize.toFloat(),
+                            dominantColor, vibrantColor,
+                            android.graphics.Shader.TileMode.CLAMP
+                        )
+                        isAntiAlias = true
+                    }
+                    val path = Path().apply {
+                        addRoundRect(backgroundRect, cornerRadius, cornerRadius, Path.Direction.CW)
+                    }
+                    canvas.drawPath(path, gradientPaint)
+                } else {
+                    val backgroundPaint = Paint().apply {
+                        color = bgColor
+                        isAntiAlias = true
+                    }
+                    canvas.drawRoundRect(backgroundRect, cornerRadius, cornerRadius, backgroundPaint)
+                }
+            }
+            BackgroundType.BLUR -> {
+                if (coverArtBitmap != null) {
+                    val scaledBitmap = Bitmap.createScaledBitmap(coverArtBitmap, cardSize, cardSize, true)
+                    val blurPaint = Paint().apply {
+                        isAntiAlias = true
+                        maskFilter = android.graphics.BlurMaskFilter(25f, android.graphics.BlurMaskFilter.Blur.NORMAL)
+                    }
+                    canvas.drawBitmap(scaledBitmap, 0f, 0f, blurPaint)
+                    // Overlay a semi-transparent black for better text readability
+                    val overlayPaint = Paint().apply {
+                        color = 0x80000000.toInt()
+                        isAntiAlias = true
+                    }
+                    canvas.drawRoundRect(backgroundRect, cornerRadius, cornerRadius, overlayPaint)
+                } else {
+                    val backgroundPaint = Paint().apply {
+                        color = bgColor
+                        isAntiAlias = true
+                    }
+                    canvas.drawRoundRect(backgroundRect, cornerRadius, cornerRadius, backgroundPaint)
+                }
+            }
         }
 
         val padding = 32f

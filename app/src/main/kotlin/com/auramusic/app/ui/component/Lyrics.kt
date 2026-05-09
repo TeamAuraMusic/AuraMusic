@@ -57,6 +57,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -185,6 +186,7 @@ import com.auramusic.app.ui.screens.settings.DarkMode
 import com.auramusic.app.ui.screens.settings.LyricsPosition
 import com.auramusic.app.ui.utils.fadingEdge
 import com.auramusic.app.utils.ComposeToImage
+import com.auramusic.app.utils.ComposeToImage.BackgroundType
 import com.auramusic.app.utils.rememberEnumPreference
 import com.auramusic.app.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
@@ -1922,6 +1924,7 @@ fun Lyrics(
         val (lyricsText, songTitle, artists) = shareDialogData!!
         val coverUrl = mediaMetadata?.thumbnailUrl
         val paletteColors = remember { mutableStateListOf<Color>() }
+        val backgroundType = remember { mutableStateOf(BackgroundType.SOLID) }
 
         val previewCardWidth = configuration.containerDpSize.width * 0.90f
         val previewPadding = 20.dp * 2
@@ -2093,11 +2096,12 @@ fun Lyrics(
                                         backgroundColor = previewBackgroundColor.toArgb(),
                                         textColor = previewTextColor.toArgb(),
                                         secondaryTextColor = previewSecondaryTextColor.toArgb(),
-                                        lyricsAlignment = when (lyricsTextPosition) {
-                                            LyricsPosition.LEFT -> Layout.Alignment.ALIGN_NORMAL
-                                            LyricsPosition.CENTER -> Layout.Alignment.ALIGN_CENTER
-                                            LyricsPosition.RIGHT -> Layout.Alignment.ALIGN_OPPOSITE
-                                        }
+                                         lyricsAlignment = when (lyricsTextPosition) {
+                                             LyricsPosition.LEFT -> Layout.Alignment.ALIGN_NORMAL
+                                             LyricsPosition.CENTER -> Layout.Alignment.ALIGN_CENTER
+                                             LyricsPosition.RIGHT -> Layout.Alignment.ALIGN_OPPOSITE
+                                         },
+                                         backgroundType = backgroundType.value
                                     )
                                     val timestamp = System.currentTimeMillis()
                                     val filename = "lyrics_$timestamp"
