@@ -127,7 +127,8 @@ class ProgressState(
 fun MiniPlayer(
     positionState: MutableLongState,
     durationState: MutableLongState,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onHardwareIntegrationClick: (() -> Unit)? = null
 ) {
     val useNewMiniPlayerDesign by rememberPreference(UseNewMiniPlayerDesignKey, true)
     
@@ -137,13 +138,15 @@ fun MiniPlayer(
     if (useNewMiniPlayerDesign) {
         NewMiniPlayer(
             progressState = progressState,
-            modifier = modifier
+            modifier = modifier,
+            onHardwareIntegrationClick = onHardwareIntegrationClick
         )
     } else {
         Box(modifier = modifier.fillMaxWidth()) {
             LegacyMiniPlayer(
                 progressState = progressState,
-                modifier = Modifier.align(Alignment.Center)
+                modifier = Modifier.align(Alignment.Center),
+                onHardwareIntegrationClick = onHardwareIntegrationClick
             )
         }
     }
@@ -156,7 +159,8 @@ fun MiniPlayer(
 @Composable
 private fun NewMiniPlayer(
     progressState: ProgressState,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onHardwareIntegrationClick: (() -> Unit)? = null
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     
@@ -357,6 +361,13 @@ private fun NewMiniPlayer(
                     Spacer(modifier = Modifier.width(12.dp))
                 }
 
+                // Hardware Integration Button - shows smart device ecosystem
+                HardwareIntegrationButton(
+                    onClick = onHardwareIntegrationClick
+                )
+
+                Spacer(modifier = Modifier.width(8.dp))
+
                 // Subscribe button - isolated composable
                 mediaMetadata?.artists?.firstOrNull()?.id?.let { artistId ->
                     SubscribeButton(artistId = artistId, metadata = mediaMetadata!!)
@@ -552,7 +563,8 @@ private fun NewMiniPlayerSongInfo(
 @Composable
 private fun LegacyMiniPlayer(
     progressState: ProgressState,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onHardwareIntegrationClick: (() -> Unit)? = null
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val pureBlack by rememberPreference(PureBlackMiniPlayerKey, defaultValue = false)
@@ -926,12 +938,45 @@ private fun SubscribeButton(
 }
 
 @Composable
+private fun HardwareIntegrationButton(
+    onClick: (() -> Unit)?
+) {
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val outlineColor = MaterialTheme.colorScheme.outline
+    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
+
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .border(
+                width = 1.dp,
+                color = outlineColor.copy(alpha = 0.3f),
+                shape = CircleShape
+            )
+            .background(
+                color = primaryColor.copy(alpha = 0.1f),
+                shape = CircleShape
+            )
+            .clickable(enabled = onClick != null) { onClick?.invoke() }
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.devices),
+            contentDescription = "Hardware Integration",
+            tint = primaryColor,
+            modifier = Modifier.size(20.dp)
+        )
+    }
+}
+
+@Composable
 private fun FavoriteButton(songId: String) {
     val database = LocalDatabase.current
     val playerConnection = LocalPlayerConnection.current ?: return
     val librarySong by database.song(songId).collectAsState(initial = null)
     val isLiked = librarySong?.song?.liked == true
-    
+
     val errorColor = MaterialTheme.colorScheme.error
     val outlineColor = MaterialTheme.colorScheme.outline
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface

@@ -72,6 +72,9 @@ import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Switch
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -621,6 +624,235 @@ fun BottomSheetPlayer(
         )
     }
 
+    var showHardwareIntegrationDialog by remember {
+        mutableStateOf(false)
+    }
+
+    if (showHardwareIntegrationDialog) {
+        AlertDialog(
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+            onDismissRequest = { showHardwareIntegrationDialog = false },
+            icon = {
+                Icon(
+                    painter = painterResource(R.drawable.devices),
+                    contentDescription = null
+                )
+            },
+            title = { Text("Hardware Integration") },
+            confirmButton = {
+                TextButton(onClick = { showHardwareIntegrationDialog = false }) {
+                    Text(stringResource(android.R.string.ok))
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(
+                        "Connect and control multiple audio devices for an immersive experience.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+
+                    // Bluetooth LE Audio section
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.bluetooth),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        "Bluetooth LE Audio",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Text(
+                                        "Multi-device synchronization with ultra-low latency",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Switch(
+                                    checked = false, // TODO: Implement actual state
+                                    onCheckedChange = { /* TODO: Implement */ },
+                                    enabled = false // Not implemented yet
+                                )
+                            }
+                        }
+                    }
+
+                    // Smart Speaker Mesh section
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.speaker_group),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        "Smart Speaker Mesh",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Text(
+                                        "Whole-home audio with automatic delay compensation",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Switch(
+                                    checked = false, // TODO: Implement actual state
+                                    onCheckedChange = { /* TODO: Implement */ },
+                                    enabled = false // Not implemented yet
+                                )
+                            }
+                        }
+                    }
+
+                    // Wearable Haptics section
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.vibration),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        "Wearable Haptics",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Text(
+                                        "Vibration patterns synced to music beats",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Switch(
+                                    checked = false, // TODO: Implement actual state
+                                    onCheckedChange = { /* TODO: Implement */ },
+                                    enabled = false // Not implemented yet
+                                )
+                            }
+                        }
+                    }
+
+                    // Car Integration section
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.directions_car),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        "Car Integration",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Text(
+                                        "Deep integration with steering wheel controls",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Switch(
+                                    checked = false, // TODO: Implement actual state
+                                    onCheckedChange = { /* TODO: Implement */ },
+                                    enabled = false // Not implemented yet
+                                )
+                            }
+                        }
+                    }
+
+                    // Pro Audio Interface section
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.mic),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        "Pro Audio Interface",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Text(
+                                        "Studio recording support with high-resolution audio",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Switch(
+                                    checked = false, // TODO: Implement actual state
+                                    onCheckedChange = { /* TODO: Implement */ },
+                                    enabled = false // Not implemented yet
+                                )
+                            }
+                        }
+                    }
+
+                    Text(
+                        "These advanced features will be available in future updates.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        )
+    }
+
     var showChoosePlaylistDialog by rememberSaveable {
         mutableStateOf(false)
     }
@@ -822,7 +1054,8 @@ fun BottomSheetPlayer(
         collapsedContent = {
             MiniPlayer(
                 positionState = positionState,
-                durationState = durationState
+                durationState = durationState,
+                onHardwareIntegrationClick = { showHardwareIntegrationDialog = true }
             )
         },
     ) {
