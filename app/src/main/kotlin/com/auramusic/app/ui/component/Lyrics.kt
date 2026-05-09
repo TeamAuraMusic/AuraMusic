@@ -464,7 +464,10 @@ fun Lyrics(
     // enough. Disabled when [instrumentalGapMs] <= 0 or for unsynced lyrics.
     val displayLines = remember(lines, instrumentalGapMs, isSynced, enhancedLyrics) {
         if (enhancedLyrics) {
-            // Enhanced lyrics: create interval indicators for gaps > 4 seconds
+            // Enhanced lyrics: show the intro interval indicator before the
+            // first vocal line, and (when allowed) also keep the regular
+            // instrumental indicators between lyric lines so the user gets
+            // both behaviors at once.
             buildList {
                 val allLines = if (lines.isNotEmpty()) {
                     listOf(LyricsEntry.HEAD_LYRICS_ENTRY) + lines
@@ -477,13 +480,11 @@ fun Lyrics(
                     if (entry.text.isNotBlank()) {
                         add(entry)
                     }
-                    // Only show the intro interval indicator before the first
-                    // real lyric line (between the synthetic HEAD entry and
-                    // the first vocal line). Do not show it between regular
-                    // lyric lines.
-                    if (entry === LyricsEntry.HEAD_LYRICS_ENTRY && i < allLines.size - 1) {
-                        val nextEntry = allLines[i + 1]
-                        val gap = nextEntry.time - entry.time
+                    val nextEntry = allLines.getOrNull(i + 1) ?: continue
+                    val gap = nextEntry.time - entry.time
+                    if (entry === LyricsEntry.HEAD_LYRICS_ENTRY) {
+                        // Intro circular wavy indicator before the first
+                        // vocal line.
                         if (gap > 4000L) {
                             add(
                                 LyricsEntry(
@@ -495,6 +496,17 @@ fun Lyrics(
                                 )
                             )
                         }
+                    } else if (isSynced && instrumentalGapMs > 0 && gap >= instrumentalGapMs) {
+                        // Regular instrumental indicator (music notes +
+                        // progress) between two real lyric lines.
+                        add(
+                            LyricsEntry(
+                                time = entry.time + gap / 2,
+                                text = "",
+                                isInstrumental = true,
+                                endTime = nextEntry.time
+                            )
+                        )
                     }
                 }
             }
