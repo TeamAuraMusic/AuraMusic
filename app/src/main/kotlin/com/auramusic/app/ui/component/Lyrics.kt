@@ -485,7 +485,7 @@ fun Lyrics(
                     if (entry === LyricsEntry.HEAD_LYRICS_ENTRY) {
                         // Intro circular wavy indicator before the first
                         // vocal line.
-                        if (gap > 4000L) {
+                        if (gap > 1000L) {
                             add(
                                 LyricsEntry(
                                     time = entry.time,
