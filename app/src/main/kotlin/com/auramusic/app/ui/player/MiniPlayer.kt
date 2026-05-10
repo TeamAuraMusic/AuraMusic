@@ -78,8 +78,10 @@ import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import coil3.compose.AsyncImage
 import com.auramusic.app.LocalDatabase
+import com.auramusic.app.LocalHardwareIntegrationManager
 import com.auramusic.app.LocalListenTogetherManager
 import com.auramusic.app.LocalPlayerConnection
+import com.auramusic.app.hardware.ActiveHardware
 import com.auramusic.app.R
 import com.auramusic.app.constants.CropAlbumArtKey
 import com.auramusic.app.constants.DarkModeKey
@@ -945,6 +947,21 @@ private fun HardwareIntegrationButton(
     val outlineColor = MaterialTheme.colorScheme.outline
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface
 
+    val hardwareManager = LocalHardwareIntegrationManager.current
+    val active by hardwareManager?.activeHardware?.collectAsState()
+        ?: remember { mutableStateOf(ActiveHardware.NONE) }
+
+    val (iconRes, description) = when (active) {
+        ActiveHardware.CAR -> R.drawable.directions_car to "Car connected"
+        ActiveHardware.PRO_AUDIO -> R.drawable.mic to "Pro audio interface"
+        ActiveHardware.SPEAKER_MESH -> R.drawable.speaker_group to "Speaker mesh active"
+        ActiveHardware.BLUETOOTH -> R.drawable.bluetooth to "Bluetooth audio"
+        ActiveHardware.WEARABLE -> R.drawable.vibration to "Wearable haptics"
+        ActiveHardware.NONE -> R.drawable.devices to "Hardware Integration"
+    }
+
+    val isActive = active != ActiveHardware.NONE
+
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
@@ -952,19 +969,19 @@ private fun HardwareIntegrationButton(
             .clip(CircleShape)
             .border(
                 width = 1.dp,
-                color = outlineColor.copy(alpha = 0.3f),
+                color = if (isActive) primaryColor.copy(alpha = 0.6f) else outlineColor.copy(alpha = 0.3f),
                 shape = CircleShape
             )
             .background(
-                color = primaryColor.copy(alpha = 0.1f),
+                color = if (isActive) primaryColor.copy(alpha = 0.18f) else primaryColor.copy(alpha = 0.08f),
                 shape = CircleShape
             )
             .clickable(enabled = onClick != null) { onClick?.invoke() }
     ) {
         Icon(
-            painter = painterResource(R.drawable.devices),
-            contentDescription = "Hardware Integration",
-            tint = primaryColor,
+            painter = painterResource(iconRes),
+            contentDescription = description,
+            tint = if (isActive) primaryColor else onSurfaceColor.copy(alpha = 0.7f),
             modifier = Modifier.size(20.dp)
         )
     }

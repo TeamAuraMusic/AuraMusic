@@ -15,6 +15,7 @@ import androidx.room.Room
 import com.auramusic.app.constants.MaxSongCacheSizeKey
 import com.auramusic.app.db.InternalDatabase
 import com.auramusic.app.db.MusicDatabase
+import com.auramusic.app.hardware.HardwareIntegrationManager
 import com.auramusic.app.listentogether.ListenTogetherClient
 import com.auramusic.app.listentogether.ListenTogetherManager
 import com.auramusic.app.utils.dataStore

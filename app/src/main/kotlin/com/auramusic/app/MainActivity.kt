@@ -244,6 +244,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var listenTogetherManager: com.auramusic.app.listentogether.ListenTogetherManager
 
+    @Inject
+    lateinit var hardwareIntegrationManager: com.auramusic.app.hardware.HardwareIntegrationManager
+
     private lateinit var navController: NavHostController
     private var pendingIntent: Intent? = null
     private var latestVersionName by mutableStateOf(BuildConfig.VERSION_NAME)
@@ -350,6 +353,9 @@ class MainActivity : ComponentActivity() {
         
         // Initialize Listen Together manager
         listenTogetherManager.initialize()
+
+        // Start hardware integration discovery
+        hardwareIntegrationManager.start()
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             val locale = dataStore[AppLanguageKey]
@@ -906,6 +912,7 @@ class MainActivity : ComponentActivity() {
                     LocalShimmerTheme provides ShimmerTheme,
                     LocalSyncUtils provides syncUtils,
                     LocalListenTogetherManager provides listenTogetherManager,
+                    LocalHardwareIntegrationManager provides hardwareIntegrationManager,
                     LocalChangelogState provides remember { mutableStateOf(false) },
                     LocalVoiceCommandController provides voiceCommandController,
                 ) {
@@ -1402,5 +1409,6 @@ val LocalPlayerAwareWindowInsets = compositionLocalOf<WindowInsets> { error("No 
 val LocalDownloadUtil = staticCompositionLocalOf<DownloadUtil> { error("No DownloadUtil provided") }
 val LocalSyncUtils = staticCompositionLocalOf<SyncUtils> { error("No SyncUtils provided") }
 val LocalListenTogetherManager = staticCompositionLocalOf<com.auramusic.app.listentogether.ListenTogetherManager?> { null }
+val LocalHardwareIntegrationManager = staticCompositionLocalOf<com.auramusic.app.hardware.HardwareIntegrationManager?> { null }
 val LocalIsPlayerExpanded = compositionLocalOf { false }
 val LocalChangelogState = compositionLocalOf { mutableStateOf(false) }
