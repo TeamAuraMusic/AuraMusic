@@ -107,7 +107,7 @@ class BluetoothLeAudioManager(
 
     @SuppressLint("MissingPermission")
     fun start() {
-        if (adapter == null) return
+        val adapter = this.adapter ?: return
         _isEnabled.value = adapter.isEnabled
         registerReceiver()
 
