@@ -62,6 +62,8 @@ class ProAudioInterfaceManager(
     )
     val nativeSampleRate: StateFlow<Int> = _nativeSampleRate.asStateFlow()
 
+    private var selectedDeviceId: Int? = null
+
     private val deviceCallback = object : AudioDeviceCallback() {
         override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>) { refresh() }
         override fun onAudioDevicesRemoved(removedDevices: Array<out AudioDeviceInfo>) { refresh() }
@@ -98,7 +100,9 @@ class ProAudioInterfaceManager(
                 )
             }
         val withDefault = if (list.isNotEmpty()) {
-            list.mapIndexed { idx, d -> d.copy(isDefault = idx == 0) }
+            val effectiveSelectedId = selectedDeviceId?.takeIf { id -> list.any { it.id == id } }
+                ?: list.first().id
+            list.map { it.copy(isDefault = it.id == effectiveSelectedId) }
         } else list
         _devices.value = withDefault
         _activeDevice.value = withDefault.firstOrNull { it.isDefault }
@@ -118,8 +122,8 @@ class ProAudioInterfaceManager(
     fun setEnabled(value: Boolean) { _enabled.value = value }
     fun setLowLatency(value: Boolean) { _lowLatency.value = value }
     fun setActiveDevice(id: Int) {
-        _devices.value = _devices.value.map { it.copy(isDefault = it.id == id) }
-        _activeDevice.value = _devices.value.firstOrNull { it.isDefault }
+        selectedDeviceId = id
+        refresh()
     }
 
     fun isAnyConnected(): Boolean = _devices.value.isNotEmpty()

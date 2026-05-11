@@ -14,9 +14,12 @@ package com.auramusic.app.hardware.car
 
 import android.annotation.SuppressLint
 import android.app.UiModeManager
+import android.bluetooth.BluetoothA2dp
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothClass
+import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
+import android.bluetooth.BluetoothProfile
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -59,9 +62,26 @@ class CarIntegrationManager(
     val enabled: StateFlow<Boolean> = _enabled.asStateFlow()
 
     private var receiver: BroadcastReceiver? = null
+    private var a2dp: BluetoothA2dp? = null
+
+    private val profileListener = object : BluetoothProfile.ServiceListener {
+        override fun onServiceConnected(profile: Int, proxy: BluetoothProfile) {
+            if (profile == BluetoothProfile.A2DP) {
+                a2dp = proxy as BluetoothA2dp
+                refresh()
+            }
+        }
+        override fun onServiceDisconnected(profile: Int) {
+            if (profile == BluetoothProfile.A2DP) {
+                a2dp = null
+                refresh()
+            }
+        }
+    }
 
     fun start() {
         if (receiver != null) return
+        runCatching { bluetoothAdapter?.getProfileProxy(context, profileListener, BluetoothProfile.A2DP) }
         receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 refresh()
@@ -69,6 +89,7 @@ class CarIntegrationManager(
         }
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_CONFIGURATION_CHANGED)
+            addAction(BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED)
             addAction("android.bluetooth.device.action.ACL_CONNECTED")
             addAction("android.bluetooth.device.action.ACL_DISCONNECTED")
             addAction(UiModeManager.ACTION_ENTER_CAR_MODE)
@@ -76,7 +97,7 @@ class CarIntegrationManager(
         }
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+                context.registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED)
             } else {
                 context.registerReceiver(receiver, filter)
             }
@@ -89,14 +110,18 @@ class CarIntegrationManager(
     fun stop() {
         runCatching { receiver?.let { context.unregisterReceiver(it) } }
         receiver = null
+        a2dp?.let { runCatching { bluetoothAdapter?.closeProfileProxy(BluetoothProfile.A2DP, it) } }
+        a2dp = null
     }
 
     @SuppressLint("MissingPermission")
     fun refresh() {
         val carModeActive = uiModeManager?.currentModeType == Configuration.UI_MODE_TYPE_CAR
 
-        val carBt = try {
-            bluetoothAdapter?.bondedDevices?.firstOrNull { dev ->
+        // Only treat a Bluetooth car kit as connected when it has an *active*
+        // A2DP connection – never based purely on bonded/paired state.
+        val carBt: BluetoothDevice? = try {
+            a2dp?.connectedDevices?.firstOrNull { dev ->
                 val cls = dev.bluetoothClass?.deviceClass
                 cls == BluetoothClass.Device.AUDIO_VIDEO_CAR_AUDIO ||
                     cls == BluetoothClass.Device.AUDIO_VIDEO_HANDSFREE

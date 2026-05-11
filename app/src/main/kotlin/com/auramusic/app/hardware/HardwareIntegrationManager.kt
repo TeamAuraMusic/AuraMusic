@@ -17,10 +17,12 @@ import com.auramusic.app.hardware.speaker.SmartSpeakerMeshManager
 import com.auramusic.app.hardware.wearable.WearableHapticsManager
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -39,7 +41,7 @@ enum class ActiveHardware {
 class HardwareIntegrationManager @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
-    private val scope = CoroutineScope(SupervisorJob())
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     val bluetooth: BluetoothLeAudioManager = BluetoothLeAudioManager(context, scope)
     val speakerMesh: SmartSpeakerMeshManager = SmartSpeakerMeshManager(context, scope)
@@ -47,32 +49,35 @@ class HardwareIntegrationManager @Inject constructor(
     val car: CarIntegrationManager = CarIntegrationManager(context, scope)
     val proAudio: ProAudioInterfaceManager = ProAudioInterfaceManager(context, scope)
 
+    private val carActive: StateFlow<Boolean> =
+        combine(car.enabled, car.isConnected) { enabled, connected -> enabled && connected }
+            .stateIn(scope, SharingStarted.Eagerly, false)
+
+    private val proAudioActive: StateFlow<Boolean> =
+        combine(proAudio.enabled, proAudio.activeDevice) { enabled, device ->
+            enabled && device != null
+        }.stateIn(scope, SharingStarted.Eagerly, false)
+
+    private val bluetoothActive: StateFlow<Boolean> =
+        bluetooth.devices.map { list -> list.any { it.isConnected } }
+            .stateIn(scope, SharingStarted.Eagerly, false)
+
     /**
      * Derived top-priority "currently active" hardware. Order is:
      *   Car > Pro Audio > Speaker Mesh > Bluetooth > Wearable > None.
      */
-    @Suppress("UNCHECKED_CAST")
     val activeHardware: StateFlow<ActiveHardware> = combine(
-        listOf(
-            car.isConnected,
-            proAudio.activeDevice,
-            proAudio.enabled,
-            speakerMesh.meshActive,
-            bluetooth.activeDevice,
-            wearable.enabled,
-        )
-    ) { values ->
-        val carConnected = values[0] as Boolean
-        val proDevice = values[1]
-        val proEnabled = values[2] as Boolean
-        val meshOn = values[3] as Boolean
-        val bt = values[4]
-        val wearableOn = values[5] as Boolean
+        carActive,
+        proAudioActive,
+        speakerMesh.meshActive,
+        bluetoothActive,
+        wearable.enabled,
+    ) { carOn, proOn, meshOn, btOn, wearableOn ->
         when {
-            carConnected -> ActiveHardware.CAR
-            proDevice != null && proEnabled -> ActiveHardware.PRO_AUDIO
+            carOn -> ActiveHardware.CAR
+            proOn -> ActiveHardware.PRO_AUDIO
             meshOn -> ActiveHardware.SPEAKER_MESH
-            bt != null && (bt as com.auramusic.app.hardware.bluetooth.BluetoothAudioDevice).isConnected -> ActiveHardware.BLUETOOTH
+            btOn -> ActiveHardware.BLUETOOTH
             wearableOn -> ActiveHardware.WEARABLE
             else -> ActiveHardware.NONE
         }

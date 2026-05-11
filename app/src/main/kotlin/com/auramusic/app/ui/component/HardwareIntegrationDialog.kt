@@ -14,6 +14,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -67,7 +69,6 @@ fun HardwareIntegrationDialog(
         onDismiss(); return
     }
 
-    val context = LocalContext.current
     val btPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { manager.bluetooth.refresh() }
@@ -77,6 +78,7 @@ fun HardwareIntegrationDialog(
         onDismissRequest = onDismiss,
         modifier = Modifier
             .fillMaxWidth()
+            .widthIn(max = 560.dp)
             .padding(horizontal = 16.dp),
         icon = {
             Icon(
@@ -143,8 +145,14 @@ fun HardwareIntegrationDialog(
 }
 
 @Composable
-private fun SectionHeader(iconRes: Int, title: String, subtitle: String) {
+private fun SectionHeader(
+    iconRes: Int,
+    title: String,
+    subtitle: String,
+    modifier: Modifier = Modifier,
+) {
     Row(
+        modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -186,12 +194,17 @@ private fun BluetoothLeAudioCard(manager: HardwareIntegrationManager) {
     val enabled by manager.bluetooth.isEnabled.collectAsState()
 
     HardwareCard {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
             SectionHeader(
                 iconRes = R.drawable.bluetooth,
                 title = "Bluetooth LE Audio",
                 subtitle = if (enabled) "${devices.count { it.isConnected }} connected · ${devices.size} known"
                 else "Bluetooth disabled",
+                modifier = Modifier.weight(1f),
             )
             Switch(
                 checked = multi,
@@ -201,7 +214,8 @@ private fun BluetoothLeAudioCard(manager: HardwareIntegrationManager) {
         }
         if (devices.isEmpty()) {
             Text(
-                "No paired audio devices found.",
+                if (enabled) "No Bluetooth audio devices currently connected."
+                else "Enable Bluetooth and connect a device.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -226,11 +240,16 @@ private fun SmartSpeakerMeshCard(manager: HardwareIntegrationManager) {
     val delay by manager.speakerMesh.syncDelayMs.collectAsState()
 
     HardwareCard {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
             SectionHeader(
                 iconRes = R.drawable.speaker_group,
                 title = "Smart Speaker Mesh",
                 subtitle = "${speakers.size} speaker(s) discovered",
+                modifier = Modifier.weight(1f),
             )
             Switch(
                 checked = active,
@@ -271,13 +290,18 @@ private fun WearableHapticsCard(manager: HardwareIntegrationManager) {
     val bpm by manager.wearable.bpm.collectAsState()
 
     HardwareCard {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
             SectionHeader(
                 iconRes = R.drawable.vibration,
                 title = "Wearable Haptics",
                 subtitle = if (manager.wearable.hasVibrator())
                     "Beat-synced vibration patterns"
                 else "Vibrator unavailable",
+                modifier = Modifier.weight(1f),
             )
             Switch(
                 checked = enabled,
@@ -286,7 +310,12 @@ private fun WearableHapticsCard(manager: HardwareIntegrationManager) {
             )
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             HapticPattern.values().forEach { p ->
                 AssistChip(
                     onClick = {
@@ -329,12 +358,17 @@ private fun CarIntegrationCard(manager: HardwareIntegrationManager) {
     val enabled by manager.car.enabled.collectAsState()
 
     HardwareCard {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
             SectionHeader(
                 iconRes = R.drawable.directions_car,
                 title = "Car Integration",
                 subtitle = info?.let { "${it.name} (${it.source})" }
                     ?: if (isConnected) "Connected" else "Not connected",
+                modifier = Modifier.weight(1f),
             )
             Switch(
                 checked = enabled,
@@ -363,11 +397,16 @@ private fun ProAudioCard(manager: HardwareIntegrationManager) {
     val buffer by manager.proAudio.bufferSizeFrames.collectAsState()
 
     HardwareCard {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
             SectionHeader(
                 iconRes = R.drawable.mic,
                 title = "Pro Audio Interface",
                 subtitle = "${devices.size} device(s) · ${nativeRate}Hz · ${buffer} frames",
+                modifier = Modifier.weight(1f),
             )
             Switch(
                 checked = enabled,
