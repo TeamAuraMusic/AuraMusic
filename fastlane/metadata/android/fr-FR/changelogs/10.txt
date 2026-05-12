@@ -1,0 +1,4 @@
+- Première version sur F-Droid
+- Prise en charge de la lecture vidéo
+- Affichage et traduction des paroles
+- Écoute en streaming depuis YouTube Music
