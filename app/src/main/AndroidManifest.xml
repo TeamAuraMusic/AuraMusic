@@ -14,18 +14,14 @@
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
 
-    <!-- Hardware Integration: Bluetooth LE Audio, Wearable Haptics, Smart Speaker Mesh, Car -->
+    <!-- Hardware Integration: Bluetooth audio + Car -->
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />
-    <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
 
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
     <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
-    <uses-feature android:name="android.hardware.usb.host" android:required="false" />
 
     <!-- Microphone feature for music recognition (not required) -->
     <uses-feature android:name="android.hardware.microphone" android:required="false" />

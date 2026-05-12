@@ -953,11 +953,8 @@ private fun HardwareIntegrationButton(
 
     val (iconRes, description) = when (active) {
         ActiveHardware.CAR -> R.drawable.directions_car to "Car connected"
-        ActiveHardware.PRO_AUDIO -> R.drawable.mic to "Pro audio interface"
-        ActiveHardware.SPEAKER_MESH -> R.drawable.speaker_group to "Speaker mesh active"
-        ActiveHardware.BLUETOOTH -> R.drawable.bluetooth to "Bluetooth audio"
-        ActiveHardware.WEARABLE -> R.drawable.vibration to "Wearable haptics"
-        ActiveHardware.NONE -> R.drawable.devices to "Hardware Integration"
+        ActiveHardware.BLUETOOTH -> R.drawable.headset to "Bluetooth audio"
+        ActiveHardware.NONE -> R.drawable.speaker_group to "Audio devices"
     }
 
     val isActive = active != ActiveHardware.NONE
