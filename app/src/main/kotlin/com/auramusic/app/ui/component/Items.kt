@@ -103,6 +103,7 @@ import com.auramusic.app.LocalDownloadUtil
 import com.auramusic.app.LocalPlayerConnection
 import com.auramusic.app.R
 import com.auramusic.app.constants.CropAlbumArtKey
+import com.auramusic.app.ui.utils.resize
 import com.auramusic.app.constants.GridItemSize
 import com.auramusic.app.constants.GridItemsSizeKey
 import com.auramusic.app.constants.GridThumbnailHeight
