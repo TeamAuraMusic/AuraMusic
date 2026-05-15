@@ -933,4 +933,11 @@
     <string name="enhanced_lyrics">Paroles enrichies</string>
     <string name="enhanced_lyrics_desc">Activez les paroles améliorées avec l\'indicateur d\'intro sous forme de courbe d\'onde et les indicateurs de pause</string>
     <string name="lyrics_instrumental_indicator">Indicateur instrumental</string>
+    <string name="lyrics_instrumental_indicator_desc">Afficher les notes de musique et l\'espacement entre les lignes (écart ≥ %1$ds)</string>
+    <string name="lyrics_connected_lines">Lignes reliées</string>
+    <string name="lyrics_connected_lines_desc">Laisser les animations de synchronisation des paroles se terminer même lorsque la ligne suivante commence (par exemple, les chœurs)</string>
+    <string name="lyrics_custom_font">Police de caractères pour les paroles</string>
+    <string name="lyrics_custom_font_default">Utiliser les paramètres par défaut du système</string>
+    <string name="lyrics_custom_font_selected">Police personnalisée sélectionnée · Appuyez pour changer</string>
+    <string name="disabled">Désactivé</string>
 </resources>
