@@ -925,4 +925,8 @@
     <string name="video_lyrics_offset">Paroles de la vidéo d\'Offset</string>
     <string name="video_lyrics_offset_description">Ajuster pour synchroniser les paroles avec la vidéo (pour l\'intro ou les commentaires avant la musique)</string>
     <string name="like">J\'aime</string>
+    <string name="fonts">Polices</string>
+    <string name="font_selection">Choix de la police</string>
+    <string name="app_font">Police de l\'application</string>
+    <string name="default_font">Paramètres par défaut du système</string>
 </resources>
