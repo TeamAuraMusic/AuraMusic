@@ -937,4 +937,10 @@
     <string name="captions_off">Fuera</string>
     <string name="video_quality">Calidad de vídeo</string>
     <string name="video_lyrics_offset">Letras de Video Offset</string>
+    <string name="alarm_title">Alarma musical</string>
+    <string name="alarm_subtitle">Alarma programada para %1$s</string>
+    <string name="alarm_snooze">Snooze %1$d min</string>
+    <string name="alarm_dismiss">Desestimación</string>
+    <string name="alarm_channel_name">Alarma musical</string>
+    <string name="alarm_channel_desc">Desperta la alarma que toca tus canciones seleccionadas.</string>
 </resources>
