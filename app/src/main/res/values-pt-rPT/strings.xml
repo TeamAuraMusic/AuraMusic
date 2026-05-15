@@ -925,4 +925,9 @@
     <string name="widget_album_art">Capa do álbum</string>
     <string name="like_all">Curtir todas</string>
     <string name="captions_off">Desligado</string>
+    <string name="alarm_title">Alarme de música</string>
+    <string name="alarm_subtitle">Alarme programado para %1$s</string>
+    <string name="alarm_snooze">Snooze %1$d min</string>
+    <string name="alarm_channel_name">Alarme de música</string>
+    <string name="alarm_channel_desc">Alarme de despertar que toca suas músicas selecionadas.</string>
 </resources>
