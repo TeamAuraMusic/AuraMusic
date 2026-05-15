@@ -107,25 +107,25 @@ android {
     sourceSets {
         getByName("main") {
             kotlin {
-                srcDirs += "src/main/kotlin"
+                directories.from("src/main/kotlin")
             }
         }
         getByName("foss") {
             kotlin {
-                srcDirs += "src/foss/kotlin"
+                directories.from("src/foss/kotlin")
             }
         }
         getByName("gms") {
             kotlin {
-                srcDirs += "src/gms/kotlin"
+                directories.from("src/gms/kotlin")
             }
         }
         getByName("tv") {
             kotlin {
-                srcDirs += "src/tv/kotlin"
+                directories.from("src/tv/kotlin")
             }
             res {
-                srcDirs += "src/tv/res"
+                directories.from("src/tv/res")
             }
         }
     }
