@@ -937,4 +937,10 @@
     <string name="captions_off">Fuera</string>
     <string name="video_quality">Calidad de vídeo</string>
     <string name="video_lyrics_offset">Letras de Video Offset</string>
+    <string name="alarm_snooze"></string>
+    <string name="alarm_dismiss"></string>
+    <string name="alarm_channel_desc"></string>
+    <string name="alarm_title"></string>
+    <string name="alarm_subtitle"></string>
+    <string name="alarm_channel_name"></string>
 </resources>
