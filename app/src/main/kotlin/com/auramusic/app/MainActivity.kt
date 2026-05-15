@@ -154,6 +154,7 @@ import com.auramusic.app.constants.SelectedFontKey
 import com.auramusic.app.db.MusicDatabase
 import com.auramusic.app.db.entities.SearchHistory
 import com.auramusic.app.extensions.toEnum
+import com.auramusic.app.extensions.toMediaItem
 import com.auramusic.app.models.toMediaMetadata
 import com.auramusic.app.playback.DownloadUtil
 import com.auramusic.app.playback.MusicService
@@ -1295,6 +1296,14 @@ class MainActivity : ComponentActivity() {
 
     private fun handleDeepLinkIntent(intent: Intent?, navController: NavHostController) {
         if (intent == null) return
+
+        // Music alarm: fire playback of the user-selected songs.
+        if (intent.action == com.auramusic.app.alarm.AlarmReceiver.ACTION_OPEN_ALARM) {
+            intent.action = null
+            handleAlarmFire()
+            return
+        }
+
         val uri = intent.data ?: intent.extras?.getString(Intent.EXTRA_TEXT)?.toUri() ?: return
         intent.data = null
         intent.removeExtra(Intent.EXTRA_TEXT)
@@ -1384,6 +1393,37 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    private fun handleAlarmFire() {
+        val ds = dataStore
+        val csv = ds.get(com.auramusic.app.constants.AlarmSongIdsKey, "")
+        val songIds = csv.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+        if (songIds.isEmpty()) return
+        val shuffle = ds.get(com.auramusic.app.constants.AlarmShuffleKey, false)
+
+        lifecycle.coroutineScope.launch(Dispatchers.IO) {
+            val songs = database.getSongsByIds(songIds)
+            val ordered = if (shuffle) songs.shuffled() else songs
+            val mediaItems = ordered.map { it.toMediaItem() }
+            if (mediaItems.isEmpty()) return@launch
+            withContext(Dispatchers.Main) {
+                // Wait briefly for the service binding to complete.
+                var attempts = 0
+                while (playerConnection == null && attempts < 30) {
+                    delay(100)
+                    attempts++
+                }
+                playerConnection?.playQueue(
+                    com.auramusic.app.playback.queues.ListQueue(
+                        title = getString(R.string.alarm_title),
+                        items = mediaItems,
+                        startIndex = 0,
+                        position = 0L,
+                    )
+                )
             }
         }
     }

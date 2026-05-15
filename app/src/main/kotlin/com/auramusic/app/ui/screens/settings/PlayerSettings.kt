@@ -282,6 +282,20 @@ fun PlayerSettings(
         )
 
         Material3SettingsGroup(
+            title = stringResource(R.string.alarm_title),
+            items = listOf(
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.alarm),
+                    title = { Text(stringResource(R.string.alarm_title)) },
+                    description = { Text("Wake up to your downloaded, cached or playlist songs") },
+                    onClick = { navController.navigate("settings/alarm") }
+                )
+            )
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Material3SettingsGroup(
             title = stringResource(R.string.player),
             items = buildList {
                 add(Material3SettingsItem(

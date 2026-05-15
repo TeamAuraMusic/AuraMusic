@@ -237,15 +237,15 @@ private fun HeroCarouselCard(
                 .clip(RoundedCornerShape(cornerRadius))
                 .clickable(onClick = onClick),
         ) {
-            AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
-                    .data(item.thumbnail)
-                    .crossfade(true)
-                    .build(),
-                contentDescription = item.title,
-                contentScale = ContentScale.FillBounds,
-                modifier = Modifier.fillMaxSize(),
-            )
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(item.thumbnail)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = item.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
 
             IconButton(
                 onClick = onPlayClick,

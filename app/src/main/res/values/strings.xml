@@ -1042,4 +1042,12 @@
     <string name="video_quality">Video Quality</string>
     <string name="video_lyrics_offset">Video Lyrics Offset</string>
     <string name="video_lyrics_offset_description">Adjust to sync lyrics with video (for intro/talk before music)</string>
+
+    <!-- Music Alarm -->
+    <string name="alarm_title">Music alarm</string>
+    <string name="alarm_subtitle">Alarm scheduled for %1$s</string>
+    <string name="alarm_snooze">Snooze %1$d min</string>
+    <string name="alarm_dismiss">Dismiss</string>
+    <string name="alarm_channel_name">Music alarm</string>
+    <string name="alarm_channel_desc">Wake-up alarm that plays your selected songs.</string>
 </resources>

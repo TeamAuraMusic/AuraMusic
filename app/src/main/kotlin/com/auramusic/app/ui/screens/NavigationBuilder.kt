@@ -46,6 +46,7 @@ import com.auramusic.app.ui.screens.settings.ContentSettings
 import com.auramusic.app.ui.screens.settings.DarkMode
 import com.auramusic.app.ui.screens.settings.DiscordLoginScreen
 import com.auramusic.app.ui.screens.settings.PlayerSettings
+import com.auramusic.app.ui.screens.settings.AlarmSettingsScreen
 import com.auramusic.app.ui.screens.settings.PrivacySettings
 import com.auramusic.app.ui.screens.settings.RomanizationSettings
 import com.auramusic.app.ui.screens.settings.SettingsScreen
@@ -349,6 +350,10 @@ fun NavGraphBuilder.navigationBuilder(
     
     composable("settings/player") {
         PlayerSettings(navController, scrollBehavior)
+    }
+
+    composable("settings/alarm") {
+        AlarmSettingsScreen(navController, scrollBehavior)
     }
 
     composable("settings/storage") {

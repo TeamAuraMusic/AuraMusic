@@ -43,6 +43,19 @@ val EnableVoiceCommandsKey = booleanPreferencesKey("enableVoiceCommands")
 val EnableVoiceWakeWordKey = booleanPreferencesKey("enableVoiceWakeWord")
 val VoiceWakeWordKey = stringPreferencesKey("voiceWakeWord")
 
+// Music Alarm
+val AlarmEnabledKey = booleanPreferencesKey("alarmEnabled")
+val AlarmHourKey = intPreferencesKey("alarmHour")
+val AlarmMinuteKey = intPreferencesKey("alarmMinute")
+val AlarmRepeatDailyKey = booleanPreferencesKey("alarmRepeatDaily")
+val AlarmSongIdsKey = stringPreferencesKey("alarmSongIds")
+val AlarmSourceKey = stringPreferencesKey("alarmSource")
+val AlarmVibrateKey = booleanPreferencesKey("alarmVibrate")
+val AlarmVolumeKey = floatPreferencesKey("alarmVolume")
+val AlarmShuffleKey = booleanPreferencesKey("alarmShuffle")
+val AlarmSnoozeMinutesKey = intPreferencesKey("alarmSnoozeMinutes")
+val AlarmFadeInKey = booleanPreferencesKey("alarmFadeIn")
+
 enum class SliderStyle {
     DEFAULT,
     WAVY,

@@ -23,6 +23,13 @@
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
     <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
 
+    <!-- Music Alarm -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
+
     <!-- Microphone feature for music recognition (not required) -->
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
 
@@ -319,6 +326,22 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/compact_wide_widget_info" />
+        </receiver>
+
+        <!-- Music alarm receiver -->
+        <receiver
+            android:name=".alarm.AlarmReceiver"
+            android:exported="true"
+            android:directBootAware="false">
+            <intent-filter>
+                <action android:name="com.auramusic.app.alarm.ACTION_FIRE" />
+                <action android:name="com.auramusic.app.alarm.ACTION_SNOOZE" />
+                <action android:name="com.auramusic.app.alarm.ACTION_DISMISS" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" />
+            </intent-filter>
         </receiver>
 
         <!-- Google Cast Options Provider -->

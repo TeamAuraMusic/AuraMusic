@@ -218,7 +218,7 @@ fun BottomSheetPlayer(
     )
     val (hidePlayerThumbnail, onHidePlayerThumbnailChange) = rememberPreference(HidePlayerThumbnailKey, false)
     val (enableVoiceCommands, onEnableVoiceCommandsChange) = rememberPreference(EnableVoiceCommandsKey, defaultValue = true)
-    val cropAlbumArt by rememberPreference(CropAlbumArtKey, false)
+    val cropAlbumArt by rememberPreference(CropAlbumArtKey, true)
     val playerBackground by rememberEnumPreference(
         key = PlayerBackgroundStyleKey,
         defaultValue = PlayerBackgroundStyle.DEFAULT
@@ -1289,6 +1289,29 @@ fun BottomSheetPlayer(
                             painter = painterResource(R.drawable.bedtime),
                             contentDescription = stringResource(R.string.sleep_timer),
                             tint = if (sleepTimerEnabled) MaterialTheme.colorScheme.primary else iconButtonColor,
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .size(24.dp),
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.size(12.dp))
+
+                    // Music alarm button
+                    val alarmEnabled by com.auramusic.app.utils.rememberPreference(
+                        com.auramusic.app.constants.AlarmEnabledKey, false
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(24.dp))
+                            .background(textButtonColor)
+                            .clickable { navController.navigate("settings/alarm") },
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.alarm),
+                            contentDescription = stringResource(R.string.alarm_title),
+                            tint = if (alarmEnabled) MaterialTheme.colorScheme.primary else iconButtonColor,
                             modifier = Modifier
                                 .align(Alignment.Center)
                                 .size(24.dp),
