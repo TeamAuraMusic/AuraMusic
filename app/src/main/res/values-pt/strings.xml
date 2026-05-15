@@ -343,12 +343,6 @@
     <string name="lyrics_text_size">Tamanho do texto da letra</string>
     <string name="lyrics_line_spacing">Espaçamento das linhas da letra</string>
     <string name="lyrics_animation_style">Estilo de animação da letra</string>
-    <plurals name="seconds">
-        <item quantity="one">segundos</item>
-    </plurals>
-    <plurals name="minute">
-        <item quantity="one">minuto</item>
-    </plurals>
     <plurals name="n_time">
         <item quantity="one">%d vez</item>
         <item quantity="other">%d vezes</item>

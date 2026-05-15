@@ -259,6 +259,12 @@ If you'd like to support my work, you can donate via PayPal:
 **Metrolist**
 [MetrolistGroup](https://github.com/MetrolistGroup/Metrolist) – Original project this is based on
 
+**Contributors**
+- [Mickaël Binos](https://github.com/Micka%C3%ABlBinos)
+- [SantosSi](https://github.com/SantosSi)
+- [iamcrizzzgd](https://github.com/iamcrizzzgd)
+- [weblate](https://github.com/weblate)
+
 **Credits:**
 
 - [**Kizzy**](https://github.com/dead8309/Kizzy) – Discord Rich Presence implementation
