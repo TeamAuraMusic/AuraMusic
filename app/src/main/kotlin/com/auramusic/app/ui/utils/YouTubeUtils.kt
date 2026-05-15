@@ -10,8 +10,9 @@ fun String.resize(
     height: Int? = null,
 ): String {
     // Upgrade YouTube video thumbnails to higher quality for sharper display
-    if (this matches "https://i\\.ytimg\\.com/vi/[^/]+/default\\.jpg".toRegex()) {
-        return replace("/default.jpg", "/hqdefault.jpg")
+    if (this matches "https://i\\.ytimg\\.com/vi/[^/]+/[^/]+\\.jpg".toRegex()) {
+        val quality = if (width != null && width >= 1280) "maxresdefault" else "hqdefault"
+        return replace(Regex("/[^/]+\\.jpg$"), "/$quality.jpg")
     }
     if (width == null && height == null) return this
     "https://lh3\\.googleusercontent\\.com/.*=w(\\d+)-h(\\d+).*".toRegex()
