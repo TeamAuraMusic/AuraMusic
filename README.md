@@ -260,10 +260,10 @@ If you'd like to support my work, you can donate via PayPal:
 [MetrolistGroup](https://github.com/MetrolistGroup/Metrolist) – Original project this is based on
 
 **Contributors**
-- [Mickaël Binos](https://github.com/Micka%C3%ABlBinos)
-- [SantosSi](https://github.com/SantosSi)
-- [iamcrizzzgd](https://github.com/iamcrizzzgd)
-- [weblate](https://github.com/weblate)
+
+<a href="https://github.com/TeamAuraMusic/AuraMusic/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=TeamAuraMusic/AuraMusic" alt="Contributors"/>
+</a>
 
 **Credits:**
 
