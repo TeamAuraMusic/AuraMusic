@@ -1,7 +1,85 @@
-# AuraMusic v2.2.0 (Build 19) Release Notes
+# AuraMusic v2.3.0 (Build 20) Release Notes
 
 > [!NOTE]
-> This release introduces full Android TV / Google TV support, bringing AuraMusic to the big screen with a true 10-foot UI experience.
+> This release introduces hardware integration, enhanced lyrics features, and significant UI improvements including better thumbnail quality and internationalization support.
+
+## What's New
+
+### 🎵 Hardware Integration & Smart Device Ecosystem
+A complete hardware integration system with Bluetooth device support and audio device management:
+
+**Audio Device Integration**
+- Added audio device picker style for mini-player
+- Implemented Bluetooth profile proxy usage
+- Enhanced active hardware flow and dialog layout
+- Fixed smart-cast errors in Bluetooth handling
+
+**Alarm Features**
+- Added wake-up and snooze alarm functionality
+- Integrated with hardware ecosystem for comprehensive device control
+
+### 🎤 Enhanced Lyrics Features
+Major lyrics enhancements with visual indicators and improved readability:
+
+**Instrumental & Interval Indicators**
+- Added instrumental indicators in enhanced lyrics mode
+- Implemented connected lines for better lyrics flow
+- Added intro wavy circular progress indicator before first vocal line
+- Enhanced lyrics with interval indicators and timing improvements
+
+**Typography & Fonts**
+- Added custom font support with Google Fonts integration
+- Added Material 3 font icon support
+- Improved font application throughout the app
+
+### 🌐 Internationalization Support
+- Added Weblate translation badge and link for community-driven translations
+
+## UI/UX Improvements
+- Enhanced thumbnail quality for all YouTube videos and streamed songs
+- Fixed blurry album and item thumbnails
+- Improved UI with smooth transitions and better visuals
+- Replaced circular refresh indicator with ContainedLoadingIndicator
+- Added font selection and application options
+- Moved queue to left in old player design
+- Enhanced share as image functionality with background options
+
+## Bug Fixes
+
+### Navigation & UI
+- Fixed NPE crash in backToMain navigation
+- Fixed TV settings focus restoration when returning from sub-settings
+- Fixed video mode persistence issues
+- Fixed song click handling that was broken by combinedClickable
+- Fixed refresh indicator positioning
+
+### Hardware & Connectivity
+- Fixed Bluetooth smart-cast errors
+- Resolved hardware integration issues
+
+### Lyrics & Media
+- Fixed lyrics provider issues and instrumental indicator support
+- Fixed instrumental indicator and connected lines for all lyrics providers
+- Reduced first vocal line delay to 1000ms (1 second)
+
+### Build & Compatibility
+- Fixed TV APK naming and updater support
+- Resolved Android Gradle Plugin API compatibility issues
+- Fixed F-Droid Java version compatibility by removing jvmToolchain
+- Updated JVM target to Java 21 to fix compilation inconsistency
+- Fixed sourceSets API and replaced deprecated buildDir usage
+
+## ⚙️ Build
+- Bumped versionCode to **20**
+- Version: **2.3.0**
+
+---
+
+**Full Changelog**: https://github.com/TeamAuraMusic/AuraMusic/compare/v2.2.0...v2.3.0
+
+---
+
+# AuraMusic v2.2.0 (Build 19) Release Notes
 
 ## What's New
 
