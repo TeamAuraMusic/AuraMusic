@@ -929,4 +929,8 @@
     <string name="font_selection">Choix de la police</string>
     <string name="app_font">Police de l\'application</string>
     <string name="default_font">Paramètres par défaut du système</string>
+    <string name="player_background_solid">Solide</string>
+    <string name="enhanced_lyrics">Paroles enrichies</string>
+    <string name="enhanced_lyrics_desc">Activez les paroles améliorées avec l\'indicateur d\'intro sous forme de courbe d\'onde et les indicateurs de pause</string>
+    <string name="lyrics_instrumental_indicator">Indicateur instrumental</string>
 </resources>
