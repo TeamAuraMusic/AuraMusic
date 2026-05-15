@@ -922,4 +922,7 @@
     <string name="video_quality">Qualidade de vídeo</string>
     <string name="video_lyrics_offset">Vídeo Lyrics Offset</string>
     <string name="video_lyrics_offset_description">Ajuste para sincronizar letras com vídeo (para intro/talk antes da música)</string>
+    <string name="widget_album_art">Capa do álbum</string>
+    <string name="like_all">Curtir todas</string>
+    <string name="captions_off">Desligado</string>
 </resources>
