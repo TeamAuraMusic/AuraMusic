@@ -806,4 +806,120 @@
     <string name="share_as_text">Partilhar como texto</string>
     <string name="share_as_image">Partilhar como imagem</string>
     <string name="customize_colors">Personalizar cores</string>
+    <plurals name="n_selected">
+        <item quantity="other">%d selecionado</item>
+    </plurals>
+    <string name="retry">Repito</string>
+    <string name="media_id">Media id</string>
+    <string name="loudness">Loucura</string>
+    <string name="volume">Volume</string>
+    <string name="likes">Tipos</string>
+    <plurals name="n_song">
+        <item quantity="one">%d canção</item>
+        <item quantity="other">%d músicas</item>
+    </plurals>
+    <plurals name="n_artist">
+        <item quantity="one">%d artista</item>
+        <item quantity="other">%d artistas</item>
+    </plurals>
+    <plurals name="n_album">
+        <item quantity="one">%d álbum</item>
+        <item quantity="other">%d álbuns</item>
+    </plurals>
+    <plurals name="n_playlist">
+        <item quantity="one">Lista de reprodução</item>
+        <item quantity="other">%d listas de reprodução</item>
+    </plurals>
+    <plurals name="n_week">
+        <item quantity="one">%d semana</item>
+        <item quantity="other">%d semanas</item>
+    </plurals>
+    <plurals name="n_month">
+        <item quantity="one">%d mês</item>
+        <item quantity="other">%d meses</item>
+    </plurals>
+    <plurals name="n_year">
+        <item quantity="one">%d ano</item>
+        <item quantity="other">%d anos</item>
+    </plurals>
+    <plurals name="n_minute">
+        <item quantity="one">1 minuto</item>
+        <item quantity="other">%d minutos</item>
+    </plurals>
+    <plurals name="seconds">
+        <item quantity="one">1 segundo</item>
+        <item quantity="other">%d segundos</item>
+    </plurals>
+    <plurals name="minute">
+        <item quantity="one">1 minuto</item>
+        <item quantity="other">%d minutos</item>
+    </plurals>
+    <string name="playlist_imported">Lista de reprodução importada</string>
+    <string name="fonts">Fontes</string>
+    <string name="font_selection">Seleção de fonte</string>
+    <string name="app_font">Fonte do aplicativo</string>
+    <string name="default_font">Padrão do sistema</string>
+    <string name="squiggly">Squiggly</string>
+    <string name="wavy">Wavy</string>
+    <string name="player_background_solid">Sólido</string>
+    <plurals name="n_time">
+        <item quantity="one">%d tempo</item>
+        <item quantity="other">%d vezes</item>
+    </plurals>
+    <string name="enhanced_lyrics">Letras aprimoradas</string>
+    <string name="enhanced_lyrics_desc">Habilite letras aprimoradas com indicadores intro wavy e indicadores de lacuna</string>
+    <string name="lyrics_instrumental_indicator">Indicador instrumental</string>
+    <string name="lyrics_instrumental_indicator_desc">Mostrar notas de música e progresso entre linhas (gap ≥ %1$ds)</string>
+    <string name="lyrics_connected_lines">Linhas conectadas</string>
+    <string name="lyrics_connected_lines_desc">Deixe as animações de sincronização de palavras terminarem mesmo quando a próxima linha começar (por exemplo, vocais de fundo)</string>
+    <string name="lyrics_custom_font">Fonte Lyrics</string>
+    <string name="lyrics_custom_font_default">Use o padrão do sistema</string>
+    <string name="lyrics_custom_font_selected">Fonte personalizada selecionada · toque para mudar</string>
+    <string name="disabled">Deficientes</string>
+    <plurals name="profiles_count">
+        <item quantity="one">%d perfil</item>
+        <item quantity="other">%d perfis</item>
+    </plurals>
+    <plurals name="band_count">
+        <item quantity="one">%d banda</item>
+        <item quantity="other">%d bandas</item>
+    </plurals>
+    <string name="imported_playlist">Lista de reprodução importada</string>
+    <string name="listen_together_no_logs">Sem registos disponíveis</string>
+    <string name="try_again">Tente novamente</string>
+    <string name="album_cover_desc">Capa de álbum</string>
+    <string name="crash_no_log">Não há registo disponível</string>
+    <string name="background_color">Cor de fundo</string>
+    <string name="text_color">Cor do texto</string>
+    <string name="secondary_text_color">Cor do texto secundário</string>
+    <string name="failed_to_create_image">Falhado para criar imagem</string>
+    <string name="generating_image">Gerar imagem..</string>
+    <string name="please_wait">Por favor, espere..</string>
+    <string name="max_selection_limit">Limite máximo de seleção alcançado</string>
+    <string name="seek_backward_dynamic">Busca para trás</string>
+    <string name="seek_forward_dynamic">Buscar</string>
+    <string name="now_playing">Agora a jogar</string>
+    <string name="mute">Muda</string>
+    <string name="unmute">Sem dúvida</string>
+    <string name="copied_title">Título copiado</string>
+    <string name="copied_artist">Artista copiado</string>
+    <string name="dislike_all">Não gosto de tudo</string>
+    <string name="details_desc">Ver detalhes da música</string>
+    <string name="casting_to">Fundição para %s</string>
+    <string name="starting_radio">Iniciar rádio..</string>
+    <string name="play_all">Jogar tudo</string>
+    <string name="switch_to_video">Mudar para vídeo</string>
+    <string name="switch_to_audio">Mudar para áudio</string>
+    <string name="enable_video_mode">Modo de vídeo</string>
+    <string name="enable_video_mode_desc">Ativar reprodução automática de vídeo para músicas de vídeo</string>
+    <string name="closed_captions">Legendas fechadas</string>
+    <string name="closed_captions_desc">Mostrar legendas durante a reprodução de vídeo</string>
+    <string name="subtitle_font_size">Tamanho da fonte Subtitle</string>
+    <string name="subtitle_language">Língua de subtítulo preferencial</string>
+    <string name="captions">Legendas</string>
+    <string name="captions_on">Em</string>
+    <string name="video_not_available">Vídeo não disponível para esta faixa</string>
+    <string name="video_quality">Qualidade de vídeo</string>
+    <string name="video_lyrics_offset">Vídeo Lyrics Offset</string>
+    <string name="video_lyrics_offset_description">Ajuste para sincronizar letras com vídeo (para intro/talk antes da música)</string>
 </resources>
