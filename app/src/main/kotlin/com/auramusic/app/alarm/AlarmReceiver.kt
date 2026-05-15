@@ -20,8 +20,10 @@ import android.content.Intent
 import android.media.AudioManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.auramusic.app.MainActivity
 import com.auramusic.app.R
+import com.auramusic.app.playback.MusicService
 import com.auramusic.app.constants.AlarmEnabledKey
 import com.auramusic.app.constants.AlarmHourKey
 import com.auramusic.app.constants.AlarmMinuteKey
@@ -60,6 +62,7 @@ class AlarmReceiver : BroadcastReceiver() {
         ensureChannel(context)
         applyAlarmVolume(context)
         showAlarmNotification(context)
+        startAlarmPlayback(context)
         AlarmScheduler.rescheduleNextDayIfNeeded(context)
 
         // Disable the one-shot flag immediately so a force-stop doesn't
@@ -73,6 +76,22 @@ class AlarmReceiver : BroadcastReceiver() {
 
     private fun isRepeating(context: Context): Boolean =
         context.dataStore.get(com.auramusic.app.constants.AlarmRepeatDailyKey, false)
+
+    /**
+     * Start the music service in the foreground so the user-selected alarm
+     * songs begin playing without requiring the app to be opened. This
+     * relies on the AlarmManager-broadcast exemption for foreground-service
+     * starts on Android 12+.
+     */
+    private fun startAlarmPlayback(context: Context) {
+        try {
+            val serviceIntent = Intent(context, MusicService::class.java)
+                .setAction(MusicService.ACTION_PLAY_ALARM)
+            ContextCompat.startForegroundService(context, serviceIntent)
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to start alarm playback service")
+        }
+    }
 
     private fun applyAlarmVolume(context: Context) {
         val ds = context.dataStore

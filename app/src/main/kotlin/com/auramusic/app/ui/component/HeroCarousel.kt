@@ -243,7 +243,8 @@ private fun HeroCarouselCard(
                         .crossfade(true)
                         .build(),
                     contentDescription = item.title,
-                    contentScale = ContentScale.Crop,
+                    // Show the full thumbnail without cropping the edges.
+                    contentScale = ContentScale.Fit,
                     modifier = Modifier.fillMaxSize(),
                 )
 

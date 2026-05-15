@@ -2895,6 +2895,9 @@ class MusicService :
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
+            ACTION_PLAY_ALARM -> {
+                handleAlarmPlay()
+            }
             MusicWidgetReceiver.ACTION_PLAY_PAUSE -> {
                 if (player.isPlaying) player.pause() else player.play()
                 updateWidgetUI(player.isPlaying)
@@ -3604,8 +3607,54 @@ class MusicService :
         isCrossfading = false
     }
 
+    /**
+     * Handle alarm fire — load the user's selected alarm songs from the
+     * database and start playback. This is invoked from [AlarmReceiver] via
+     * `startForegroundService`, so playback begins even when the app is
+     * not in the foreground.
+     */
+    private fun handleAlarmPlay() {
+        val ds = dataStore
+        val csv = ds.get(com.auramusic.app.constants.AlarmSongIdsKey, "")
+        val songIds = csv.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+        if (songIds.isEmpty()) {
+            Timber.tag(TAG).w("Alarm fired but no songs selected")
+            return
+        }
+        val shuffle = ds.get(com.auramusic.app.constants.AlarmShuffleKey, false)
+        val volume = ds.get(com.auramusic.app.constants.AlarmVolumeKey, 0.85f)
+
+        if (!scope.isActive) scope = CoroutineScope(Dispatchers.Main) + Job()
+        scope.launch {
+            val songs = withContext(Dispatchers.IO) { database.getSongsByIds(songIds) }
+            val ordered = if (shuffle) songs.shuffled() else songs
+            val mediaItems = ordered.map { it.toMediaItem() }
+            if (mediaItems.isEmpty()) {
+                Timber.tag(TAG).w("Alarm: requested song ids resolved to empty list")
+                return@launch
+            }
+            // Force-unmute and apply alarm volume.
+            setMuted(false)
+            if (::playerVolume.isInitialized) {
+                playerVolume.value = volume.coerceIn(0.05f, 1f)
+            }
+            playQueue(
+                queue = com.auramusic.app.playback.queues.ListQueue(
+                    title = getString(R.string.alarm_title),
+                    items = mediaItems,
+                    startIndex = 0,
+                    position = 0L,
+                ),
+                playWhenReady = true,
+            )
+        }
+    }
+
     companion object {
         val desiredSubtitleLanguages = setOf("en", "sw", "es", "fr", "la")
+
+        /** Action used by AlarmReceiver to start music playback in the background. */
+        const val ACTION_PLAY_ALARM = "com.auramusic.app.playback.ACTION_PLAY_ALARM"
 
         const val ROOT = "root"
         const val SONG = "song"

@@ -109,6 +109,8 @@ import coil3.compose.AsyncImage
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import coil3.size.Size as CoilSize
+import com.auramusic.app.ui.utils.resize
 import com.auramusic.app.LocalListenTogetherManager
 import com.auramusic.app.LocalPlayerConnection
 import com.auramusic.app.R
@@ -930,12 +932,21 @@ private fun ThumbnailImage(
         } else {
             // Enhanced album art image with gradient overlay and better visual effects
             Box(modifier = Modifier.fillMaxSize()) {
+                // Upgrade YouTube thumbnail to a high-res variant so the player
+                // image stays sharp on large/high-density displays. Falls back
+                // to the original URL for non-YouTube hosts.
+                val highResArtworkUri = remember(artworkUri) {
+                    artworkUri?.resize(1280, 1280) ?: artworkUri
+                }
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
-                        .data(artworkUri)
+                        .data(highResArtworkUri)
                         .memoryCachePolicy(CachePolicy.ENABLED)
                         .diskCachePolicy(CachePolicy.ENABLED)
                         .networkCachePolicy(CachePolicy.ENABLED)
+                        // Decode at the source resolution so Coil doesn't
+                        // downsample to the layout size and re-blur it.
+                        .size(CoilSize.ORIGINAL)
                         .crossfade(300) // Smooth crossfade
                         .build(),
                     contentDescription = null,
