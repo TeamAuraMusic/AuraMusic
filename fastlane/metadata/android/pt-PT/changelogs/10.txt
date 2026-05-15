@@ -1,0 +1,4 @@
+- Lançamento inicial do F-Droid
+- Suporte de reprodução de vídeo
+- Exibição e tradução de letras
+- Transmissão de música do YouTube Music
