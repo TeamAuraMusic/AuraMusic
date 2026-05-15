@@ -978,4 +978,8 @@
     <string name="disabled">Deficientes</string>
     <string name="alarm_subtitle">Alarme programado para %1$s</string>
     <string name="alarm_channel_name">Alarme de música</string>
+    <string name="like_all">Curtir todas</string>
+    <string name="alarm_dismiss">Dispensar</string>
+    <string name="captions_off">Desligado</string>
+    <string name="captions_on">Ligado</string>
 </resources>
