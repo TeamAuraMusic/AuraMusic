@@ -245,6 +245,12 @@ android {
         buildConfig = true
     }
 
+    applicationVariants.all { variant ->
+        variant.outputs.all {
+            outputFileName = "AuraMusic-${variant.name}.apk"
+        }
+    }
+
     dependenciesInfo {
         includeInApk = false
         includeInBundle = false
