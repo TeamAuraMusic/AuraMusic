@@ -9,6 +9,10 @@ fun String.resize(
     width: Int? = null,
     height: Int? = null,
 ): String {
+    // Upgrade YouTube video thumbnails to higher quality for sharper display
+    if (this matches "https://i\\.ytimg\\.com/vi/[^/]+/default\\.jpg".toRegex()) {
+        return replace("/default.jpg", "/hqdefault.jpg")
+    }
     if (width == null && height == null) return this
     "https://lh3\\.googleusercontent\\.com/.*=w(\\d+)-h(\\d+).*".toRegex()
         .matchEntire(this)?.groupValues?.let { group ->
