@@ -106,17 +106,27 @@ android {
 
     sourceSets {
         getByName("main") {
-            kotlin.srcDir("src/main/kotlin")
+            kotlin {
+                srcDirs += "src/main/kotlin"
+            }
         }
         getByName("foss") {
-            kotlin.srcDirs("src/foss/kotlin")
+            kotlin {
+                srcDirs += "src/foss/kotlin"
+            }
         }
         getByName("gms") {
-            kotlin.srcDirs("src/gms/kotlin")
+            kotlin {
+                srcDirs += "src/gms/kotlin"
+            }
         }
         getByName("tv") {
-            kotlin.srcDirs("src/tv/kotlin")
-            res.srcDirs("src/tv/res")
+            kotlin {
+                srcDirs += "src/tv/kotlin"
+            }
+            res {
+                srcDirs += "src/tv/res"
+            }
         }
     }
 
@@ -243,12 +253,6 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
-    }
-
-    applicationVariants.all { variant ->
-        variant.outputs.all {
-            outputFileName = "AuraMusic-${variant.name}.apk"
-        }
     }
 
     dependenciesInfo {
