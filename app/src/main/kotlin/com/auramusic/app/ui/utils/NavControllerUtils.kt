@@ -9,7 +9,7 @@ import androidx.navigation.NavController
 import com.auramusic.app.ui.screens.Screens
 
 fun NavController.backToMain() {
-    val mainRoutes = Screens.MainScreens.map { it.route }
+    val mainRoutes = Screens.MainScreens.mapNotNull { it?.route }
 
     while (previousBackStackEntry != null &&
         currentBackStackEntry?.destination?.route !in mainRoutes
