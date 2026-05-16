@@ -17,6 +17,7 @@
     <!-- Top bar -->
     <plurals name="n_selected">
         <item quantity="one">%d selecionado</item>
+        <item quantity="many">%d seleciandos</item>
         <item quantity="other">%d selecionados</item>
     </plurals>
     <!-- Home -->
