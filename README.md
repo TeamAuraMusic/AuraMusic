@@ -275,7 +275,8 @@ If you'd like to support my work, you can donate via PayPal:
 - [**MusicRecognizer**](https://github.com/aleksey-saenko/MusicRecognizer) – Music recognition and Shazam API
 - [**Flow**](https://github.com/A-EDev/Flow) - Extract videos from YouTube 
 - [**Vosk**](https://github.com/alphacep/vosk-api) - Offline wake word recognition
-
+- [**Monochrome**](https://github.com/monochrome-music/monochrome) - Monochrome-inspired animated background and lyrics style
+  
 The open-source community for tools, libraries, and APIs that make this project possible.
 
 <sub>Thank you to all the amazing developers who made this project possible!</sub>
