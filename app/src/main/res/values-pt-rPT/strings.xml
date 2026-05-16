@@ -318,6 +318,8 @@
     <string name="slide">Deslizar</string>
     <string name="karaoke">Karaokê</string>
     <string name="apple_music_style">Estilo Apple Music</string>
+    <string name="monochrome_style">Estilo monocromático</string>
+    <string name="player_background_animated_gradient">Gradiente animado</string>
     <string name="karaoke_mode">Modo karaokê</string>
     <string name="karaoke_mode_desc">Remove a voz principal para que apenas a instrumental seja reproduzida — cante junto com a letra sincronizada. Funciona melhor em músicas estéreo, onde a voz é mixada ao centro.</string>
     <string name="karaoke_vocal_suppression">Intensidade da supressão vocal</string>

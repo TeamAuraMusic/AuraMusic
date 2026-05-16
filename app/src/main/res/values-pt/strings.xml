@@ -350,6 +350,8 @@
     <string name="slide">Deslizar</string>
     <string name="karaoke">Karaokê</string>
     <string name="apple_music_style">Estilo Apple Music</string>
+    <string name="monochrome_style">Estilo monocromático</string>
+    <string name="player_background_animated_gradient">Gradiente animado</string>
     <string name="lyrics_glow_effect">Efeito de brilho na letra</string>
     <string name="lyrics_glow_effect_desc">Ativar efeito de brilho na linha da letra atual</string>
     <string name="lyrics_click_change">Clique na letra para mudar</string>

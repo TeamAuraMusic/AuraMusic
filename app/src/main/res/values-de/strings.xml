@@ -379,6 +379,8 @@
     <string name="slide">Diagonale</string>
     <string name="karaoke">- Ja</string>
     <string name="apple_music_style">Apple Music Style</string>
+    <string name="monochrome_style">Monochromer Stil</string>
+    <string name="player_background_animated_gradient">Animierter Farbverlauf</string>
     <string name="karaoke_mode">Wie geht\'s</string>
     <string name="karaoke_mode_desc">Entfernt die Leadstimme so nur die Instrumentalspiele – singen Sie zusammen mit den synchronisierten Texten. Arbeitet am besten auf Stereo-Songs, wo der Gesang gemischt ist.</string>
     <string name="karaoke_vocal_suppression">Vokalunterdrückungsfestigkeit</string>

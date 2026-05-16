@@ -376,6 +376,8 @@
     </plurals>
     <string name="karaoke">Karaoke</string>
     <string name="apple_music_style">Estilo de Apple Music</string>
+    <string name="monochrome_style">Estilo monocromo</string>
+    <string name="player_background_animated_gradient">Gradiente animado</string>
     <string name="karaoke_mode">Modo de karaoke</string>
     <string name="karaoke_vocal_suppression">Fuerza de supresión de Vocales</string>
     <string name="lyrics_glow_effect_desc">Efecto de brillo enable en la línea de letra actual</string>

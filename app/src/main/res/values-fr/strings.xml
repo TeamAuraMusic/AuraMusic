@@ -390,6 +390,8 @@
     <string name="slide">Diapositive</string>
     <string name="karaoke">Karaoké</string>
     <string name="apple_music_style">Style Apple Music</string>
+    <string name="monochrome_style">Style monochrome</string>
+    <string name="player_background_animated_gradient">Dégradé animé</string>
     <string name="karaoke_mode">Mode karaoké</string>
     <string name="karaoke_mode_desc">Supprime la voix principale pour ne laisser que la musique — chantez en suivant les paroles synchronisées. Fonctionne mieux avec les morceaux en stéréo où la voix est mixée au centre.</string>
     <string name="karaoke_vocal_suppression">Intensité de l\'atténuation vocale</string>
