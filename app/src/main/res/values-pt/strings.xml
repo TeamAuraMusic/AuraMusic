@@ -239,6 +239,10 @@
         <item quantity="one">1 minuto</item>
         <item quantity="other">%d minutos</item>
     </plurals>
+    <plurals name="seconds">
+        <item quantity="one">1 segundo</item>
+        <item quantity="other">%d segundos</item>
+    </plurals>
     <!-- Snackbar -->
     <string name="playlist_imported">Playlist importada</string>
     <string name="removed_song_from_playlist">Removido \"%s\" da lista de reprodução</string>
