@@ -946,6 +946,4 @@
     <string name="alarm_dismiss">Ignorer</string>
     <string name="alarm_channel_name">Réveil Musical</string>
     <string name="alarm_channel_desc">Réveil qui diffuse les morceaux de votre choix.</string>
-    <string name="player_background_animated_gradient"></string>
-    <string name="monochrome_style"></string>
 </resources>
