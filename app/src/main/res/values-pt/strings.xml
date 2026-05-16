@@ -972,4 +972,6 @@
         <item quantity="one">%d segundos</item>
         <item quantity="other">%d segundos</item>
     </plurals>
+    <plurals name="minute">
+    </plurals>
 </resources>
