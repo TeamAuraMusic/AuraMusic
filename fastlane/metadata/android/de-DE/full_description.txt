@@ -1,0 +1,15 @@
+Aura Music ist ein Open-Source-Musik-Player, mit dem Sie Musik direkt von YouTube Music streamen können.
+
+Eigenschaften:
+- Musik von YouTube Musik
+- Videowiedergabeunterstützung
+- Textanzeige und Übersetzung
+- Audioqualität Einstellungen
+- Hintergrundwiedergabe
+- Queue Management
+- Suchfunktionalität
+- Künstler und Album-Browsing
+
+Dies ist die FOSS (Free and Open Source) Version, kompatibel mit F-Droid. Es beinhaltet nicht Google Play Services Abhängigkeiten.
+
+Lizenz: GPL-3.0

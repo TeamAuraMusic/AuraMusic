@@ -1,0 +1,4 @@
+- Erstauslösung F-Droid
+- Videowiedergabeunterstützung
+- Textanzeige und Übersetzung
+- Musik von YouTube Musik
