@@ -853,7 +853,8 @@
         <item quantity="other">%d segundos</item>
     </plurals>
     <plurals name="minute">
-        <item quantity="one">1 minuto</item>
+        <item quantity="one">um minuto</item>
+        <item quantity="many">minutos</item>
         <item quantity="other">%d minutos</item>
     </plurals>
     <string name="playlist_imported">Lista de reprodução importada</string>
