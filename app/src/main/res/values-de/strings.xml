@@ -252,7 +252,7 @@
     </plurals>
     <plurals name="minute">
         <item quantity="one">1 minute</item>
-        <item quantity="other">%d Minuten</item>
+        <item quantity="other">Minuten</item>
     </plurals>
     <string name="playlist_imported">Playlist importiert</string>
     <string name="removed_song_from_playlist">Entfernt \"%s\" von playlist</string>
