@@ -394,6 +394,7 @@
     <string name="seconds">seconds</string>
     <plurals name="minute">
         <item quantity="one">minute</item>
+        <item quantity="other">minutes</item>
     </plurals>
     <plurals name="n_time">
         <item quantity="one">%d time</item>
