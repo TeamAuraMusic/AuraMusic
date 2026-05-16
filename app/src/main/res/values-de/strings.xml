@@ -931,4 +931,6 @@
     <string name="alarm_dismiss">Entlassung</string>
     <string name="alarm_channel_name">Musikalische Alarmanlage</string>
     <string name="alarm_channel_desc">Wake-up Alarm, der Ihre ausgewählten Songs spielt.</string>
+    <string name="player_background_animated_gradient"></string>
+    <string name="monochrome_style"></string>
 </resources>
