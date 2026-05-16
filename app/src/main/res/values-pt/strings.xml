@@ -975,4 +975,7 @@
     <string name="alarm_dismiss">Dispensar</string>
     <string name="captions_off">Desligado</string>
     <string name="captions_on">Ligado</string>
+    <plurals name="minute">
+        <item quantity="one">um minuto</item>
+    </plurals>
 </resources>
