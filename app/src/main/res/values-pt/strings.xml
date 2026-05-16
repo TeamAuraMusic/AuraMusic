@@ -976,6 +976,7 @@
     <string name="captions_off">Desligado</string>
     <string name="captions_on">Ligado</string>
     <plurals name="minute">
-        <item quantity="one">um minuto</item>
+        <item quantity="one">minuto</item>
+        <item quantity="many">minuto</item>
     </plurals>
 </resources>
