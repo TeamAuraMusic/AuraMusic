@@ -283,15 +283,6 @@
         <item quantity="one">1 minute</item>
         <item quantity="other">%d minutes</item>
     </plurals>
-    <plurals name="seconds">
-        <item quantity="one">1 second</item>
-        <item quantity="other">%d seconds</item>
-    </plurals>
-    <plurals name="minute">
-        <item quantity="one">1 minute</item>
-        <item quantity="other">%d minutes</item>
-    </plurals>
-
     <!-- Snackbar -->
     <string name="playlist_imported">Playlist imported</string>
     <string name="removed_song_from_playlist">Removed \"%s\" from playlist</string>
@@ -430,6 +421,8 @@
     <string name="slide">Slide</string>
     <string name="karaoke">Karaoke</string>
     <string name="apple_music_style">Apple Music style</string>
+    <string name="monochrome_style">Monochrome style</string>
+    <string name="player_background_animated_gradient">Animated gradient</string>
     <string name="karaoke_mode">Karaoke mode</string>
     <string name="karaoke_mode_desc">Removes the lead vocal so only the instrumental plays — sing along with the synced lyrics. Works best on stereo songs where the vocal is mixed centre.</string>
     <string name="karaoke_vocal_suppression">Vocal suppression strength</string>
