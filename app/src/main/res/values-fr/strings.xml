@@ -942,10 +942,10 @@
     <string name="lyrics_custom_font_default">Utiliser les paramètres par défaut du système</string>
     <string name="lyrics_custom_font_selected">Police personnalisée sélectionnée · Appuyez pour changer</string>
     <string name="disabled">Désactivé</string>
-    <string name="alarm_title">Réveil Musical</string>
-    <string name="alarm_subtitle">Réveil programmé pour %1$s</string>
+    <string name="alarm_title">Réveil musical</string>
+    <string name="alarm_subtitle">Alarme prévue pour %1$s</string>
     <string name="alarm_snooze">Répéter l\'alarme pendant %1$d minutes</string>
     <string name="alarm_dismiss">Ignorer</string>
-    <string name="alarm_channel_name">Réveil Musical</string>
-    <string name="alarm_channel_desc">Réveil qui diffuse les morceaux de votre choix.</string>
+    <string name="alarm_channel_name">Réveil musical</string>
+    <string name="alarm_channel_desc">L\'alarme de réveil qui joue vos chansons sélectionnées.</string>
 </resources>
