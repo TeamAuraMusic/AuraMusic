@@ -973,12 +973,4 @@
     <string name="alarm_dismiss">Dispensar</string>
     <string name="captions_off">Desligado</string>
     <string name="captions_on">Ligado</string>
-    <plurals name="seconds">
-        <item quantity="one">%d segundos</item>
-        <item quantity="other">%d segundos</item>
-    </plurals>
-    <plurals name="minute">
-        <item quantity="one">%d minutos</item>
-        <item quantity="other">%d minutos</item>
-    </plurals>
 </resources>
