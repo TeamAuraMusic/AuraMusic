@@ -21,7 +21,11 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -236,7 +240,9 @@ fun BottomSheetPlayer(
 
     val shouldUseDarkButtonColors = remember(playerBackground, useDarkTheme) {
         when (playerBackground) {
-            PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT -> true
+            PlayerBackgroundStyle.BLUR,
+            PlayerBackgroundStyle.GRADIENT,
+            PlayerBackgroundStyle.ANIMATED_GRADIENT -> true
             PlayerBackgroundStyle.DEFAULT -> useDarkTheme
         }
     }
@@ -251,7 +257,9 @@ fun BottomSheetPlayer(
             val insetsController = WindowCompat.getInsetsController(window, window.decorView)
             
             when (playerBackground) {
-                PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT -> {
+                PlayerBackgroundStyle.BLUR,
+                PlayerBackgroundStyle.GRADIENT,
+                PlayerBackgroundStyle.ANIMATED_GRADIENT -> {
                     insetsController.isAppearanceLightStatusBars = false
                 }
                 PlayerBackgroundStyle.DEFAULT -> {
@@ -401,7 +409,8 @@ fun BottomSheetPlayer(
     val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
 
     LaunchedEffect(mediaMetadata?.id, playerBackground) {
-        if (playerBackground == PlayerBackgroundStyle.GRADIENT) {
+        if (playerBackground == PlayerBackgroundStyle.GRADIENT ||
+            playerBackground == PlayerBackgroundStyle.ANIMATED_GRADIENT) {
             val currentMetadata = mediaMetadata
             if (currentMetadata != null && currentMetadata.thumbnailUrl != null) {
                 val cachedColors = gradientColorsCache[currentMetadata.id]
@@ -447,6 +456,7 @@ fun BottomSheetPlayer(
             PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.onBackground
             PlayerBackgroundStyle.BLUR -> Color.White
             PlayerBackgroundStyle.GRADIENT -> Color.White
+            PlayerBackgroundStyle.ANIMATED_GRADIENT -> Color.White
         },
         label = "TextBackgroundColor"
     )
@@ -456,13 +466,15 @@ fun BottomSheetPlayer(
             PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.surface
             PlayerBackgroundStyle.BLUR -> Color.Black
             PlayerBackgroundStyle.GRADIENT -> Color.Black
+            PlayerBackgroundStyle.ANIMATED_GRADIENT -> Color.Black
         },
         label = "icBackgroundColor"
     )
 
     val (textButtonColor, iconButtonColor) = when {
-        playerBackground == PlayerBackgroundStyle.BLUR || 
-        playerBackground == PlayerBackgroundStyle.GRADIENT -> {
+        playerBackground == PlayerBackgroundStyle.BLUR ||
+        playerBackground == PlayerBackgroundStyle.GRADIENT ||
+        playerBackground == PlayerBackgroundStyle.ANIMATED_GRADIENT -> {
             when (playerButtonsStyle) {
                 PlayerButtonsStyle.DEFAULT -> Pair(Color.White, Color.Black)
                 PlayerButtonsStyle.PRIMARY -> Pair(
@@ -494,8 +506,9 @@ fun BottomSheetPlayer(
 
     // Separate colors for Previous/Next buttons in PRIMARY/TERTIARY modes
     val (sideButtonContainerColor, sideButtonContentColor) = when {
-        playerBackground == PlayerBackgroundStyle.BLUR || 
-        playerBackground == PlayerBackgroundStyle.GRADIENT -> {
+        playerBackground == PlayerBackgroundStyle.BLUR ||
+        playerBackground == PlayerBackgroundStyle.GRADIENT ||
+        playerBackground == PlayerBackgroundStyle.ANIMATED_GRADIENT -> {
             when (playerButtonsStyle) {
                 PlayerButtonsStyle.DEFAULT -> Pair(
                     Color.White.copy(alpha = 0.2f), 
@@ -740,7 +753,9 @@ fun BottomSheetPlayer(
     )
 
     val bottomSheetBackgroundColor = when (playerBackground) {
-        PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT ->
+        PlayerBackgroundStyle.BLUR,
+        PlayerBackgroundStyle.GRADIENT,
+        PlayerBackgroundStyle.ANIMATED_GRADIENT ->
             MaterialTheme.colorScheme.surfaceContainer
         else ->
             if (useBlackBackground) Color.Black
@@ -818,6 +833,24 @@ fun BottomSheetPlayer(
                                         .alpha(backgroundAlpha)
                                         .background(Brush.verticalGradient(colorStops = gradientColorStops))
                                         .background(Color.Black.copy(alpha = 0.2f))
+                                )
+                            }
+                        }
+                    }
+                    PlayerBackgroundStyle.ANIMATED_GRADIENT -> {
+                        AnimatedContent(
+                            targetState = gradientColors,
+                            transitionSpec = {
+                                fadeIn(tween(800)).togetherWith(fadeOut(tween(800)))
+                            },
+                            label = "animatedGradientBackground"
+                        ) { colors ->
+                            if (colors.isNotEmpty()) {
+                                AnimatedGradientBackground(
+                                    colors = colors,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .alpha(backgroundAlpha)
                                 )
                             }
                         }
@@ -2301,6 +2334,116 @@ private fun PlayerMoreMenuButton(
             painter = painterResource(R.drawable.more_vert),
             contentDescription = null,
             colorFilter = ColorFilter.tint(iconButtonColor),
+        )
+    }
+}
+
+
+/**
+ * Animated, audio-aware gradient background inspired by Monochrome's fullscreen
+ * player tint layer. Renders a stack of large blurred radial-gradient "blobs"
+ * coloured from the palette extracted from the cover art, slowly drifting across
+ * the screen using infinite Lissajous motions on top of a dark base.
+ */
+@Composable
+private fun AnimatedGradientBackground(
+    colors: List<Color>,
+    modifier: Modifier = Modifier,
+) {
+    if (colors.isEmpty()) return
+
+    val baseColor = Color(0xFF0B0D11)
+    val c0 = colors.getOrNull(0) ?: baseColor
+    val c1 = colors.getOrNull(1) ?: c0
+    val c2 = colors.getOrNull(2) ?: c1
+
+    val transition = rememberInfiniteTransition(label = "animatedGradient")
+
+    val t1 by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = (2f * Math.PI).toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 18000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "t1"
+    )
+    val t2 by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = (2f * Math.PI).toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 23000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "t2"
+    )
+    val t3 by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = (2f * Math.PI).toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 29000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "t3"
+    )
+
+    Box(
+        modifier = modifier
+            .background(baseColor)
+    ) {
+        androidx.compose.foundation.Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .blur(60.dp)
+        ) {
+            val w = size.width
+            val h = size.height
+            val radius = (kotlin.math.max(w, h)) * 0.75f
+
+            // Blob 1 — primary palette colour, large slow drift
+            val cx1 = w * (0.30f + 0.18f * kotlin.math.cos(t1))
+            val cy1 = h * (0.30f + 0.18f * kotlin.math.sin(t1 * 0.7f))
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(c0.copy(alpha = 0.85f), c0.copy(alpha = 0f)),
+                    center = Offset(cx1, cy1),
+                    radius = radius
+                ),
+                radius = radius,
+                center = Offset(cx1, cy1),
+            )
+
+            // Blob 2 — secondary palette colour, opposite drift
+            val cx2 = w * (0.70f + 0.20f * kotlin.math.sin(t2))
+            val cy2 = h * (0.35f + 0.18f * kotlin.math.cos(t2 * 0.9f))
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(c1.copy(alpha = 0.75f), c1.copy(alpha = 0f)),
+                    center = Offset(cx2, cy2),
+                    radius = radius * 0.95f
+                ),
+                radius = radius * 0.95f,
+                center = Offset(cx2, cy2),
+            )
+
+            // Blob 3 — accent / dark colour pulled in from the bottom
+            val cx3 = w * (0.50f + 0.25f * kotlin.math.cos(t3 * 0.6f))
+            val cy3 = h * (0.80f + 0.15f * kotlin.math.sin(t3))
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(c2.copy(alpha = 0.70f), c2.copy(alpha = 0f)),
+                    center = Offset(cx3, cy3),
+                    radius = radius * 0.9f
+                ),
+                radius = radius * 0.9f,
+                center = Offset(cx3, cy3),
+            )
+        }
+        // Dark veil so text remains legible (mirrors Monochrome's overlay)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.30f))
         )
     }
 }

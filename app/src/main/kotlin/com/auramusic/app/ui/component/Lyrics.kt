@@ -18,6 +18,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -87,6 +88,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.geometry.Offset
@@ -635,7 +637,9 @@ fun Lyrics(
     // Use Material 3 expressive accents and keep glow/text colors unified
     val expressiveAccent = when (playerBackground) {
         PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.primary
-        PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT -> {
+        PlayerBackgroundStyle.BLUR,
+        PlayerBackgroundStyle.GRADIENT,
+        PlayerBackgroundStyle.ANIMATED_GRADIENT -> {
             // For blur/gradient backgrounds, always use light colors regardless of theme
             Color.White
         }
@@ -1141,18 +1145,57 @@ fun Lyrics(
                     val isLineAtSameTime = item.time == currentLineTime
                     val isActiveByIndex = index == displayedCurrentLineIndex
                     val isActiveByTime = isLineAtSameTime && displayedCurrentLineIndex >= 0
-                    
+                    val isMonochromeStyle = lyricsAnimationStyle == LyricsAnimationStyle.MONOCHROME
+                    val isThisLineActive = isActiveByIndex || isActiveByTime
+
+                    // Monochrome-style per-line state (past / inactive / upcoming / active)
+                    // Matches Apple Music–like motion popularised by Monochrome:
+                    //   active   → opacity 1.00, scale 1.00, blur 0
+                    //   upcoming → opacity 0.70, scale 0.98, blur 0.8dp
+                    //   inactive → opacity 0.50, scale 0.95, blur 1.5dp
+                    //   past     → opacity 0.30, scale 0.93, blur 2.0dp
+                    val monochromeRelative = when {
+                        !isMonochromeStyle || !isSynced || displayedCurrentLineIndex < 0 -> 0
+                        isThisLineActive -> 0
+                        index == displayedCurrentLineIndex + 1 -> 1   // upcoming
+                        index < displayedCurrentLineIndex -> -1       // past
+                        else -> 2                                     // future / inactive
+                    }
+
                     val alpha by animateFloatAsState(
                         targetValue = when {
                             !isSynced || (isSelectionModeActive && isSelected) -> 1f
-                            isActiveByIndex || isActiveByTime -> 1f
+                            isThisLineActive -> 1f
+                            isMonochromeStyle -> when (monochromeRelative) {
+                                1 -> 0.70f
+                                -1 -> 0.30f
+                                else -> 0.50f
+                            }
                             else -> 0.5f
                         },
-                        animationSpec = tween(durationMillis = 400)
+                        animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing)
                     )
                     val scale by animateFloatAsState(
-                        targetValue = if (isActiveByIndex || isActiveByTime) 1.05f else 1f,
-                        animationSpec = tween(durationMillis = 400)
+                        targetValue = when {
+                            isThisLineActive -> 1.05f
+                            isMonochromeStyle -> when (monochromeRelative) {
+                                1 -> 0.98f
+                                -1 -> 0.93f
+                                else -> 0.95f
+                            }
+                            else -> 1f
+                        },
+                        animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing)
+                    )
+                    val monochromeBlur by animateDpAsState(
+                        targetValue = when {
+                            !isMonochromeStyle || isThisLineActive -> 0.dp
+                            monochromeRelative == 1 -> 0.8.dp
+                            monochromeRelative == -1 -> 2.0.dp
+                            else -> 1.5.dp
+                        },
+                        animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
+                        label = "monochromeBlur"
                     )
 
                     // Use user's alignment setting, but center background vocals
@@ -1197,11 +1240,13 @@ fun Lyrics(
                     }
 
                     Column(
-                        modifier = itemModifier.graphicsLayer {
-                            this.alpha = if (item.isBackground) alpha * 0.8f else alpha
-                            this.scaleX = scale * bgScale
-                            this.scaleY = scale * bgScale
-                        },
+                        modifier = itemModifier
+                            .then(if (isMonochromeStyle) Modifier.blur(monochromeBlur) else Modifier)
+                            .graphicsLayer {
+                                this.alpha = if (item.isBackground) alpha * 0.8f else alpha
+                                this.scaleX = scale * bgScale
+                                this.scaleY = scale * bgScale
+                            },
                         horizontalAlignment = agentAlignment
                     ) {
                         // Use time-based active check to sync both main and background lines with same timestamp.

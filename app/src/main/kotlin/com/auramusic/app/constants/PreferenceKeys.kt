@@ -390,6 +390,7 @@ enum class PlayerBackgroundStyle {
     DEFAULT,
     GRADIENT,
     BLUR,
+    ANIMATED_GRADIENT,
 }
 
 val TopSize = stringPreferencesKey("topSize")
@@ -443,6 +444,7 @@ enum class LyricsAnimationStyle {
     SLIDE,
     KARAOKE,
     APPLE,
+    MONOCHROME,
 }
 
 val LyricsTextSizeKey = floatPreferencesKey("lyricsTextSize")

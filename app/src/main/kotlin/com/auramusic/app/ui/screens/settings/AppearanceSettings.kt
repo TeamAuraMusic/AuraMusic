@@ -422,6 +422,7 @@ fun AppearanceSettings(
                     LyricsAnimationStyle.SLIDE -> stringResource(R.string.slide)
                     LyricsAnimationStyle.KARAOKE -> stringResource(R.string.karaoke)
                     LyricsAnimationStyle.APPLE -> stringResource(R.string.apple_music_style)
+                    LyricsAnimationStyle.MONOCHROME -> stringResource(R.string.monochrome_style)
                 }
             }
         )
@@ -590,6 +591,7 @@ fun AppearanceSettings(
                     PlayerBackgroundStyle.DEFAULT -> stringResource(R.string.follow_theme)
                     PlayerBackgroundStyle.GRADIENT -> stringResource(R.string.gradient)
                     PlayerBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur)
+                    PlayerBackgroundStyle.ANIMATED_GRADIENT -> stringResource(R.string.player_background_animated_gradient)
                 }
             }
         )
@@ -1237,6 +1239,7 @@ fun AppearanceSettings(
                                 PlayerBackgroundStyle.DEFAULT -> stringResource(R.string.follow_theme)
                                 PlayerBackgroundStyle.GRADIENT -> stringResource(R.string.gradient)
                                 PlayerBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur)
+                                PlayerBackgroundStyle.ANIMATED_GRADIENT -> stringResource(R.string.player_background_animated_gradient)
                             }
                         )
                     },
@@ -1448,6 +1451,7 @@ fun AppearanceSettings(
                                 LyricsAnimationStyle.SLIDE -> stringResource(R.string.slide)
                                 LyricsAnimationStyle.KARAOKE -> stringResource(R.string.karaoke)
                                 LyricsAnimationStyle.APPLE -> stringResource(R.string.apple_music_style)
+                                LyricsAnimationStyle.MONOCHROME -> stringResource(R.string.monochrome_style)
                             }
                         )
                     },
