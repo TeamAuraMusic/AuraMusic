@@ -977,6 +977,6 @@
     <string name="captions_on">Ligado</string>
     <plurals name="minute">
         <item quantity="one">minuto</item>
-        <item quantity="many">minuto</item>
+        <item quantity="other">minutos</item>
     </plurals>
 </resources>
