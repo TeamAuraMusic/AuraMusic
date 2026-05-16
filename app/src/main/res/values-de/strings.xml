@@ -252,7 +252,7 @@
     </plurals>
     <plurals name="minute">
         <item quantity="one">1 minute</item>
-        <item quantity="other">Minuten</item>
+        <item quantity="other">%d Minuten</item>
     </plurals>
     <string name="playlist_imported">Playlist importiert</string>
     <string name="removed_song_from_playlist">Entfernt \"%s\" von playlist</string>
@@ -380,7 +380,7 @@
     <string name="karaoke">- Ja</string>
     <string name="apple_music_style">Apple Music Style</string>
     <string name="monochrome_style">Monochromer Stil</string>
-    <string name="player_background_animated_gradient">Animierter Farbverlauf</string>
+    <string name="player_background_animated_gradient">Animierter Gradient</string>
     <string name="karaoke_mode">Wie geht\'s</string>
     <string name="karaoke_mode_desc">Entfernt die Leadstimme so nur die Instrumentalspiele – singen Sie zusammen mit den synchronisierten Texten. Arbeitet am besten auf Stereo-Songs, wo der Gesang gemischt ist.</string>
     <string name="karaoke_vocal_suppression">Vokalunterdrückungsfestigkeit</string>
