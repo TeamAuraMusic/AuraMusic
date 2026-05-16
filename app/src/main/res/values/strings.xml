@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <resources>
     <!-- App name -->
     <string name="app_name">AuraMusic</string>
@@ -8,7 +7,6 @@
     <string name="update_channel_name">Updates</string>
     <string name="update_available_title">Update available</string>
     <string name="app_description">Music streaming application</string>
-
     <!-- Bottom navigation -->
     <string name="home">Home</string>
     <string name="songs">Songs</string>
@@ -17,12 +15,10 @@
     <string name="playlists">Playlists</string>
     <string name="search">Search</string>
     <string name="together">Listen Together</string>
-
     <!-- Top bar -->
     <plurals name="n_selected">
         <item quantity="other">%d selected</item>
     </plurals>
-
     <!-- Home -->
     <string name="history">History</string>
     <string name="progress_percent">%s%%</string>
@@ -50,7 +46,6 @@
     <string name="trending">Trending</string>
     <string name="trending_now">Trending Now</string>
     <string name="top_music_videos">Top music videos</string>
-
     <!-- History -->
     <string name="today">Today</string>
     <string name="yesterday">Yesterday</string>
@@ -58,12 +53,10 @@
     <string name="last_week">Last week</string>
     <string name="local_history">Local history</string>
     <string name="remote_history">Remote history</string>
-
     <!-- Stats -->
     <string name="most_played_songs">Most played songs</string>
     <string name="most_played_artists">Most played artists</string>
     <string name="most_played_albums">Most played albums</string>
-
     <!-- Search -->
     <string name="search_yt_music">Search YouTube Music…</string>
     <string name="search_library">Search library…</string>
@@ -80,23 +73,19 @@
     <string name="filter_featured_playlists">Featured playlists</string>
     <string name="filter_bookmarked">Bookmarked</string>
     <string name="no_results_found">No results found</string>
-
     <!-- Library -->
     <string name="library_song_empty">Library songs will show up here</string>
     <string name="library_artist_empty">Library artists will show up here</string>
     <string name="library_album_empty">Library albums will show up here</string>
     <string name="library_playlist_empty">Your playlists will show up here</string>
-
     <!-- Artist screen -->
     <string name="from_your_library">From your library</string>
     <string name="radio">Radio</string>
     <string name="about_artist">About artist</string>
     <string name="subscribed">Subscribed</string>
     <string name="subscribe">Subscribe</string>
-
     <!-- Album screen -->
     <string name="other_versions">Other versions</string>
-
     <!-- Playlist -->
     <string name="liked_songs">Liked songs</string>
     <string name="downloaded_songs">Downloaded songs</string>
@@ -113,7 +102,6 @@
     <string name="not_logged_in_youtube">Not logged in to YouTube</string>
     <string name="sync_disabled">Sync disabled</string>
     <string name="playlist_add_local_to_synced_note">Adding local songs to synced playlists is not supported</string>
-
     <!-- Button -->
     <string name="retry">Retry</string>
     <string name="shuffle">Shuffle</string>
@@ -158,7 +146,6 @@
     <string name="copy">Copy</string>
     <string name="copy_link">Copy link</string>
     <string name="copy_code">Copy code</string>
-
     <!-- Menu -->
     <string name="details">Details</string>
     <string name="start_radio">Start radio</string>
@@ -189,7 +176,6 @@
     <string name="advanced_desc">Advanced audio settings</string>
     <string name="resync">Resync</string>
     <string name="manage_user">Manage user</string>
-
     <!-- Sort menu -->
     <string name="sort_by_create_date">Date added</string>
     <string name="sort_by_name">Name</string>
@@ -200,7 +186,6 @@
     <string name="sort_by_play_time">Play time</string>
     <string name="sort_by_custom">Custom order</string>
     <string name="sort_by_last_updated">Last updated</string>
-
     <!-- Dialog -->
     <string name="media_id">Media id</string>
     <string name="mime_type">MIME type</string>
@@ -221,16 +206,13 @@
     <string name="views">Views</string>
     <string name="likes">Likes</string>
     <string name="dislikes">Dislikes</string>
-
     <string name="edit_lyrics">Edit lyrics</string>
     <string name="search_lyrics">Search lyrics</string>
-
     <string name="edit_song">Edit song</string>
     <string name="song_title">Song title</string>
     <string name="song_artists">Song artists</string>
     <string name="error_song_title_empty">Song title cannot be empty.</string>
     <string name="error_song_artist_empty">Song artist cannot be empty.</string>
-
     <string name="choose_playlist">Choose playlist</string>
     <string name="edit_playlist">Edit playlist</string>
     <string name="create_playlist">Create playlist</string>
@@ -239,17 +221,14 @@
     <string name="edit_playlist_cover">Edit playlist cover</string>
     <string name="edit_playlist_cover_note">Choose an image from your library</string>
     <string name="edit_playlist_cover_note_wait">Choosing image…</string>
-
     <string name="edit_artist">Edit artist</string>
     <string name="artist_name">Artist name</string>
     <string name="error_artist_name_empty">Artist name cannot be empty.</string>
-
     <string name="duplicates">Duplicates</string>
     <string name="skip_duplicates">Skip duplicates</string>
     <string name="add_anyway">Add anyway</string>
     <string name="duplicates_description_single">The song is already in your playlist</string>
     <string name="duplicates_description_multiple">%d songs are already in your playlist</string>
-
     <!-- Noun -->
     <plurals name="n_song">
         <item quantity="one">%d song</item>
@@ -297,7 +276,6 @@
     <string name="playlist_synced">Playlist synced</string>
     <string name="undo">Undo</string>
     <string name="already_in_playlist">Already in playlist</string>
-
     <!-- Player -->
     <string name="lyrics_not_found">Lyrics not found</string>
     <string name="sleep_timer">Sleep timer</string>
@@ -310,7 +288,6 @@
     <string name="error_playback_failed">Playback failed</string>
     <string name="no_song_playing">No song playing</string>
     <string name="tap_to_open">Tap to open</string>
-
     <!-- Player action -->
     <string name="action_like">Like</string>
     <string name="action_like_all">Like all</string>
@@ -321,12 +298,10 @@
     <string name="repeat_mode_off">Repeat mode off</string>
     <string name="repeat_mode_one">Repeat current song</string>
     <string name="repeat_mode_all">Repeat queue</string>
-
     <!-- Queue Title -->
     <string name="queue">Queue</string>
     <string name="queue_all_songs">All songs</string>
     <string name="queue_searched_songs">Searched songs</string>
-
     <!-- Notification name -->
     <string name="music_player">AuraMusic</string>
     <string name="widget_music_player">Music Player</string>
@@ -351,7 +326,6 @@
     <string name="widget_music_player_desc">Control your music with play/pause, skip, and like buttons</string>
     <string name="widget_compact_square_desc">Compact square widget for quick playback control</string>
     <string name="widget_compact_wide_desc">Compact wide widget showing song info and controls</string>
-
     <!-- Settings -->
     <string name="settings">Settings</string>
     <string name="appearance">Appearance</string>
@@ -418,7 +392,9 @@
     <string name="lyrics_line_spacing">Lyrics line spacing</string>
     <string name="lyrics_animation_style">Lyrics animation style</string>
     <string name="seconds">seconds</string>
-    <string name="minute">minute</string>
+    <plurals name="minute">
+        <item quantity="one">minute</item>
+    </plurals>
     <plurals name="n_time">
         <item quantity="one">%d time</item>
         <item quantity="other">%d times</item>
@@ -450,7 +426,6 @@
     <string name="lyrics_custom_font_default">Use system default</string>
     <string name="lyrics_custom_font_selected">Custom font selected · tap to change</string>
     <string name="disabled">Disabled</string>
-
     <!-- Appearance settings -->
     <string name="settings_section_ui">Interface</string>
     <string name="settings_section_player_content">Player &amp; Content</string>
@@ -474,11 +449,9 @@
     <string name="enable_dynamic_icon">Enable dynamic icon</string>
     <string name="enable_high_refresh_rate">High refresh rate</string>
     <string name="enable_high_refresh_rate_desc">Enable 90Hz/120Hz display support</string>
-
     <string name="font">Font</string>
     <string name="about">About</string>
     <string name="general">General</string>
-
     <!-- Content settings -->
     <string name="content">Content</string>
     <string name="action_logout">Log out</string>
@@ -530,7 +503,6 @@
     <string name="weeks">Weeks</string>
     <string name="months">Months</string>
     <string name="years">Years</string>
-
     <!-- Lyrics -->
     <string name="enable_lrclib">Enable LrcLib lyrics provider</string>
     <string name="enable_kugou">Enable KuGou lyrics provider</string>
@@ -546,7 +518,6 @@
     <string name="lyrics_provider_priority_desc">Drag to reorder providers</string>
     <string name="confirm">Confirm</string>
     <string name="show_wrapped_card">Show Wrapped card</string>
-
     <!-- Player and audio -->
     <string name="player_and_audio">Player and audio</string>
     <string name="audio_offload_description">Use hardware audio decoding when possible</string>
@@ -605,7 +576,6 @@
     <string name="stop_music_on_task_clear">Stop music on task clear</string>
     <string name="pause_music_when_media_is_muted">Pause music when media is muted</string>
     <string name="keep_screen_on_when_player_is_expanded">Keep screen on when player is expanded</string>
-
     <!-- Voice commands -->
     <string name="voice_commands">Voice Commands</string>
     <string name="enable_voice_commands">Enable voice commands</string>
@@ -614,7 +584,6 @@
     <string name="enable_voice_wake_word_desc">Continuously listen for \"Hey Aura\" to activate voice commands without touching the screen. Works while the app is open.</string>
     <string name="voice_wake_word">Custom wake word</string>
     <string name="voice_wake_word_desc">Set your custom wake word (default: Aura)</string>
-
     <!-- Voice feedback -->
     <string name="voice_feedback">Voice Feedback</string>
     <string name="enable_voice_feedback">Enable voice responses</string>
@@ -623,7 +592,6 @@
     <string name="assistant_voice_desc">Select TTS voice (US, UK, Australian, etc.)</string>
     <string name="voice_pitch">Voice pitch</string>
     <string name="voice_speech_rate">Speech rate</string>
-
     <!-- Queue settings -->
     <!-- Storage -->
     <string name="storage">Storage</string>
@@ -645,7 +613,6 @@
     <string name="cache_size_warning_title">Cache warning</string>
     <string name="cache_size_warning_message">Your cache size is large. Consider clearing it to free up space.</string>
     <string name="cache_size_warning_confirm">Clear cache</string>
-
     <!-- Privacy -->
     <string name="privacy">Privacy</string>
     <string name="listen_history">Listen history</string>
@@ -660,7 +627,6 @@
     <string name="use_login_for_browse_desc">This can influence what content you see and for example shows premium-only albums if you are logged in with a Premium account</string>
     <string name="disable_screenshot">Disable screenshot</string>
     <string name="disable_screenshot_desc">When this option is on, screenshots and the app\'s view in Recents are disabled.</string>
-
     <!-- Backup and restore -->
     <string name="backup_restore">Backup and restore</string>
     <string name="action_backup">Backup</string>
@@ -674,7 +640,6 @@
     <string name="importing_csv">Importing CSV…</string>
     <string name="percentage_format">%d%%</string>
     <string name="recently_converted">Recently converted</string>
-
     <!-- CSV import -->
     <string name="map_csv_columns">Map CSV columns</string>
     <string name="first_row_is_header">First row is header</string>
@@ -682,7 +647,6 @@
     <string name="song_title_column">Song title column</string>
     <string name="youtube_url_column">YouTube URL column</string>
     <string name="column_label">Column %d</string>
-
     <!-- Discord -->
     <string name="discord_integration">Discord Integration</string>
     <string name="discord_information">AuraMusic uses the KizzyRPC library to set your Discord account\'s status. This involves using the Discord Gateway connection, which may be considered a violation of Discord\'s TOS. However, there are no known cases of user accounts being suspended for this reason. Use at your own risk.\nAuraMusic will only extract your token, and everything else is stored locally.</string>
@@ -695,7 +659,6 @@
     <string name="listening_to_metrolist">Listening to AuraMusic</string>
     <string name="listen_on_youtube_music">Listen on YouTube Music</string>
     <string name="visit_metrolist">Visit AuraMusic</string>
-
     <!-- Last.fm -->
     <string name="lastfm_integration">Last.fm Integration</string>
     <string name="username">Username</string>
@@ -709,7 +672,6 @@
     <string name="scrobble_min_track_duration">Minimum track duration</string>
     <string name="scrobble_delay_percent">Scrobble delay</string>
     <string name="scrobble_delay_minutes">Scrobble delay (minutes)</string>
-
     <!-- Listen Together -->
     <string name="listen_together">Listen Together</string>
     <string name="listen_together_in_room">In room - tap to open</string>
@@ -796,7 +758,6 @@
     <string name="no_tracks_to_save">No tracks to save</string>
     <string name="collab_playlist_clear">Clear playlist</string>
     <string name="collab_playlist_default_name">Listen Together Session</string>
-
     <!-- Music Recognition -->
     <string name="recognize_music">Recognize music</string>
     <string name="recognition_history">Recognition history</string>
@@ -818,7 +779,6 @@
     <string name="hum_no_match">Couldn\'t identify the melody. Try humming more clearly.</string>
     <string name="switch_to_hum">Hum a song</string>
     <string name="switch_to_listen">Listen to music</string>
-
     <!-- Error messages -->
     <string name="error_generic">An error occurred</string>
     <string name="error_network">Network error</string>
@@ -828,7 +788,6 @@
     <string name="error_title">Error</string>
     <string name="error_eq_apply_failed">Failed to apply equalizer settings</string>
     <string name="import_error_title">Import error</string>
-
     <!-- Equalizer -->
     <string name="equalizer_header">Equalizer</string>
     <string name="import_profile">Import profile</string>
@@ -837,7 +796,6 @@
     <string name="eq_disabled">Equalizer disabled</string>
     <string name="delete_profile_desc">Delete this profile?</string>
     <string name="delete_profile_confirmation">Delete profile</string>
-
     <!-- Wrapped -->
     <string name="wrapped_ready_title">Your %s Wrapped is ready!</string>
     <string name="wrapped_ready_subtitle">See your month in music</string>
@@ -874,7 +832,6 @@
     <string name="wrapped_create_playlist">Create playlist</string>
     <string name="wrapped_playlist_saved">Playlist saved</string>
     <string name="wrapped_no_data">No data available</string>
-
     <!-- AI Translation -->
     <string name="ai_lyrics_translation">AI lyrics translation</string>
     <string name="ai_translating_lyrics">Translating lyrics…</string>
@@ -899,7 +856,6 @@
     <string name="ai_auto_translate">Auto translate</string>
     <string name="ai_language_mismatch">Language mismatch</string>
     <string name="ai_language_mismatch_desc">The lyrics language is different from the detected language</string>
-
     <!-- Romanization -->
     <string name="lyrics_romanize_title">Romanize lyrics</string>
     <string name="lyrics_romanize_as_main">Use romanization as main lyrics</string>
@@ -922,19 +878,16 @@
     <string name="line_by_line_dialog_title">Line by line</string>
     <string name="line_by_line_dialog_desc">Show romanization line by line</string>
     <string name="romanize_current_track">Romanize current track</string>
-
     <!-- Updater -->
     <string name="updater">Updater</string>
     <string name="check_for_updates">Check for updates</string>
     <string name="update_notifications">Update notifications</string>
-
     <!-- Changelog -->
     <string name="changelog">Changelog</string>
     <string name="changelog_empty">No releases yet</string>
     <string name="view_on_github">View on GitHub</string>
     <string name="github_releases_url">https://github.com/TeamAuraMusic/AuraMusic/releases</string>
     <string name="list_bullet">•</string>
-
     <!-- Theme colors -->
     <string name="palette_dynamic">Dynamic</string>
     <string name="palette_crimson">Crimson</string>
@@ -956,7 +909,6 @@
     <string name="palette_brown">Brown</string>
     <string name="palette_grey">Grey</string>
     <string name="palette_blue_grey">Blue Grey</string>
-
     <!-- Theme mode -->
     <string name="cd_pure_black_mode">Pure black mode</string>
     <string name="cd_light_mode">Light mode</string>
@@ -964,10 +916,8 @@
     <string name="cd_system_mode">System mode</string>
     <string name="cd_palette_item">Color palette item</string>
     <string name="cd_back">Back</string>
-
     <!-- Release notes -->
     <string name="release_notes">Release notes</string>
-
     <!-- Crash reporter -->
     <string name="crash_title">AuraMusic has crashed</string>
     <string name="crash_description">An unexpected error occurred</string>
@@ -976,7 +926,6 @@
     <string name="crash_share_title">Share crash report</string>
     <string name="crash_close">Close app</string>
     <string name="crash_share_logs">Share logs</string>
-
     <!-- Download descriptions -->
     <string name="download_desc">Download %s</string>
     <string name="download_playlist_desc">Download all songs in playlist</string>
@@ -1003,30 +952,24 @@
     <string name="generating_image">Generating image…</string>
     <string name="please_wait">Please wait…</string>
     <string name="max_selection_limit">Maximum selection limit reached</string>
-
     <!-- Seek bar -->
     <string name="seek_backward_dynamic">Seek backward</string>
     <string name="seek_forward_dynamic">Seek forward</string>
     <string name="now_playing">Now playing</string>
-
     <!-- Mute -->
     <string name="mute">Mute</string>
     <string name="unmute">Unmute</string>
-
     <!-- Copied -->
     <string name="copied_title">Title copied</string>
     <string name="copied_artist">Artist copied</string>
-
     <!-- Like/Dislike -->
     <string name="like_all">Like all</string>
     <string name="dislike_all">Dislike all</string>
-
     <!-- Player details -->
     <string name="details_desc">View song details</string>
     <string name="casting_to">Casting to %s</string>
     <string name="starting_radio">Starting radio…</string>
     <string name="play_all">Play all</string>
-
     <!-- Video mode -->
     <string name="switch_to_video">Switch to video</string>
     <string name="switch_to_audio">Switch to audio</string>
@@ -1043,7 +986,6 @@
     <string name="video_quality">Video Quality</string>
     <string name="video_lyrics_offset">Video Lyrics Offset</string>
     <string name="video_lyrics_offset_description">Adjust to sync lyrics with video (for intro/talk before music)</string>
-
     <!-- Music Alarm -->
     <string name="alarm_title">Music alarm</string>
     <string name="alarm_subtitle">Alarm scheduled for %1$s</string>
