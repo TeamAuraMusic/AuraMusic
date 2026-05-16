@@ -244,6 +244,7 @@
     </plurals>
     <plurals name="minute">
         <item quantity="one">1 minuto</item>
+        <item quantity="many">%d minutos</item>
         <item quantity="other">%d minutos</item>
     </plurals>
     <!-- Snackbar -->
