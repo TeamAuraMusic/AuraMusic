@@ -944,4 +944,6 @@
     <string name="alarm_dismiss">Desestimación</string>
     <string name="alarm_channel_name">Alarma musical</string>
     <string name="alarm_channel_desc">Desperta la alarma que toca tus canciones seleccionadas.</string>
+    <string name="player_background_animated_gradient"></string>
+    <string name="monochrome_style"></string>
 </resources>
