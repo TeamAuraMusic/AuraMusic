@@ -931,4 +931,6 @@
     <string name="alarm_channel_name">Alarme de música</string>
     <string name="alarm_channel_desc">Alarme de despertar que toca suas músicas selecionadas.</string>
     <string name="alarm_dismiss">Dispensar</string>
+    <string name="player_background_animated_gradient"></string>
+    <string name="monochrome_style"></string>
 </resources>
