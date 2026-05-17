@@ -19,6 +19,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
@@ -2340,10 +2341,11 @@ private fun PlayerMoreMenuButton(
 
 
 /**
- * Animated, audio-aware gradient background inspired by Monochrome's fullscreen
- * player tint layer. Renders a stack of large blurred radial-gradient "blobs"
- * coloured from the palette extracted from the cover art, slowly drifting across
- * the screen using infinite Lissajous motions on top of a dark base.
+ * Animated, palette-aware gradient background inspired by Monochrome's
+ * fullscreen player tint layer. Renders four blurred radial-gradient
+ * "blobs" coloured from the palette extracted from the cover art, slowly
+ * drifting across the screen on independent Lissajous loops over a dark
+ * base, plus a subtle pulsing accent halo, for a fluid aurora feel.
  */
 @Composable
 private fun AnimatedGradientBackground(
@@ -2352,10 +2354,17 @@ private fun AnimatedGradientBackground(
 ) {
     if (colors.isEmpty()) return
 
-    val baseColor = Color(0xFF0B0D11)
+    val baseColor = Color(0xFF0A0C10)
     val c0 = colors.getOrNull(0) ?: baseColor
     val c1 = colors.getOrNull(1) ?: c0
     val c2 = colors.getOrNull(2) ?: c1
+    // Brighten c0 for a highlight blob; mute c2 for depth
+    val cHighlight = Color(
+        red = (c0.red * 1.15f).coerceIn(0f, 1f),
+        green = (c0.green * 1.15f).coerceIn(0f, 1f),
+        blue = (c0.blue * 1.15f).coerceIn(0f, 1f),
+        alpha = 1f
+    )
 
     val transition = rememberInfiniteTransition(label = "animatedGradient")
 
@@ -2363,7 +2372,7 @@ private fun AnimatedGradientBackground(
         initialValue = 0f,
         targetValue = (2f * Math.PI).toFloat(),
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 18000, easing = LinearEasing),
+            animation = tween(durationMillis = 17000, easing = LinearEasing),
             repeatMode = RepeatMode.Restart,
         ),
         label = "t1"
@@ -2372,7 +2381,7 @@ private fun AnimatedGradientBackground(
         initialValue = 0f,
         targetValue = (2f * Math.PI).toFloat(),
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 23000, easing = LinearEasing),
+            animation = tween(durationMillis = 21000, easing = LinearEasing),
             repeatMode = RepeatMode.Restart,
         ),
         label = "t2"
@@ -2381,10 +2390,28 @@ private fun AnimatedGradientBackground(
         initialValue = 0f,
         targetValue = (2f * Math.PI).toFloat(),
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 29000, easing = LinearEasing),
+            animation = tween(durationMillis = 27000, easing = LinearEasing),
             repeatMode = RepeatMode.Restart,
         ),
         label = "t3"
+    )
+    val t4 by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = (2f * Math.PI).toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 33000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "t4"
+    )
+    val breath by transition.animateFloat(
+        initialValue = 0.85f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 6500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "breath"
     )
 
     Box(
@@ -2394,18 +2421,19 @@ private fun AnimatedGradientBackground(
         androidx.compose.foundation.Canvas(
             modifier = Modifier
                 .fillMaxSize()
-                .blur(60.dp)
+                .blur(80.dp)
         ) {
             val w = size.width
             val h = size.height
-            val radius = (kotlin.math.max(w, h)) * 0.75f
+            val maxDim = kotlin.math.max(w, h)
+            val radius = maxDim * 0.78f * breath
 
-            // Blob 1 — primary palette colour, large slow drift
-            val cx1 = w * (0.30f + 0.18f * kotlin.math.cos(t1))
-            val cy1 = h * (0.30f + 0.18f * kotlin.math.sin(t1 * 0.7f))
+            // Blob 1 — primary palette colour, large slow drift (top-left)
+            val cx1 = w * (0.28f + 0.20f * kotlin.math.cos(t1))
+            val cy1 = h * (0.30f + 0.20f * kotlin.math.sin(t1 * 0.7f))
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(c0.copy(alpha = 0.85f), c0.copy(alpha = 0f)),
+                    colors = listOf(c0.copy(alpha = 0.95f), c0.copy(alpha = 0f)),
                     center = Offset(cx1, cy1),
                     radius = radius
                 ),
@@ -2413,12 +2441,12 @@ private fun AnimatedGradientBackground(
                 center = Offset(cx1, cy1),
             )
 
-            // Blob 2 — secondary palette colour, opposite drift
-            val cx2 = w * (0.70f + 0.20f * kotlin.math.sin(t2))
-            val cy2 = h * (0.35f + 0.18f * kotlin.math.cos(t2 * 0.9f))
+            // Blob 2 — secondary palette colour, opposite drift (top-right)
+            val cx2 = w * (0.72f + 0.22f * kotlin.math.sin(t2))
+            val cy2 = h * (0.32f + 0.20f * kotlin.math.cos(t2 * 0.9f))
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(c1.copy(alpha = 0.75f), c1.copy(alpha = 0f)),
+                    colors = listOf(c1.copy(alpha = 0.85f), c1.copy(alpha = 0f)),
                     center = Offset(cx2, cy2),
                     radius = radius * 0.95f
                 ),
@@ -2427,23 +2455,36 @@ private fun AnimatedGradientBackground(
             )
 
             // Blob 3 — accent / dark colour pulled in from the bottom
-            val cx3 = w * (0.50f + 0.25f * kotlin.math.cos(t3 * 0.6f))
-            val cy3 = h * (0.80f + 0.15f * kotlin.math.sin(t3))
+            val cx3 = w * (0.50f + 0.28f * kotlin.math.cos(t3 * 0.6f))
+            val cy3 = h * (0.82f + 0.16f * kotlin.math.sin(t3))
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(c2.copy(alpha = 0.70f), c2.copy(alpha = 0f)),
+                    colors = listOf(c2.copy(alpha = 0.80f), c2.copy(alpha = 0f)),
                     center = Offset(cx3, cy3),
-                    radius = radius * 0.9f
+                    radius = radius * 0.95f
                 ),
-                radius = radius * 0.9f,
+                radius = radius * 0.95f,
                 center = Offset(cx3, cy3),
             )
+
+            // Blob 4 — brightened highlight halo, slow figure-8 drift, breath-scaled
+            val cx4 = w * (0.50f + 0.32f * kotlin.math.sin(t4))
+            val cy4 = h * (0.55f + 0.18f * kotlin.math.sin(t4 * 2f))
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(cHighlight.copy(alpha = 0.45f), cHighlight.copy(alpha = 0f)),
+                    center = Offset(cx4, cy4),
+                    radius = radius * 0.7f
+                ),
+                radius = radius * 0.7f,
+                center = Offset(cx4, cy4),
+            )
         }
-        // Dark veil so text remains legible (mirrors Monochrome's overlay)
+        // Subtle dark veil so text remains legible (mirrors Monochrome's overlay)
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.30f))
+                .background(Color.Black.copy(alpha = 0.22f))
         )
     }
 }

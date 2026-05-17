@@ -95,6 +95,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
@@ -1243,6 +1244,18 @@ fun Lyrics(
                         modifier = itemModifier
                             .then(if (isMonochromeStyle) Modifier.blur(monochromeBlur) else Modifier)
                             .graphicsLayer {
+                                // Anchor the scale pivot to the text alignment edge so
+                                // the active (scaled-up) line never overflows the column
+                                // bounds on the left / right (fixes letter clipping).
+                                val originX = when {
+                                    item.isBackground -> 0.5f
+                                    else -> when (lyricsTextPosition) {
+                                        LyricsPosition.LEFT -> 0f
+                                        LyricsPosition.CENTER -> 0.5f
+                                        LyricsPosition.RIGHT -> 1f
+                                    }
+                                }
+                                this.transformOrigin = TransformOrigin(originX, 0.5f)
                                 this.alpha = if (item.isBackground) alpha * 0.8f else alpha
                                 this.scaleX = scale * bgScale
                                 this.scaleY = scale * bgScale
@@ -1603,6 +1616,83 @@ fun Lyrics(
                                 }
                             }
                             Text(text = styledText, fontSize = lyricsTextSize.sp, textAlign = alignment, lineHeight = (lyricsTextSize * lyricsLineSpacing).sp)
+                        } else if (hasWordTimings && lyricsAnimationStyle == LyricsAnimationStyle.MONOCHROME) {
+                            // Monochrome word-by-word liquid karaoke wipe.
+                            // Each word smoothly "fills" from a dim resting state to
+                            // a bright, glowing peak as its timing window passes,
+                            // then settles into a held bright state — giving the
+                            // fluid Apple Music–style flow popularised by Monochrome.
+                            val dimAlpha = 0.22f
+                            val styledText = buildAnnotatedString {
+                                item.words.forEachIndexed { wordIndex, word ->
+                                    val wordStartMs = (word.startTime * 1000).toLong()
+                                    val wordEndMs = (word.endTime * 1000).toLong()
+                                    val wordDuration = wordEndMs - wordStartMs
+
+                                    val isWordActive = isActiveLine && effectivePlaybackPosition in wordStartMs until wordEndMs
+                                    val hasWordPassed = (isActiveLine && effectivePlaybackPosition >= wordEndMs) ||
+                                        (!isActiveLine && item.time < currentLineTime)
+
+                                    val rawProgress = if (isWordActive && wordDuration > 0) {
+                                        val elapsed = effectivePlaybackPosition - wordStartMs
+                                        (elapsed.toFloat() / wordDuration).coerceIn(0f, 1f)
+                                    } else if (hasWordPassed) 1f else 0f
+
+                                    // Smoothstep for liquid easing.
+                                    val eased = rawProgress * rawProgress * (3f - 2f * rawProgress)
+                                    // Cubic again for a stronger leading-edge "swell".
+                                    val swell = eased * eased
+
+                                    val wordAlpha = when {
+                                        !isActiveLine -> dimAlpha
+                                        hasWordPassed -> 1f
+                                        isWordActive -> dimAlpha + ((1f - dimAlpha) * eased)
+                                        else -> dimAlpha
+                                    }
+
+                                    val wordColor = expressiveAccent.copy(alpha = wordAlpha)
+                                    val wordWeight = when {
+                                        !isActiveLine -> FontWeight.SemiBold
+                                        hasWordPassed -> FontWeight.Bold
+                                        isWordActive -> if (eased > 0.5f) FontWeight.ExtraBold else FontWeight.Bold
+                                        else -> FontWeight.SemiBold
+                                    }
+
+                                    // Liquid glow: a soft halo that swells during the
+                                    // word and gently relaxes after it has passed.
+                                    val wordShadow = when {
+                                        isWordActive -> Shadow(
+                                            color = expressiveAccent.copy(alpha = 0.25f + 0.45f * swell),
+                                            offset = Offset.Zero,
+                                            blurRadius = 14f + 22f * swell
+                                        )
+                                        hasWordPassed && isActiveLine -> Shadow(
+                                            color = expressiveAccent.copy(alpha = 0.22f),
+                                            offset = Offset.Zero,
+                                            blurRadius = 12f
+                                        )
+                                        else -> null
+                                    }
+
+                                    withStyle(
+                                        style = SpanStyle(
+                                            color = wordColor,
+                                            fontWeight = wordWeight,
+                                            shadow = wordShadow,
+                                            letterSpacing = (-0.01f).sp
+                                        )
+                                    ) {
+                                        append(word.text)
+                                    }
+                                    if (wordIndex < item.words.size - 1) append(" ")
+                                }
+                            }
+                            Text(
+                                text = styledText,
+                                fontSize = lyricsTextSize.sp,
+                                textAlign = alignment,
+                                lineHeight = (lyricsTextSize * lyricsLineSpacing).sp
+                            )
                         } else if (isActiveLine && lyricsGlowEffect) {
                             // Initial animation for glow fill from left to right
                             val fillProgress = remember { Animatable(0f) }
