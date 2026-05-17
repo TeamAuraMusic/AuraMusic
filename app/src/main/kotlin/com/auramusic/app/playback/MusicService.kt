@@ -53,11 +53,16 @@ import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.Renderer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.analytics.PlaybackStats
 import androidx.media3.exoplayer.analytics.PlaybackStatsListener
+import androidx.media3.exoplayer.audio.AudioRendererEventListener
+import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.DefaultAudioSink
+import androidx.media3.exoplayer.audio.MediaCodecAudioRenderer
 import androidx.media3.exoplayer.audio.SilenceSkippingAudioProcessor
+import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.ShuffleOrder.DefaultShuffleOrder
 import androidx.media3.extractor.ExtractorsFactory
@@ -2731,6 +2736,42 @@ class MusicService :
                         SonicAudioProcessor(),
                     ),
                 ).build()
+
+            /**
+             * Override to disable Media3's [LoudnessCodecController] integration
+             * (Android 15+). Passing `null` to the 8-arg [MediaCodecAudioRenderer]
+             * constructor avoids the "Loudness controller does not contain
+             * android.media.MediaCodec@..." FAILED RUNTIME CHECK (1004) crash that
+             * happens during fast seeks / track switches on some devices.
+             *
+             * Extension renderers (Opus / FLAC / FFmpeg) are intentionally not
+             * re-added because AuraMusic uses the default
+             * `EXTENSION_RENDERER_MODE_OFF`, so the super implementation would
+             * not have added any either.
+             */
+            override fun buildAudioRenderers(
+                context: Context,
+                extensionRendererMode: Int,
+                mediaCodecSelector: MediaCodecSelector,
+                enableDecoderFallback: Boolean,
+                audioSink: AudioSink,
+                eventHandler: android.os.Handler,
+                eventListener: AudioRendererEventListener,
+                out: ArrayList<Renderer>,
+            ) {
+                out.add(
+                    MediaCodecAudioRenderer(
+                        context,
+                        codecAdapterFactory,
+                        mediaCodecSelector,
+                        enableDecoderFallback,
+                        eventHandler,
+                        eventListener,
+                        audioSink,
+                        /* loudnessCodecController = */ null,
+                    )
+                )
+            }
         }
 
     override fun onPlaybackStatsReady(
