@@ -243,7 +243,7 @@ git checkout main
 If you'd like to support my work, you can donate via PayPal or Liberapay:
 
 <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=franklinfinyange%40gmail.com">
-<img src="https://www.paypalobjects.com/webstatic/mktg/Logo/pp-logo-200px.png" alt="PayPal" height="60">
+<img src="https://www.paypalobjects.com/webstatic/i/logo/rebrand/ppcom.svg" alt="PayPal" height="60">
 </a>
 &nbsp;&nbsp;
 <a href="https://liberapay.com/chila254/donate">
