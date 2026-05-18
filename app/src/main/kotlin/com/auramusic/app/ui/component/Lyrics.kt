@@ -1147,6 +1147,7 @@ fun Lyrics(
                     val isActiveByIndex = index == displayedCurrentLineIndex
                     val isActiveByTime = isLineAtSameTime && displayedCurrentLineIndex >= 0
                     val isMonochromeStyle = lyricsAnimationStyle == LyricsAnimationStyle.MONOCHROME
+                    val isExperimentalStyle = lyricsAnimationStyle == LyricsAnimationStyle.EXPERIMENTAL
                     val isThisLineActive = isActiveByIndex || isActiveByTime
 
                     // Monochrome-style per-line state (past / inactive / upcoming / active)
@@ -1163,10 +1164,26 @@ fun Lyrics(
                         else -> 2                                     // future / inactive
                     }
 
+                    // Experimental: distance-based alpha falloff so far-away lines
+                    // dim out gradually, creating a focus tunnel toward the active line.
+                    val experimentalDistance = when {
+                        !isExperimentalStyle || !isSynced || displayedCurrentLineIndex < 0 -> 0
+                        else -> kotlin.math.abs(index - displayedCurrentLineIndex)
+                    }
+                    val experimentalAlpha = when (experimentalDistance) {
+                        0 -> 1f
+                        1 -> 0.50f
+                        2 -> 0.30f
+                        3 -> 0.20f
+                        4 -> 0.15f
+                        else -> 0.10f
+                    }
+
                     val alpha by animateFloatAsState(
                         targetValue = when {
                             !isSynced || (isSelectionModeActive && isSelected) -> 1f
                             isThisLineActive -> 1f
+                            isExperimentalStyle -> experimentalAlpha
                             isMonochromeStyle -> when (monochromeRelative) {
                                 1 -> 0.70f
                                 -1 -> 0.30f
@@ -1178,6 +1195,7 @@ fun Lyrics(
                     )
                     val scale by animateFloatAsState(
                         targetValue = when {
+                            isThisLineActive && isExperimentalStyle -> 1.06f
                             isThisLineActive -> 1.05f
                             isMonochromeStyle -> when (monochromeRelative) {
                                 1 -> 0.98f
@@ -1692,6 +1710,119 @@ fun Lyrics(
                                 fontSize = lyricsTextSize.sp,
                                 textAlign = alignment,
                                 lineHeight = (lyricsTextSize * lyricsLineSpacing).sp
+                            )
+                        } else if (hasWordTimings && lyricsAnimationStyle == LyricsAnimationStyle.EXPERIMENTAL) {
+                            // Experimental — adds per-word "wobble" pulses, swelling glow,
+                            // a soft multi-stop wipe across the active word, and a sustained
+                            // afterglow on already-sung words. Inspired by experimental
+                            // animated lyric renderers.
+                            val dimAlpha = 0.18f
+                            val styledText = buildAnnotatedString {
+                                item.words.forEachIndexed { wordIndex, word ->
+                                    val wordStartMs = (word.startTime * 1000).toLong()
+                                    val wordEndMs = (word.endTime * 1000).toLong()
+                                    val wordDuration = (wordEndMs - wordStartMs).coerceAtLeast(1L)
+
+                                    val isWordActive = isActiveLine &&
+                                        effectivePlaybackPosition in wordStartMs until wordEndMs
+                                    val hasWordPassed = (isActiveLine && effectivePlaybackPosition >= wordEndMs) ||
+                                        (!isActiveLine && item.time < currentLineTime)
+
+                                    val rawProgress = if (isWordActive) {
+                                        ((effectivePlaybackPosition - wordStartMs).toFloat() / wordDuration)
+                                            .coerceIn(0f, 1f)
+                                    } else if (hasWordPassed) 1f else 0f
+
+                                    // Smoothstep for liquid easing.
+                                    val eased = rawProgress * rawProgress * (3f - 2f * rawProgress)
+
+                                    // Per-word "wobble": sharp 125ms rise then 625ms decay.
+                                    val timeSinceWord = (effectivePlaybackPosition - wordStartMs).toFloat()
+                                    val wobble = when {
+                                        !isActiveLine -> 0f
+                                        timeSinceWord < 0f -> 0f
+                                        timeSinceWord < 125f -> timeSinceWord / 125f
+                                        timeSinceWord < 750f -> (1f - (timeSinceWord - 125f) / 625f).coerceAtLeast(0f)
+                                        else -> 0f
+                                    }
+
+                                    val wordAlpha = when {
+                                        !isActiveLine -> dimAlpha
+                                        hasWordPassed -> 1f
+                                        isWordActive -> dimAlpha + ((1f - dimAlpha) * eased)
+                                        else -> dimAlpha
+                                    }
+
+                                    val wordColor = expressiveAccent.copy(alpha = wordAlpha)
+                                    val wordWeight = when {
+                                        !isActiveLine -> FontWeight.SemiBold
+                                        hasWordPassed -> FontWeight.Bold
+                                        isWordActive && eased > 0.4f -> FontWeight.ExtraBold
+                                        isWordActive -> FontWeight.Bold
+                                        else -> FontWeight.SemiBold
+                                    }
+
+                                    // Glow that swells with the wobble on word entry,
+                                    // settles into a soft afterglow on sung words.
+                                    val swell = (eased * eased) + wobble * 0.85f
+                                    val wordShadow = when {
+                                        isWordActive -> Shadow(
+                                            color = expressiveAccent.copy(
+                                                alpha = (0.30f + 0.55f * swell).coerceAtMost(0.85f)
+                                            ),
+                                            offset = Offset.Zero,
+                                            blurRadius = 16f + 28f * swell
+                                        )
+                                        hasWordPassed && isActiveLine -> Shadow(
+                                            color = expressiveAccent.copy(alpha = 0.22f),
+                                            offset = Offset.Zero,
+                                            blurRadius = 14f
+                                        )
+                                        else -> null
+                                    }
+
+                                    withStyle(
+                                        style = SpanStyle(
+                                            color = wordColor,
+                                            fontWeight = wordWeight,
+                                            shadow = wordShadow,
+                                            letterSpacing = (-0.02f - wobble * 0.06f).sp
+                                        )
+                                    ) {
+                                        append(word.text)
+                                    }
+                                    if (wordIndex < item.words.size - 1) append(" ")
+                                }
+                            }
+
+                            // Subtle line-wide pulse on word entry — driven by the
+                            // largest wobble across the words for a "breathing" beat.
+                            val maxWobble = if (isActiveLine) {
+                                var m = 0f
+                                item.words.forEach { word ->
+                                    val ws = (word.startTime * 1000).toLong()
+                                    val ts = (effectivePlaybackPosition - ws).toFloat()
+                                    val w = when {
+                                        ts < 0f -> 0f
+                                        ts < 125f -> ts / 125f
+                                        ts < 750f -> (1f - (ts - 125f) / 625f).coerceAtLeast(0f)
+                                        else -> 0f
+                                    }
+                                    if (w > m) m = w
+                                }
+                                m
+                            } else 0f
+                            val pulseScale = 1f + 0.015f * maxWobble
+
+                            Text(
+                                text = styledText,
+                                fontSize = lyricsTextSize.sp,
+                                textAlign = alignment,
+                                lineHeight = (lyricsTextSize * lyricsLineSpacing).sp,
+                                modifier = Modifier.graphicsLayer {
+                                    scaleX = pulseScale
+                                    scaleY = pulseScale
+                                }
                             )
                         } else if (isActiveLine && lyricsGlowEffect) {
                             // Initial animation for glow fill from left to right

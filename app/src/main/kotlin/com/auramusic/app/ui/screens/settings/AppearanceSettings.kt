@@ -423,6 +423,7 @@ fun AppearanceSettings(
                     LyricsAnimationStyle.KARAOKE -> stringResource(R.string.karaoke)
                     LyricsAnimationStyle.APPLE -> stringResource(R.string.apple_music_style)
                     LyricsAnimationStyle.MONOCHROME -> stringResource(R.string.monochrome_style)
+                    LyricsAnimationStyle.EXPERIMENTAL -> stringResource(R.string.experimental_style)
                 }
             }
         )
@@ -1452,6 +1453,7 @@ fun AppearanceSettings(
                                 LyricsAnimationStyle.KARAOKE -> stringResource(R.string.karaoke)
                                 LyricsAnimationStyle.APPLE -> stringResource(R.string.apple_music_style)
                                 LyricsAnimationStyle.MONOCHROME -> stringResource(R.string.monochrome_style)
+                                LyricsAnimationStyle.EXPERIMENTAL -> stringResource(R.string.experimental_style)
                             }
                         )
                     },
