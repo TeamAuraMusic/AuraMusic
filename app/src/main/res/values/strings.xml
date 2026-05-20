@@ -950,6 +950,7 @@
     <string name="generating_image">Generating image…</string>
     <string name="please_wait">Please wait…</string>
     <string name="max_selection_limit">Maximum selection limit reached</string>
+    <string name="lyrics_from_provider">Lyrics from %1$s</string>
     <!-- Seek bar -->
     <string name="seek_backward_dynamic">Seek backward</string>
     <string name="seek_forward_dynamic">Seek forward</string>

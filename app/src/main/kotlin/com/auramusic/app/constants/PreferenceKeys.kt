@@ -444,9 +444,15 @@ enum class LyricsAnimationStyle {
     SLIDE,
     KARAOKE,
     APPLE,
-    MONOCHROME,
-    EXPERIMENTAL,
 }
+
+// Preferences used by the Enhanced Lyrics renderer.
+val RespectAgentPositioningKey = booleanPreferencesKey("respectAgentPositioning")
+val ShowIntervalIndicatorKey = booleanPreferencesKey("showIntervalIndicator")
+
+// OpenRouter default values reused by both legacy and Enhanced lyrics paths.
+const val OpenRouterDefaultBaseUrl = "https://openrouter.ai/api/v1/chat/completions"
+const val OpenRouterDefaultModel = "mistralai/mistral-small-3.1-24b-instruct:free"
 
 val LyricsTextSizeKey = floatPreferencesKey("lyricsTextSize")
 val LyricsLineSpacingKey = floatPreferencesKey("lyricsLineSpacing")

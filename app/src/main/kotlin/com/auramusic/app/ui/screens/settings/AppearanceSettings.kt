@@ -422,8 +422,6 @@ fun AppearanceSettings(
                     LyricsAnimationStyle.SLIDE -> stringResource(R.string.slide)
                     LyricsAnimationStyle.KARAOKE -> stringResource(R.string.karaoke)
                     LyricsAnimationStyle.APPLE -> stringResource(R.string.apple_music_style)
-                    LyricsAnimationStyle.MONOCHROME -> stringResource(R.string.monochrome_style)
-                    LyricsAnimationStyle.EXPERIMENTAL -> stringResource(R.string.experimental_style)
                 }
             }
         )
@@ -1425,7 +1423,7 @@ fun AppearanceSettings(
 
         Material3SettingsGroup(
             title = stringResource(R.string.lyrics),
-            items = listOf(
+            items = listOfNotNull(
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.lyrics),
                     title = { Text(stringResource(R.string.lyrics_text_position)) },
@@ -1440,7 +1438,9 @@ fun AppearanceSettings(
                     },
                     onClick = { showLyricsPositionDialog = true }
                 ),
-                Material3SettingsItem(
+                // Animation style: hidden when Enhanced Lyrics is enabled — the
+                // enhanced renderer ships with its own word-level animations.
+                if (!enhancedLyrics) Material3SettingsItem(
                     icon = painterResource(R.drawable.lyrics),
                     title = { Text(stringResource(R.string.lyrics_animation_style)) },
                     description = {
@@ -1452,14 +1452,14 @@ fun AppearanceSettings(
                                 LyricsAnimationStyle.SLIDE -> stringResource(R.string.slide)
                                 LyricsAnimationStyle.KARAOKE -> stringResource(R.string.karaoke)
                                 LyricsAnimationStyle.APPLE -> stringResource(R.string.apple_music_style)
-                                LyricsAnimationStyle.MONOCHROME -> stringResource(R.string.monochrome_style)
-                                LyricsAnimationStyle.EXPERIMENTAL -> stringResource(R.string.experimental_style)
                             }
                         )
                     },
                     onClick = { showLyricsAnimationStyleDialog = true }
-                ),
-                Material3SettingsItem(
+                ) else null,
+                // Glow effect: hidden when Enhanced Lyrics is enabled — the
+                // enhanced renderer has a built-in glow on active words.
+                if (!enhancedLyrics) Material3SettingsItem(
                     icon = painterResource(R.drawable.lyrics),
                     title = { Text(stringResource(R.string.lyrics_glow_effect)) },
                     description = { Text(stringResource(R.string.lyrics_glow_effect_desc)) },
@@ -1479,7 +1479,7 @@ fun AppearanceSettings(
                         )
                     },
                     onClick = { onLyricsGlowEffectChange(!lyricsGlowEffect) }
-                ),
+                ) else null,
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.lyrics),
                     title = { Text(stringResource(R.string.enhanced_lyrics)) },
@@ -1501,18 +1501,21 @@ fun AppearanceSettings(
                     },
                     onClick = { onEnhancedLyricsChange(!enhancedLyrics) }
                 ),
-                Material3SettingsItem(
+                // Text size: hidden when Enhanced Lyrics is enabled — text size
+                // is baked into the enhanced renderer for its motion calibration.
+                if (!enhancedLyrics) Material3SettingsItem(
                     icon = painterResource(R.drawable.lyrics),
                     title = { Text(stringResource(R.string.lyrics_text_size)) },
                     description = { Text("${lyricsTextSize.roundToInt()} sp") },
                     onClick = { showLyricsTextSizeDialog = true }
-                ),
-                Material3SettingsItem(
+                ) else null,
+                // Line spacing: hidden when Enhanced Lyrics is enabled (same reason).
+                if (!enhancedLyrics) Material3SettingsItem(
                     icon = painterResource(R.drawable.lyrics),
                     title = { Text(stringResource(R.string.lyrics_line_spacing)) },
                     description = { Text("${String.format("%.1f", lyricsLineSpacing)}x") },
                     onClick = { showLyricsLineSpacingDialog = true }
-                ),
+                ) else null,
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.music_note),
                     title = { Text(stringResource(R.string.lyrics_instrumental_indicator)) },

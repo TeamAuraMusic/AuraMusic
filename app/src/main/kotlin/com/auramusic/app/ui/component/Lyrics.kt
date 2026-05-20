@@ -228,10 +228,42 @@ fun rememberLyricsFontFamily(uriString: String): FontFamily? {
     }
 }
 
+/**
+ * Top-level Lyrics composable that dispatches between the Enhanced Lyrics
+ * renderer (word-by-word, liquid glow, springs) and the original renderer
+ * based on the [EnhancedLyricsKey] user preference. The public signature
+ * stays unchanged so existing callers don't need to be updated.
+ */
+@Composable
+fun Lyrics(
+    sliderPositionProvider: () -> Long?,
+    modifier: Modifier = Modifier,
+    showLyrics: Boolean,
+    karaokeModeEnabled: Boolean = false,
+    disableInteractiveFeatures: Boolean = false
+) {
+    val enhancedLyrics by rememberPreference(EnhancedLyricsKey, false)
+    if (enhancedLyrics) {
+        EnhancedLyricsView(
+            sliderPositionProvider = sliderPositionProvider,
+            modifier = modifier,
+            showLyrics = showLyrics,
+        )
+    } else {
+        OriginalLyrics(
+            sliderPositionProvider = sliderPositionProvider,
+            modifier = modifier,
+            showLyrics = showLyrics,
+            karaokeModeEnabled = karaokeModeEnabled,
+            disableInteractiveFeatures = disableInteractiveFeatures,
+        )
+    }
+}
+
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedBoxWithConstraintsScope", "StringFormatInvalid")
 @Composable
-fun Lyrics(
+fun OriginalLyrics(
     sliderPositionProvider: () -> Long?,
     modifier: Modifier = Modifier,
     showLyrics: Boolean,
@@ -1146,8 +1178,11 @@ fun Lyrics(
                     val isLineAtSameTime = item.time == currentLineTime
                     val isActiveByIndex = index == displayedCurrentLineIndex
                     val isActiveByTime = isLineAtSameTime && displayedCurrentLineIndex >= 0
-                    val isMonochromeStyle = lyricsAnimationStyle == LyricsAnimationStyle.MONOCHROME
-                    val isExperimentalStyle = lyricsAnimationStyle == LyricsAnimationStyle.EXPERIMENTAL
+                    // Monochrome/Experimental animation styles have been removed; the
+                    // Enhanced Lyrics renderer now provides the advanced word-level
+                    // animations these legacy modes used to approximate.
+                    val isMonochromeStyle = false
+                    val isExperimentalStyle = false
                     val isThisLineActive = isActiveByIndex || isActiveByTime
 
                     // Monochrome-style per-line state (past / inactive / upcoming / active)
@@ -1634,7 +1669,8 @@ fun Lyrics(
                                 }
                             }
                             Text(text = styledText, fontSize = lyricsTextSize.sp, textAlign = alignment, lineHeight = (lyricsTextSize * lyricsLineSpacing).sp)
-                        } else if (hasWordTimings && lyricsAnimationStyle == LyricsAnimationStyle.MONOCHROME) {
+                        } else if (hasWordTimings && item.words != null) {
+                            // MONOCHROME animation style removed; Enhanced Lyrics now provides this.
                             // Monochrome word-by-word liquid karaoke wipe.
                             // Each word smoothly "fills" from a dim resting state to
                             // a bright, glowing peak as its timing window passes,
@@ -1711,7 +1747,8 @@ fun Lyrics(
                                 textAlign = alignment,
                                 lineHeight = (lyricsTextSize * lyricsLineSpacing).sp
                             )
-                        } else if (hasWordTimings && lyricsAnimationStyle == LyricsAnimationStyle.EXPERIMENTAL) {
+                            } else if (hasWordTimings && item.words != null) {
+                            // EXPERIMENTAL animation style removed; Enhanced Lyrics now provides this.
                             // Experimental — adds per-word "wobble" pulses, swelling glow,
                             // a soft multi-stop wipe across the active word, and a sustained
                             // afterglow on already-sung words. Inspired by experimental
