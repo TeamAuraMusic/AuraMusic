@@ -26,7 +26,11 @@ fun KaraokeServerConnectionSheet(
     var connectionState by remember { mutableStateOf(ConnectionState.CONNECTING) }
 
     LaunchedEffect(Unit) {
-        val client = HttpClient(CIO)
+        // expectSuccess = false: Ktor 3.x defaults to true and would throw
+        // ClientRequestException on any non-2xx (e.g. 404), bypassing our status check.
+        val client = HttpClient(CIO) {
+            expectSuccess = false
+        }
         try {
             val response = client.head("https://karaoke.auramusic.site/")
             if (response.status.isSuccess() || response.status.value == 404) {
