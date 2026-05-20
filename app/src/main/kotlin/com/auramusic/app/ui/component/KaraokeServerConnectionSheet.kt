@@ -14,6 +14,8 @@ import io.ktor.client.request.head
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.delay
 
+enum class ConnectionState { CONNECTING, CONNECTED, ERROR }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KaraokeServerConnectionSheet(
@@ -21,25 +23,22 @@ fun KaraokeServerConnectionSheet(
     onConnected: () -> Unit
 ) {
     val (useServer, onUseServerChange) = rememberPreference(UseKaraokeServerKey, false)
-    var isConnecting by remember { mutableStateOf(true) }
+    var connectionState by remember { mutableStateOf(ConnectionState.CONNECTING) }
 
     LaunchedEffect(Unit) {
         val client = HttpClient(CIO)
         try {
             val response = client.head("https://karaoke.auramusic.site/")
             if (response.status.isSuccess() || response.status.value == 404) {
-                // Server reachable (404 is expected for root)
                 delay(300)
-                isConnecting = false
+                connectionState = ConnectionState.CONNECTED
                 onUseServerChange(true)
                 onConnected()
             } else {
-                isConnecting = false
+                connectionState = ConnectionState.ERROR
             }
         } catch (e: Exception) {
-            // Offline or error - keep UI but allow manual retry later
-            delay(800)
-            isConnecting = false
+            connectionState = ConnectionState.ERROR
         } finally {
             client.close()
         }
@@ -52,22 +51,27 @@ fun KaraokeServerConnectionSheet(
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (isConnecting) {
-                CircularProgressIndicator()
-                Spacer(Modifier.height(16.dp))
-                Text("Connecting to Karaoke ML Server...")
-                Text("https://karaoke.auramusic.site/", style = MaterialTheme.typography.bodySmall)
-            } else {
-                Text("Connected ✓", style = MaterialTheme.typography.headlineSmall)
-                Spacer(Modifier.height(8.dp))
-                Text("Karaoke mode now uses server-powered instrumental separation.")
-                Spacer(Modifier.height(16.dp))
-                Button(onClick = {
-                    onUseServerChange(true)
-                    onConnected()
-                    onDismiss()
-                }) {
-                    Text("Enable Server Karaoke")
+            when (connectionState) {
+                ConnectionState.CONNECTING -> {
+                    CircularProgressIndicator()
+                    Spacer(Modifier.height(16.dp))
+                    Text("Connecting to Karaoke ML Server...")
+                    Text("https://karaoke.auramusic.site/", style = MaterialTheme.typography.bodySmall)
+                }
+                ConnectionState.CONNECTED -> {
+                    Text("Connected ✓", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.height(8.dp))
+                    Text("Karaoke mode now uses server-powered instrumental separation.")
+                    Spacer(Modifier.height(16.dp))
+                    Button(onClick = onDismiss) {
+                        Text("Done")
+                    }
+                }
+                ConnectionState.ERROR -> {
+                    Text("Connection failed", color = MaterialTheme.colorScheme.error)
+                    Spacer(Modifier.height(8.dp))
+                    Text("Could not reach https://karaoke.auramusic.site/")
+                    Button(onClick = onDismiss) { Text("Close") }
                 }
             }
         }
