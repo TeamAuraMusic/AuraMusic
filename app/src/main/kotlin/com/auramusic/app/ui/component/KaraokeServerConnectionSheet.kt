@@ -10,7 +10,7 @@ import com.auramusic.app.constants.UseKaraokeServerKey
 import com.auramusic.app.utils.rememberPreference
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
-import io.ktor.client.request.head
+import io.ktor.client.request.get
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.delay
 
@@ -26,26 +26,37 @@ fun KaraokeServerConnectionSheet(
     var connectionState by remember { mutableStateOf(ConnectionState.CONNECTING) }
 
     LaunchedEffect(Unit) {
-        // expectSuccess = false: Ktor 3.x defaults to true and would throw
-        // ClientRequestException on any non-2xx (e.g. 404), bypassing our status check.
         val client = HttpClient(CIO) {
             expectSuccess = false
-        }
-        try {
-            val response = client.head("https://karaoke.auramusic.site/")
-            if (response.status.isSuccess() || response.status.value == 404) {
-                delay(300)
-                connectionState = ConnectionState.CONNECTED
-                onUseServerChange(true)
-                onConnected()
-            } else {
-                connectionState = ConnectionState.ERROR
+            install(io.ktor.client.plugins.HttpTimeout) {
+                requestTimeoutMillis = 15000
             }
-        } catch (e: Exception) {
-            connectionState = ConnectionState.ERROR
-        } finally {
-            client.close()
         }
+        var attempt = 0
+        val maxAttempts = 8
+        var lastError: Exception? = null
+        while (attempt < maxAttempts) {
+            try {
+                val response = client.get("https://karaoke.auramusic.site/health")
+                if (response.status.isSuccess()) {
+                    delay(300)
+                    connectionState = ConnectionState.CONNECTED
+                    onUseServerChange(true)
+                    onConnected()
+                    client.close()
+                    return@LaunchedEffect
+                }
+            } catch (e: Exception) {
+                lastError = e
+            }
+            attempt++
+            if (attempt < maxAttempts) {
+                val delayMs = minOf(2000L * (1 shl (attempt - 1)), 30000L)
+                delay(delayMs)
+            }
+        }
+        connectionState = ConnectionState.ERROR
+        client.close()
     }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
@@ -59,8 +70,8 @@ fun KaraokeServerConnectionSheet(
                 ConnectionState.CONNECTING -> {
                     CircularProgressIndicator()
                     Spacer(Modifier.height(16.dp))
-                    Text("Connecting to Karaoke ML Server...")
-                    Text("https://karaoke.auramusic.site/", style = MaterialTheme.typography.bodySmall)
+                    Text("Waking up Karaoke ML Server...")
+                    Text("This may take up to 60 seconds on first request", style = MaterialTheme.typography.bodySmall)
                 }
                 ConnectionState.CONNECTED -> {
                     Text("Connected ✓", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
