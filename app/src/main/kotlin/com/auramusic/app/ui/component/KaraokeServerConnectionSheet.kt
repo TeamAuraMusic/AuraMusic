@@ -12,7 +12,6 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.get
 import io.ktor.client.plugins.HttpTimeout
-import io.ktor.client.plugins.timeout
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.delay
 import timber.log.Timber
@@ -27,8 +26,9 @@ fun KaraokeServerConnectionSheet(
 ) {
     val (useServer, onUseServerChange) = rememberPreference(UseKaraokeServerKey, false)
     var connectionState by remember { mutableStateOf(ConnectionState.CONNECTING) }
+    var retryKey by remember { mutableIntStateOf(0) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(retryKey) {
         val client = HttpClient(CIO) {
             expectSuccess = false
             install(HttpTimeout) {
@@ -48,8 +48,6 @@ fun KaraokeServerConnectionSheet(
                 if (response.status.isSuccess()) {
                     delay(300)
                     connectionState = ConnectionState.CONNECTED
-                    delay(300)
-                    connectionState = ConnectionState.CONNECTED
                     onUseServerChange(true)
                     onConnected()
                     client.close()
@@ -57,6 +55,7 @@ fun KaraokeServerConnectionSheet(
                 }
             } catch (e: Exception) {
                 lastError = e
+                Timber.tag("KaraokeServer").d("Attempt ${attempt + 1} failed", e)
             }
             attempt++
             if (attempt < maxAttempts) {
@@ -64,6 +63,7 @@ fun KaraokeServerConnectionSheet(
                 delay(delayMs)
             }
         }
+        Timber.tag("KaraokeServer").d("All $maxAttempts attempts failed")
         connectionState = ConnectionState.ERROR
         client.close()
     }
@@ -98,11 +98,8 @@ fun KaraokeServerConnectionSheet(
                     Spacer(Modifier.height(4.dp))
                     Text("Check your internet connection", style = MaterialTheme.typography.bodySmall)
                     Spacer(Modifier.height(16.dp))
-                    OutlinedButton(onClick = onDismiss) { Text("Close") }
-                    TextButton(onClick = {
-                        connectionState = ConnectionState.CONNECTING
-                        // Re-trigger connection by resetting LaunchedEffect key
-                    }) { Text("Retry") }
+                    OutlinedButton(onClick = { retryKey++ }) { Text("Retry") }
+                    TextButton(onClick = onDismiss) { Text("Cancel") }
                 }
             }
         }
