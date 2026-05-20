@@ -641,10 +641,18 @@ fun BottomSheetPlayer(
     var showHardwareIntegrationDialog by remember {
         mutableStateOf(false)
     }
+    var showKaraokeServerSheet by remember { mutableStateOf(false) }
 
     if (showHardwareIntegrationDialog) {
         com.auramusic.app.ui.component.HardwareIntegrationDialog(
             onDismiss = { showHardwareIntegrationDialog = false },
+        )
+    }
+
+    if (showKaraokeServerSheet) {
+        com.auramusic.app.ui.component.KaraokeServerConnectionSheet(
+            onDismiss = { showKaraokeServerSheet = false },
+            onConnected = { showKaraokeServerSheet = false }
         )
     }
 
@@ -691,13 +699,12 @@ fun BottomSheetPlayer(
         val newState = !karaokeModeEnabled
         onKaraokeModeEnabledChange(newState)
 
-        // Toggle vocal (centre-channel) suppression in the equalizer
-        // service. Full strength gives the cleanest "instrumental only"
-        // result on stereo masters where vocals are panned dead-centre
-        // (the same convention Apple Music's Sing feature relies on).
+        // Toggle vocal suppression (local) or fetch instrumental from
+        // https://karaoke.auramusic.site/ for true ML karaoke mode.
         if (newState) {
             playerConnection.service.equalizerService
                 .enableVocalSuppression(karaokeVocalSuppression.coerceIn(0f, 1f))
+            showKaraokeServerSheet = true   // Show ML server connection sheet
             // Auto-show lyrics so the user has something to sing along with.
             if (!showInlineLyrics) {
                 hasUserToggledLyrics = true

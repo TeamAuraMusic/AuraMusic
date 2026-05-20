@@ -30,6 +30,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.core.net.toUri
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.PlaybackParameters
@@ -82,6 +83,7 @@ import com.auramusic.innertube.models.WatchEndpoint
 import com.auramusic.lastfm.LastFM
 import com.auramusic.app.MainActivity
 import com.auramusic.app.R
+import com.auramusic.app.playback.KaraokeServerHelper
 import com.auramusic.app.constants.AudioNormalizationKey
 import com.auramusic.app.constants.AudioOffload
 import com.auramusic.app.constants.AudioQualityKey
@@ -104,6 +106,7 @@ import com.auramusic.app.constants.HideVideoSongsKey
 import com.auramusic.app.constants.HistoryDuration
 import com.auramusic.app.constants.KaraokeModeKey
 import com.auramusic.app.constants.KaraokeVocalSuppressionKey
+import com.auramusic.app.constants.UseKaraokeServerKey
 import com.auramusic.app.constants.LastFMUseNowPlaying
 import com.auramusic.app.constants.MediaSessionConstants.CommandToggleLike
 import com.auramusic.app.constants.MediaSessionConstants.CommandToggleRepeatMode
@@ -867,11 +870,17 @@ class MusicService :
 
             // Restore persisted karaoke (vocal-suppression) state so that the
             // setting survives app restarts even if the user never re-toggles
-            // it from the player UI.
+            // it from the player UI. Full instrumental uses https://karaoke.auramusic.site/
             val karaokeEnabled = dataStore.get(KaraokeModeKey, false)
             val karaokeStrength = dataStore.get(KaraokeVocalSuppressionKey, 1.0f)
+            val useServer = dataStore.get(UseKaraokeServerKey, false)
             if (karaokeEnabled) {
                 equalizerService.enableVocalSuppression(karaokeStrength)
+                if (useServer) {
+                    scope.launch {
+                        prepareServerKaraokeInstrumental()
+                    }
+                }
             } else {
                 equalizerService.disableVocalSuppression()
             }
@@ -2701,6 +2710,27 @@ class MusicService :
                     streamUrl to System.currentTimeMillis() + (nonNullPlayback.streamExpiresInSeconds * 1000L)
                 return@Factory dataSpec.withUri(streamUrl.toUri()).subrange(dataSpec.uriPositionOffset, CHUNK_LENGTH)
             }
+        }
+    }
+
+    /**
+     * Downloads current track audio (if possible), sends to ML server,
+     * and switches ExoPlayer to the returned instrumental track.
+     */
+    private suspend fun prepareServerKaraokeInstrumental() {
+        val currentMediaItem = player.currentMediaItem ?: return
+        val localFile = runCatching {
+            // For local files only in this basic version
+            currentMediaItem.localConfiguration?.uri?.path?.let { File(it) }
+        }.getOrNull() ?: return   // Skip for YouTube streams (implement download first for full support)
+
+        val instrumental = KaraokeServerHelper.separateToInstrumental(localFile) ?: return
+
+        withContext(Dispatchers.Main) {
+            val newMediaItem = MediaItem.fromUri(instrumental.toUri())
+            player.setMediaItem(newMediaItem)
+            player.prepare()
+            player.play()
         }
     }
 
