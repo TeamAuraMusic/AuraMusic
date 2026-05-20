@@ -11,8 +11,11 @@ import com.auramusic.app.utils.rememberPreference
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.get
+import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.timeout
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.delay
+import timber.log.Timber
 
 enum class ConnectionState { CONNECTING, CONNECTED, ERROR }
 
@@ -28,17 +31,23 @@ fun KaraokeServerConnectionSheet(
     LaunchedEffect(Unit) {
         val client = HttpClient(CIO) {
             expectSuccess = false
-            install(io.ktor.client.plugins.HttpTimeout) {
+            install(HttpTimeout) {
+                connectTimeoutMillis = 10000
                 requestTimeoutMillis = 15000
+                socketTimeoutMillis = 15000
             }
         }
         var attempt = 0
-        val maxAttempts = 8
+        val maxAttempts = 6
         var lastError: Exception? = null
         while (attempt < maxAttempts) {
             try {
+                Timber.tag("KaraokeServer").d("Connection attempt ${attempt + 1}/$maxAttempts")
                 val response = client.get("https://karaoke.auramusic.site/health")
+                Timber.tag("KaraokeServer").d("Server responded: ${response.status.value}")
                 if (response.status.isSuccess()) {
+                    delay(300)
+                    connectionState = ConnectionState.CONNECTED
                     delay(300)
                     connectionState = ConnectionState.CONNECTED
                     onUseServerChange(true)
@@ -85,8 +94,15 @@ fun KaraokeServerConnectionSheet(
                 ConnectionState.ERROR -> {
                     Text("Connection failed", color = MaterialTheme.colorScheme.error)
                     Spacer(Modifier.height(8.dp))
-                    Text("Could not reach the Karaoke ML server")
-                    Button(onClick = onDismiss) { Text("Close") }
+                    Text("Could not reach karaoke.auramusic.site", style = MaterialTheme.typography.bodySmall)
+                    Spacer(Modifier.height(4.dp))
+                    Text("Check your internet connection", style = MaterialTheme.typography.bodySmall)
+                    Spacer(Modifier.height(16.dp))
+                    OutlinedButton(onClick = onDismiss) { Text("Close") }
+                    TextButton(onClick = {
+                        connectionState = ConnectionState.CONNECTING
+                        // Re-trigger connection by resetting LaunchedEffect key
+                    }) { Text("Retry") }
                 }
             }
         }
