@@ -85,7 +85,7 @@ fun KaraokeServerConnectionSheet(
                 ConnectionState.ERROR -> {
                     Text("Connection failed", color = MaterialTheme.colorScheme.error)
                     Spacer(Modifier.height(8.dp))
-                    Text("Could not reach https://karaoke.auramusic.site/")
+                    Text("Could not reach the Karaoke ML server")
                     Button(onClick = onDismiss) { Text("Close") }
                 }
             }
