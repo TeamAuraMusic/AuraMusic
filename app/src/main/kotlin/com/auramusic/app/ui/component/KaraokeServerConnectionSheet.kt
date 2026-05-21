@@ -33,13 +33,14 @@ fun KaraokeServerConnectionSheet(
     LaunchedEffect(Unit) {
         // - OkHttp engine: more reliable than CIO on Android with Cloudflare/HTTP-2
         // - expectSuccess = false: any HTTP response means the server is reachable
-        // - explicit timeouts: avoid hanging forever on bad networks
+        // - Generous timeouts: Render's free tier spins the service down after
+        //   ~15 min of inactivity and a cold start can take 30–90 s.
         val client = HttpClient(OkHttp) {
             expectSuccess = false
             install(HttpTimeout) {
-                requestTimeoutMillis = 10_000
-                connectTimeoutMillis = 10_000
-                socketTimeoutMillis = 10_000
+                requestTimeoutMillis = 120_000
+                connectTimeoutMillis = 30_000
+                socketTimeoutMillis = 120_000
             }
         }
         try {
@@ -80,6 +81,12 @@ fun KaraokeServerConnectionSheet(
                     CircularProgressIndicator()
                     Spacer(Modifier.height(16.dp))
                     Text("Connecting to Karaoke ML Server...")
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "First connection can take up to a minute while the server wakes up.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Spacer(Modifier.height(4.dp))
                     Text(KARAOKE_SERVER_URL, style = MaterialTheme.typography.bodySmall)
                 }
                 ConnectionState.CONNECTED -> {
