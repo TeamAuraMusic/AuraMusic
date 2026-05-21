@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -64,6 +65,19 @@ import com.auramusic.app.R
 import com.auramusic.app.constants.MiniPlayerHeight
 import com.auramusic.app.constants.NavigationBarHeight
 import com.auramusic.app.ui.utils.backToMain
+import coil3.compose.AsyncImage
+
+data class Contributor(
+    val username: String,
+    val displayName: String,
+    val role: String = "Contributor"
+)
+
+private val contributors = listOf(
+    Contributor("Mickael81", "Mickaël", "Translator"),
+    Contributor("iamcrizzzgd", "ItsMeCrizzzGD", "Translator"),
+    Contributor("SantosSi", "Silvério Santos", "Translator")
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -346,6 +360,115 @@ fun AboutScreen(
 
             Spacer(Modifier.height(16.dp))
 
+            // ==================== Contributors Section ====================
+            Text(
+                text = "Contributors",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.align(Alignment.Start)
+            )
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                ),
+                shape = RoundedCornerShape(20.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    if (contributors.isEmpty()) {
+                        Text(
+                            text = "Contributors will appear here once loaded from GitHub.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(8.dp)
+                        )
+                    } else {
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            maxItemsInEachRow = 2
+                        ) {
+                            contributors.forEach { contributor ->
+                                Row(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .clickable {
+                                            uriHandler.openUri("https://github.com/${contributor.username}")
+                                        }
+                                        .padding(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    AsyncImage(
+                                        model = "https://github.com/${contributor.username}.png",
+                                        contentDescription = contributor.displayName,
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(CircleShape),
+                                        contentScale = ContentScale.Crop
+                                    )
+
+                                    Spacer(Modifier.width(12.dp))
+
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = contributor.displayName,
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = contributor.role,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // View all contributors button
+                    if (contributors.isNotEmpty()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable {
+                                    uriHandler.openUri("https://github.com/TeamAuraMusic/AuraMusic/graphs/contributors")
+                                }
+                                .padding(vertical = 10.dp, horizontal = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = "View all contributors on GitHub",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Icon(
+                                painter = painterResource(R.drawable.github),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
             // Support Section — donations / sponsorships
             Text(
                 text = "Support the project",
@@ -462,173 +585,116 @@ fun AboutScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // Links Section
+            // ==================== Connect / Community Section (grouped like Support) ====================
             Text(
-                text = "Connect",
+                text = "Connect & Community",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.align(Alignment.Start)
             )
 
-            // GitHub Link Card
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .then(if (maxWidth < 600.dp) Modifier else Modifier.fillMaxWidth(0.8f))
-                    .clip(RoundedCornerShape(16.dp)),
+                modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
                 ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                shape = RoundedCornerShape(20.dp)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(20.dp)
-                        .clickable {
-                            uriHandler.openUri("https://github.com/TeamAuraMusic/AuraMusic")
-                        }
+                        .padding(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.size(52.dp)
+                    // GitHub
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { uriHandler.openUri("https://github.com/TeamAuraMusic/AuraMusic") }
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier.fillMaxSize()
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier.size(40.dp)
                         ) {
-                            Icon(
-                                painter = painterResource(R.drawable.github),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.size(24.dp)
-                            )
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                Icon(
+                                    painter = painterResource(R.drawable.github),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                        Spacer(Modifier.width(16.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("GitHub", fontWeight = FontWeight.SemiBold)
+                            Text("View source code & report issues", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
-                    Spacer(Modifier.width(16.dp))
-                    Column {
-                        Text(
-                            text = "GitHub",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = "View source code",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
 
-            // Discord Link Card
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .then(if (maxWidth < 600.dp) Modifier else Modifier.fillMaxWidth(0.8f))
-                    .clip(RoundedCornerShape(16.dp)),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp)
-                        .clickable {
-                            uriHandler.openUri("https://discord.gg/PFvX7gnJg")
-                        }
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.size(52.dp)
+                    // Discord
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { uriHandler.openUri("https://discord.gg/PFvX7gnJg") }
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier.fillMaxSize()
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier.size(40.dp)
                         ) {
-                            Icon(
-                                painter = painterResource(R.drawable.discord),
-                                contentDescription = "Discord",
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.size(24.dp)
-                            )
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                Icon(
+                                    painter = painterResource(R.drawable.discord),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                        Spacer(Modifier.width(16.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Discord", fontWeight = FontWeight.SemiBold)
+                            Text("Join our community", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
-                    Spacer(Modifier.width(16.dp))
-                    Column {
-                        Text(
-                            text = "Discord",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = "Join our community",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
 
-            // Telegram Link Card
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .then(if (maxWidth < 600.dp) Modifier else Modifier.fillMaxWidth(0.8f))
-                    .clip(RoundedCornerShape(16.dp)),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp)
-                        .clickable {
-                            uriHandler.openUri("https://t.me/AuraMusicUpdates")
-                        }
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.secondaryContainer,
-                        modifier = Modifier.size(52.dp)
+                    // Telegram
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { uriHandler.openUri("https://t.me/AuraMusicUpdates") }
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier.fillMaxSize()
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier.size(40.dp)
                         ) {
-                            Icon(
-                                painter = painterResource(R.drawable.telegram),
-                                contentDescription = "Telegram",
-                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                modifier = Modifier.size(24.dp)
-                            )
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                Icon(
+                                    painter = painterResource(R.drawable.telegram),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
                         }
-                    }
-                    Spacer(Modifier.width(16.dp))
-                    Column {
-                        Text(
-                            text = "Telegram",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = "Get updates & news",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Spacer(Modifier.width(16.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Telegram", fontWeight = FontWeight.SemiBold)
+                            Text("Get updates & news", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
                 }
             }
