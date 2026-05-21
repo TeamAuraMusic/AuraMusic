@@ -173,7 +173,6 @@ import com.auramusic.app.utils.FlowPlayerUtils
 import com.auramusic.app.utils.NetworkConnectivityObserver
 import com.auramusic.app.utils.ScrobbleManager
 import com.auramusic.app.utils.SyncUtils
-import com.auramusic.app.utils.YTPlayerUtils
 import com.auramusic.app.utils.dataStore
 import com.auramusic.app.utils.get
 import com.auramusic.app.utils.reportException
@@ -205,7 +204,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
 import timber.log.Timber
 import java.io.File
 import java.io.ObjectInputStream
@@ -2751,10 +2749,8 @@ class MusicService :
             ?.let { File(it) }
             ?.takeIf { it.exists() && it.isFile }
 
-        val audioFile = directLocalFile ?: run {
-            // 2. Fallback for properly downloaded songs:
-            //    Fetch the audio to a temporary plain file so we can send it to the ML server.
-            //    We only do this for songs the user has downloaded (to avoid surprise data usage).
+        val audioFile: File = directLocalFile ?: run {
+            // 2. Fallback for properly downloaded songs
             val download = downloadUtil.getDownload(mediaId).firstOrNull()
             if (download?.state != androidx.media3.exoplayer.offline.Download.STATE_COMPLETED) {
                 KaraokeServerHelper.setProgress(
@@ -2767,14 +2763,14 @@ class MusicService :
             }
 
             KaraokeServerHelper.setProgress(KaraokeProgress.Downloading(0))
-            downloadAudioToTempFile(mediaId).also {
-                if (it == null) {
-                    KaraokeServerHelper.setProgress(
-                        KaraokeProgress.Failed("Failed to prepare audio for ML separation")
-                    )
-                    return
-                }
+            val temp = downloadAudioToTempFile(mediaId)
+            if (temp == null) {
+                KaraokeServerHelper.setProgress(
+                    KaraokeProgress.Failed("Failed to prepare audio for ML separation")
+                )
+                return
             }
+            temp
         }
 
         val instrumental = KaraokeServerHelper.separateToInstrumental(audioFile) ?: return
@@ -2797,9 +2793,10 @@ class MusicService :
      */
     private suspend fun downloadAudioToTempFile(mediaId: String): File? = withContext(Dispatchers.IO) {
         try {
+            val audioQualityPref = dataStore.get(AudioQualityKey).toEnum(AudioQuality.AUTO)
             val playbackData = YTPlayerUtils.playerResponseForPlayback(
-                mediaId,
-                audioQuality = dataStore.get(AudioQualityKey, AudioQuality.AUTO),
+                videoId = mediaId,
+                audioQuality = audioQualityPref,
                 connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
             ).getOrNull() ?: return@withContext null
 
