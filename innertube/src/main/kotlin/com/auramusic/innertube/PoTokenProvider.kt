@@ -30,4 +30,11 @@ interface PoTokenProvider {
      * Many clients need a separate token for the actual media delivery.
      */
     suspend fun getStreamingPoToken(videoId: String): String? = null
+
+    /**
+     * Invalidates any cached PO tokens for the given video (or all videos if null).
+     * This should be called when playback fails with IO_UNSPECIFIED / bad HTTP status
+     * that is likely caused by an expired or invalid PO token.
+     */
+    fun invalidatePoTokens(videoId: String?) {}
 }

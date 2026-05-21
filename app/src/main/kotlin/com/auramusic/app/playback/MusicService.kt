@@ -2422,6 +2422,8 @@ class MusicService :
             handleFinalFailure()
             return
         }
+
+        poTokenProvider.invalidatePoTokens(mediaId)
         
         incrementRetryCount(mediaId)
         
@@ -2453,6 +2455,8 @@ class MusicService :
             handleFinalFailure()
             return
         }
+
+        poTokenProvider.invalidatePoTokens(mediaId)
         
         incrementRetryCount(mediaId)
         
@@ -2489,6 +2493,10 @@ class MusicService :
             handleFinalFailure()
             return
         }
+
+        // Invalidate any cached PO tokens — very often the cause of IO_UNSPECIFIED
+        // and IO_BAD_HTTP_STATUS when using WEB_REMIX / clients that require attestation.
+        poTokenProvider.invalidatePoTokens(mediaId)
         
         incrementRetryCount(mediaId)
         
