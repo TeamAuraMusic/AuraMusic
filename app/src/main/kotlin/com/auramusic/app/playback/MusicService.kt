@@ -2732,13 +2732,24 @@ class MusicService :
             KaraokeServerHelper.setProgress(KaraokeProgress.Failed("No track is currently loaded"))
             return
         }
-        val localFile = runCatching {
-            // For local files only in this basic version
-            currentMediaItem.localConfiguration?.uri?.path?.let { File(it) }
-        }.getOrNull()
+
+        // Only file:// URIs that actually exist on disk are valid input for
+        // the server. YouTube streams have URIs like https://... or just the
+        // video ID, which would pass File(path) construction silently and
+        // then fail at read time with ENOENT.
+        val uri = currentMediaItem.localConfiguration?.uri
+        val localFile = uri
+            ?.takeIf { it.scheme == null || it.scheme == "file" }
+            ?.path
+            ?.let { File(it) }
+            ?.takeIf { it.exists() && it.isFile }
+
         if (localFile == null) {
             KaraokeServerHelper.setProgress(
-                KaraokeProgress.Failed("Server karaoke only works on local files. YouTube streams use the built-in vocal suppressor.")
+                KaraokeProgress.Failed(
+                    "Server karaoke only works on locally-downloaded tracks. " +
+                        "Streamed (YouTube) songs use the built-in vocal suppressor instead."
+                )
             )
             return
         }
