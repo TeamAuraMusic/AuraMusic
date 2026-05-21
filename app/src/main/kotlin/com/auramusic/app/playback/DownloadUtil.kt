@@ -100,6 +100,7 @@ constructor(
                     mediaId,
                     audioQuality = audioQuality,
                     connectivityManager = connectivityManager,
+                    poTokenProvider = null, // TODO: inject PoTokenProvider when available in DownloadUtil
                 )
             }.getOrThrow()
             val format = playbackData.format

@@ -210,6 +210,7 @@ import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
 import java.time.LocalDateTime
 import javax.inject.Inject
+import com.auramusic.innertube.PoTokenProvider
 import kotlin.coroutines.coroutineContext
 import kotlin.time.Duration.Companion.seconds
 
@@ -246,6 +247,9 @@ class MusicService :
 
     @Inject
     lateinit var widgetManager: AuraMusicWidgetManager
+
+    @Inject
+    lateinit var poTokenProvider: PoTokenProvider
 
     private lateinit var audioManager: AudioManager
     private var audioFocusRequest: AudioFocusRequest? = null
@@ -2650,6 +2654,7 @@ class MusicService :
                     mediaId,
                     audioQuality = audioQuality,
                     connectivityManager = connectivityManager,
+                    poTokenProvider = poTokenProvider,
                 )
             }.getOrElse { throwable ->
                 when (throwable) {
@@ -2797,7 +2802,8 @@ class MusicService :
             val playbackData = YTPlayerUtils.playerResponseForPlayback(
                 videoId = mediaId,
                 audioQuality = audioQualityPref,
-                connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+                connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager,
+                poTokenProvider = poTokenProvider
             ).getOrNull() ?: return@withContext null
 
             val streamUrl = playbackData.streamUrl ?: return@withContext null
@@ -3178,6 +3184,7 @@ class MusicService :
                     videoId = mediaId,
                     audioQuality = audioQuality,
                     connectivityManager = connectivityManager,
+                    poTokenProvider = poTokenProvider,
                 ).getOrNull()
                 playbackData?.streamUrl
             } catch (e: Exception) {

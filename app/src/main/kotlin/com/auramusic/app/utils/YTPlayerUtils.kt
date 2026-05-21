@@ -8,6 +8,7 @@ package com.auramusic.app.utils
 import android.net.ConnectivityManager
 import androidx.media3.common.PlaybackException
 import com.auramusic.innertube.NewPipeExtractor
+import com.auramusic.innertube.PoTokenProvider
 import com.auramusic.innertube.YouTube
 import com.auramusic.innertube.models.YouTubeClient
 import com.auramusic.innertube.models.YouTubeClient.Companion.ANDROID_CREATOR
@@ -73,6 +74,7 @@ object YTPlayerUtils {
         playlistId: String? = null,
         audioQuality: AudioQuality,
         connectivityManager: ConnectivityManager,
+        poTokenProvider: PoTokenProvider? = null,
     ): Result<PlaybackData> = runCatching {
         Timber.tag(logTag).d("Fetching player response for videoId: $videoId, playlistId: $playlistId")
         /**
@@ -96,8 +98,14 @@ object YTPlayerUtils {
         Timber.tag(logTag).d("Session authentication status: ${if (isLoggedIn) "Logged in" else "Not logged in"}")
 
         Timber.tag(logTag).d("Attempting to get player response using MAIN_CLIENT: ${MAIN_CLIENT.clientName}")
+
+        val mainClientPoToken = poTokenProvider?.getPlayerPoToken(videoId)
+        if (mainClientPoToken != null) {
+            Timber.tag(logTag).d("Obtained PO token for MAIN_CLIENT (length=${mainClientPoToken.length})")
+        }
+
         val mainPlayerResponse =
-            YouTube.player(videoId, playlistId, MAIN_CLIENT, signatureTimestamp).getOrThrow()
+            YouTube.player(videoId, playlistId, MAIN_CLIENT, signatureTimestamp, mainClientPoToken).getOrThrow()
         val audioConfig = mainPlayerResponse.playerConfig?.audioConfig
         val videoDetails = mainPlayerResponse.videoDetails
         val playbackTracking = mainPlayerResponse.playbackTracking
@@ -131,8 +139,9 @@ object YTPlayerUtils {
                 }
 
                 Timber.tag(logTag).d("Fetching player response for fallback client: ${client.clientName}")
+                val fallbackPoToken = poTokenProvider?.getPlayerPoToken(videoId)
                 streamPlayerResponse =
-                    YouTube.player(videoId, playlistId, client, signatureTimestamp).getOrNull()
+                    YouTube.player(videoId, playlistId, client, signatureTimestamp, fallbackPoToken).getOrNull()
             }
 
             // process current client response
@@ -275,11 +284,13 @@ return format
     suspend fun getVideoStreamUrl(
         videoId: String,
         playlistId: String? = null,
+        poTokenProvider: PoTokenProvider? = null,
     ): Result<String> = runCatching {
         Timber.tag(logTag).d("Fetching video stream URL for videoId: $videoId")
 
         val signatureTimestamp = getSignatureTimestampOrNull(videoId)
-        val mainPlayerResponse = YouTube.player(videoId, playlistId, MAIN_CLIENT, signatureTimestamp).getOrThrow()
+        val poToken = poTokenProvider?.getPlayerPoToken(videoId)
+        val mainPlayerResponse = YouTube.player(videoId, playlistId, MAIN_CLIENT, signatureTimestamp, poToken).getOrThrow()
 
         // Try muxed formats first (contain both video and audio in one stream)
         val muxedFormats = mainPlayerResponse.streamingData?.formats ?: emptyList()

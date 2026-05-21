@@ -141,4 +141,11 @@ object AppModule {
         @ApplicationContext context: Context,
         client: ListenTogetherClient,
     ): ListenTogetherManager = ListenTogetherManager(client, context)
+
+    @Singleton
+    @Provides
+    fun providePoTokenProvider(
+        @ApplicationContext context: Context,
+    ): com.auramusic.innertube.PoTokenProvider =
+        com.auramusic.app.playback.potoken.WebViewPoTokenProvider(context)
 }
