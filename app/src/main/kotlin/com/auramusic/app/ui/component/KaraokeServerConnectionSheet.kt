@@ -55,6 +55,9 @@ fun KaraokeServerConnectionSheet(
             delay(300)
             connectionState = ConnectionState.CONNECTED
             onUseServerChange(true)
+            // Show the "Connected ✓" confirmation for a moment so the user
+            // actually sees it before the parent dismisses the sheet.
+            delay(1200)
             onConnected()
         } catch (e: Exception) {
             e.printStackTrace()

@@ -2727,6 +2727,9 @@ class MusicService :
         val instrumental = KaraokeServerHelper.separateToInstrumental(localFile) ?: return
 
         withContext(Dispatchers.Main) {
+            // The server-returned track is already vocal-free, so disable the
+            // local DSP suppression to avoid over-processing the clean stems.
+            equalizerService.disableVocalSuppression()
             val newMediaItem = MediaItem.fromUri(instrumental.toUri())
             player.setMediaItem(newMediaItem)
             player.prepare()
