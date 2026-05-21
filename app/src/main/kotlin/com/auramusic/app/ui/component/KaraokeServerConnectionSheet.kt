@@ -9,14 +9,16 @@ import androidx.compose.ui.unit.dp
 import com.auramusic.app.constants.UseKaraokeServerKey
 import com.auramusic.app.utils.rememberPreference
 import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
-import io.ktor.client.request.get
+import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.HttpTimeout
-import io.ktor.http.isSuccess
+import io.ktor.client.request.get
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import timber.log.Timber
+import kotlinx.coroutines.withContext
 
 enum class ConnectionState { CONNECTING, CONNECTED, ERROR }
+
+private const val KARAOKE_SERVER_URL = "https://karaoke.auramusic.site/"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,48 +26,43 @@ fun KaraokeServerConnectionSheet(
     onDismiss: () -> Unit,
     onConnected: () -> Unit
 ) {
-    val (useServer, onUseServerChange) = rememberPreference(UseKaraokeServerKey, false)
+    val (_, onUseServerChange) = rememberPreference(UseKaraokeServerKey, false)
     var connectionState by remember { mutableStateOf(ConnectionState.CONNECTING) }
-    var retryKey by remember { mutableIntStateOf(0) }
+    var errorDetail by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(retryKey) {
-        val client = HttpClient(CIO) {
+    LaunchedEffect(Unit) {
+        // - OkHttp engine: more reliable than CIO on Android with Cloudflare/HTTP-2
+        // - expectSuccess = false: any HTTP response means the server is reachable
+        // - explicit timeouts: avoid hanging forever on bad networks
+        val client = HttpClient(OkHttp) {
             expectSuccess = false
             install(HttpTimeout) {
-                connectTimeoutMillis = 10000
-                requestTimeoutMillis = 15000
-                socketTimeoutMillis = 15000
+                requestTimeoutMillis = 10_000
+                connectTimeoutMillis = 10_000
+                socketTimeoutMillis = 10_000
             }
         }
-        var attempt = 0
-        val maxAttempts = 6
-        var lastError: Exception? = null
-        while (attempt < maxAttempts) {
-            try {
-                Timber.tag("KaraokeServer").d("Connection attempt ${attempt + 1}/$maxAttempts")
-                val response = client.get("https://karaoke.auramusic.site/health")
-                Timber.tag("KaraokeServer").d("Server responded: ${response.status.value}")
-                if (response.status.isSuccess()) {
-                    delay(300)
-                    connectionState = ConnectionState.CONNECTED
-                    onUseServerChange(true)
-                    onConnected()
-                    client.close()
-                    return@LaunchedEffect
-                }
-            } catch (e: Exception) {
-                lastError = e
-                Timber.tag("KaraokeServer").d("Attempt ${attempt + 1} failed", e)
+        try {
+            // Use GET (not HEAD): some servers / CDNs / FastAPI routes
+            // don't accept HEAD. Receiving ANY HTTP response proves the
+            // server is reachable.
+            val response = withContext(Dispatchers.IO) {
+                client.get(KARAOKE_SERVER_URL)
             }
-            attempt++
-            if (attempt < maxAttempts) {
-                val delayMs = minOf(2000L * (1 shl (attempt - 1)), 30000L)
-                delay(delayMs)
-            }
+            // Any HTTP status code (including 404/405) means the host
+            // answered — i.e. the network path works.
+            errorDetail = "HTTP ${response.status.value}"
+            delay(300)
+            connectionState = ConnectionState.CONNECTED
+            onUseServerChange(true)
+            onConnected()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            errorDetail = e.message
+            connectionState = ConnectionState.ERROR
+        } finally {
+            client.close()
         }
-        Timber.tag("KaraokeServer").d("All $maxAttempts attempts failed")
-        connectionState = ConnectionState.ERROR
-        client.close()
     }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
@@ -79,27 +76,30 @@ fun KaraokeServerConnectionSheet(
                 ConnectionState.CONNECTING -> {
                     CircularProgressIndicator()
                     Spacer(Modifier.height(16.dp))
-                    Text("Waking up Karaoke ML Server...")
-                    Text("This may take up to 60 seconds on first request", style = MaterialTheme.typography.bodySmall)
+                    Text("Connecting to Karaoke ML Server...")
+                    Text(KARAOKE_SERVER_URL, style = MaterialTheme.typography.bodySmall)
                 }
                 ConnectionState.CONNECTED -> {
-                    Text("Connected ✓", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
+                    Text(
+                        "Connected ✓",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                     Spacer(Modifier.height(8.dp))
                     Text("Karaoke mode now uses server-powered instrumental separation.")
                     Spacer(Modifier.height(16.dp))
-                    Button(onClick = onDismiss) {
-                        Text("Done")
-                    }
+                    Button(onClick = onDismiss) { Text("Done") }
                 }
                 ConnectionState.ERROR -> {
                     Text("Connection failed", color = MaterialTheme.colorScheme.error)
                     Spacer(Modifier.height(8.dp))
-                    Text("Could not reach karaoke.auramusic.site", style = MaterialTheme.typography.bodySmall)
-                    Spacer(Modifier.height(4.dp))
-                    Text("Check your internet connection", style = MaterialTheme.typography.bodySmall)
+                    Text("Could not reach $KARAOKE_SERVER_URL")
+                    errorDetail?.let {
+                        Spacer(Modifier.height(4.dp))
+                        Text(it, style = MaterialTheme.typography.bodySmall)
+                    }
                     Spacer(Modifier.height(16.dp))
-                    OutlinedButton(onClick = { retryKey++ }) { Text("Retry") }
-                    TextButton(onClick = onDismiss) { Text("Cancel") }
+                    Button(onClick = onDismiss) { Text("Close") }
                 }
             }
         }
