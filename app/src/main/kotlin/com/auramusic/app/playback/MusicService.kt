@@ -87,6 +87,11 @@ import com.auramusic.app.playback.KaraokeServerHelper
 import com.auramusic.app.constants.AudioNormalizationKey
 import com.auramusic.app.constants.AudioOffload
 import com.auramusic.app.constants.AudioQualityKey
+import com.auramusic.app.constants.AudioQuality
+import com.auramusic.app.utils.YTPlayerUtils
+import kotlinx.coroutines.flow.firstOrNull
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import com.auramusic.app.constants.AutoDownloadOnLikeKey
 import com.auramusic.app.constants.AutoLoadMoreKey
 import com.auramusic.app.constants.AutoSkipNextOnErrorKey
@@ -228,6 +233,9 @@ class MusicService :
 
     @Inject
     lateinit var syncUtils: SyncUtils
+
+    @Inject
+    lateinit var downloadUtil: DownloadUtil
 
     @Inject
     lateinit var mediaLibrarySessionCallback: MediaLibrarySessionCallback
@@ -2733,39 +2741,87 @@ class MusicService :
             return
         }
 
-        // Only file:// URIs that actually exist on disk are valid input for
-        // the server. YouTube streams have URIs like https://... or just the
-        // video ID, which would pass File(path) construction silently and
-        // then fail at read time with ENOENT.
+        val mediaId = currentMediaItem.mediaId
+
+        // 1. Best case: direct file on disk (some users save plain copies)
         val uri = currentMediaItem.localConfiguration?.uri
-        val localFile = uri
+        val directLocalFile = uri
             ?.takeIf { it.scheme == null || it.scheme == "file" }
             ?.path
             ?.let { File(it) }
             ?.takeIf { it.exists() && it.isFile }
 
-        if (localFile == null) {
-            KaraokeServerHelper.setProgress(
-                KaraokeProgress.Failed(
-                    "Server karaoke only works on locally-downloaded tracks. " +
-                        "Streamed (YouTube) songs use the built-in vocal suppressor instead."
+        val audioFile = directLocalFile ?: run {
+            // 2. Fallback for properly downloaded songs:
+            //    Fetch the audio to a temporary plain file so we can send it to the ML server.
+            //    We only do this for songs the user has downloaded (to avoid surprise data usage).
+            val download = downloadUtil.getDownload(mediaId).firstOrNull()
+            if (download?.state != androidx.media3.exoplayer.offline.Download.STATE_COMPLETED) {
+                KaraokeServerHelper.setProgress(
+                    KaraokeProgress.Failed(
+                        "Server karaoke only works on locally-downloaded tracks. " +
+                            "Streamed (YouTube) songs use the built-in vocal suppressor instead."
+                    )
                 )
-            )
-            return
+                return
+            }
+
+            KaraokeServerHelper.setProgress(KaraokeProgress.Downloading(0))
+            downloadAudioToTempFile(mediaId).also {
+                if (it == null) {
+                    KaraokeServerHelper.setProgress(
+                        KaraokeProgress.Failed("Failed to prepare audio for ML separation")
+                    )
+                    return
+                }
+            }
         }
 
-        val instrumental = KaraokeServerHelper.separateToInstrumental(localFile) ?: return
+        val instrumental = KaraokeServerHelper.separateToInstrumental(audioFile) ?: return
 
         withContext(Dispatchers.Main) {
             KaraokeServerHelper.setProgress(KaraokeProgress.Preparing)
-            // The server-returned track is already vocal-free, so disable the
-            // local DSP suppression to avoid over-processing the clean stems.
             equalizerService.disableVocalSuppression()
             val newMediaItem = MediaItem.fromUri(instrumental.toUri())
             player.setMediaItem(newMediaItem)
             player.prepare()
             player.play()
             KaraokeServerHelper.setProgress(KaraokeProgress.Playing)
+        }
+    }
+
+    /**
+     * Downloads the best available audio stream for [mediaId] into a temporary
+     * plain file. Used by the server-karaoke pipeline when we don't have a
+     * direct local file.
+     */
+    private suspend fun downloadAudioToTempFile(mediaId: String): File? = withContext(Dispatchers.IO) {
+        try {
+            val playbackData = YTPlayerUtils.playerResponseForPlayback(
+                mediaId,
+                audioQuality = dataStore.get(AudioQualityKey, AudioQuality.AUTO),
+                connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            ).getOrNull() ?: return@withContext null
+
+            val streamUrl = playbackData.streamUrl ?: return@withContext null
+
+            val tempFile = File.createTempFile("karaoke_", ".m4a", cacheDir)
+
+            val request = okhttp3.Request.Builder().url(streamUrl).build()
+            val client = okhttp3.OkHttpClient()
+
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@withContext null
+                response.body?.byteStream()?.use { input ->
+                    tempFile.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+            }
+            tempFile
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
 
