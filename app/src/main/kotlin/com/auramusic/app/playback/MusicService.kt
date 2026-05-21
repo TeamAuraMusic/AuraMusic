@@ -2714,19 +2714,39 @@ class MusicService :
     }
 
     /**
+     * Public entry point used by the karaoke connection sheet to drive the
+     * full ML pipeline from the UI. Emits progress through
+     * [KaraokeServerHelper.progress] so the sheet can render every phase.
+     */
+    fun runKaraokeServerPipeline() {
+        scope.launch { prepareServerKaraokeInstrumental() }
+    }
+
+    /**
      * Downloads current track audio (if possible), sends to ML server,
      * and switches ExoPlayer to the returned instrumental track.
      */
     private suspend fun prepareServerKaraokeInstrumental() {
-        val currentMediaItem = player.currentMediaItem ?: return
+        val currentMediaItem = withContext(Dispatchers.Main) { player.currentMediaItem }
+        if (currentMediaItem == null) {
+            KaraokeServerHelper.setProgress(KaraokeProgress.Failed("No track is currently loaded"))
+            return
+        }
         val localFile = runCatching {
             // For local files only in this basic version
             currentMediaItem.localConfiguration?.uri?.path?.let { File(it) }
-        }.getOrNull() ?: return   // Skip for YouTube streams (implement download first for full support)
+        }.getOrNull()
+        if (localFile == null) {
+            KaraokeServerHelper.setProgress(
+                KaraokeProgress.Failed("Server karaoke only works on local files. YouTube streams use the built-in vocal suppressor.")
+            )
+            return
+        }
 
         val instrumental = KaraokeServerHelper.separateToInstrumental(localFile) ?: return
 
         withContext(Dispatchers.Main) {
+            KaraokeServerHelper.setProgress(KaraokeProgress.Preparing)
             // The server-returned track is already vocal-free, so disable the
             // local DSP suppression to avoid over-processing the clean stems.
             equalizerService.disableVocalSuppression()
@@ -2734,6 +2754,7 @@ class MusicService :
             player.setMediaItem(newMediaItem)
             player.prepare()
             player.play()
+            KaraokeServerHelper.setProgress(KaraokeProgress.Playing)
         }
     }
 

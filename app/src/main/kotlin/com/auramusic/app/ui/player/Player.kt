@@ -651,6 +651,7 @@ fun BottomSheetPlayer(
 
     if (showKaraokeServerSheet) {
         com.auramusic.app.ui.component.KaraokeServerConnectionSheet(
+            service = playerConnection.service,
             onDismiss = { showKaraokeServerSheet = false },
             onConnected = { showKaraokeServerSheet = false }
         )
