@@ -65,6 +65,8 @@ import androidx.media3.exoplayer.audio.MediaCodecAudioRenderer
 import androidx.media3.exoplayer.audio.SilenceSkippingAudioProcessor
 import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.source.MergingMediaSource
+import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.exoplayer.source.ShuffleOrder.DefaultShuffleOrder
 import androidx.media3.extractor.ExtractorsFactory
 import androidx.media3.extractor.mkv.MatroskaExtractor
@@ -3414,26 +3416,35 @@ class MusicService :
                                 }
                             } else null
                             
-                            // Get stream URL (runs in parallel with subtitle fetching)
-                            val streamResult = withContext(Dispatchers.IO) {
-                                FlowPlayerUtils.getVideoStreamUrl(videoId)
+                            // Get stream source (runs in parallel with subtitle fetching).
+                            // The Merged variant is returned when the preferred quality
+                            // exceeds 720p, since YouTube only ships separate video-only
+                            // and audio-only streams above that resolution.
+                            val sourceResult = withContext(Dispatchers.IO) {
+                                FlowPlayerUtils.getVideoStreamSource(videoId)
                             }
-                            
+
                             // Wait for subtitles to complete if they were started
                             subtitleJob?.join()
-                            
-                            if (streamResult.isSuccess) {
-                                val streamData = streamResult.getOrNull()
-                                val parts = streamData?.split("|", limit = 2) ?: listOf("")
-                                val videoUrl = parts[0].trim()
-                                val rawMimeType = if (parts.size > 1) parts[1].trim() else "video/mp4"
-                                val mimeType = rawMimeType.split(";").first().trim()
-                                currentVideoUrl = videoUrl
 
-                                Timber.d("setVideoMode: Video URL: $videoUrl, MIME type: $mimeType")
-                                android.util.Log.d("MusicService", ">>> Got stream URL: $videoUrl, mimeType: $mimeType")
+                            if (sourceResult.isSuccess) {
+                                val streamSource = sourceResult.getOrNull()
+                                val primaryVideoUrl = when (streamSource) {
+                                    is com.auramusic.flow.FlowVideo.VideoStreamSource.Single -> streamSource.url
+                                    is com.auramusic.flow.FlowVideo.VideoStreamSource.Merged -> streamSource.videoUrl
+                                    null -> ""
+                                }
+                                val primaryMimeType = when (streamSource) {
+                                    is com.auramusic.flow.FlowVideo.VideoStreamSource.Single -> streamSource.mimeType
+                                    is com.auramusic.flow.FlowVideo.VideoStreamSource.Merged -> streamSource.videoMimeType
+                                    null -> "video/mp4"
+                                }
+                                currentVideoUrl = primaryVideoUrl
 
-                                if (videoUrl.isBlank()) {
+                                Timber.d("setVideoMode: Video URL: $primaryVideoUrl, MIME type: $primaryMimeType, source=${streamSource?.javaClass?.simpleName}")
+                                android.util.Log.d("MusicService", ">>> Got stream URL: $primaryVideoUrl, mimeType: $primaryMimeType, source=${streamSource?.javaClass?.simpleName}")
+
+                                if (primaryVideoUrl.isBlank() || streamSource == null) {
                                     Timber.e("setVideoMode: Video URL is blank after parsing")
                                     _videoFetchError.value = "Video URL is empty - This song may not have a video available"
                                     _videoModeMessage.value = "No video available for this song"
@@ -3443,17 +3454,17 @@ class MusicService :
 
                                 val currentItem = player.getMediaItemAt(index)
                                 Timber.d("setVideoMode: Current media item URI: ${currentItem.localConfiguration?.uri}")
-                                
+
                                 val videoMediaItemBuilder = currentItem.buildUpon()
-                                    .setUri(videoUrl)
-                                    .setMimeType(mimeType)
+                                    .setUri(primaryVideoUrl)
+                                    .setMimeType(primaryMimeType)
                                     .setCustomCacheKey(mediaId + "_video")
-                                
+
                                 if (ccEnabled && subtitleConfigs.isNotEmpty()) {
                                     videoMediaItemBuilder.setSubtitleConfigurations(subtitleConfigs)
                                     Timber.d("setVideoMode: Added ${subtitleConfigs.size} subtitle tracks to media item")
                                 }
-                                
+
                                 val videoMediaItem = videoMediaItemBuilder.build()
 
                                 if (ccEnabled) {
@@ -3467,9 +3478,40 @@ class MusicService :
                                         .setPreferredTextLanguage(null)
                                         .build()
                                 }
-                                
-                                Timber.d("setVideoMode: Replacing media item at index $index")
-                                player.replaceMediaItem(index, videoMediaItem)
+
+                                when (streamSource) {
+                                    is com.auramusic.flow.FlowVideo.VideoStreamSource.Single -> {
+                                        Timber.d("setVideoMode: Replacing media item at index $index (single source)")
+                                        player.replaceMediaItem(index, videoMediaItem)
+                                    }
+                                    is com.auramusic.flow.FlowVideo.VideoStreamSource.Merged -> {
+                                        // Build a MergingMediaSource of (video-only + audio-only)
+                                        // so we can actually expose 1080p+ — muxed YouTube
+                                        // streams cap below that.
+                                        val factory = ProgressiveMediaSource.Factory(
+                                            createDataSourceFactory(),
+                                            ExtractorsFactory {
+                                                arrayOf(
+                                                    MatroskaExtractor(),
+                                                    FragmentedMp4Extractor(),
+                                                    Mp4Extractor()
+                                                )
+                                            }
+                                        )
+                                        val videoSource = factory.createMediaSource(videoMediaItem)
+                                        val audioMediaItem = MediaItem.Builder()
+                                            .setUri(streamSource.audioUrl)
+                                            .setMimeType(streamSource.audioMimeType)
+                                            .setCustomCacheKey(mediaId + "_video_audio")
+                                            .build()
+                                        val audioSource = factory.createMediaSource(audioMediaItem)
+                                        val merged = MergingMediaSource(true, true, videoSource, audioSource)
+
+                                        Timber.d("setVideoMode: Injecting MergingMediaSource at index $index (${streamSource.height}p video + audio)")
+                                        player.removeMediaItem(index)
+                                        player.addMediaSource(index, merged)
+                                    }
+                                }
                                 player.playWhenReady = false
                                 player.prepare()
                                 Timber.d("setVideoMode: Called prepare(), player state: ${player.playbackState}")
@@ -3503,7 +3545,7 @@ class MusicService :
                                 isVideoMode = true
                                 _videoModeEnabled.value = true
                                 _currentVideoId.value = videoId
-                                Timber.d("setVideoMode: SUCCESS - Video stream prepared with mimeType: $mimeType, player state: ${player.playbackState}, playWhenReady: true")
+                                Timber.d("setVideoMode: SUCCESS - Video stream prepared with mimeType: $primaryMimeType, player state: ${player.playbackState}, playWhenReady: true")
                                 android.util.Log.d("MusicService", ">>> SUCCESS - Video mode enabled for: ${videoData.title}")
                             } else {
                                 Timber.e("setVideoMode: Failed to get stream URL from search result")

@@ -15,6 +15,28 @@ object FlowVideo {
         val mimeType: String
     )
 
+    /**
+     * A richer description of how to play a video. YouTube only offers muxed
+     * (audio+video) streams up to 720p, so to reach 1080p or higher we must
+     * combine a video-only stream with a matching audio-only stream.
+     */
+    sealed class VideoStreamSource {
+        /** Single URL that contains both audio and video (muxed). */
+        data class Single(
+            val url: String,
+            val mimeType: String,
+        ) : VideoStreamSource()
+
+        /** Separate video and audio streams that must be merged for playback. */
+        data class Merged(
+            val videoUrl: String,
+            val videoMimeType: String,
+            val audioUrl: String,
+            val audioMimeType: String,
+            val height: Int,
+        ) : VideoStreamSource()
+    }
+
     data class VideoSearchResult(
         val videoId: String,
         val title: String,
@@ -299,6 +321,82 @@ object FlowVideo {
     private fun isMp4Format(mimeType: String?): Boolean {
         val base = sanitizeMimeType(mimeType)
         return base == "video/mp4" || base == "video/3gpp"
+    }
+
+    /**
+     * Pick the best audio-only stream — prefer the highest-bitrate MP4/M4A
+     * (AAC) for ExoPlayer compatibility, falling back to anything else.
+     */
+    private fun pickBestAudioStream(
+        audioStreams: List<org.schabi.newpipe.extractor.stream.AudioStream>
+    ): org.schabi.newpipe.extractor.stream.AudioStream? {
+        if (audioStreams.isEmpty()) return null
+        val mp4Audios = audioStreams.filter {
+            val mime = it.format?.mimeType?.split(";")?.first()?.trim()
+            mime == "audio/mp4" || mime == "audio/m4a"
+        }
+        return mp4Audios.maxByOrNull { it.averageBitrate }
+            ?: audioStreams.maxByOrNull { it.averageBitrate }
+    }
+
+    /**
+     * Resolve a video as either a single muxed stream or a pair of video-only +
+     * audio-only streams that the caller will merge at the media-source layer.
+     *
+     * YouTube serves muxed streams only up to 720p (often only 360p in
+     * practice). For 1080p and above the only option is a video-only DASH
+     * stream paired with a separate audio-only stream — that's why this
+     * function returns a [VideoStreamSource.Merged] in those cases.
+     */
+    suspend fun getVideoStreamSource(videoId: String): Result<VideoStreamSource> = runCatching {
+        val streamInfo = NewPipeExtractor.getStreamInfo(videoId)
+            ?: throw Exception("Failed to extract stream info")
+
+        val muxedVideoStreams = streamInfo.videoStreams
+        val videoOnlyStreams = streamInfo.videoOnlyStreams
+        val audioStreams = streamInfo.audioStreams
+
+        Log.d(
+            TAG,
+            "getVideoStreamSource: ${muxedVideoStreams.size} muxed, " +
+                    "${videoOnlyStreams.size} video-only, ${audioStreams.size} audio-only " +
+                    "(preferred=${currentPreferredQuality.label})"
+        )
+
+        // When the user asks for above 720p, prefer the video-only + audio-only
+        // merged path because muxed streams cap out below that.
+        val preferMerged = currentPreferredQuality.height > 720
+
+        if (preferMerged) {
+            val videoOnly = findBestStream(videoOnlyStreams, requireAudio = false)
+            val audioOnly = pickBestAudioStream(audioStreams)
+            if (videoOnly != null && audioOnly != null) {
+                val videoUrl = videoOnly.content ?: videoOnly.url
+                val audioUrl = audioOnly.content ?: audioOnly.url
+                if (!videoUrl.isNullOrBlank() && !audioUrl.isNullOrBlank()) {
+                    Log.d(
+                        TAG,
+                        "getVideoStreamSource: Using MERGED video-only ${videoOnly.resolution} " +
+                                "+ audio ${audioOnly.averageBitrate}bps"
+                    )
+                    return@runCatching VideoStreamSource.Merged(
+                        videoUrl = videoUrl,
+                        videoMimeType = sanitizeMimeTypeForExoPlayer(videoOnly.format?.mimeType),
+                        audioUrl = audioUrl,
+                        audioMimeType = sanitizeMimeType(audioOnly.format?.mimeType),
+                        height = videoOnly.height,
+                    )
+                }
+            }
+            Log.d(TAG, "getVideoStreamSource: Merged path unavailable, falling back to muxed/single")
+        }
+
+        // Fall back to a single muxed (or last-resort video-only) URL.
+        val singleResult = runCatching { getVideoStreamUrl(videoId).getOrThrow() }
+            .getOrNull()
+            ?: throw Exception("No playable video stream found")
+
+        VideoStreamSource.Single(singleResult.url, singleResult.mimeType)
     }
 
     /**

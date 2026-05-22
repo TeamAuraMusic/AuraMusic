@@ -42,6 +42,32 @@ object FlowPlayerUtils {
     }
 
     /**
+     * Resolve a video stream as either a single muxed URL or a pair of
+     * video-only + audio-only streams that the player must merge.
+     *
+     * For quality > 720p, a single muxed URL is physically not available from
+     * YouTube — the caller MUST handle the [FlowVideo.VideoStreamSource.Merged]
+     * case to actually display 1080p video.
+     */
+    suspend fun getVideoStreamSource(videoId: String): Result<FlowVideo.VideoStreamSource> =
+        withContext(Dispatchers.IO) {
+            Timber.tag(logTag).d("FlowPlayerUtils: Resolving stream source for videoId: $videoId")
+            FlowVideo.getVideoStreamSource(videoId).also { result ->
+                result.onSuccess { source ->
+                    when (source) {
+                        is FlowVideo.VideoStreamSource.Single ->
+                            Timber.tag(logTag).d("FlowPlayerUtils: Single source (${source.mimeType})")
+                        is FlowVideo.VideoStreamSource.Merged ->
+                            Timber.tag(logTag)
+                                .d("FlowPlayerUtils: Merged source ${source.height}p video + audio")
+                    }
+                }.onFailure { e ->
+                    Timber.tag(logTag).e(e, "FlowPlayerUtils: Failed to resolve stream source")
+                }
+            }
+        }
+
+    /**
      * Get video stream URL with automatic search fallback for regular songs
      * This searches for official music video if direct lookup fails
      */
