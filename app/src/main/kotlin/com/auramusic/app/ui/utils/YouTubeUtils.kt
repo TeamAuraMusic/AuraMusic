@@ -9,32 +9,45 @@ fun String.resize(
     width: Int? = null,
     height: Int? = null,
 ): String {
-    // Upgrade YouTube video thumbnails to higher quality for sharper display
-    if (this matches "https://i\\.ytimg\\.com/vi/[^/]+/[^/]+\\.jpg".toRegex()) {
-        val quality = when {
-            (width ?: 0) >= 1280 || (height ?: 0) >= 720 -> "maxresdefault"
-            else -> "hqdefault"
-        }
-        return replace(Regex("/[^/]+\\.jpg$"), "/$quality.jpg")
-    }
     if (width == null && height == null) return this
 
-    // YouTube Music / Google lh3 thumbnails - request high quality
-    "https://lh3\\.googleusercontent\\.com/.*=w(\\d+)-h(\\d+).*".toRegex()
-        .matchEntire(this)?.groupValues?.let { group ->
-        val (W, H) = group.drop(1).map { it.toInt() }
-        var w = width ?: 1200
-        var h = height ?: 1200
-        if (width == null && height != null) w = (h * W) / H
-        if (height == null && width != null) h = (w * H) / W
-        // Use high quality parameters (p-l90-rj is good balance of quality/size)
-        return "${split("=w")[0]}=w$w-h$h-p-l90-rj"
+    val isGoogleCdn = this.contains("googleusercontent.com") || this.contains("ggpht.com")
+    val isYtimg = this.contains("i.ytimg.com")
+
+    if (isGoogleCdn) {
+        val w = width ?: height!!
+        val h = height ?: width!!
+
+        // Replace existing wNNN-hNNN segments anywhere in the URL/path
+        if (this.contains(Regex("w\\d+-h\\d+"))) {
+            return this.replace(Regex("w\\d+-h\\d+"), "w$w-h$h")
+        }
+
+        // Trim any existing size parameters (=w..., =s..., =h...) so we can rebuild them
+        val baseUrl = this.split("=w", "=s", "=h", limit = 2)[0]
+
+        // Use =w-h-p-l90-rj for explicit dimensions / banners (smart cropping, high quality JPEG),
+        // otherwise use =s for square-ish images.
+        return if ((this.contains("=w") && this.contains("-h")) || (width != null && height != null)) {
+            "$baseUrl=w$w-h$h-p-l90-rj"
+        } else {
+            "$baseUrl=s$w-p-l90-rj"
+        }
     }
 
-    // Artist thumbnails (yt3.ggpht)
-    if (this matches "https://yt3\\.ggpht\\.com/.*=s(\\d+)".toRegex()) {
-        val target = width ?: height ?: 1200
-        return "$this-s$target"
+    if (isYtimg) {
+        val target = width ?: height!!
+        return when {
+            target > 480 -> this
+                .replace("hqdefault.jpg", "maxresdefault.jpg")
+                .replace("mqdefault.jpg", "maxresdefault.jpg")
+                .replace("sddefault.jpg", "maxresdefault.jpg")
+                .replace("default.jpg", "maxresdefault.jpg")
+            target > 320 -> this
+                .replace("mqdefault.jpg", "hqdefault.jpg")
+                .replace("default.jpg", "hqdefault.jpg")
+            else -> this
+        }
     }
 
     return this
