@@ -1,3 +1,43 @@
+# AuraMusic v2.4.0 (Build 21) Release Notes
+
+> [!NOTE]
+> This release brings true 1080p+ video playback, server-powered Karaoke, PO token + BotGuard playback fixes, a full Enhanced Lyrics rebuild with the beautiful new Monochrome animated style, dramatically sharper thumbnails, and a modernized About screen that now properly credits our translators.
+
+## What's New
+
+### True 1080p+ Video Playback
+You can finally select 1080p (and higher) and actually get the quality. AuraMusic now merges YouTube's separate high-resolution video-only streams with premium audio streams when needed.
+
+### Server Karaoke
+New dedicated ML karaoke server integration (https://karaoke.auramusic.site/). Works with downloaded songs, has a polished connection UI with progress, "Connected ✓", smart retries, and is hardened against cold starts.
+
+### Reliable Playback with PO Tokens
+Full WebView + BotGuard PO token implementation + automatic invalidation/recovery. This eliminates the common "Code: 2000 (IO_UNSPECIFIED)" playback failures.
+
+### Enhanced Lyrics Overhaul
+- Rebuilt word-level rendering engine
+- Brand new Monochrome animated lyrics + background style
+- Instrumental indicators and connected lines now work correctly in enhanced mode
+- Many visual and animation polish improvements
+
+### Much Sharper Thumbnails & Artwork
+Major upgrade to the thumbnail resizer so it works with every Google CDN host and always requests the highest quality images.
+
+### Modern About Screen & Contributors
+- Beautiful 2-column grid with real GitHub avatars
+- Liberapay support added
+- Translation contributors now proudly listed with profile pictures
+
+## New Contributors (First time in AuraMusic)
+
+- [Mickaël Binos](https://github.com/Mickael81) made their first contribution in AuraMusic with the commit [Added translation using Weblate (French)](https://github.com/TeamAuraMusic/AuraMusic/commit/806caacb6729e93546ebbe4ab091c52929e640c9)
+
+- [ItsMeCrizzzGD](https://github.com/iamcrizzzgd) made their first contribution in AuraMusic with the commit [Translated using Weblate (Spanish)](https://github.com/TeamAuraMusic/AuraMusic/commit/9f624fbb75b731381247af9d298cd597e0f85a39)
+
+- [Silvério Santos](https://github.com/SantosSi) made their first contribution in AuraMusic with the commit [Added translation using Weblate (Portuguese (Portugal))](https://github.com/TeamAuraMusic/AuraMusic/commit/c5659da886b5fc547b3ca26ee9a02702ac2bf9f6)
+
+**Full changes in this release**: https://github.com/TeamAuraMusic/AuraMusic/compare/2e1feb0...66cbc3b
+
 # AuraMusic v2.3.0 (Build 20) Release Notes
 
 > [!NOTE]
@@ -5,7 +45,7 @@
 
 ## What's New
 
-### 🎵 Hardware Integration & Smart Device Ecosystem
+### Hardware Integration & Smart Device Ecosystem
 A complete hardware integration system with Bluetooth device support and audio device management:
 
 **Audio Device Integration**

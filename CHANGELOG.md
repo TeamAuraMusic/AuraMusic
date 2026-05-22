@@ -1,3 +1,41 @@
+# AuraMusic v2.4.0 (Build 21) Changelog
+
+## Major Features
+
+### Video
+- feat(video): support true 1080p+ playback by merging video-only and audio-only streams (chila254)
+
+### Karaoke
+- Full server karaoke integration with ML backend, downloaded song support, connection UI, progress, retries, and hardening (multiple commits by chila254)
+
+### Playback
+- feat: Implement Proof-of-Origin (PO) token support via WebView + BotGuard + automatic invalidation on errors (chila254)
+
+### Lyrics
+- feat(lyrics): rebuild Enhanced Lyrics with word-level rendering
+- feat(lyrics): add experimental animated lyrics style + Monochrome animated background
+- Fix Enhanced Lyrics instrumental gap indicators and connected lines
+
+### Thumbnails & UI
+- fix(thumbnails): upgrade resize() to handle all Google CDN hosts and produce sharp album/player artwork
+- Improve thumbnail and album art quality
+- feat(about): Modernize About screen - Contributors section with GitHub avatars + Liberapay
+- Remove dark background surface from donation rows
+
+### Build & Other
+- Multiple F-Droid compatibility fixes (Gradle cache, sourceSets, Java 21, etc.)
+- String/plural cleanup across translations
+
+## New Contributors (First time in AuraMusic)
+
+- [Mickaël Binos](https://github.com/Mickael81) made their first contribution in AuraMusic with the commit [Translated using Weblate (French)](https://github.com/TeamAuraMusic/AuraMusic/commit/5dcac14)
+
+- [ItsMeCrizzzGD](https://github.com/iamcrizzzgd) made their first contribution in AuraMusic with the commit [Translated using Weblate (Spanish)](https://github.com/TeamAuraMusic/AuraMusic/commit/55ffaff)
+
+- [Silvério Santos](https://github.com/SantosSi) made their first contribution in AuraMusic with the commit [Added translation using Weblate (Portuguese (Portugal))](https://github.com/TeamAuraMusic/AuraMusic/commit/c5659da886b5fc547b3ca26ee9a02702ac2bf9f6)
+
+**Full range**: 2e1feb0...66cbc3b
+
 # AuraMusic v2.3.0 (Build 20) Changelog
 
 ## Features
