@@ -743,12 +743,45 @@ fun EnhancedLyricsView(
                         ) {
                             when (listItem) {
                                 is LyricsListItem.Indicator -> {
-                                    val visible =
-                                        isAutoScrollEnabled &&
-                                            currentPositionState >= listItem.gapStartMs &&
-                                            currentPositionState <= listItem.gapEndMs - 650L
-                                    IntervalIndicator(listItem.gapStartMs, listItem.gapEndMs - 650L, currentPositionState, visible, expressiveAccent,
-                                        Modifier.fillMaxWidth().onSizeChanged { itemHeights[listIndex] = it.height }.padding(horizontal = 24.dp).wrapContentWidth(Alignment.CenterHorizontally))
+                                    val isIntroGap = listItem.afterLineIndex == 0
+                                    if (isIntroGap) {
+                                        // Intro gap before first vocal line: keep the wavy circular indicator
+                                        val visible =
+                                            isAutoScrollEnabled &&
+                                                currentPositionState >= listItem.gapStartMs &&
+                                                currentPositionState <= listItem.gapEndMs - 650L
+                                        IntervalIndicator(
+                                            listItem.gapStartMs,
+                                            listItem.gapEndMs - 650L,
+                                            currentPositionState,
+                                            visible,
+                                            expressiveAccent,
+                                            Modifier.fillMaxWidth()
+                                                .onSizeChanged { itemHeights[listIndex] = it.height }
+                                                .padding(horizontal = 24.dp)
+                                                .wrapContentWidth(Alignment.CenterHorizontally)
+                                        )
+                                    } else {
+                                        // Regular gap between lyric lines (≥5s instrumental): show music notes + progress
+                                        // like the normal (non-enhanced) lyrics view.
+                                        val gapStart = listItem.gapStartMs
+                                        val gapEnd = listItem.gapEndMs
+                                        val duration = (gapEnd - gapStart).coerceAtLeast(1L)
+                                        val rawProgress = ((currentPositionState - gapStart).toFloat() / duration).coerceIn(0f, 1f)
+                                        val isActive = currentPositionState in gapStart..gapEnd
+
+                                        InstrumentalIndicator(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .onSizeChanged { itemHeights[listIndex] = it.height }
+                                                .padding(horizontal = 24.dp)
+                                                .wrapContentWidth(Alignment.CenterHorizontally),
+                                            color = expressiveAccent,
+                                            progress = if (isActive) rawProgress else if (currentPositionState > gapEnd) 1f else 0f,
+                                            active = isActive,
+                                            alignment = Alignment.CenterHorizontally
+                                        )
+                                    }
                                 }
                                 is LyricsListItem.Line -> {
                                     val index = listItem.index
