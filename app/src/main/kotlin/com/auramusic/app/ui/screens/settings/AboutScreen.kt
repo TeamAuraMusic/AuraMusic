@@ -505,7 +505,6 @@ fun AboutScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(14.dp))
-                            .background(MaterialTheme.colorScheme.surface)
                             .clickable {
                                 uriHandler.openUri("https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=franklinfinyange%40gmail.com")
                             }
@@ -546,7 +545,6 @@ fun AboutScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(14.dp))
-                            .background(MaterialTheme.colorScheme.surface)
                             .clickable {
                                 uriHandler.openUri("https://liberapay.com/chila254/")
                             }
