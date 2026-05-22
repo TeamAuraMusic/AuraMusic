@@ -189,6 +189,7 @@ import com.auramusic.app.ui.theme.PlayerColorExtractor
 import com.auramusic.app.ui.theme.PlayerSliderColors
 import com.auramusic.app.ui.utils.ShowMediaInfo
 import com.auramusic.app.ui.utils.ShowOffsetDialog
+import com.auramusic.app.ui.utils.toHighQualityThumbnail
 import com.auramusic.app.utils.makeTimeString
 import com.auramusic.app.utils.rememberEnumPreference
 import com.auramusic.app.utils.rememberPreference
@@ -922,13 +923,13 @@ fun BottomSheetPlayer(
                                 }
                             } else {
                                 AsyncImage(
-                                    model = mediaMetadata.thumbnailUrl,
-                                    contentDescription = null,
-                                    contentScale = if (cropAlbumArt) ContentScale.Crop else ContentScale.Fit,
-                                    modifier = Modifier
-                                        .size(56.dp)
-                                        .clip(RoundedCornerShape(ThumbnailCornerRadius))
-                                )
+                                     model = mediaMetadata.thumbnailUrl?.toHighQualityThumbnail(),
+                                     contentDescription = null,
+                                     contentScale = if (cropAlbumArt) ContentScale.Crop else ContentScale.Fit,
+                                     modifier = Modifier
+                                         .size(56.dp)
+                                         .clip(RoundedCornerShape(ThumbnailCornerRadius))
+                                 )
                             }
                             Spacer(modifier = Modifier.width(12.dp))
                         }

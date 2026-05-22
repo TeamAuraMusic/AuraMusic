@@ -12,6 +12,7 @@ import com.auramusic.innertube.models.WatchEndpoint.WatchEndpointMusicSupportedC
 import com.auramusic.app.db.entities.Song
 import com.auramusic.app.db.entities.SongEntity
 import com.auramusic.app.ui.utils.resize
+import com.auramusic.app.ui.utils.toHighQualityThumbnail
 import java.io.Serializable
 import java.time.LocalDateTime
 
@@ -107,7 +108,7 @@ fun SongItem.toMediaMetadata() =
             )
         },
         duration = duration ?: -1,
-        thumbnailUrl = thumbnail.resize(544, 544),
+            thumbnailUrl = thumbnail.toHighQualityThumbnail() ?: thumbnail.resize(800, 800),
         album =
         album?.let {
             MediaMetadata.Album(
@@ -135,7 +136,7 @@ fun EpisodeItem.toMediaMetadata() =
             )
         }),
         duration = duration ?: -1,
-        thumbnailUrl = thumbnail.resize(544, 544),
+            thumbnailUrl = thumbnail.toHighQualityThumbnail() ?: thumbnail.resize(800, 800),
         album =
         podcast?.let {
             MediaMetadata.Album(
