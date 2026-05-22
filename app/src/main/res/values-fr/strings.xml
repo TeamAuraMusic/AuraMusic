@@ -27,7 +27,7 @@
     <string name="account">Compte</string>
     <string name="quick_picks">Sélection Rapide</string>
     <string name="quick_picks_empty">Écoutez des titres pour générer votre « Sélection Rapide »</string>
-    <string name="speed_dial">Numérotation rapide</string>
+    <string name="speed_dial">Accès Rapide</string>
     <string name="from_the_community">De la communauté</string>
     <string name="forgotten_favorites">Favoris oubliés</string>
     <string name="keep_listening">Continuez à écouter</string>
@@ -42,7 +42,7 @@
     <string name="wrapped_artist_listening_time">%d min</string>
     <string name="charts">Classements</string>
     <string name="trending">Tendances</string>
-    <string name="trending_now">Tendances actuelles</string>
+    <string name="trending_now">Tendances Actuelles</string>
     <string name="top_music_videos">Meilleurs Clips Musicaux</string>
     <string name="today">Aujourd\'hui</string>
     <string name="yesterday">Hier</string>
