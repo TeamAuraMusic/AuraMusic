@@ -3068,6 +3068,28 @@ class MusicService :
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo) = mediaSession
 
+    /**
+     * Wrap Media3's notification update so we can swallow the Android 12+
+     * [android.app.ForegroundServiceStartNotAllowedException] that is thrown
+     * when [androidx.media3.session.MediaNotificationManager] tries to call
+     * `startForegroundService` from a delayed callback while the app has
+     * moved to the background. Without this guard, the crash brings the
+     * whole process down whenever a notification asset finishes loading
+     * after the app is backgrounded.
+     */
+    override fun onUpdateNotification(session: MediaSession, startInForegroundRequired: Boolean) {
+        try {
+            super.onUpdateNotification(session, startInForegroundRequired)
+        } catch (e: Exception) {
+            // ForegroundServiceStartNotAllowedException only exists on API 31+,
+            // and other RuntimeExceptions from the notification path should
+            // never crash the player. Log and continue — playback itself is
+            // unaffected; the user just doesn't get an updated notification
+            // until the app returns to the foreground.
+            Timber.tag(TAG).w(e, "onUpdateNotification: suppressed FGS/notification failure")
+        }
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_PLAY_ALARM -> {
