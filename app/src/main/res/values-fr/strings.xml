@@ -393,7 +393,7 @@
     <string name="monochrome_style">Style monochrome</string>
     <string name="player_background_animated_gradient">Dégradé animé</string>
     <string name="karaoke_mode">Mode karaoké</string>
-    <string name="karaoke_mode_desc">Supprime la voix principale pour ne laisser que la musique — chantez en suivant les paroles synchronisées. Fonctionne mieux avec les morceaux en stéréo où la voix est mixée au centre.</string>
+    <string name="karaoke_mode_desc">Version instrumentale générée par IA via https://karaoke.auramusic.site/ (ou suppression locale de la voix). Chantez en suivant les paroles synchronisées.</string>
     <string name="karaoke_vocal_suppression">Intensité de l\'atténuation vocale</string>
     <string name="lyrics_glow_effect">Effet lumineux sur les paroles</string>
     <string name="lyrics_glow_effect_desc">Activer l\'effet de lueur sur la ligne de paroles actuelle</string>
@@ -948,4 +948,6 @@
     <string name="alarm_dismiss">Ignorer</string>
     <string name="alarm_channel_name">Réveil musical</string>
     <string name="alarm_channel_desc">L\'alarme de réveil qui joue vos chansons sélectionnées.</string>
+    <string name="lyrics_from_provider">Paroles de %1$s</string>
+    <string name="experimental_style">Expérimental (animation)</string>
 </resources>
