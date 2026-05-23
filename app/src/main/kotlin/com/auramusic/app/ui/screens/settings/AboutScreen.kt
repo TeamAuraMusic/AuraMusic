@@ -640,7 +640,7 @@ fun AboutScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .clickable { uriHandler.openUri("https://discord.gg/PFvX7gnJg") }
+                            .clickable { uriHandler.openUri("https://discord.gg/935CRM8u3") }
                             .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {

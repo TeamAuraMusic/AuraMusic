@@ -38,11 +38,11 @@
 <table align="center">
 <tr>
 <td align="center">
-<a href="https://discord.gg/PFvX7gnJg">
+<a href="https://discord.gg/935CRM8u3">
 <img src="https://logotyp.us/file/discord.svg" alt="Discord" width="50" height="50">
 </a>
 <br>
-<a href="https://discord.gg/PFvX7gnJg">Discord</a>
+<a href="https://discord.gg/935CRM8u3">Discord</a>
 </td>
 <td align="center">
 <a href="https://t.me/AuraMusicUpdates">
