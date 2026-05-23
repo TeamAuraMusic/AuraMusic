@@ -262,7 +262,6 @@
         <item quantity="other">%d segundos</item>
     </plurals>
     <plurals name="minute">
-        <item quantity="one">minuto</item>
     </plurals>
     <string name="playlist_imported">Lista de reproducción importada</string>
     <string name="removed_song_from_playlist">Se eliminó \"%s\" de la lista de reproducción</string>
@@ -944,4 +943,6 @@
     <string name="alarm_dismiss">Desestimación</string>
     <string name="alarm_channel_name">Alarma musical</string>
     <string name="alarm_channel_desc">Desperta la alarma que toca tus canciones seleccionadas.</string>
+    <string name="experimental_style">Experimental (animado)</string>
+    <string name="lyrics_from_provider">Letra desde %1$s</string>
 </resources>
