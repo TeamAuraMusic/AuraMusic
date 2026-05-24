@@ -256,10 +256,6 @@
         <item quantity="many">%d minutos</item>
         <item quantity="other">%d minutos</item>
     </plurals>
-    <plurals name="seconds">
-        <item quantity="one">segundo</item>
-        <item quantity="other">segundos</item>
-    </plurals>
     <plurals name="minute">
         <item quantity="one">1 minuto</item>
         <item quantity="other">%d minutes</item>
