@@ -382,7 +382,7 @@
     <string name="monochrome_style">Monochromer Stil</string>
     <string name="player_background_animated_gradient">Animierter Gradient</string>
     <string name="karaoke_mode">Wie geht\'s</string>
-    <string name="karaoke_mode_desc">Entfernt die Leadstimme so nur die Instrumentalspiele – singen Sie zusammen mit den synchronisierten Texten. Arbeitet am besten auf Stereo-Songs, wo der Gesang gemischt ist.</string>
+    <string name="karaoke_mode_desc">ML-powered instrumental via https://karaoke.auramusic.site/ (oder lokale Stimmunterdrückung). Sing zusammen mit synchronisierten Texten.</string>
     <string name="karaoke_vocal_suppression">Vokalunterdrückungsfestigkeit</string>
     <string name="lyrics_glow_effect">Englisch glow effect</string>
     <string name="lyrics_glow_effect_desc">Ermöglichen Glüheffekt auf stromlyrische Linie</string>
@@ -933,4 +933,5 @@
     <string name="alarm_dismiss">Entlassung</string>
     <string name="alarm_channel_name">Musikalische Alarmanlage</string>
     <string name="alarm_channel_desc">Wake-up Alarm, der Ihre ausgewählten Songs spielt.</string>
+    <string name="lyrics_from_provider">Text von %1$s</string>
 </resources>
