@@ -934,4 +934,5 @@
     <string name="alarm_channel_name">Musikalische Alarmanlage</string>
     <string name="alarm_channel_desc">Wake-up Alarm, der Ihre ausgewählten Songs spielt.</string>
     <string name="lyrics_from_provider">Text von %1$s</string>
+    <string name="experimental_style">Experimental (animiert)</string>
 </resources>
