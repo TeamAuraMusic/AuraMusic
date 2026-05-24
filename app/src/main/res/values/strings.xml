@@ -391,10 +391,6 @@
     <string name="lyrics_text_size">Lyrics text size</string>
     <string name="lyrics_line_spacing">Lyrics line spacing</string>
     <string name="lyrics_animation_style">Lyrics animation style</string>
-    <plurals name="seconds">
-        <item quantity="one">second</item>
-        <item quantity="other">seconds</item>
-    </plurals>
     <plurals name="n_time">
         <item quantity="one">%d time</item>
         <item quantity="other">%d times</item>
