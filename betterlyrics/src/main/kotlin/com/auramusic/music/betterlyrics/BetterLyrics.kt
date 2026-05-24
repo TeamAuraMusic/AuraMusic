@@ -99,18 +99,5 @@ object BetterLyrics {
 
         TTMLParser.toLRC(parsedLines)
     }
-
-    suspend fun getAllLyrics(
-        title: String,
-        artist: String,
-        duration: Int,
-        album: String? = null,
-        callback: (String) -> Unit,
-    ) {
-        getLyrics(title, artist, duration, album)
-            .onSuccess { lrcString ->
-                callback(lrcString)
-            }
-    }
 }
 
