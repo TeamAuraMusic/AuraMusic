@@ -24,7 +24,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 
 @HiltViewModel
@@ -93,13 +92,36 @@ constructor(
         mediaMetadata: MediaMetadata,
         lyricsEntity: LyricsEntity?,
     ) {
-        database.query {
-            lyricsEntity?.let(::delete)
-            val lyricsWithProvider =
-                runBlocking {
-                    lyricsHelper.getLyrics(mediaMetadata)
+        // The previous implementation called `runBlocking { lyricsHelper.getLyrics(...) }`
+        // *inside* a Room transaction. That blocked the Room writer thread for the
+        // entire ~25s of the lyrics pipeline, made the UI feel like the retry button
+        // had done nothing, and (because LyricsHelper has an in-memory cache) it
+        // simply returned the same lyrics it had cached — so retry was a no-op.
+        //
+        // Now we: cancel any running fetch, flip `isLoading` so the UI can show
+        // feedback, invalidate the cached entry so the next call actually hits
+        // the network, then write the result back to Room from a normal coroutine.
+        job?.cancel()
+        isLoading.value = true
+        lyricsHelper.invalidateCache(mediaMetadata.id)
+        job = viewModelScope.launch(Dispatchers.IO) {
+            try {
+                if (lyricsEntity != null) {
+                    database.query { delete(lyricsEntity) }
                 }
-            upsert(LyricsEntity(mediaMetadata.id, lyricsWithProvider.lyrics, lyricsWithProvider.provider))
+                val lyricsWithProvider = lyricsHelper.getLyrics(mediaMetadata)
+                database.query {
+                    upsert(
+                        LyricsEntity(
+                            mediaMetadata.id,
+                            lyricsWithProvider.lyrics,
+                            lyricsWithProvider.provider,
+                        ),
+                    )
+                }
+            } finally {
+                isLoading.value = false
+            }
         }
     }
 }
