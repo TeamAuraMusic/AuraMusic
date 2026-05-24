@@ -321,7 +321,7 @@
     <string name="monochrome_style">Estilo monocromático</string>
     <string name="player_background_animated_gradient">Gradiente animado</string>
     <string name="karaoke_mode">Modo karaokê</string>
-    <string name="karaoke_mode_desc">Remove a voz principal para que apenas a instrumental seja reproduzida — cante junto com a letra sincronizada. Funciona melhor em músicas estéreo, onde a voz é mixada ao centro.</string>
+    <string name="karaoke_mode_desc">ML-powered instrumental via https://karaoke.auramusic.site/ (ou supressão vocal local). Cante junto com letras sincronizadas.</string>
     <string name="karaoke_vocal_suppression">Intensidade da supressão vocal</string>
     <string name="lyrics_glow_effect">Efeito de brilho na letra</string>
     <string name="lyrics_glow_effect_desc">Ativar efeito de brilho na linha da letra atual</string>
@@ -932,4 +932,6 @@
     <string name="alarm_channel_name">Alarme de música</string>
     <string name="alarm_channel_desc">Alarme de despertar que toca suas músicas selecionadas.</string>
     <string name="alarm_dismiss">Dispensar</string>
+    <string name="experimental_style">Experimental (animado)</string>
+    <string name="lyrics_from_provider">Letras de %1$s</string>
 </resources>
