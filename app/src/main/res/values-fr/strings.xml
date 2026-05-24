@@ -945,4 +945,9 @@
     <string name="alarm_channel_desc">L\'alarme de réveil qui joue vos chansons sélectionnées.</string>
     <string name="lyrics_from_provider">Lyrics de %1$s</string>
     <string name="experimental_style">Expérimental (animé)</string>
+    <plurals name="seconds">
+        <item quantity="one">1 seconde</item>
+        <item quantity="many">%d secondes</item>
+        <item quantity="other">%d secondes</item>
+    </plurals>
 </resources>
