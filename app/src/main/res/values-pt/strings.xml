@@ -240,8 +240,8 @@
         <item quantity="other">%d minutos</item>
     </plurals>
     <plurals name="seconds">
-        <item quantity="one">1 segundo</item>
-        <item quantity="other">%d segundos</item>
+        <item quantity="one">segundos</item>
+        <item quantity="other">segundos</item>
     </plurals>
     <!-- Snackbar -->
     <string name="playlist_imported">Playlist importada</string>
