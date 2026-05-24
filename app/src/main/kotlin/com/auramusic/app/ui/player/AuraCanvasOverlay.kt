@@ -5,7 +5,10 @@
 
 package com.auramusic.app.ui.player
 
+import android.view.TextureView
 import android.view.ViewGroup
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -16,15 +19,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
-import androidx.media3.ui.PlayerView
 import com.auramusic.app.playback.AuraCanvasRepository
+import timber.log.Timber
 
 /**
  * Looping, muted MP4 overlay that renders the matching AuraCanvas video
@@ -42,10 +47,12 @@ fun AuraCanvasOverlay(
 ) {
     val context = LocalContext.current
     var canvasUrl by remember { mutableStateOf<String?>(null) }
+    var isVideoReady by remember { mutableStateOf(false) }
 
     // Resolve the URL for the current (title, artist). Cached in the repo.
     LaunchedEffect(title, artist) {
         canvasUrl = null
+        isVideoReady = false
         canvasUrl = runCatching {
             AuraCanvasRepository.findCanvasUrl(title, artist)
         }.getOrNull()
@@ -61,34 +68,70 @@ fun AuraCanvasOverlay(
         }
     }
 
+    // Attach listener for errors and first frame
+    DisposableEffect(exoPlayer) {
+        val listener = object : Player.Listener {
+            override fun onPlayerError(error: PlaybackException) {
+                Timber.e("AuraCanvas playback error: ${error.errorCodeName} - ${error.message}")
+                isVideoReady = false
+            }
+
+            override fun onRenderedFirstFrame() {
+                isVideoReady = true
+            }
+        }
+        exoPlayer.addListener(listener)
+        onDispose {
+            exoPlayer.removeListener(listener)
+        }
+    }
+
     // Swap the source whenever the resolved URL changes.
     LaunchedEffect(url) {
+        isVideoReady = false
+        exoPlayer.stop()
         exoPlayer.setMediaItem(MediaItem.fromUri(url))
         exoPlayer.prepare()
         exoPlayer.playWhenReady = true
     }
 
-    DisposableEffect(Unit) {
-        onDispose { exoPlayer.release() }
+    DisposableEffect(exoPlayer) {
+        onDispose {
+            exoPlayer.release()
+        }
     }
+
+    val alpha by animateFloatAsState(
+        targetValue = if (isVideoReady) 1f else 0f,
+        animationSpec = tween(durationMillis = 250),
+        label = "canvasFade"
+    )
 
     Box(modifier = modifier.fillMaxSize()) {
         AndroidView(
             factory = { ctx ->
-                PlayerView(ctx).apply {
-                    player = exoPlayer
-                    useController = false
-                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                    setBackgroundColor(android.graphics.Color.TRANSPARENT)
-                    setShutterBackgroundColor(android.graphics.Color.TRANSPARENT)
+                AspectRatioFrameLayout(ctx).apply {
                     layoutParams = ViewGroup.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
                     )
+                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+
+                    val textureView = TextureView(ctx).apply {
+                        layoutParams = ViewGroup.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT
+                        )
+                    }
+                    addView(textureView)
+                    exoPlayer.setVideoTextureView(textureView)
+                    setBackgroundColor(android.graphics.Color.TRANSPARENT)
                 }
             },
-            modifier = Modifier.fillMaxSize(),
-            update = { it.player = exoPlayer },
+            modifier = Modifier
+                .fillMaxSize()
+                .alpha(alpha),
+            update = { /* no-op */ }
         )
     }
 }
