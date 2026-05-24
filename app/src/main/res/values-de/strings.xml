@@ -247,8 +247,8 @@
         <item quantity="other">%d Minuten</item>
     </plurals>
     <plurals name="seconds">
-        <item quantity="one">1 sekunde</item>
-        <item quantity="other">%d Sekunden</item>
+        <item quantity="one">zweite</item>
+        <item quantity="other">sekunden</item>
     </plurals>
     <plurals name="minute">
         <item quantity="one">1 minute</item>
