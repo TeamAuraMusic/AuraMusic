@@ -79,6 +79,9 @@ import androidx.compose.ui.util.fastForEach
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
+import com.auramusic.app.ui.component.AuraCanvasImage
+import androidx.media3.common.util.UnstableApi
+import androidx.compose.ui.layout.ContentScale
 import com.auramusic.innertube.YouTube
 import com.auramusic.innertube.models.AlbumItem
 import com.auramusic.innertube.models.ArtistItem
@@ -287,9 +290,13 @@ fun ArtistScreen(
                                         IntOffset(x = 0, y = headerOffset)
                                     }
                             ) {
-                                AsyncImage(
-                                    model = thumbnail.resize(1200, 1200),
-                                    contentDescription = null,
+                                @UnstableApi
+                                AuraCanvasImage(
+                                    title = null,
+                                    artist = artistName,
+                                    staticImageUrl = thumbnail.resize(1200, 1200).toString(),
+                                    contentScale = ContentScale.Crop,
+                                    candidateTracks = librarySongs.take(10).mapNotNull { it.song.id }, // for on-demand remote lookup
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .align(Alignment.TopCenter)

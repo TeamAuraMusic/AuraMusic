@@ -78,6 +78,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.exoplayer.offline.Download
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
+import com.auramusic.app.ui.component.AuraCanvasImage
+import androidx.media3.common.util.UnstableApi
 import com.auramusic.app.LocalDatabase
 import com.auramusic.app.LocalDownloadUtil
 import com.auramusic.app.LocalPlayerAwareWindowInsets
@@ -208,10 +210,13 @@ fun AlbumScreen(
                             ),
                         shape = RoundedCornerShape(3.dp)
                     ) {
-                        AsyncImage(
-                            model = albumWithSongs.album.thumbnailUrl?.toHighQualityThumbnail(),
-                            contentDescription = null,
+                        @UnstableApi
+                        AuraCanvasImage(
+                            title = albumWithSongs.album.title,
+                            artist = albumWithSongs.songs.firstOrNull()?.artists?.firstOrNull()?.name,
+                            staticImageUrl = albumWithSongs.album.thumbnailUrl?.toHighQualityThumbnail(),
                             contentScale = ContentScale.Crop,
+                            candidateTracks = albumWithSongs.songs.take(8).mapNotNull { it.song.id }, // for on-demand remote lookup
                             modifier = Modifier.fillMaxSize()
                         )
                     }
