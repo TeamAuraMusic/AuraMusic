@@ -973,6 +973,8 @@
     <string name="switch_to_audio">Switch to audio</string>
     <string name="enable_video_mode">Video Mode</string>
     <string name="enable_video_mode_desc">Enable automatic video playback for video songs</string>
+    <string name="aura_canvas">AuraCanvas</string>
+    <string name="aura_canvas_desc">Show looping AuraCanvas videos behind album art when a match is found in the community manifest. Experimental.</string>
     <string name="closed_captions">Closed Captions</string>
     <string name="closed_captions_desc">Show subtitles during video playback</string>
     <string name="subtitle_font_size">Subtitle Font Size</string>

@@ -119,6 +119,7 @@ import com.auramusic.app.constants.HidePlayerThumbnailKey
 import com.auramusic.app.constants.PlayerBackgroundStyle
 import com.auramusic.app.constants.PlayerBackgroundStyleKey
 import com.auramusic.app.constants.PlayerHorizontalPadding
+import com.auramusic.app.constants.AuraCanvasEnabledKey
 import com.auramusic.app.constants.SeekExtraSeconds
 import com.auramusic.app.constants.SubtitlesEnabledKey
 import com.auramusic.app.constants.SubtitleLanguageKey
@@ -939,6 +940,8 @@ private fun ThumbnailImage(
                 val highResArtworkUri = remember(artworkUri) {
                     artworkUri?.resize(1280, 1280) ?: artworkUri
                 }
+                val (auraCanvasEnabled, _) = rememberPreference(AuraCanvasEnabledKey, defaultValue = false)
+                val canvasMediaMetadata by playerConnection.mediaMetadata.collectAsState()
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(highResArtworkUri)
@@ -954,6 +957,16 @@ private fun ThumbnailImage(
                     contentScale = if (cropArtwork) ContentScale.Crop else ContentScale.Fit,
                     modifier = Modifier.fillMaxSize()
                 )
+
+                // AuraCanvas overlay (looping muted MP4) – only when feature
+                // is enabled, artwork is shown, and a match exists in the manifest.
+                if (auraCanvasEnabled) {
+                    AuraCanvasOverlay(
+                        title = canvasMediaMetadata?.title,
+                        artist = canvasMediaMetadata?.artists?.joinToString(", ") { it.name },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
 
                 // Subtle gradient overlay for depth and modern look
                 Box(

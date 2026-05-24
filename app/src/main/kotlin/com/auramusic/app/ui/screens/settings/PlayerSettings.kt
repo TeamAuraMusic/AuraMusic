@@ -72,6 +72,7 @@ import com.auramusic.app.constants.PersistentShuffleAcrossQueuesKey
 import com.auramusic.app.constants.RememberShuffleAndRepeatKey
 import com.auramusic.app.constants.SeekExtraSeconds
 import com.auramusic.app.constants.ShufflePlaylistFirstKey
+import com.auramusic.app.constants.AuraCanvasEnabledKey
 import com.auramusic.app.constants.SimilarContent
 import com.auramusic.app.constants.SkipSilenceInstantKey
 import com.auramusic.app.constants.SkipSilenceKey
@@ -185,6 +186,10 @@ fun PlayerSettings(
     val (videoModeEnabled, onVideoModeEnabledChange) = rememberPreference(
         VideoModeEnabledKey,
         defaultValue = true
+    )
+    val (auraCanvasEnabled, onAuraCanvasEnabledChange) = rememberPreference(
+        AuraCanvasEnabledKey,
+        defaultValue = false
     )
     val (subtitlesEnabled, onSubtitlesEnabledChange) = rememberPreference(
         SubtitlesEnabledKey,
@@ -508,6 +513,27 @@ fun PlayerSettings(
                         )
                     },
                     onClick = { onVideoModeEnabledChange(!videoModeEnabled) }
+                ))
+                add(Material3SettingsItem(
+                    icon = painterResource(R.drawable.slow_motion_video),
+                    title = { Text(stringResource(R.string.aura_canvas)) },
+                    description = { Text(stringResource(R.string.aura_canvas_desc)) },
+                    trailingContent = {
+                        Switch(
+                            checked = auraCanvasEnabled,
+                            onCheckedChange = onAuraCanvasEnabledChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (auraCanvasEnabled) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = { onAuraCanvasEnabledChange(!auraCanvasEnabled) }
                 ))
                 add(Material3SettingsItem(
                     icon = painterResource(R.drawable.ic_subtitles),
