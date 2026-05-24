@@ -3,7 +3,7 @@ package com.auramusic.music.betterlyrics
 import com.auramusic.music.betterlyrics.models.TTMLResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
-import io.ktor.client.engine.okhttp.OkHttp
+import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.HttpTimeout
@@ -18,7 +18,7 @@ object BetterLyrics {
     private const val TAG = "BetterLyrics"
 
     private val client by lazy {
-        HttpClient(OkHttp) {
+        HttpClient(CIO) {
             install(ContentNegotiation) {
                 json(
                     Json {
