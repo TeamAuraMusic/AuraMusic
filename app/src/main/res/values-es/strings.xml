@@ -262,6 +262,8 @@
         <item quantity="other">%d segundos</item>
     </plurals>
     <plurals name="minute">
+        <item quantity="one">1 minuto</item>
+        <item quantity="other">%d minutes</item>
     </plurals>
     <string name="playlist_imported">Lista de reproducción importada</string>
     <string name="removed_song_from_playlist">Se eliminó \"%s\" de la lista de reproducción</string>
@@ -683,7 +685,7 @@
     <string name="fade">Fade</string>
     <string name="glow">Brillo</string>
     <string name="slide">Deslizado</string>
-    <string name="karaoke_mode_desc">Quita la voz principal y sólo deja las pistas instrumentales — cantar junto con las letras sincronizadas. Funciona mejor en canciones estéreo donde la voz es un centro mixto.</string>
+    <string name="karaoke_mode_desc">ML-powered instrumental via https://karaoke.auramusic.site/ (o supresión vocal local). Canta junto con letras sincronizadas.</string>
     <string name="lyrics_glow_effect">Efecto de brillo de las letras</string>
     <string name="enhanced_lyrics">Letras mejoradas</string>
     <string name="enhanced_lyrics_desc">Habilitar letras mejoradas con indicador de onda intro e indicadores de brecha</string>
@@ -944,5 +946,5 @@
     <string name="alarm_channel_name">Alarma musical</string>
     <string name="alarm_channel_desc">Desperta la alarma que toca tus canciones seleccionadas.</string>
     <string name="experimental_style">Experimental (animado)</string>
-    <string name="lyrics_from_provider">Letra desde %1$s</string>
+    <string name="lyrics_from_provider">Letras de %1$s</string>
 </resources>
