@@ -848,10 +848,6 @@
         <item quantity="one">1 minuto</item>
         <item quantity="other">%d minutos</item>
     </plurals>
-    <plurals name="seconds">
-        <item quantity="one">1 segundo</item>
-        <item quantity="other">%d segundos</item>
-    </plurals>
     <plurals name="minute">
         <item quantity="one">um minuto</item>
     </plurals>
