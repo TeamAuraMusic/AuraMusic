@@ -931,4 +931,8 @@
     <string name="alarm_channel_desc">Wake-up Alarm, der Ihre ausgewählten Songs spielt.</string>
     <string name="lyrics_from_provider">Text von %1$s</string>
     <string name="experimental_style">Experimental (animiert)</string>
+    <plurals name="seconds">
+        <item quantity="one">1 Sekunde</item>
+        <item quantity="other">%d Sekunden</item>
+    </plurals>
 </resources>
