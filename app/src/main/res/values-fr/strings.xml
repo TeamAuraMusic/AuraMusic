@@ -950,4 +950,6 @@
         <item quantity="many">%d secondes</item>
         <item quantity="other">%d secondes</item>
     </plurals>
+    <string name="aura_canvas_desc">Afficher les vidéos d\'AuraCanvas derrière l\'art de l\'album quand un match se trouve dans le manifeste communautaire. Expérimental.</string>
+    <string name="aura_canvas">AuraCanvas</string>
 </resources>
