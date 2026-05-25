@@ -977,4 +977,10 @@
     </plurals>
     <string name="experimental_style">Experimental (animado)</string>
     <string name="lyrics_from_provider">Letras de %1$s</string>
+    <plurals name="seconds">
+        <item quantity="one">%d segundos</item>
+        <item quantity="other">%d segundos</item>
+    </plurals>
+    <string name="aura_canvas">AuraCanvas</string>
+    <string name="aura_canvas_desc">Mostrar looping AuraCanvas vídeos por trás da arte do álbum quando uma partida é encontrada no manifesto da comunidade. Experimental.</string>
 </resources>
