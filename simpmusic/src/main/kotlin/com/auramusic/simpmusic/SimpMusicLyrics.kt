@@ -16,6 +16,20 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import kotlin.math.abs
 
+private fun decodeHtmlEntities(text: String?): String {
+    if (text.isNullOrBlank()) return ""
+    return text
+        .replace("&#x27;".toRegex(), "'")
+        .replace("&#39;".toRegex(), "'")
+        .replace("&amp;".toRegex(), "&")
+        .replace("&lt;".toRegex(), "<")
+        .replace("&gt;".toRegex(), ">")
+        .replace("&quot;".toRegex(), "\"")
+        .replace("&#x2F;".toRegex(), "/")
+        .replace("&#x5C;".toRegex(), "\\")
+        .replace("&nbsp;".toRegex(), " ")
+}
+
 object SimpMusicLyrics {
     private const val BASE_URL = "https://api-lyrics.simpmusic.org/v1/"
 
@@ -100,7 +114,7 @@ object SimpMusicLyrics {
             ?: bestMatch?.plainLyrics?.takeIf { it.isNotBlank() }
             ?: throw IllegalStateException("Lyrics unavailable")
         
-        lyrics
+        decodeHtmlEntities(lyrics)
     }
 
     suspend fun getAllLyrics(
@@ -126,15 +140,15 @@ object SimpMusicLyrics {
                 // Prioritize richSyncLyrics for word-by-word sync
                 if (track.richSyncLyrics != null && track.richSyncLyrics.isNotBlank() && durationMatch) {
                     count++
-                    callback(track.richSyncLyrics)
+                    callback(decodeHtmlEntities(track.richSyncLyrics))
                 } else if (track.syncedLyrics != null && track.syncedLyrics.isNotBlank() && durationMatch) {
                     count++
-                    callback(track.syncedLyrics)
+                    callback(decodeHtmlEntities(track.syncedLyrics))
                 }
                 if (track.plainLyrics != null && track.plainLyrics.isNotBlank() && durationMatch && plain == 0) {
                     count++
                     plain++
-                    callback(track.plainLyrics)
+                    callback(decodeHtmlEntities(track.plainLyrics))
                 }
             }
         }
