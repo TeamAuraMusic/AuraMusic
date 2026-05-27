@@ -964,6 +964,8 @@ private fun ThumbnailImage(
                     AuraCanvasOverlay(
                         title = canvasMediaMetadata?.title,
                         artist = canvasMediaMetadata?.artists?.joinToString(", ") { it.name },
+                        album = canvasMediaMetadata?.album?.title,
+                        durationMs = canvasMediaMetadata?.duration?.takeIf { it > 0 }?.times(1000L),
                         modifier = Modifier.fillMaxSize()
                     )
                 }

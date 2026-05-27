@@ -119,7 +119,6 @@ val AudioOffload = booleanPreferencesKey("enableOffload")
 
 val VideoModeEnabledKey = booleanPreferencesKey("videoModeEnabled")
 val AuraCanvasEnabledKey = booleanPreferencesKey("auraCanvasEnabled")
-val AuraCanvasRemoteEnabledKey = booleanPreferencesKey("auraCanvasRemoteEnabled")
 
 val PersistentQueueKey = booleanPreferencesKey("persistentQueue")
 val PersistentShuffleAcrossQueuesKey = booleanPreferencesKey("persistentShuffleAcrossQueues")

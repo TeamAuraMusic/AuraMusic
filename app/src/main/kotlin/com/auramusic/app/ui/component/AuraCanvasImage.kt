@@ -30,18 +30,19 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import coil3.compose.AsyncImage
-import com.auramusic.app.canvas.AuraCanvasConfig
-import com.auramusic.app.canvas.AuraCanvasResult
-import com.auramusic.app.constants.AuraCanvasRemoteEnabledKey
+import com.auramusic.app.constants.AuraCanvasEnabledKey
 import com.auramusic.app.playback.AuraCanvasRepository
 import com.auramusic.app.utils.rememberPreference
 import timber.log.Timber
 
 /**
  * Reusable composable that shows either a looping AuraCanvas video
- * or a static image as fallback.
+ * or a static image as fallback (the static image always renders, the video
+ * fades in on top once ready).
  *
- * Can be used in Player thumbnail, Artist headers, Album art, etc.
+ * `candidateTracks` is kept for source compatibility with existing callers
+ * but is no longer used – the repository now resolves canvases server-side
+ * directly from (title, artist, album).
  */
 @UnstableApi
 @Composable
@@ -51,66 +52,34 @@ fun AuraCanvasImage(
     staticImageUrl: String?,
     modifier: Modifier = Modifier,
     contentScale: ContentScale = ContentScale.Crop,
-    candidateTracks: List<String> = emptyList(),   // Pass top songs for on-demand remote lookup
+    album: String? = null,
+    durationMs: Long? = null,
+    @Suppress("UNUSED_PARAMETER") candidateTracks: List<String> = emptyList(),
 ) {
-    val context = LocalContext.current
-    var canvasResult by remember { mutableStateOf<AuraCanvasResult?>(null) }
-    var isVideoReady by remember { mutableStateOf(false) }
+    val (enabled, _) = rememberPreference(AuraCanvasEnabledKey, defaultValue = false)
+    var canvasUrl by remember(title, artist, album) { mutableStateOf<String?>(null) }
 
-    val (remoteEnabled, _) = rememberPreference(AuraCanvasRemoteEnabledKey, defaultValue = false)
-
-    LaunchedEffect(title, artist, candidateTracks, remoteEnabled) {
-        canvasResult = null
-        isVideoReady = false
-
-        // 1. Try manifest first (fast, no network for remote)
-        val manifestUrl = runCatching {
-            AuraCanvasRepository.findCanvasUrl(title, artist)
+    LaunchedEffect(title, artist, album, enabled) {
+        canvasUrl = null
+        if (!enabled) return@LaunchedEffect
+        canvasUrl = runCatching {
+            AuraCanvasRepository.findCanvasUrl(title, artist, album, durationMs)
         }.getOrNull()
-
-        if (manifestUrl != null) {
-            canvasResult = AuraCanvasResult(
-                url = manifestUrl,
-                source = "manifest",
-                song = title,
-                artist = artist
-            )
-            return@LaunchedEffect
-        }
-
-        // 2. Try remote on-demand only if user enabled it in settings
-        if (remoteEnabled) {
-            val remote = AuraCanvasConfig.remoteProvider
-            if (remote != null && artist != null && candidateTracks.isNotEmpty()) {
-                val result = if (title != null) {
-                    // Album context
-                    remote.getAlbumCanvas(title, artist, candidateTracks)
-                } else {
-                    // Artist context
-                    remote.getArtistCanvas(artist, candidateTracks)
-                }
-                canvasResult = result
-            }
-        }
     }
 
-    val url = canvasResult?.url
-
-    if (url != null) {
-        // Show canvas video
-        CanvasVideo(
-            url = url,
-            modifier = modifier,
-            onReady = { isVideoReady = true }
-        )
-    } else if (staticImageUrl != null) {
-        // Fallback to static image
-        AsyncImage(
-            model = staticImageUrl,
-            contentDescription = null,
-            contentScale = contentScale,
-            modifier = modifier.fillMaxSize()
-        )
+    Box(modifier = modifier.fillMaxSize()) {
+        if (staticImageUrl != null) {
+            AsyncImage(
+                model = staticImageUrl,
+                contentDescription = null,
+                contentScale = contentScale,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+        val url = canvasUrl
+        if (url != null) {
+            CanvasVideo(url = url, modifier = Modifier.fillMaxSize())
+        }
     }
 }
 
@@ -119,7 +88,6 @@ fun AuraCanvasImage(
 private fun CanvasVideo(
     url: String,
     modifier: Modifier,
-    onReady: () -> Unit,
 ) {
     val context = LocalContext.current
     var isReady by remember { mutableStateOf(false) }
@@ -141,7 +109,6 @@ private fun CanvasVideo(
 
             override fun onRenderedFirstFrame() {
                 isReady = true
-                onReady()
             }
         }
         exoPlayer.addListener(listener)
@@ -162,7 +129,7 @@ private fun CanvasVideo(
     val alpha by animateFloatAsState(
         targetValue = if (isReady) 1f else 0f,
         animationSpec = tween(durationMillis = 300),
-        label = "canvasFade"
+        label = "canvasFade",
     )
 
     AndroidView(
@@ -170,14 +137,13 @@ private fun CanvasVideo(
             AspectRatioFrameLayout(ctx).apply {
                 layoutParams = ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
+                    ViewGroup.LayoutParams.MATCH_PARENT,
                 )
                 resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-
                 val textureView = TextureView(ctx).apply {
                     layoutParams = ViewGroup.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT
+                        ViewGroup.LayoutParams.MATCH_PARENT,
                     )
                 }
                 addView(textureView)
@@ -187,6 +153,6 @@ private fun CanvasVideo(
         },
         modifier = modifier
             .fillMaxSize()
-            .alpha(alpha)
+            .alpha(alpha),
     )
 }

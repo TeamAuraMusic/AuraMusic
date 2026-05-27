@@ -73,7 +73,6 @@ import com.auramusic.app.constants.RememberShuffleAndRepeatKey
 import com.auramusic.app.constants.SeekExtraSeconds
 import com.auramusic.app.constants.ShufflePlaylistFirstKey
 import com.auramusic.app.constants.AuraCanvasEnabledKey
-import com.auramusic.app.constants.AuraCanvasRemoteEnabledKey
 import com.auramusic.app.constants.SimilarContent
 import com.auramusic.app.constants.SkipSilenceInstantKey
 import com.auramusic.app.constants.SkipSilenceKey
@@ -190,10 +189,6 @@ fun PlayerSettings(
     )
     val (auraCanvasEnabled, onAuraCanvasEnabledChange) = rememberPreference(
         AuraCanvasEnabledKey,
-        defaultValue = false
-    )
-    val (auraCanvasRemoteEnabled, onAuraCanvasRemoteEnabledChange) = rememberPreference(
-        AuraCanvasRemoteEnabledKey,
         defaultValue = false
     )
     val (subtitlesEnabled, onSubtitlesEnabledChange) = rememberPreference(
@@ -540,30 +535,6 @@ fun PlayerSettings(
                     },
                      onClick = { onAuraCanvasEnabledChange(!auraCanvasEnabled) }
                  ))
-                 // Remote backend toggle (for self-hosted Render instance)
-                 if (auraCanvasEnabled) {
-                     add(Material3SettingsItem(
-                         icon = painterResource(R.drawable.cloud),
-                         title = { Text("Remote Canvas Backend") },
-                         description = { Text("Use your self-hosted Render instance for on-demand artist/album canvases") },
-                         trailingContent = {
-                             Switch(
-                                 checked = auraCanvasRemoteEnabled,
-                                 onCheckedChange = onAuraCanvasRemoteEnabledChange,
-                                 thumbContent = {
-                                     Icon(
-                                         painter = painterResource(
-                                             id = if (auraCanvasRemoteEnabled) R.drawable.check else R.drawable.close
-                                         ),
-                                         contentDescription = null,
-                                         modifier = Modifier.size(SwitchDefaults.IconSize)
-                                     )
-                                 }
-                             )
-                         },
-                         onClick = { onAuraCanvasRemoteEnabledChange(!auraCanvasRemoteEnabled) }
-                     ))
-                 }
                  add(Material3SettingsItem(
                      icon = painterResource(R.drawable.ic_subtitles),
                     title = { Text(stringResource(R.string.closed_captions)) },

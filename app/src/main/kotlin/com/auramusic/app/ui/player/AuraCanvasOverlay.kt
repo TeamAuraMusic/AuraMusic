@@ -35,26 +35,36 @@ import timber.log.Timber
  * Looping, muted MP4 overlay that renders the matching AuraCanvas video
  * on top of the album-art thumbnail when one is available.
  *
- * Uses a dedicated ExoPlayer (NOT the main playback player) so audio is untouched.
- * Renders nothing while no canvas URL is resolved.
+ * Uses a dedicated ExoPlayer (NOT the main playback player) so audio is
+ * untouched. Renders nothing while no canvas URL is resolved.
+ *
+ * Resolution goes through [AuraCanvasRepository] which tries the community
+ * manifest first, then the Render server (which does Spotify search + canvas
+ * fetch server-side, so no Spotify keys are needed in the app).
  */
 @UnstableApi
 @Composable
 fun AuraCanvasOverlay(
     title: String?,
     artist: String?,
+    album: String? = null,
+    durationMs: Long? = null,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    var canvasUrl by remember { mutableStateOf<String?>(null) }
+    var canvasUrl by remember(title, artist, album) { mutableStateOf<String?>(null) }
     var isVideoReady by remember { mutableStateOf(false) }
 
-    // Resolve the URL for the current (title, artist). Cached in the repo.
-    LaunchedEffect(title, artist) {
+    // Pre-warm the Render dyno as soon as the overlay enters composition; first
+    // canvas request after idle would otherwise wait ~30–90s on free tier.
+    LaunchedEffect(Unit) { AuraCanvasRepository.warmUp() }
+
+    // Resolve the URL for the current (title, artist, album).
+    LaunchedEffect(title, artist, album) {
         canvasUrl = null
         isVideoReady = false
         canvasUrl = runCatching {
-            AuraCanvasRepository.findCanvasUrl(title, artist)
+            AuraCanvasRepository.findCanvasUrl(title, artist, album, durationMs)
         }.getOrNull()
     }
 
@@ -68,7 +78,6 @@ fun AuraCanvasOverlay(
         }
     }
 
-    // Attach listener for errors and first frame
     DisposableEffect(exoPlayer) {
         val listener = object : Player.Listener {
             override fun onPlayerError(error: PlaybackException) {
@@ -83,10 +92,10 @@ fun AuraCanvasOverlay(
         exoPlayer.addListener(listener)
         onDispose {
             exoPlayer.removeListener(listener)
+            exoPlayer.release()
         }
     }
 
-    // Swap the source whenever the resolved URL changes.
     LaunchedEffect(url) {
         isVideoReady = false
         exoPlayer.stop()
@@ -95,16 +104,10 @@ fun AuraCanvasOverlay(
         exoPlayer.playWhenReady = true
     }
 
-    DisposableEffect(exoPlayer) {
-        onDispose {
-            exoPlayer.release()
-        }
-    }
-
     val alpha by animateFloatAsState(
         targetValue = if (isVideoReady) 1f else 0f,
         animationSpec = tween(durationMillis = 250),
-        label = "canvasFade"
+        label = "canvasFade",
     )
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -113,14 +116,13 @@ fun AuraCanvasOverlay(
                 AspectRatioFrameLayout(ctx).apply {
                     layoutParams = ViewGroup.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT
+                        ViewGroup.LayoutParams.MATCH_PARENT,
                     )
                     resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-
                     val textureView = TextureView(ctx).apply {
                         layoutParams = ViewGroup.LayoutParams(
                             ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.MATCH_PARENT
+                            ViewGroup.LayoutParams.MATCH_PARENT,
                         )
                     }
                     addView(textureView)
@@ -131,7 +133,7 @@ fun AuraCanvasOverlay(
             modifier = Modifier
                 .fillMaxSize()
                 .alpha(alpha),
-            update = { /* no-op */ }
+            update = { /* no-op */ },
         )
     }
 }
