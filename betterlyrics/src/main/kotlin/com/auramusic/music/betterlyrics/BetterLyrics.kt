@@ -12,11 +12,10 @@ import io.ktor.client.request.parameter
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
-import android.util.Log
+import timber.log.Timber
 
 object BetterLyrics {
     private const val TAG = "BetterLyrics"
-
     private val client by lazy {
         HttpClient(CIO) {
             install(ContentNegotiation) {
@@ -52,7 +51,7 @@ object BetterLyrics {
         duration: Int = -1,
         album: String? = null,
     ): String? = runCatching {
-        Log.d(TAG, "Fetching TTML for: '$title' by '$artist' (dur=$duration, album=$album)")
+        Timber.tag(TAG).d("Fetching TTML for: $title by $artist (dur=$duration, album=$album)")
         val response = client.get("/getLyrics") {
             parameter("s", title)
             parameter("a", artist)
@@ -64,20 +63,14 @@ object BetterLyrics {
             }
         }
         if (response.status == HttpStatusCode.OK) {
-            // Treat empty / whitespace-only TTML as a miss so the lyrics
-            // pipeline falls through to the next provider instead of feeding
-            // an empty payload into the TTML parser.
             val ttml = response.body<TTMLResponse>().ttml?.trim()?.takeIf { it.isNotEmpty() }
-            if (ttml == null) {
-                Log.w(TAG, "API returned empty TTML for '$title' by '$artist'")
-            }
             ttml
         } else {
-            Log.w(TAG, "API returned status ${response.status} for '$title' by '$artist'")
+            Timber.tag(TAG).w("API returned status: ${response.status}")
             null
         }
     }.getOrElse { e ->
-        Log.e(TAG, "Exception during BetterLyrics fetch for '$title' by '$artist'", e)
+        Timber.tag(TAG).e(e, "Exception during fetchTTML")
         null
     }
 
@@ -87,17 +80,17 @@ object BetterLyrics {
         duration: Int,
         album: String? = null,
     ) = runCatching {
-        // Use exact title and artist - no normalization to ensure correct sync.
-        // Normalizing can return wrong lyrics (e.g., radio edit vs original).
-        val ttml = fetchTTML(artist, title, duration, album)
-            ?: throw IllegalStateException("Lyrics unavailable")
+        // Use exact title and artist - no normalization to ensure correct sync
+        // Normalizing can return wrong lyrics (e.g., radio edit vs original)
+        val ttml =
+            fetchTTML(artist, title, duration, album)
+                ?: throw IllegalStateException("Lyrics unavailable")
 
         val parsedLines = TTMLParser.parseTTML(ttml)
         if (parsedLines.isEmpty()) {
             throw IllegalStateException("Failed to parse lyrics")
         }
-
+        
         TTMLParser.toLRC(parsedLines)
     }
 }
-
