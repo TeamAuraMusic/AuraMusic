@@ -106,7 +106,6 @@ import com.auramusic.innertube.models.EpisodeItem
 import com.auramusic.innertube.models.PlaylistItem
 import com.auramusic.innertube.models.PodcastItem
 import com.auramusic.innertube.models.SongItem
-import com.auramusic.innertube.models.WatchEndpoint
 import com.auramusic.innertube.models.YTItem
 import com.auramusic.innertube.utils.parseCookieString
 import com.auramusic.app.LocalDatabase
@@ -162,12 +161,15 @@ import com.auramusic.app.utils.rememberEnumPreference
 import com.auramusic.app.utils.rememberPreference
 import com.auramusic.app.viewmodels.HomeViewModel
 import com.auramusic.app.viewmodels.CommunityPlaylistItem
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.min
 import kotlin.random.Random
+
+private const val SpeedDialLoadingMinDurationMillis = 650L
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -364,11 +366,7 @@ fun HomeScreen(
                     onClick = {
                         when (item) {
                             is SongItem -> playerConnection.playQueue(
-                                YouTubeQueue(
-                                    item.endpoint ?: WatchEndpoint(
-                                        videoId = item.id
-                                    ), item.toMediaMetadata()
-                                )
+                                YouTubeQueue.radio(item.toMediaMetadata())
                             )
 
                             is AlbumItem -> navController.navigate("album/${item.id}")
@@ -621,10 +619,7 @@ fun HomeScreen(
                                         is SongItem -> {
                                             val metadata = item.toMediaMetadata()
                                             playerConnection.playQueue(
-                                                YouTubeQueue(
-                                                    item.endpoint ?: WatchEndpoint(videoId = item.id),
-                                                    metadata
-                                                )
+                                                YouTubeQueue.radio(metadata)
                                             )
                                         }
                                         is AlbumItem -> navController.navigate("album/${item.id}")
@@ -641,10 +636,7 @@ fun HomeScreen(
                                         is SongItem -> {
                                             val metadata = item.toMediaMetadata()
                                             playerConnection.playQueue(
-                                                YouTubeQueue(
-                                                    item.endpoint ?: WatchEndpoint(videoId = item.id),
-                                                    metadata
-                                                )
+                                                YouTubeQueue.radio(metadata)
                                             )
                                         }
                                         is AlbumItem -> playerConnection.playQueue(
@@ -696,6 +688,7 @@ item(key = "speed_dial_shuffle") {
                                   var isLoading by remember { mutableStateOf(false) }
                                   var shuffledPositions by remember { mutableStateOf(listOf(0, 1, 2, 3)) }
                                   var lastLoadedSongId by remember { mutableStateOf<String?>(null) }
+                                  var loadingStartedAt by remember { mutableStateOf<Long?>(null) }
 
                                   val animatedPos0 by animateFloatAsState(
                                       targetValue = shuffledPositions.indexOf(0).toFloat(),
@@ -733,11 +726,9 @@ item(key = "speed_dial_shuffle") {
                                                           isLoading = true
                                                           val randomItem = playableItems.random()
                                                           lastLoadedSongId = randomItem.id
+                                                          loadingStartedAt = System.currentTimeMillis()
                                                           playerConnection.playQueue(
-                                                              YouTubeQueue(
-                                                                  randomItem.endpoint ?: WatchEndpoint(videoId = randomItem.id),
-                                                                  randomItem.toMediaMetadata()
-                                                              )
+                                                              YouTubeQueue.radio(randomItem.toMediaMetadata())
                                                           )
                                                       }
                                                   },
@@ -812,10 +803,15 @@ item(key = "speed_dial_shuffle") {
                                           }
                                       }
                                   }
-                                  LaunchedEffect(mediaMetadata) {
-                                      if (isLoading && lastLoadedSongId != null && mediaMetadata?.id == lastLoadedSongId) {
+                                  LaunchedEffect(isLoading, lastLoadedSongId, mediaMetadata?.id) {
+                                      if (isLoading && lastLoadedSongId != null && mediaMetadata?.id != null) {
+                                          val elapsed = System.currentTimeMillis() - (loadingStartedAt ?: 0L)
+                                          if (elapsed < SpeedDialLoadingMinDurationMillis) {
+                                              delay(SpeedDialLoadingMinDurationMillis - elapsed)
+                                          }
                                           isLoading = false
                                           lastLoadedSongId = null
+                                          loadingStartedAt = null
                                       }
                                   }
                               }
@@ -839,10 +835,7 @@ item(key = "speed_dial_shuffle") {
                                         onClick = {
                                             when (item) {
                                                 is SongItem -> playerConnection.playQueue(
-                                                    YouTubeQueue(
-                                                        item.endpoint ?: WatchEndpoint(videoId = item.id),
-                                                        item.toMediaMetadata()
-                                                    )
+                                                    YouTubeQueue.radio(item.toMediaMetadata())
                                                 )
                                                 is AlbumItem -> navController.navigate("album/${item.id}")
                                                 is ArtistItem -> navController.navigate("artist/${item.id}")
@@ -977,10 +970,7 @@ item(key = "speed_dial_shuffle") {
                                     },
                                     onSongClick = { song ->
                                         playerConnection.playQueue(
-                                            YouTubeQueue(
-                                                song.endpoint ?: WatchEndpoint(videoId = song.id),
-                                                song.toMediaMetadata(),
-                                            ),
+                                            YouTubeQueue.radio(song.toMediaMetadata()),
                                         )
                                     },
                                 )
