@@ -1,3 +1,31 @@
+# AuraMusic v2.5.0 (Build 22) Changelog
+
+## Major Features
+
+### AuraCanvas - Dynamic Video Backdrops
+- feat(player): AuraCanvas - looping video backdrops behind album art
+- feat(canvas): implement AuraCanvas for artist headers and album covers
+- feat(canvas): implement correct TTML fetching and parsing
+- Improve AuraCanvasOverlay: switch to TextureView, add error handling and fade-in animation
+- fix(canvas): make AuraCanvas actually show videos in the player
+
+### Lyrics Provider Fixes
+- fix(lyrics): remove broken getAllLyrics implementation in BetterLyrics that was causing silent fetch failures
+- fix(lyrics): make BetterLyrics actually return lyrics, honour provider priority, and unblock the retry button
+- Fix HTML entity decoding in SimpMusic lyrics provider
+
+### Icons & UI
+- feat(icons): Add monochrome layer to all adaptive icons for better dynamic/themed icon consistency on Android 13+
+
+### Networking
+- Changed the client engine to cio for improved networking performance
+
+### Build & Other
+- Fix start page playback and speed dial shuffle loading
+- fix(discord): update Discord invite link to https://discord.gg/935CRM8u3 in About section and README
+
+**Full range**: 065a222...3e6a1d3
+
 # AuraMusic v2.4.0 (Build 21) Changelog
 
 ## Major Features

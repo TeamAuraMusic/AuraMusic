@@ -1,3 +1,53 @@
+# AuraMusic v2.5.0 (Build 22) Release Notes
+
+> [!NOTE]
+> This release brings AuraCanvas - dynamic video backdrops for artist headers and album covers, fixes for BetterLyrics TTML fetching and parsing, improved HTML entity decoding in SimpMusic, monochrome layer support for adaptive icons on Android 13+, and updated Discord invite link.
+
+## What's New
+
+### AuraCanvas - Dynamic Video Backdrops
+Implemented by @chila254
+
+- feat(canvas): implement AuraCanvas for artist headers and album covers (#712a0d0)
+- Improve AuraCanvasOverlay: switch to TextureView, add error handling and fade-in animation (#caa49b3)
+- feat(player): AuraCanvas - looping video backdrops behind album art (#b280ca6)
+- fix(canvas): make AuraCanvas actually show videos in the player (#677a2fc)
+
+AuraCanvas brings dynamic video backdrops to artist headers and album covers. This feature adds visual depth to the app with looping video backgrounds that enhance the music experience.
+
+### BetterLyrics & SimpMusic Improvements
+Implemented by @chila254
+
+- fix(betterlyrics): implement correct TTML fetching and parsing (#4e6cc0d)
+- fix(lyrics): remove broken getAllLyrics implementation in BetterLyrics (#91c21de, #9128ae0)
+- fix(lyrics): make BetterLyrics actually return lyrics, honour provider priority, and unblock the retry button (#9128ae0)
+- Fix HTML entity decoding in SimpMusic lyrics provider (#bcc23c0)
+
+### Adaptive Icons Enhancement
+Implemented by @chila254
+
+- feat(icons): Add monochrome layer to all adaptive icons for better dynamic/themed icon consistency on Android 13+ (#4a9f2c9)
+
+### Networking Improvements
+Implemented by @chila254
+
+- Changed the client engine to cio (#19902a3)
+
+### Bug Fixes
+Implemented by @chila254
+
+- Fix start page playback and speed dial shuffle loading (#3e6a1d3)
+- fix(discord): update Discord invite link to https://discord.gg/935CRM8u3 in About section and README (#2722548)
+
+**Full changes in this release**: https://github.com/TeamAuraMusic/AuraMusic/compare/065a222...3e6a1d3
+
+## Translation Contributors
+
+- @Mickaël81 implemented Translated using Weblate (French) (#a9b7750, #192fc32, #8c5838e, #7706e68)
+- @SantosSi implemented Translated using Weblate (Portuguese (Portugal)) (#b78d4fc, #f8bbad5)
+- @SantosSi implemented Translated using Weblate (Portuguese) (#0d7b201, #f0f5ca4)
+- @iamcrizzzgd implemented Translated using Weblate (Spanish) (#4a104db, #377359c, #7afae6a, #c47a4e4, #1b1bfc6)
+
 # AuraMusic v2.4.0 (Build 21) Release Notes
 
 > [!NOTE]
