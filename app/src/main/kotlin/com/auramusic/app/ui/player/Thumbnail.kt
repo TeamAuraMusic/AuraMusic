@@ -958,9 +958,9 @@ private fun ThumbnailImage(
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // AuraCanvas overlay (looping muted MP4) – only when feature
-                // is enabled, artwork is shown, and a match exists in the manifest.
-                if (auraCanvasEnabled) {
+                // AuraCanvas overlay (looping muted MP4) – only for regular
+                // songs. Video songs render their own video in the player.
+                if (auraCanvasEnabled && canvasMediaMetadata?.isVideoSong != true) {
                     AuraCanvasOverlay(
                         title = canvasMediaMetadata?.title,
                         artist = canvasMediaMetadata?.artists?.joinToString(", ") { it.name },
