@@ -52,7 +52,7 @@ fun AuraCanvasOverlay(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    var canvasUrl by remember(title, artist, album) { mutableStateOf<String?>(null) }
+    var canvasUrl by remember(title, artist, album, durationMs) { mutableStateOf<String?>(null) }
     var isVideoReady by remember { mutableStateOf(false) }
 
     // Pre-warm the Render dyno as soon as the overlay enters composition; first
@@ -60,7 +60,7 @@ fun AuraCanvasOverlay(
     LaunchedEffect(Unit) { AuraCanvasRepository.warmUp() }
 
     // Resolve the URL for the current (title, artist, album).
-    LaunchedEffect(title, artist, album) {
+    LaunchedEffect(title, artist, album, durationMs) {
         canvasUrl = null
         isVideoReady = false
         canvasUrl = runCatching {

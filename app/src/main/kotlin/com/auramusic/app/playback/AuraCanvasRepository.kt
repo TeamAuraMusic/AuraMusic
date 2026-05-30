@@ -148,14 +148,44 @@ object AuraCanvasRepository {
             .replace(Regex("[^a-z0-9]+"), " ")
             .trim()
 
+    private fun artistNames(s: String): List<String> =
+        s.split(Regex("\\s*(?:,|&|\\band\\b|\\bfeat\\.?|\\bft\\.?|\\bwith\\b)\\s*", RegexOption.IGNORE_CASE))
+            .map { normalize(it).removePrefix("the ").trim() }
+            .filter { it.isNotBlank() }
+
+    private fun tokens(s: String): Set<String> =
+        s.split(' ')
+            .filter { it.length > 1 }
+            .toSet()
+
+    private fun titleMatches(candidate: String, query: String): Boolean {
+        if (candidate.isBlank() || query.isBlank()) return false
+        if (candidate == query) return true
+        val candidateTokens = tokens(candidate)
+        val queryTokens = tokens(query)
+        if (candidateTokens.isEmpty() || queryTokens.isEmpty()) return false
+
+        // Avoid one-word partial matches like "home" matching a different song
+        // that happens to contain that word.
+        return queryTokens.size > 1 && candidateTokens.containsAll(queryTokens)
+    }
+
+    private fun artistNameMatches(candidate: String, query: String): Boolean {
+        if (candidate.isBlank() || query.isBlank()) return false
+        if (candidate == query) return true
+        val candidateTokens = tokens(candidate)
+        val queryTokens = tokens(query)
+        if (candidateTokens.size < 2 || queryTokens.size < 2) return false
+        return candidateTokens.containsAll(queryTokens) || queryTokens.containsAll(candidateTokens)
+    }
+
     private fun artistMatches(haystack: String, needle: String): Boolean {
         if (haystack.isBlank() || needle.isBlank()) return false
-        if (haystack == needle) return true
-        val a = haystack.split(' ').filter { it.length > 1 }.toSet()
-        val b = needle.split(' ').filter { it.length > 1 }.toSet()
-        if (a.isEmpty() || b.isEmpty()) return false
-        val overlap = a.intersect(b).size
-        return overlap > 0 && overlap >= minOf(a.size, b.size) / 2
+        val candidates = artistNames(haystack)
+        val requested = artistNames(needle)
+        return candidates.any { candidate ->
+            requested.any { query -> artistNameMatches(candidate, query) }
+        }
     }
 
     private fun manifestLookup(items: List<CanvasItem>, title: String, artist: String): String? {
@@ -164,9 +194,7 @@ object AuraCanvasRepository {
         if (nTitle.isBlank() || nArtist.isBlank()) return null
         return items.firstOrNull { item ->
             val s = normalize(item.song)
-            val a = normalize(item.artist)
-            (s == nTitle || s.contains(nTitle) || nTitle.contains(s)) &&
-                artistMatches(a, nArtist)
+            titleMatches(s, nTitle) && artistMatches(item.artist, artist)
         }?.url
     }
 
@@ -233,7 +261,7 @@ object AuraCanvasRepository {
         durationMs: Long? = null,
     ): String? {
         if (title.isNullOrBlank() && artist.isNullOrBlank() && album.isNullOrBlank()) return null
-        val key = listOf(title, artist, album).joinToString("\u0001") { normalize(it ?: "") }
+        val key = listOf(title, artist, album, durationMs?.toString()).joinToString("\u0001") { normalize(it ?: "") }
         val now = System.currentTimeMillis()
         synchronized(resultCache) {
             val hit = resultCache[key]
