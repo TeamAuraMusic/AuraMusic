@@ -295,6 +295,7 @@ class MusicService :
     private lateinit var audioQuality: com.auramusic.app.constants.AudioQuality
 
     private var currentQueue: Queue = EmptyQueue
+    private var currentQueueGeneration = 0L
     var queueTitle: String? = null
 
     val currentMediaMetadata = MutableStateFlow<com.auramusic.app.models.MediaMetadata?>(null)
@@ -1240,6 +1241,7 @@ class MusicService :
         }
         
         currentQueue = queue
+        val queueGeneration = ++currentQueueGeneration
         queueTitle = null
         val persistShuffleAcrossQueues = dataStore.get(PersistentShuffleAcrossQueuesKey, false)
         val previousShuffleEnabled = player.shuffleModeEnabled
@@ -1260,31 +1262,45 @@ class MusicService :
                         .filterExplicit(dataStore.get(HideExplicitKey, false))
                         .filterVideoSongs(dataStore.get(HideVideoSongsKey, false))
                 }
+            if (queueGeneration != currentQueueGeneration) return@launch
             if (queue.preloadItem != null && player.playbackState == STATE_IDLE) return@launch
             if (initialStatus.title != null) {
                 queueTitle = initialStatus.title
             }
             if (initialStatus.items.isEmpty()) return@launch
-            // Track original queue size for shuffle playlist first feature
-            originalQueueSize = initialStatus.items.size
             if (queue.preloadItem != null) {
-                player.addMediaItems(
-                    0,
-                    initialStatus.items.subList(0, initialStatus.mediaItemIndex)
-                )
-                player.addMediaItems(
-                    initialStatus.items.subList(
-                        initialStatus.mediaItemIndex + 1,
-                        initialStatus.items.size
-                    )
-                )
-                // Replace preloaded item with API response item to get correct metadata
-                // (e.g., musicVideoType for video songs that may not have isVideo set in DB)
-                if (initialStatus.mediaItemIndex in initialStatus.items.indices) {
-                    val currentIndex = initialStatus.mediaItemIndex
-                    player.replaceMediaItem(currentIndex, initialStatus.items[currentIndex])
+                val preloadId = queue.preloadItem!!.id
+                val preloadIndex = initialStatus.items.indexOfFirst {
+                    it.mediaId == preloadId || it.metadata?.id == preloadId
+                }
+                val itemsBeforePreload = if (preloadIndex > 0) {
+                    initialStatus.items.subList(0, preloadIndex)
+                } else {
+                    emptyList()
+                }
+                val itemsAfterPreload = if (preloadIndex >= 0) {
+                    initialStatus.items.subList(preloadIndex + 1, initialStatus.items.size)
+                } else {
+                    initialStatus.items.filterNot { it.mediaId == preloadId || it.metadata?.id == preloadId }
+                }
+                // Track original queue size for shuffle playlist first feature. Include the preloaded
+                // item even when YouTube does not return it in the hydrated queue.
+                originalQueueSize = itemsBeforePreload.size + 1 + itemsAfterPreload.size
+                if (itemsBeforePreload.isNotEmpty()) {
+                    player.addMediaItems(0, itemsBeforePreload)
+                }
+                if (itemsAfterPreload.isNotEmpty()) {
+                    player.addMediaItems(itemsAfterPreload)
+                }
+                // Only replace the preloaded item when the hydrated queue contains the same song.
+                // Some YouTube responses resolve a radio/endpoint request with the next item as the
+                // current item; replacing unconditionally makes the tapped song appear to skip.
+                if (preloadIndex >= 0) {
+                    player.replaceMediaItem(player.currentMediaItemIndex, initialStatus.items[preloadIndex])
                 }
             } else {
+                // Track original queue size for shuffle playlist first feature
+                originalQueueSize = initialStatus.items.size
                 player.setMediaItems(
                     initialStatus.items,
                     if (initialStatus.mediaItemIndex >
