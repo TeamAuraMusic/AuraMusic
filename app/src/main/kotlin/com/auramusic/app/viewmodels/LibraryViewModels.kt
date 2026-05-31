@@ -120,6 +120,8 @@ constructor(
     database: MusicDatabase,
     private val syncUtils: SyncUtils,
 ) : ViewModel() {
+    private val artistDetailFetchAttempted = mutableSetOf<String>()
+
     val allArtists =
         context.dataStore.data
             .map {
@@ -145,11 +147,19 @@ constructor(
             allArtists.collect { artists ->
                 artists
                     .map { it.artist }
-                    .filter {
-                        it.thumbnailUrl == null || Duration.between(
-                            it.lastUpdateTime,
+                    .filter { artist ->
+                        val isStale = Duration.between(
+                            artist.lastUpdateTime,
                             LocalDateTime.now()
                         ) > Duration.ofDays(10)
+                        val missingSubscriberCount =
+                            artist.bookmarkedAt != null &&
+                                artist.isYouTubeArtist &&
+                                !artist.isPrivatelyOwnedArtist &&
+                                artist.subscriberCountText.isNullOrBlank()
+
+                        (artist.thumbnailUrl == null || isStale || missingSubscriberCount) &&
+                            artistDetailFetchAttempted.add(artist.id)
                     }.forEach { artist ->
                         YouTube.artist(artist.id).onSuccess { artistPage ->
                             database.query {
@@ -177,7 +187,7 @@ constructor(
                     Triple(
                         it[AlbumFilterKey].toEnum(AlbumFilter.LIKED),
                         it[AlbumSortTypeKey].toEnum(AlbumSortType.CREATE_DATE),
-                        it[AlbumSortDescendingKey] ?: true,
+                        (it[AlbumSortDescendingKey] ?: true),
                     ),
                     it[HideExplicitKey] ?: false
                 )
@@ -223,7 +233,6 @@ constructor(
         }
     }
 }
-
 @HiltViewModel
 class LibraryPlaylistsViewModel
 @Inject
@@ -290,6 +299,8 @@ constructor(
     database: MusicDatabase,
     private val syncUtils: SyncUtils,
 ) : ViewModel() {
+    private val artistDetailFetchAttempted = mutableSetOf<String>()
+
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing = _isRefreshing.asStateFlow()
 
@@ -354,12 +365,19 @@ constructor(
             artists.collect { artists ->
                 artists
                     .map { it.artist }
-                    .filter {
-                        it.thumbnailUrl == null ||
-                                Duration.between(
-                                    it.lastUpdateTime,
-                                    LocalDateTime.now(),
-                                ) > Duration.ofDays(10)
+                    .filter { artist ->
+                        val isStale = Duration.between(
+                            artist.lastUpdateTime,
+                            LocalDateTime.now(),
+                        ) > Duration.ofDays(10)
+                        val missingSubscriberCount =
+                            artist.bookmarkedAt != null &&
+                                artist.isYouTubeArtist &&
+                                !artist.isPrivatelyOwnedArtist &&
+                                artist.subscriberCountText.isNullOrBlank()
+
+                        (artist.thumbnailUrl == null || isStale || missingSubscriberCount) &&
+                            artistDetailFetchAttempted.add(artist.id)
                     }.forEach { artist ->
                         YouTube.artist(artist.id).onSuccess { artistPage ->
                             database.query {

@@ -30,6 +30,8 @@ import com.auramusic.app.constants.*
 import com.auramusic.app.di.ApplicationScope
 import com.auramusic.app.extensions.toEnum
 import com.auramusic.app.extensions.toInetSocketAddress
+import com.auramusic.app.notifications.NewReleaseNotificationChecker
+import com.auramusic.app.notifications.NewReleaseNotificationScheduler
 import com.auramusic.app.utils.CrashHandler
  import com.auramusic.app.utils.dataStore
  import com.auramusic.app.utils.reportException
@@ -144,6 +146,22 @@ class App : Application(), SingletonImageLoader.Factory {
         }
         val nm = getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(channel)
+
+        nm.createNotificationChannel(
+            NotificationChannel(
+                NewReleaseNotificationChecker.CHANNEL_ID,
+                getString(R.string.new_releases_channel_name),
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = getString(R.string.new_releases_channel_desc)
+            }
+        )
+
+        if (settings[NewReleaseNotificationsEnabledKey] ?: true) {
+            NewReleaseNotificationScheduler.schedule(this)
+        } else {
+            NewReleaseNotificationScheduler.cancel(this)
+        }
     }
 
     private fun observeSettingsChanges() {
@@ -197,6 +215,19 @@ class App : Application(), SingletonImageLoader.Factory {
                         LastFM.sessionKey = session
                     } catch (e: Exception) {
                         Timber.e("Error while loading last.fm session key. %s", e.message)
+                    }
+                }
+        }
+
+        applicationScope.launch(Dispatchers.IO) {
+            dataStore.data
+                .map { it[NewReleaseNotificationsEnabledKey] ?: true }
+                .distinctUntilChanged()
+                .collect { enabled ->
+                    if (enabled) {
+                        NewReleaseNotificationScheduler.schedule(this@App)
+                    } else {
+                        NewReleaseNotificationScheduler.cancel(this@App)
                     }
                 }
         }

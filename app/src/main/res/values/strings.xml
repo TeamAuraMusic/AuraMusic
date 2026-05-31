@@ -5,6 +5,10 @@
     <string name="app_name_tv">AuraMusic Tv</string>
     <string name="update_channel_desc">App update notifications</string>
     <string name="update_channel_name">Updates</string>
+    <string name="new_releases_channel_desc">New release notifications for subscribed artists</string>
+    <string name="new_releases_channel_name">New releases</string>
+    <string name="new_release_notification_title_single">New release from a subscribed artist</string>
+    <string name="new_release_notification_title_multiple">%d new releases from subscribed artists</string>
     <string name="update_available_title">Update available</string>
     <string name="app_description">Music streaming application</string>
     <!-- Bottom navigation -->
@@ -879,6 +883,7 @@
     <string name="updater">Updater</string>
     <string name="check_for_updates">Check for updates</string>
     <string name="update_notifications">Update notifications</string>
+    <string name="new_release_notifications">New release notifications</string>
     <!-- Changelog -->
     <string name="changelog">Changelog</string>
     <string name="changelog_empty">No releases yet</string>

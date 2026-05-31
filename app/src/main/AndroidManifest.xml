@@ -264,6 +264,15 @@
             android:exported="false" />
 
         <receiver
+            android:name=".notifications.NewReleaseNotificationReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.auramusic.app.notifications.ACTION_CHECK_NEW_RELEASES" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
             android:name="androidx.media3.session.MediaButtonReceiver"
             android:exported="true">
             <intent-filter>

@@ -1468,6 +1468,8 @@ interface DatabaseDao {
             artist.copy(
                 name = artistPage.artist.title,
                 thumbnailUrl = artistPage.artist.thumbnail?.resize(544, 544),
+                channelId = artistPage.artist.channelId ?: artist.channelId,
+                subscriberCountText = artistPage.subscriberCountText ?: artist.subscriberCountText,
                 lastUpdateTime = LocalDateTime.now()
             )
         )

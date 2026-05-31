@@ -11,12 +11,14 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.navigation.NavController
 import com.auramusic.innertube.models.PlaylistItem
 import com.auramusic.innertube.models.WatchEndpoint
 import com.auramusic.app.R
+import com.auramusic.app.constants.ShowArtistSubscriberCountKey
 import com.auramusic.app.db.entities.Album
 import com.auramusic.app.db.entities.Artist
 import com.auramusic.app.db.entities.Playlist
@@ -24,7 +26,16 @@ import com.auramusic.app.ui.menu.AlbumMenu
 import com.auramusic.app.ui.menu.ArtistMenu
 import com.auramusic.app.ui.menu.PlaylistMenu
 import com.auramusic.app.ui.menu.YouTubePlaylistMenu
+import com.auramusic.app.utils.rememberPreference
 import kotlinx.coroutines.CoroutineScope
+
+@Composable
+private fun artistSubscriberSubtitle(artist: Artist): String? {
+    val showSubscriberCount by rememberPreference(ShowArtistSubscriberCountKey, true)
+    return artist.artist.subscriberCountText?.takeIf {
+        showSubscriberCount && artist.artist.bookmarkedAt != null && it.isNotBlank()
+    }
+}
 
 @Composable
 fun LibraryArtistListItem(
@@ -35,6 +46,7 @@ fun LibraryArtistListItem(
     modifier: Modifier = Modifier
 ) = ArtistListItem(
     artist = artist,
+    subtitle = artistSubscriberSubtitle(artist),
     trailingContent = {
         androidx.compose.material3.IconButton(
             onClick = {
@@ -70,6 +82,7 @@ fun LibraryArtistGridItem(
     modifier: Modifier = Modifier
 ) = ArtistGridItem(
     artist = artist,
+    subtitle = artistSubscriberSubtitle(artist),
     fillMaxWidth = true,
     modifier = modifier
         .fillMaxWidth()

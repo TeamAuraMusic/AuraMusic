@@ -566,6 +566,7 @@ fun SongGridItem(
 fun ArtistListItem(
     artist: Artist,
     modifier: Modifier = Modifier,
+    subtitle: String? = null,
     badges: @Composable RowScope.() -> Unit = {
         if (artist.artist.bookmarkedAt != null) {
             Icon(
@@ -581,7 +582,7 @@ fun ArtistListItem(
     trailingContent: @Composable RowScope.() -> Unit = {},
 ) = ListItem(
     title = artist.artist.name,
-    subtitle = pluralStringResource(R.plurals.n_song, artist.songCount, artist.songCount),
+    subtitle = subtitle ?: pluralStringResource(R.plurals.n_song, artist.songCount, artist.songCount),
     badges = badges,
     thumbnailContent = {
         AsyncImage(
@@ -605,6 +606,7 @@ fun ArtistListItem(
 fun ArtistGridItem(
     artist: Artist,
     modifier: Modifier = Modifier,
+    subtitle: String? = null,
     badges: @Composable RowScope.() -> Unit = {
         if (artist.artist.bookmarkedAt != null) {
             Icon.Favorite()
@@ -613,7 +615,7 @@ fun ArtistGridItem(
     fillMaxWidth: Boolean = false,
 ) = GridItem(
     title = artist.artist.name,
-    subtitle = pluralStringResource(R.plurals.n_song, artist.songCount, artist.songCount),
+    subtitle = subtitle ?: pluralStringResource(R.plurals.n_song, artist.songCount, artist.songCount),
     badges = badges,
     thumbnailContent = {
         AsyncImage(

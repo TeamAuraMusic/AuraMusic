@@ -56,9 +56,11 @@ import com.auramusic.app.constants.AccountEmailKey
 import com.auramusic.app.constants.AccountNameKey
 import com.auramusic.app.constants.DataSyncIdKey
 import com.auramusic.app.constants.InnerTubeCookieKey
+import com.auramusic.app.constants.NewReleaseNotificationsEnabledKey
 import com.auramusic.app.constants.UseLoginForBrowse
 import com.auramusic.app.constants.VisitorDataKey
 import com.auramusic.app.constants.YtmSyncKey
+import com.auramusic.app.notifications.NewReleaseNotificationScheduler
 import com.auramusic.app.ui.component.InfoLabel
 import com.auramusic.app.ui.component.PreferenceEntry
 import com.auramusic.app.ui.component.SwitchPreference
@@ -92,6 +94,7 @@ fun AccountSettings(
     }
     val (useLoginForBrowse, onUseLoginForBrowseChange) = rememberPreference(UseLoginForBrowse, true)
     val (ytmSync, onYtmSyncChange) = rememberPreference(YtmSyncKey, true)
+    val (newReleaseNotifications, onNewReleaseNotificationsChange) = rememberPreference(NewReleaseNotificationsEnabledKey, true)
 
     val homeViewModel: HomeViewModel = hiltViewModel()
     val accountSettingsViewModel: AccountSettingsViewModel = hiltViewModel()
@@ -269,6 +272,26 @@ fun AccountSettings(
                 icon = { Icon(painterResource(R.drawable.cached), null) },
                 checked = ytmSync,
                 onCheckedChange = onYtmSyncChange,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+            )
+
+            Spacer(Modifier.height(4.dp))
+
+            SwitchPreference(
+                title = { Text(stringResource(R.string.new_release_notifications)) },
+                icon = { Icon(painterResource(R.drawable.notification), null) },
+                checked = newReleaseNotifications,
+                onCheckedChange = { enabled ->
+                    onNewReleaseNotificationsChange(enabled)
+                    if (enabled) {
+                        NewReleaseNotificationScheduler.schedule(context)
+                    } else {
+                        NewReleaseNotificationScheduler.cancel(context)
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))

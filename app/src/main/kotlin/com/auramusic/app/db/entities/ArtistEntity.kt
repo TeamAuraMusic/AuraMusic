@@ -23,6 +23,7 @@ data class ArtistEntity(
     val name: String,
     val thumbnailUrl: String? = null,
     val channelId: String? = null,
+    val subscriberCountText: String? = null,
     val lastUpdateTime: LocalDateTime = LocalDateTime.now(),
     val bookmarkedAt: LocalDateTime? = null,
     @ColumnInfo(name = "isLocal", defaultValue = false.toString())
