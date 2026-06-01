@@ -27,6 +27,7 @@ import com.auramusic.kugou.KuGou
 import com.auramusic.lastfm.LastFM
 import com.auramusic.app.BuildConfig
 import com.auramusic.app.constants.*
+import com.auramusic.app.db.MusicDatabase
 import com.auramusic.app.di.ApplicationScope
 import com.auramusic.app.extensions.toEnum
 import com.auramusic.app.extensions.toInetSocketAddress
@@ -62,6 +63,9 @@ class App : Application(), SingletonImageLoader.Factory {
 
     @Inject
     lateinit var voiceFeedbackManager: VoiceFeedbackManager
+
+    @Inject
+    lateinit var database: MusicDatabase
 
     override fun onCreate() {
         super.onCreate()
@@ -159,6 +163,7 @@ class App : Application(), SingletonImageLoader.Factory {
 
         if (settings[NewReleaseNotificationsEnabledKey] ?: true) {
             NewReleaseNotificationScheduler.schedule(this)
+            NewReleaseNotificationChecker.check(this, database)
         } else {
             NewReleaseNotificationScheduler.cancel(this)
         }
@@ -226,6 +231,7 @@ class App : Application(), SingletonImageLoader.Factory {
                 .collect { enabled ->
                     if (enabled) {
                         NewReleaseNotificationScheduler.schedule(this@App)
+                        NewReleaseNotificationChecker.check(this@App, database)
                     } else {
                         NewReleaseNotificationScheduler.cancel(this@App)
                     }

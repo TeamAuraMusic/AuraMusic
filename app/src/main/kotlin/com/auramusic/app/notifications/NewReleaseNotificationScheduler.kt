@@ -21,7 +21,7 @@ object NewReleaseNotificationScheduler {
         alarmManager.setInexactRepeating(
             AlarmManager.RTC,
             nextCheckTimeMillis(),
-            AlarmManager.INTERVAL_DAY,
+            AlarmManager.INTERVAL_HOUR,
             pendingIntent(context),
         )
     }
@@ -41,10 +41,6 @@ object NewReleaseNotificationScheduler {
 
     private fun nextCheckTimeMillis(): Long =
         Calendar.getInstance().apply {
-            add(Calendar.DAY_OF_YEAR, 1)
-            set(Calendar.HOUR_OF_DAY, 10)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
+            add(Calendar.MINUTE, 15)
         }.timeInMillis
 }

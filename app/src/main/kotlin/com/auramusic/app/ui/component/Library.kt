@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
 import com.auramusic.innertube.models.PlaylistItem
 import com.auramusic.innertube.models.WatchEndpoint
@@ -32,8 +33,10 @@ import kotlinx.coroutines.CoroutineScope
 @Composable
 private fun artistSubscriberSubtitle(artist: Artist): String? {
     val showSubscriberCount by rememberPreference(ShowArtistSubscriberCountKey, true)
-    return artist.artist.subscriberCountText?.takeIf {
-        showSubscriberCount && artist.artist.bookmarkedAt != null && it.isNotBlank()
+    return if (showSubscriberCount && artist.artist.bookmarkedAt != null) {
+        artist.artist.subscriberCountText?.takeIf { it.isNotBlank() } ?: stringResource(R.string.subscribers)
+    } else {
+        null
     }
 }
 
