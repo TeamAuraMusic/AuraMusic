@@ -11,6 +11,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.background
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -18,9 +19,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
@@ -28,7 +34,9 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
+import com.auramusic.app.LocalPlayerConnection
 import com.auramusic.app.playback.AuraCanvasRepository
+import com.auramusic.app.ui.component.CastButton
 import timber.log.Timber
 
 /**
@@ -55,11 +63,8 @@ fun AuraCanvasOverlay(
     var canvasUrl by remember(title, artist, album, durationMs) { mutableStateOf<String?>(null) }
     var isVideoReady by remember { mutableStateOf(false) }
 
-    // Pre-warm the Render dyno as soon as the overlay enters composition; first
-    // canvas request after idle would otherwise wait ~30–90s on free tier.
     LaunchedEffect(Unit) { AuraCanvasRepository.warmUp() }
 
-    // Resolve the URL for the current (title, artist, album).
     LaunchedEffect(title, artist, album, durationMs) {
         canvasUrl = null
         isVideoReady = false
@@ -134,6 +139,25 @@ fun AuraCanvasOverlay(
                 .fillMaxSize()
                 .alpha(alpha),
             update = { /* no-op */ },
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .alpha(alpha)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.18f),
+                            Color.Black.copy(alpha = 0.38f),
+                            Color.Black.copy(alpha = 0.68f),
+                        )
+                    )
+                )
+        )
+        CastButton(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(16.dp)
         )
     }
 }

@@ -776,9 +776,10 @@ fun BottomSheetPlayer(
     }
 
     val backgroundAlpha = state.progress.coerceIn(0f, 1f)
-    val shouldShowFullScreenAuraCanvas = auraCanvasEnabled &&
+    val shouldShowAuraCanvas = auraCanvasEnabled &&
         mediaMetadata?.isVideoSong != true &&
-        !videoModeEnabled
+        !videoModeEnabled &&
+        state.isExpanded
 
     BottomSheet(
         state = state,
@@ -790,7 +791,7 @@ fun BottomSheetPlayer(
                     .background(bottomSheetBackgroundColor)
             ) {
                 val currentMetadata = mediaMetadata
-                if (shouldShowFullScreenAuraCanvas && currentMetadata != null) {
+                if (shouldShowAuraCanvas && currentMetadata != null) {
                     AuraCanvasOverlay(
                         title = currentMetadata.title,
                         artist = currentMetadata.artists.joinToString(", ") { it.name },
@@ -798,25 +799,8 @@ fun BottomSheetPlayer(
                         durationMs = currentMetadata.duration.takeIf { it > 0 }?.times(1000L),
                         modifier = Modifier
                             .fillMaxSize()
-                            .alpha(backgroundAlpha)
                     )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .alpha(backgroundAlpha)
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color.Black.copy(alpha = 0.18f),
-                                        Color.Black.copy(alpha = 0.38f),
-                                        Color.Black.copy(alpha = 0.68f),
-                                    )
-                                )
-                            )
-                    )
-                }
-
-                if (!shouldShowFullScreenAuraCanvas) {
+                } else {
                     when (playerBackground) {
                         PlayerBackgroundStyle.BLUR -> {
                             AnimatedContent(
