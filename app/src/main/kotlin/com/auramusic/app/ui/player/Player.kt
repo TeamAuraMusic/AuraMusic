@@ -129,6 +129,7 @@ import androidx.core.view.WindowCompat
 import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.common.Player.STATE_ENDED
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import androidx.navigation.NavController
@@ -143,6 +144,7 @@ import com.auramusic.app.LocalDownloadUtil
 import com.auramusic.app.LocalListenTogetherManager
 import com.auramusic.app.LocalPlayerConnection
 import com.auramusic.app.R
+import com.auramusic.app.constants.AuraCanvasEnabledKey
 import com.auramusic.app.constants.EnableVoiceCommandsKey
 import com.auramusic.app.constants.CropAlbumArtKey
 import com.auramusic.app.constants.DarkModeKey
@@ -204,7 +206,7 @@ import kotlin.math.max
 import kotlin.math.roundToInt
 import com.auramusic.app.ui.component.Icon as MIcon
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class, UnstableApi::class)
 @Composable
 fun BottomSheetPlayer(
     state: BottomSheetState,
@@ -224,6 +226,7 @@ fun BottomSheetPlayer(
     )
     val (hidePlayerThumbnail, onHidePlayerThumbnailChange) = rememberPreference(HidePlayerThumbnailKey, false)
     val (enableVoiceCommands, onEnableVoiceCommandsChange) = rememberPreference(EnableVoiceCommandsKey, defaultValue = true)
+    val auraCanvasEnabled by rememberPreference(AuraCanvasEnabledKey, false)
     val cropAlbumArt by rememberPreference(CropAlbumArtKey, true)
     val playerBackground by rememberEnumPreference(
         key = PlayerBackgroundStyleKey,
@@ -773,6 +776,9 @@ fun BottomSheetPlayer(
     }
 
     val backgroundAlpha = state.progress.coerceIn(0f, 1f)
+    val shouldShowFullScreenAuraCanvas = auraCanvasEnabled &&
+        mediaMetadata?.isVideoSong != true &&
+        !videoModeEnabled
 
     BottomSheet(
         state = state,
@@ -783,90 +789,119 @@ fun BottomSheetPlayer(
                     .fillMaxSize()
                     .background(bottomSheetBackgroundColor)
             ) {
-                when (playerBackground) {
-                    PlayerBackgroundStyle.BLUR -> {
-                        AnimatedContent(
-                            targetState = mediaMetadata?.thumbnailUrl,
-                            transitionSpec = {
-                                fadeIn(tween(800)).togetherWith(fadeOut(tween(800)))
-                            },
-                            label = "blurBackground"
-                        ) { thumbnailUrl ->
-                            if (thumbnailUrl != null) {
-                                Box(modifier = Modifier.alpha(backgroundAlpha)) {
-                                    AsyncImage(
-                                        model = ImageRequest.Builder(context)
-                                            .data(thumbnailUrl)
-                                            .size(100, 100)
-                                            .allowHardware(false)
-                                            .build(),
-                                        contentDescription = null,
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .blur(if (useDarkTheme) 150.dp else 100.dp)
+                val currentMetadata = mediaMetadata
+                if (shouldShowFullScreenAuraCanvas && currentMetadata != null) {
+                    AuraCanvasOverlay(
+                        title = currentMetadata.title,
+                        artist = currentMetadata.artists.joinToString(", ") { it.name },
+                        album = currentMetadata.album?.title,
+                        durationMs = currentMetadata.duration.takeIf { it > 0 }?.times(1000L),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .alpha(backgroundAlpha)
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .alpha(backgroundAlpha)
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.Black.copy(alpha = 0.18f),
+                                        Color.Black.copy(alpha = 0.38f),
+                                        Color.Black.copy(alpha = 0.68f),
                                     )
+                                )
+                            )
+                    )
+                }
+
+                if (!shouldShowFullScreenAuraCanvas) {
+                    when (playerBackground) {
+                        PlayerBackgroundStyle.BLUR -> {
+                            AnimatedContent(
+                                targetState = mediaMetadata?.thumbnailUrl,
+                                transitionSpec = {
+                                    fadeIn(tween(800)).togetherWith(fadeOut(tween(800)))
+                                },
+                                label = "blurBackground"
+                            ) { thumbnailUrl ->
+                                if (thumbnailUrl != null) {
+                                    Box(modifier = Modifier.alpha(backgroundAlpha)) {
+                                        AsyncImage(
+                                            model = ImageRequest.Builder(context)
+                                                .data(thumbnailUrl)
+                                                .size(100, 100)
+                                                .allowHardware(false)
+                                                .build(),
+                                            contentDescription = null,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .blur(if (useDarkTheme) 150.dp else 100.dp)
+                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .background(Color.Black.copy(alpha = 0.3f))
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        PlayerBackgroundStyle.GRADIENT -> {
+                            AnimatedContent(
+                                targetState = gradientColors,
+                                transitionSpec = {
+                                    fadeIn(tween(800)).togetherWith(fadeOut(tween(800)))
+                                },
+                                label = "gradientBackground"
+                            ) { colors ->
+                                if (colors.isNotEmpty()) {
+                                    val gradientColorStops = if (colors.size >= 3) {
+                                        arrayOf(
+                                            0.0f to colors[0],
+                                            0.5f to colors[1],
+                                            1.0f to colors[2]
+                                        )
+                                    } else {
+                                        arrayOf(
+                                            0.0f to colors[0],
+                                            0.6f to colors[0].copy(alpha = 0.7f),
+                                            1.0f to Color.Black
+                                        )
+                                    }
                                     Box(
+                                        Modifier
+                                            .fillMaxSize()
+                                            .alpha(backgroundAlpha)
+                                            .background(Brush.verticalGradient(colorStops = gradientColorStops))
+                                            .background(Color.Black.copy(alpha = 0.2f))
+                                    )
+                                }
+                            }
+                        }
+                        PlayerBackgroundStyle.ANIMATED_GRADIENT -> {
+                            AnimatedContent(
+                                targetState = gradientColors,
+                                transitionSpec = {
+                                    fadeIn(tween(800)).togetherWith(fadeOut(tween(800)))
+                                },
+                                label = "animatedGradientBackground"
+                            ) { colors ->
+                                if (colors.isNotEmpty()) {
+                                    AnimatedGradientBackground(
+                                        colors = colors,
                                         modifier = Modifier
                                             .fillMaxSize()
-                                            .background(Color.Black.copy(alpha = 0.3f))
+                                            .alpha(backgroundAlpha)
                                     )
                                 }
                             }
                         }
-                    }
-                    PlayerBackgroundStyle.GRADIENT -> {
-                        AnimatedContent(
-                            targetState = gradientColors,
-                            transitionSpec = {
-                                fadeIn(tween(800)).togetherWith(fadeOut(tween(800)))
-                            },
-                            label = "gradientBackground"
-                        ) { colors ->
-                            if (colors.isNotEmpty()) {
-                                val gradientColorStops = if (colors.size >= 3) {
-                                    arrayOf(
-                                        0.0f to colors[0],
-                                        0.5f to colors[1],
-                                        1.0f to colors[2]
-                                    )
-                                } else {
-                                    arrayOf(
-                                        0.0f to colors[0],
-                                        0.6f to colors[0].copy(alpha = 0.7f),
-                                        1.0f to Color.Black
-                                    )
-                                }
-                                Box(
-                                    Modifier
-                                        .fillMaxSize()
-                                        .alpha(backgroundAlpha)
-                                        .background(Brush.verticalGradient(colorStops = gradientColorStops))
-                                        .background(Color.Black.copy(alpha = 0.2f))
-                                )
-                            }
+                        else -> {
+                            PlayerBackgroundStyle.DEFAULT
                         }
-                    }
-                    PlayerBackgroundStyle.ANIMATED_GRADIENT -> {
-                        AnimatedContent(
-                            targetState = gradientColors,
-                            transitionSpec = {
-                                fadeIn(tween(800)).togetherWith(fadeOut(tween(800)))
-                            },
-                            label = "animatedGradientBackground"
-                        ) { colors ->
-                            if (colors.isNotEmpty()) {
-                                AnimatedGradientBackground(
-                                    colors = colors,
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .alpha(backgroundAlpha)
-                                )
-                            }
-                        }
-                    }
-                    else -> {
-                        PlayerBackgroundStyle.DEFAULT
                     }
                 }
             }
