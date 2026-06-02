@@ -776,10 +776,25 @@ fun BottomSheetPlayer(
     }
 
     val backgroundAlpha = state.progress.coerceIn(0f, 1f)
-    val shouldShowAuraCanvas = auraCanvasEnabled &&
-        mediaMetadata?.isVideoSong != true &&
-        !videoModeEnabled &&
-        state.isExpanded
+    val auraCanvasEnabled by rememberPreference(AuraCanvasEnabledKey, false)
+    var auraCanvasUrl by remember { mutableStateOf<String?>(null) }
+    
+    LaunchedEffect(auraCanvasEnabled, state.isExpanded, mediaMetadata) {
+        if (auraCanvasEnabled && state.isExpanded && mediaMetadata?.isVideoSong != true && !videoModeEnabled) {
+            auraCanvasUrl = runCatching {
+                AuraCanvasRepository.findCanvasUrl(
+                    title = mediaMetadata.title,
+                    artist = mediaMetadata.artists.joinToString(", ") { it.name },
+                    album = mediaMetadata.album?.title,
+                    durationMs = mediaMetadata.duration.takeIf { it > 0 }?.times(1000L)
+                )
+            }.getOrNull()
+        } else {
+            auraCanvasUrl = null
+        }
+    }
+    
+    val shouldShowAuraCanvas = auraCanvasUrl != null
 
     BottomSheet(
         state = state,
@@ -797,6 +812,7 @@ fun BottomSheetPlayer(
                         artist = currentMetadata.artists.joinToString(", ") { it.name },
                         album = currentMetadata.album?.title,
                         durationMs = currentMetadata.duration.takeIf { it > 0 }?.times(1000L),
+                        canvasUrl = auraCanvasUrl,
                         modifier = Modifier
                             .fillMaxSize()
                     )

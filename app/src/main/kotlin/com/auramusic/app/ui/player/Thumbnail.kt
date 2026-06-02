@@ -116,7 +116,6 @@ import com.auramusic.app.LocalPlayerConnection
 import com.auramusic.app.R
 import com.auramusic.app.constants.CropAlbumArtKey
 import com.auramusic.app.constants.HidePlayerThumbnailKey
-import com.auramusic.app.constants.AuraCanvasEnabledKey
 import com.auramusic.app.constants.PlayerBackgroundStyle
 import com.auramusic.app.constants.PlayerBackgroundStyleKey
 import com.auramusic.app.constants.PlayerHorizontalPadding
@@ -258,7 +257,6 @@ fun Thumbnail(
     isPlayerExpanded: () -> Boolean = { true },
     isLandscape: Boolean = false,
     isListenTogetherGuest: Boolean = false,
-    hideWhenCanvasActive: Boolean = false,
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val context = LocalContext.current
@@ -283,7 +281,6 @@ fun Thumbnail(
     val swipeThumbnail = swipeThumbnailPref && !isListenTogetherGuest
     val hidePlayerThumbnail by rememberPreference(HidePlayerThumbnailKey, false)
     val cropAlbumArt by rememberPreference(CropAlbumArtKey, true)
-    val auraCanvasEnabled by rememberPreference(AuraCanvasEnabledKey, false)
     val playerBackground by rememberEnumPreference(
         key = PlayerBackgroundStyleKey,
         defaultValue = PlayerBackgroundStyle.DEFAULT
@@ -384,9 +381,8 @@ fun Thumbnail(
         }
 
         // Main thumbnail view
-        val shouldHideThumbnail = hideWhenCanvasActive && auraCanvasEnabled && isPlayerExpanded()
         AnimatedVisibility(
-            visible = error == null && !shouldHideThumbnail,
+            visible = error == null,
             enter = fadeIn(),
             exit = fadeOut(),
             modifier = Modifier

@@ -44,7 +44,7 @@ import timber.log.Timber
  * on top of the album-art thumbnail when one is available.
  *
  * Uses a dedicated ExoPlayer (NOT the main playback player) so audio is
- * untouched. Renders nothing while no canvas URL is resolved.
+ * untouched. Only renders when a canvas URL is available.
  *
  * Resolution goes through [AuraCanvasRepository] which tries the community
  * manifest first, then the Render server (which does Spotify search + canvas
@@ -57,21 +57,13 @@ fun AuraCanvasOverlay(
     artist: String?,
     album: String? = null,
     durationMs: Long? = null,
+    canvasUrl: String? = null,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    var canvasUrl by remember(title, artist, album, durationMs) { mutableStateOf<String?>(null) }
     var isVideoReady by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) { AuraCanvasRepository.warmUp() }
-
-    LaunchedEffect(title, artist, album, durationMs) {
-        canvasUrl = null
-        isVideoReady = false
-        canvasUrl = runCatching {
-            AuraCanvasRepository.findCanvasUrl(title, artist, album, durationMs)
-        }.getOrNull()
-    }
 
     val url = canvasUrl ?: return
 
