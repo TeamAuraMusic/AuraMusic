@@ -288,8 +288,6 @@ fun Thumbnail(
         defaultValue = PlayerBackgroundStyle.DEFAULT
     )
     
-    val shouldHideThumbnail = (hideWhenCanvasActive && shouldShowAuraCanvas) || hidePlayerThumbnail
-    
     val textBackgroundColor = getTextColor(playerBackground)
     
     // Grid state
@@ -385,7 +383,7 @@ fun Thumbnail(
 
         // Main thumbnail view
         AnimatedVisibility(
-            visible = error == null,
+            visible = error == null && !(hideWhenCanvasActive && shouldShowAuraCanvas),
             enter = fadeIn(),
             exit = fadeOut(),
             modifier = Modifier
@@ -560,8 +558,6 @@ private fun ThumbnailItem(
     var skipMultiplier by remember { mutableIntStateOf(1) }
     var lastTapTime by remember { mutableLongStateOf(0L) }
 
-    val shouldHideThumbnail = (hideWhenCanvasActive && shouldShowAuraCanvas) || hidePlayerThumbnail
-
     Box(
         modifier = modifier
             .then(
@@ -624,7 +620,7 @@ private fun ThumbnailItem(
                 )
                 .clip(RoundedCornerShape(dimensions.cornerRadius))
         ) {
-            if (shouldHideThumbnail) {
+            if (hidePlayerThumbnail) {
                 HiddenThumbnailPlaceholder(textBackgroundColor = textBackgroundColor)
             } else {
                 val artworkUriToUse = if (item.mediaId == currentMediaId && !currentMediaThumbnail.isNullOrBlank()) {
