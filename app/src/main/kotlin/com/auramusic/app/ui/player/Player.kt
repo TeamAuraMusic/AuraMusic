@@ -195,6 +195,7 @@ import com.auramusic.app.ui.utils.toHighQualityThumbnail
 import com.auramusic.app.utils.makeTimeString
 import com.auramusic.app.utils.rememberEnumPreference
 import com.auramusic.app.utils.rememberPreference
+import com.auramusic.app.playback.AuraCanvasRepository
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -226,7 +227,6 @@ fun BottomSheetPlayer(
     )
     val (hidePlayerThumbnail, onHidePlayerThumbnailChange) = rememberPreference(HidePlayerThumbnailKey, false)
     val (enableVoiceCommands, onEnableVoiceCommandsChange) = rememberPreference(EnableVoiceCommandsKey, defaultValue = true)
-    val auraCanvasEnabled by rememberPreference(AuraCanvasEnabledKey, false)
     val cropAlbumArt by rememberPreference(CropAlbumArtKey, true)
     val playerBackground by rememberEnumPreference(
         key = PlayerBackgroundStyleKey,
@@ -783,10 +783,10 @@ fun BottomSheetPlayer(
         if (auraCanvasEnabled && state.isExpanded && mediaMetadata?.isVideoSong != true && !videoModeEnabled) {
             auraCanvasUrl = runCatching {
                 AuraCanvasRepository.findCanvasUrl(
-                    title = mediaMetadata.title,
-                    artist = mediaMetadata.artists.joinToString(", ") { it.name },
-                    album = mediaMetadata.album?.title,
-                    durationMs = mediaMetadata.duration.takeIf { it > 0 }?.times(1000L)
+                    title = mediaMetadata?.title,
+                    artist = mediaMetadata?.artists?.joinToString(", ") { it.name },
+                    album = mediaMetadata?.album?.title,
+                    durationMs = mediaMetadata?.duration?.takeIf { it > 0 }?.times(1000L)
                 )
             }.getOrNull()
         } else {
@@ -794,7 +794,7 @@ fun BottomSheetPlayer(
         }
     }
     
-    val shouldShowAuraCanvas = auraCanvasUrl != null
+    val shouldAuraCanvas = auraCanvasUrl != null
 
     BottomSheet(
         state = state,
@@ -806,7 +806,7 @@ fun BottomSheetPlayer(
                     .background(bottomSheetBackgroundColor)
             ) {
                 val currentMetadata = mediaMetadata
-                if (shouldShowAuraCanvas && currentMetadata != null) {
+                if (shouldAuraCanvas && currentMetadata != null) {
                     AuraCanvasOverlay(
                         title = currentMetadata.title,
                         artist = currentMetadata.artists.joinToString(", ") { it.name },
@@ -2067,6 +2067,7 @@ fun BottomSheetPlayer(
                                     isLandscape = true,
                                     isListenTogetherGuest = isListenTogetherGuest,
                                     hideWhenCanvasActive = true,
+                                    shouldShowAuraCanvas = shouldAuraCanvas,
                                 )
                             }
                         }
@@ -2134,6 +2135,7 @@ fun BottomSheetPlayer(
                                     isPlayerExpanded = isExpandedProvider,
                                     isListenTogetherGuest = isListenTogetherGuest,
                                     hideWhenCanvasActive = true,
+                                    shouldShowAuraCanvas = shouldAuraCanvas,
                                 )
                             }
                         }

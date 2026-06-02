@@ -257,6 +257,8 @@ fun Thumbnail(
     isPlayerExpanded: () -> Boolean = { true },
     isLandscape: Boolean = false,
     isListenTogetherGuest: Boolean = false,
+    hideWhenCanvasActive: Boolean = false,
+    shouldShowAuraCanvas: Boolean = false,
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val context = LocalContext.current
@@ -286,7 +288,8 @@ fun Thumbnail(
         defaultValue = PlayerBackgroundStyle.DEFAULT
     )
     
-    // Pre-calculate text color based on background style
+    val shouldHideThumbnail = (hideWhenCanvasActive && shouldShowAuraCanvas) || hidePlayerThumbnail
+    
     val textBackgroundColor = getTextColor(playerBackground)
     
     // Grid state
@@ -466,6 +469,8 @@ fun Thumbnail(
                                 currentMediaId = mediaMetadata?.id,
                                 currentMediaThumbnail = mediaMetadata?.thumbnailUrl,
                                 videoModeEnabled = videoModeEnabled,
+                                hideWhenCanvasActive = hideWhenCanvasActive,
+                                shouldShowAuraCanvas = shouldShowAuraCanvas,
                             )
                         }
                     }
@@ -547,11 +552,15 @@ private fun ThumbnailItem(
     currentMediaId: String? = null,
     currentMediaThumbnail: String? = null,
     videoModeEnabled: Boolean = false,
+    hideWhenCanvasActive: Boolean = false,
+    shouldShowAuraCanvas: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val incrementalSeekSkipEnabled by rememberPreference(SeekExtraSeconds, defaultValue = false)
     var skipMultiplier by remember { mutableIntStateOf(1) }
     var lastTapTime by remember { mutableLongStateOf(0L) }
+
+    val shouldHideThumbnail = (hideWhenCanvasActive && shouldShowAuraCanvas) || hidePlayerThumbnail
 
     Box(
         modifier = modifier
@@ -615,7 +624,7 @@ private fun ThumbnailItem(
                 )
                 .clip(RoundedCornerShape(dimensions.cornerRadius))
         ) {
-            if (hidePlayerThumbnail) {
+            if (shouldHideThumbnail) {
                 HiddenThumbnailPlaceholder(textBackgroundColor = textBackgroundColor)
             } else {
                 val artworkUriToUse = if (item.mediaId == currentMediaId && !currentMediaThumbnail.isNullOrBlank()) {
