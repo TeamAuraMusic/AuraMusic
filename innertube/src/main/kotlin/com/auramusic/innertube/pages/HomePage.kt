@@ -64,8 +64,9 @@ data class HomePage(
                 return when {
                     renderer.isSong -> {
                         val subtitleRuns = renderer.subtitle?.runs?.oddElements() ?: return null
+                        val watchEndpoint = PageHelper.watchEndpoint(renderer)
                         SongItem(
-                            id = renderer.navigationEndpoint.watchEndpoint?.videoId ?: return null,
+                            id = watchEndpoint?.videoId ?: return null,
                             title = renderer.title.runs?.firstOrNull()?.text ?: return null,
                             artists = subtitleRuns.filter { run ->
                                 run.navigationEndpoint?.browseEndpoint?.browseId?.startsWith("UC") == true ||
@@ -95,7 +96,8 @@ data class HomePage(
                                 ?: return null,
                             explicit = renderer.subtitleBadges?.any {
                                 it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
-                            } == true
+                            } == true,
+                            endpoint = watchEndpoint
                         )
                     }
                     renderer.isAlbum -> {

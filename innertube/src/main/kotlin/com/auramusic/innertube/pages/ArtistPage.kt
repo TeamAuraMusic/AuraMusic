@@ -90,9 +90,10 @@ data class ArtistPage(
 
             // Extract library tokens using the new method that properly handles multiple toggle items
             val libraryTokens = PageHelper.extractLibraryTokensFromMenuItems(renderer.menu?.menuRenderer?.items)
+            val watchEndpoint = PageHelper.watchEndpoint(renderer)
 
             return SongItem(
-                id = renderer.playlistItemData?.videoId ?: return null,
+                id = PageHelper.videoId(renderer) ?: return null,
                 title = renderer.flexColumns.firstOrNull()
                     ?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.firstOrNull()
                     ?.text ?: return null,
@@ -104,8 +105,7 @@ data class ArtistPage(
                 explicit = renderer.badges?.find {
                     it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
                 } != null,
-                endpoint = renderer.overlay?.musicItemThumbnailOverlayRenderer?.content
-                    ?.musicPlayButtonRenderer?.playNavigationEndpoint?.watchEndpoint,
+                endpoint = watchEndpoint,
                 libraryAddToken = libraryTokens.addToken,
                 libraryRemoveToken = libraryTokens.removeToken
             )
@@ -115,8 +115,9 @@ data class ArtistPage(
             return when {
                 renderer.isSong -> {
                     val subtitleRuns = renderer.subtitle?.runs?.oddElements() ?: return null
+                    val watchEndpoint = PageHelper.watchEndpoint(renderer)
                     SongItem(
-                        id = renderer.navigationEndpoint.watchEndpoint?.videoId ?: return null,
+                        id = watchEndpoint?.videoId ?: return null,
                         title = renderer.title.runs?.firstOrNull()?.text ?: return null,
                         artists = subtitleRuns.filter { 
                             it.navigationEndpoint?.browseEndpoint?.browseId?.startsWith("UC") == true ||
@@ -137,7 +138,8 @@ data class ArtistPage(
                         thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
                         explicit = renderer.subtitleBadges?.find {
                             it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
-                        } != null
+                        } != null,
+                        endpoint = watchEndpoint
                     )
                 }
 

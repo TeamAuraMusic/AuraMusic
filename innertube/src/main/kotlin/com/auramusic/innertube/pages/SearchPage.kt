@@ -95,9 +95,10 @@ object SearchPage {
             }
             renderer.isSong -> {
                 val libraryTokens = PageHelper.extractLibraryTokensFromMenuItems(renderer.menu?.menuRenderer?.items)
+                val watchEndpoint = PageHelper.watchEndpoint(renderer)
 
                 SongItem(
-                    id = renderer.playlistItemData?.videoId ?: return null,
+                    id = PageHelper.videoId(renderer) ?: return null,
                     title =
                         renderer.flexColumns
                             .firstOrNull()
@@ -132,6 +133,7 @@ object SearchPage {
                         renderer.badges?.find {
                             it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
                         } != null,
+                    endpoint = watchEndpoint,
                     libraryAddToken = libraryTokens.addToken,
                     libraryRemoveToken = libraryTokens.removeToken,
                     isEpisode = false

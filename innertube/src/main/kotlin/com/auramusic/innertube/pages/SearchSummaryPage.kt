@@ -214,9 +214,10 @@ data class SearchSummaryPage(
                 renderer.isSong -> {
                     // Extract library tokens using the new method that properly handles multiple toggle items
                     val libraryTokens = PageHelper.extractLibraryTokensFromMenuItems(renderer.menu?.menuRenderer?.items)
+                    val watchEndpoint = PageHelper.watchEndpoint(renderer)
 
                     SongItem(
-                        id = renderer.playlistItemData?.videoId ?: return null,
+                        id = PageHelper.videoId(renderer) ?: return null,
                         title =
                             renderer.flexColumns
                                 .firstOrNull()
@@ -249,6 +250,7 @@ data class SearchSummaryPage(
                             renderer.badges?.find {
                                 it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
                             } != null,
+                        endpoint = watchEndpoint,
                         libraryAddToken = libraryTokens.addToken,
                         libraryRemoveToken = libraryTokens.removeToken
                     )

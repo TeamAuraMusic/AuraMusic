@@ -1,8 +1,11 @@
 package com.auramusic.innertube.pages
 
 import com.auramusic.innertube.models.Menu
+import com.auramusic.innertube.models.MusicResponsiveListItemRenderer
 import com.auramusic.innertube.models.MusicResponsiveListItemRenderer.FlexColumn
+import com.auramusic.innertube.models.MusicTwoRowItemRenderer
 import com.auramusic.innertube.models.Run
+import com.auramusic.innertube.models.WatchEndpoint
 
 object PageHelper {
     // Icon types for library management (YouTube changed these in Feb 2026)
@@ -64,6 +67,35 @@ object PageHelper {
         }
         return filteredRuns
     }
+
+    /**
+     * Current YouTube Music list rows often omit playlistItemData and put the
+     * playable endpoint only on the thumbnail overlay. Prefer that same endpoint
+     * for id/musicVideoType/queue creation so parsers don't silently drop songs.
+     */
+    fun watchEndpoint(renderer: MusicResponsiveListItemRenderer): WatchEndpoint? =
+        renderer.overlay
+            ?.musicItemThumbnailOverlayRenderer
+            ?.content
+            ?.musicPlayButtonRenderer
+            ?.playNavigationEndpoint
+            ?.anyWatchEndpoint
+            ?: renderer.navigationEndpoint?.anyWatchEndpoint
+
+    fun videoId(renderer: MusicResponsiveListItemRenderer): String? =
+        renderer.playlistItemData?.videoId ?: watchEndpoint(renderer)?.videoId
+
+    fun playlistSetVideoId(renderer: MusicResponsiveListItemRenderer): String? =
+        renderer.playlistItemData?.playlistSetVideoId ?: watchEndpoint(renderer)?.playlistSetVideoId
+
+    fun watchEndpoint(renderer: MusicTwoRowItemRenderer): WatchEndpoint? =
+        renderer.thumbnailOverlay
+            ?.musicItemThumbnailOverlayRenderer
+            ?.content
+            ?.musicPlayButtonRenderer
+            ?.playNavigationEndpoint
+            ?.anyWatchEndpoint
+            ?: renderer.navigationEndpoint.anyWatchEndpoint
 
     /**
      * Extract library feedback tokens from a list of menu items.
