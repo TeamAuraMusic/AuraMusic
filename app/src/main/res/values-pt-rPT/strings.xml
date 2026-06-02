@@ -949,4 +949,9 @@
     </plurals>
     <string name="aura_canvas_desc">Mostrar looping AuraCanvas vídeos por trás da arte do álbum quando uma partida é encontrada no manifesto da comunidade. Experimental.</string>
     <string name="aura_canvas">AuraCanvas</string>
+    <string name="new_releases_channel_desc">Notificações de novos lançamentos para artistas aos quais é subscrito</string>
+    <string name="new_releases_channel_name">Novos lançamentos</string>
+    <string name="new_release_notification_title_single">Novo lançamento de um artista ao qual é subscrito</string>
+    <string name="new_release_notification_title_multiple">%d novos lançamentos de artistas aos quais é subscritos</string>
+    <string name="new_release_notifications">Notificações de novos lançamentos</string>
 </resources>
