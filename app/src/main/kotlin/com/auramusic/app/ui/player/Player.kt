@@ -163,8 +163,6 @@ import com.auramusic.app.constants.ThumbnailCornerRadius
 import com.auramusic.app.constants.UseNewPlayerDesignKey
 import com.auramusic.app.constants.VideoModeEnabledKey
 import com.auramusic.app.constants.ShowLyricsKey
-import com.auramusic.app.constants.KaraokeModeKey
-import com.auramusic.app.constants.KaraokeVocalSuppressionKey
 import com.auramusic.app.db.entities.LyricsEntity
 import com.auramusic.app.ui.player.Thumbnail
 import com.auramusic.app.extensions.togglePlayPause
@@ -645,19 +643,10 @@ fun BottomSheetPlayer(
     var showHardwareIntegrationDialog by remember {
         mutableStateOf(false)
     }
-    var showKaraokeServerSheet by remember { mutableStateOf(false) }
 
     if (showHardwareIntegrationDialog) {
         com.auramusic.app.ui.component.HardwareIntegrationDialog(
             onDismiss = { showHardwareIntegrationDialog = false },
-        )
-    }
-
-    if (showKaraokeServerSheet) {
-        com.auramusic.app.ui.component.KaraokeServerConnectionSheet(
-            service = playerConnection.service,
-            onDismiss = { showKaraokeServerSheet = false },
-            onConnected = { showKaraokeServerSheet = false }
         )
     }
 
@@ -667,8 +656,6 @@ fun BottomSheetPlayer(
     }
 
     val (showInlineLyrics, onShowInlineLyricsChange) = rememberPreference(ShowLyricsKey, false)
-    val (karaokeModeEnabled, onKaraokeModeEnabledChange) = rememberPreference(KaraokeModeKey, false)
-    val (karaokeVocalSuppression, onKaraokeVocalSuppressionChange) = rememberPreference(KaraokeVocalSuppressionKey, 1.0f)
 
     var isFullScreen by rememberSaveable {
         mutableStateOf(false)
@@ -698,26 +685,6 @@ fun BottomSheetPlayer(
     fun onLyricsToggle() {
         hasUserToggledLyrics = true
         onShowInlineLyricsChange(!showInlineLyrics)
-    }
-
-    fun onKaraokeToggle() {
-        val newState = !karaokeModeEnabled
-        onKaraokeModeEnabledChange(newState)
-
-        // Toggle vocal suppression (local) or fetch instrumental from
-        // https://karaoke.auramusic.site/ for true ML karaoke mode.
-        if (newState) {
-            playerConnection.service.equalizerService
-                .enableVocalSuppression(karaokeVocalSuppression.coerceIn(0f, 1f))
-            showKaraokeServerSheet = true   // Show ML server connection sheet
-            // Auto-show lyrics so the user has something to sing along with.
-            if (!showInlineLyrics) {
-                hasUserToggledLyrics = true
-                onShowInlineLyricsChange(true)
-            }
-        } else {
-            playerConnection.service.equalizerService.disableVocalSuppression()
-        }
     }
 
     // Position update - only for local playback
@@ -2056,7 +2023,6 @@ fun BottomSheetPlayer(
                                 InlineLyricsView(
                                     mediaMetadata = mediaMetadata,
                                     showLyrics = showLyrics,
-                                    karaokeModeEnabled = karaokeModeEnabled,
                                     positionProvider = { effectivePosition }
                                 )
                             } else {
@@ -2125,7 +2091,6 @@ fun BottomSheetPlayer(
                                 InlineLyricsView(
                                     mediaMetadata = mediaMetadata,
                                     showLyrics = showLyrics,
-                                    karaokeModeEnabled = false, // TODO: Pass actual karaoke mode state
                                     positionProvider = { effectivePosition }
                                 )
                             } else {
@@ -2171,13 +2136,9 @@ fun BottomSheetPlayer(
                 iconButtonColor = iconButtonColor,
                 pureBlack = pureBlack,
                 showInlineLyrics = showInlineLyrics,
-                karaokeModeEnabled = karaokeModeEnabled,
                 playerBackground = playerBackground,
                 onToggleLyrics = {
                     onLyricsToggle()
-                },
-                onToggleKaraoke = {
-                    onKaraokeToggle()
                 },
             )
         }
@@ -2203,7 +2164,6 @@ fun BottomSheetPlayer(
 fun InlineLyricsView(
     mediaMetadata: MediaMetadata?,
     showLyrics: Boolean,
-    karaokeModeEnabled: Boolean = false,
     positionProvider: () -> Long
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
@@ -2277,13 +2237,11 @@ fun InlineLyricsView(
             }
             else -> {
                 val lyricsContent: @Composable () -> Unit = {
-                    val currentKaraokeMode = karaokeModeEnabled
                     if (!videoModeEnabled) {
                         Lyrics(
                             sliderPositionProvider = positionProvider,
                             modifier = Modifier.padding(horizontal = 24.dp),
                             showLyrics = showLyrics,
-                            karaokeModeEnabled = currentKaraokeMode
                         )
                     }
                 }

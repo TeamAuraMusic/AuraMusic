@@ -148,10 +148,8 @@ fun Queue(
     iconButtonColor: Color,
     pureBlack: Boolean,
     showInlineLyrics: Boolean,
-    karaokeModeEnabled: Boolean = false,
     playerBackground: PlayerBackgroundStyle = PlayerBackgroundStyle.DEFAULT,
     onToggleLyrics: () -> Unit = {},
-    onToggleKaraoke: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
@@ -322,22 +320,6 @@ fun Queue(
                         icon = R.drawable.lyrics,
                         onClick = onToggleLyrics,
                         isActive = showInlineLyrics,
-                        shape = middleShape,
-                        modifier = Modifier.size(buttonSize),
-                        textButtonColor = textButtonColor,
-                        iconButtonColor = iconButtonColor,
-                        iconSize = iconSize,
-                        textBackgroundColor = TextBackgroundColor,
-                        playerBackground = playerBackground
-                    )
-
-                    // Karaoke (between Lyrics and Sleep timer), in its own
-                    // boxed pill button — distinct from the plain mic icon
-                    // used by hum-to-search.
-                    PlayerQueueButton(
-                        icon = R.drawable.karaoke,
-                        onClick = onToggleKaraoke,
-                        isActive = karaokeModeEnabled,
                         shape = middleShape,
                         modifier = Modifier.size(buttonSize),
                         textButtonColor = textButtonColor,

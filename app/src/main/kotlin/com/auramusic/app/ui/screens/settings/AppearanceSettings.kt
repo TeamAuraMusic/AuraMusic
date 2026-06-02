@@ -73,8 +73,6 @@ import com.auramusic.app.constants.EnableHighRefreshRateKey
 import com.auramusic.app.constants.GridItemSize
 import com.auramusic.app.constants.GridItemsSizeKey
 import com.auramusic.app.constants.HidePlayerThumbnailKey
-import com.auramusic.app.constants.KaraokeModeKey
-import com.auramusic.app.constants.KaraokeVocalSuppressionKey
 import com.auramusic.app.constants.LibraryFilter
 import com.auramusic.app.constants.LyricsAnimationStyle
 import com.auramusic.app.constants.LyricsAnimationStyleKey
@@ -237,17 +235,6 @@ fun AppearanceSettings(
     val (customFontUri, onCustomFontUriChange) = rememberPreference(LyricsCustomFontUriKey, defaultValue = "")
     val (enhancedLyrics, onEnhancedLyricsChange) = rememberPreference(EnhancedLyricsKey, defaultValue = false)
 
-    val (karaokeModeEnabled, onKaraokeModeEnabledChange) = rememberPreference(KaraokeModeKey, false)
-    val (karaokeVocalSuppression, onKaraokeVocalSuppressionChange) = rememberPreference(KaraokeVocalSuppressionKey, 1.0f)
-    val playerConnection = LocalPlayerConnection.current
-    fun applyKaraoke(enabled: Boolean, strength: Float) {
-        val service = playerConnection?.service ?: return
-        if (enabled) {
-            service.equalizerService.enableVocalSuppression(strength.coerceIn(0f, 1f))
-        } else {
-            service.equalizerService.disableVocalSuppression()
-        }
-    }
     val (sliderStyle, onSliderStyleChange) = rememberEnumPreference(
         SliderStyleKey,
         defaultValue = SliderStyle.DEFAULT
@@ -1642,61 +1629,6 @@ fun AppearanceSettings(
                         )
                     },
                     onClick = { onLyricsScrollChange(!lyricsScroll) }
-                )
-            )
-        )
-
-        Spacer(modifier = Modifier.height(27.dp))
-
-        Material3SettingsGroup(
-            title = stringResource(R.string.karaoke),
-            items = listOf(
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.karaoke),
-                    title = { Text(stringResource(R.string.karaoke_mode)) },
-                    description = { Text(stringResource(R.string.karaoke_mode_desc)) },
-                    trailingContent = {
-                        Switch(
-                            checked = karaokeModeEnabled,
-                            onCheckedChange = { enabled ->
-                                onKaraokeModeEnabledChange(enabled)
-                                applyKaraoke(enabled, karaokeVocalSuppression)
-                            },
-                            thumbContent = if (karaokeModeEnabled) {
-                                {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.check),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(SwitchDefaults.IconSize)
-                                    )
-                                }
-                            } else null
-                        )
-                    },
-                    onClick = {
-                        val newState = !karaokeModeEnabled
-                        onKaraokeModeEnabledChange(newState)
-                        applyKaraoke(newState, karaokeVocalSuppression)
-                    }
-                ),
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.volume_down),
-                    title = { Text(stringResource(R.string.karaoke_vocal_suppression)) },
-                    description = {
-                        Column {
-                            Text("${(karaokeVocalSuppression * 100).toInt()}%")
-                            Slider(
-                                value = karaokeVocalSuppression,
-                                onValueChange = { v ->
-                                    onKaraokeVocalSuppressionChange(v)
-                                    if (karaokeModeEnabled) applyKaraoke(true, v)
-                                },
-                                valueRange = 0f..1f,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                    },
-                    onClick = {}
                 )
             )
         )

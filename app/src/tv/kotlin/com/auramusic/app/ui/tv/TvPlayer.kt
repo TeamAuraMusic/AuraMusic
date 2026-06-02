@@ -393,7 +393,6 @@ fun TvPlayerScreen(
                         if (showLyrics) {
                             // Show lyrics behind thumbnail when enabled
                             val positionProvider = { currentPosition }
-                            val karaokeModeEnabled = false
 
                             val lyrics = remember(currentLyrics) { currentLyrics?.lyrics?.trim() }
 
@@ -426,7 +425,6 @@ fun TvPlayerScreen(
                                                 .fillMaxSize()
                                                 .padding(horizontal = 16.dp),
                                             showLyrics = true,
-                                            karaokeModeEnabled = karaokeModeEnabled,
                                             disableInteractiveFeatures = true
                                         )
                                     }

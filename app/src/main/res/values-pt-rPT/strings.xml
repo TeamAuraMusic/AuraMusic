@@ -320,9 +320,6 @@
     <string name="apple_music_style">Estilo Apple Music</string>
     <string name="monochrome_style">Estilo monocromático</string>
     <string name="player_background_animated_gradient">Gradiente animado</string>
-    <string name="karaoke_mode">Modo karaokê</string>
-    <string name="karaoke_mode_desc">ML-powered instrumental via https://karaoke.auramusic.site/ (ou supressão vocal local). Cante junto com letras sincronizadas.</string>
-    <string name="karaoke_vocal_suppression">Intensidade da supressão vocal</string>
     <string name="lyrics_glow_effect">Efeito de brilho na letra</string>
     <string name="lyrics_glow_effect_desc">Ativar efeito de brilho na linha da letra atual</string>
     <string name="lyrics_click_change">Clique na letra para mudar</string>

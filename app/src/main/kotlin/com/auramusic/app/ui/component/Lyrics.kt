@@ -239,7 +239,6 @@ fun Lyrics(
     sliderPositionProvider: () -> Long?,
     modifier: Modifier = Modifier,
     showLyrics: Boolean,
-    karaokeModeEnabled: Boolean = false,
     disableInteractiveFeatures: Boolean = false
 ) {
     val enhancedLyrics by rememberPreference(EnhancedLyricsKey, false)
@@ -254,7 +253,6 @@ fun Lyrics(
             sliderPositionProvider = sliderPositionProvider,
             modifier = modifier,
             showLyrics = showLyrics,
-            karaokeModeEnabled = karaokeModeEnabled,
             disableInteractiveFeatures = disableInteractiveFeatures,
         )
     }
@@ -267,7 +265,6 @@ fun OriginalLyrics(
     sliderPositionProvider: () -> Long?,
     modifier: Modifier = Modifier,
     showLyrics: Boolean,
-    karaokeModeEnabled: Boolean = false,
     disableInteractiveFeatures: Boolean = false
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
@@ -302,7 +299,7 @@ fun OriginalLyrics(
     val enhancedLyrics by rememberPreference(EnhancedLyricsKey, false)
     val lyricsAnimationStyle by rememberEnumPreference(LyricsAnimationStyleKey, LyricsAnimationStyle.NONE)
     val baseLyricsTextSize by rememberPreference(LyricsTextSizeKey, 24f)
-    val lyricsTextSize = if (karaokeModeEnabled) (baseLyricsTextSize * 1.5f).coerceAtMost(48f) else baseLyricsTextSize
+    val lyricsTextSize = baseLyricsTextSize
     val lyricsLineSpacing by rememberPreference(LyricsLineSpacingKey, 1.3f)
     val instrumentalGapMs by rememberPreference(LyricsInstrumentalGapMsKey, 5000)
     val connectedLines by rememberPreference(LyricsConnectedLinesKey, true)

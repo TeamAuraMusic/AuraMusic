@@ -373,13 +373,10 @@
     <string name="fade">Fa</string>
     <string name="glow">Glow</string>
     <string name="slide">Diagonale</string>
-    <string name="karaoke">- Ja</string>
+    <string name="karaoke">Karaoke</string>
     <string name="apple_music_style">Apple Music Style</string>
     <string name="monochrome_style">Monochromer Stil</string>
     <string name="player_background_animated_gradient">Animierter Gradient</string>
-    <string name="karaoke_mode">Wie geht\'s</string>
-    <string name="karaoke_mode_desc">ML-powered instrumental via https://karaoke.auramusic.site/ (oder lokale Stimmunterdrückung). Sing zusammen mit synchronisierten Texten.</string>
-    <string name="karaoke_vocal_suppression">Vokalunterdrückungsfestigkeit</string>
     <string name="lyrics_glow_effect">Englisch glow effect</string>
     <string name="lyrics_glow_effect_desc">Ermöglichen Glüheffekt auf stromlyrische Linie</string>
     <string name="enhanced_lyrics">Enhanced Songtexte</string>

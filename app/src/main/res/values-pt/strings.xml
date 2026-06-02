@@ -860,9 +860,6 @@
     <string name="liquid_glass_corner_radius">Raio dos cantos</string>
     <string name="liquid_glass_opacity">Opacidade</string>
     <string name="liquid_glass_settings">Vidro líquido</string>
-    <string name="karaoke_mode">Modo karaokê</string>
-    <string name="karaoke_mode_desc">ML-powered instrumental via https://karaoke.auramusic.site/ (ou supressão vocal local). Cante junto com letras sincronizadas.</string>
-    <string name="karaoke_vocal_suppression">Intensidade da supressão vocal</string>
     <string name="voice_commands">Comandos de voz</string>
     <string name="enable_voice_commands">Ativar comandos de voz</string>
     <string name="enable_voice_commands_desc">Ative o controlo de voz interativo com sobreposição animada. Diga comandos como \"Reproduzir\", \"Próximo\" ou \"Pesquisar músicas\".</string>
