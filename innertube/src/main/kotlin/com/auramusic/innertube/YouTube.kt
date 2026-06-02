@@ -947,7 +947,16 @@ object YouTube {
         signatureTimestamp: Int? = null,
         poToken: String? = null,
     ): Result<PlayerResponse> = runCatching {
-        innerTube.player(client, videoId, playlistId, signatureTimestamp, poToken).body<PlayerResponse>()
+        try {
+            innerTube.player(client, videoId, playlistId, signatureTimestamp, poToken).body<PlayerResponse>()
+        } catch (e: Exception) {
+            if (client.loginRequired || client.loginSupported) {
+                timber.log.Timber.w("player: WEB client failed with LOGIN_REQUIRED, falling back to ANDROID")
+                innerTube.player(MOBILE, videoId, playlistId, signatureTimestamp, poToken).body<PlayerResponse>()
+            } else {
+                throw e
+            }
+        }
     }
 
     suspend fun registerPlayback(playlistId: String? = null, playbackTracking: String) = runCatching {

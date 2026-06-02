@@ -11,6 +11,7 @@ data class NextResponse(
     val contents: Contents,
     val continuationContents: ContinuationContents?,
     val currentVideoEndpoint: NavigationEndpoint?,
+    val frameworkUpdates: FrameworkUpdates?,
 ) {
     @Serializable
     data class Contents(
@@ -37,4 +38,42 @@ data class NextResponse(
     data class ContinuationContents(
         val playlistPanelContinuation: PlaylistPanelRenderer,
     )
+
+    @Serializable
+    data class FrameworkUpdates(
+        val entityBatchUpdate: EntityBatchUpdate?,
+    ) {
+        @Serializable
+        data class EntityBatchUpdate(
+            val mutations: List<Mutation>,
+        ) {
+            @Serializable
+            data class Mutation(
+                val entityKey: String?,
+                val payload: MutationPayload?,
+            ) {
+                @Serializable
+                data class MutationPayload(
+                    val commentEntityPayload: CommentEntityPayload?,
+                ) {
+                    @Serializable
+                    data class CommentEntityPayload(
+                        val properties: CommentProperties?,
+                    ) {
+                        @Serializable
+                        data class CommentProperties(
+                            val commentId: String?,
+                            val content: Content?,
+                            val publishedTime: String?,
+                        ) {
+                            @Serializable
+                            data class Content(
+                                val content: String?,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

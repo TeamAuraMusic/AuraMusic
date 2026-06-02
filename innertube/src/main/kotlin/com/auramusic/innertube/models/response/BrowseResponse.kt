@@ -23,7 +23,8 @@ data class BrowseResponse(
     val header: Header?,
     val microformat: Microformat?,
     val responseContext: ResponseContext,
-    val background: ThumbnailRenderer?
+    val background: ThumbnailRenderer?,
+    val frameworkUpdates: FrameworkUpdates?,
 ) {
     @Serializable
     data class Contents(
@@ -47,7 +48,7 @@ data class BrowseResponse(
         val sectionListContinuation: SectionListContinuation?,
         val musicPlaylistShelfContinuation: MusicPlaylistShelfContinuation?,
         val gridContinuation: GridContinuation?,
-        val musicShelfContinuation: MusicShelfRenderer?
+        val musicShelfContinuation: MusicShelfRenderer?,
     ) {
         @Serializable
         data class SectionListContinuation(
@@ -150,5 +151,43 @@ data class BrowseResponse(
         data class MicroformatDataRenderer(
             val urlCanonical: String?,
         )
+    }
+
+    @Serializable
+    data class FrameworkUpdates(
+        val entityBatchUpdate: EntityBatchUpdate?,
+    ) {
+        @Serializable
+        data class EntityBatchUpdate(
+            val mutations: List<Mutation>,
+        ) {
+            @Serializable
+            data class Mutation(
+                val entityKey: String?,
+                val payload: MutationPayload?,
+            ) {
+                @Serializable
+                data class MutationPayload(
+                    val commentEntityPayload: CommentEntityPayload?,
+                ) {
+                    @Serializable
+                    data class CommentEntityPayload(
+                        val properties: CommentProperties?,
+                    ) {
+                        @Serializable
+                        data class CommentProperties(
+                            val commentId: String?,
+                            val content: Content?,
+                            val publishedTime: String?,
+                        ) {
+                            @Serializable
+                            data class Content(
+                                val content: String?,
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
