@@ -10,6 +10,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -75,7 +76,7 @@ object NewReleaseNotificationChecker {
         }
     }
 
-    private fun showNotification(context: Context, albums: List<AlbumItem>) {
+    private suspend fun showNotification(context: Context, albums: List<AlbumItem>) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
         ) {
@@ -92,10 +93,11 @@ object NewReleaseNotificationChecker {
             if (artist.isBlank()) album.title else "${album.title} • $artist"
         } ?: context.getString(R.string.new_releases)
 
+        val playIntent = createPlayFirstReleaseIntent(context, albums)
         val pendingIntent = PendingIntent.getActivity(
             context,
             NOTIFICATION_ID,
-            Intent(context, MainActivity::class.java),
+            playIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
@@ -117,5 +119,24 @@ object NewReleaseNotificationChecker {
             .build()
 
         NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
+    }
+
+    private suspend fun createPlayFirstReleaseIntent(context: Context, albums: List<AlbumItem>): Intent {
+        albums.forEach { album ->
+            val firstSong = YouTube.albumSongs(album.playlistId, album).getOrNull()?.firstOrNull()
+            if (firstSong != null) {
+                return Intent(Intent.ACTION_VIEW).apply {
+                    setClass(context, MainActivity::class.java)
+                    data = Uri.parse("https://music.youtube.com/watch?v=${firstSong.id}&list=${album.playlistId}")
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                }
+            }
+        }
+
+        return Intent(Intent.ACTION_VIEW).apply {
+            setClass(context, MainActivity::class.java)
+            data = Uri.parse(albums.firstOrNull()?.shareLink ?: "auramusic://home")
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
     }
 }
