@@ -36,7 +36,6 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import com.auramusic.app.LocalPlayerConnection
 import com.auramusic.app.playback.AuraCanvasRepository
-import com.auramusic.app.ui.component.CastButton
 import timber.log.Timber
 
 /**
@@ -145,11 +144,6 @@ fun AuraCanvasOverlay(
                         )
                     )
                 )
-        )
-        CastButton(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(16.dp)
         )
     }
 }
