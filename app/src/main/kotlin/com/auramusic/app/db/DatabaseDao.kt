@@ -737,7 +737,7 @@ interface DatabaseDao {
             ArtistSortType.PLAY_TIME -> artistsBookmarkedByPlayTimeAsc()
         }.map { artists ->
             artists
-                .filter { it.artist.isYouTubeArtist || it.artist.isLocal } // TODO: add ui to filter by local or remote or something idk
+                .filter { it.artist.isYouTubeArtist && !it.artist.isLocal }
                 .reversed(descending)
         }
 
