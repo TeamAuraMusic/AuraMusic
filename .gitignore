@@ -111,3 +111,5 @@ app/src/main/java/com/metrolist/music/listentogether/proto/*
 # Signing config files (contains sensitive keystore credentials)
 app/signing-config.gradle.kts
 app/build.gradle.kts
+
+.kilo
