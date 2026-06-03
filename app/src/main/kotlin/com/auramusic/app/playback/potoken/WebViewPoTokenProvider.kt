@@ -8,6 +8,7 @@ import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import com.auramusic.innertube.PoTokenProvider
+import com.auramusic.innertube.YouTube
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -15,6 +16,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import timber.log.Timber
+import org.json.JSONObject
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicReference
 
@@ -217,7 +219,12 @@ class WebViewPoTokenProvider(
 
     private fun buildBotGuardJs(videoId: String, isStreaming: Boolean): String {
         val bindingExpr = if (isStreaming) {
-            "(window.ytcfg && window.ytcfg.get && window.ytcfg.get('VISITOR_DATA')) || ''"
+            val appVisitorData = YouTube.visitorData.orEmpty()
+            if (appVisitorData.isNotBlank()) {
+                JSONObject.quote(appVisitorData)
+            } else {
+                "(window.ytcfg && window.ytcfg.get && window.ytcfg.get('VISITOR_DATA')) || ''"
+            }
         } else {
             "\"$videoId\""
         }

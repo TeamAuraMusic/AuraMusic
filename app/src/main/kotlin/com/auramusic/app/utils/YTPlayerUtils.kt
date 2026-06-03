@@ -6,6 +6,7 @@
 package com.auramusic.app.utils
 
 import android.net.ConnectivityManager
+import androidx.core.net.toUri
 import androidx.media3.common.PlaybackException
 import com.auramusic.innertube.NewPipeExtractor
 import com.auramusic.innertube.PoTokenProvider
@@ -171,6 +172,7 @@ object YTPlayerUtils {
                     Timber.tag(logTag).d("Stream URL not found for format")
                     continue
                 }
+                streamUrl = addStreamingPoTokenIfNeeded(streamUrl, videoId, poTokenProvider)
 
                 streamExpiresInSeconds = streamPlayerResponse.streamingData?.expiresInSeconds
                 if (streamExpiresInSeconds == null) {
@@ -300,6 +302,7 @@ return format
 
         if (muxedFormat != null) {
             val url = findUrlOrNull(muxedFormat, videoId, mainPlayerResponse)
+                ?.let { addStreamingPoTokenIfNeeded(it, videoId, poTokenProvider) }
             if (url != null) {
                 Timber.tag(logTag).d("Found muxed video format: ${muxedFormat.mimeType}, resolution: ${muxedFormat.height}p")
                 return@runCatching url
@@ -314,6 +317,7 @@ return format
 
         if (videoOnlyFormat != null) {
             val url = findUrlOrNull(videoOnlyFormat, videoId, mainPlayerResponse)
+                ?.let { addStreamingPoTokenIfNeeded(it, videoId, poTokenProvider) }
             if (url != null) {
                 Timber.tag(logTag).d("Found video-only format (no audio): ${videoOnlyFormat.mimeType}, resolution: ${videoOnlyFormat.height}p")
                 return@runCatching url
@@ -411,6 +415,31 @@ return format
 
         Timber.tag(logTag).e("Failed to get stream URL")
         return null
+    }
+
+    private suspend fun addStreamingPoTokenIfNeeded(
+        streamUrl: String,
+        videoId: String,
+        poTokenProvider: PoTokenProvider?,
+    ): String {
+        if (!streamUrl.contains("googlevideo.com") && !streamUrl.contains("youtube.com/videoplayback")) {
+            return streamUrl
+        }
+        if (streamUrl.toUri().getQueryParameter("pot") != null) {
+            return streamUrl
+        }
+
+        val streamingPoToken = poTokenProvider?.getStreamingPoToken(videoId)
+        if (streamingPoToken.isNullOrBlank()) {
+            Timber.tag(logTag).w("No streaming PO token available for $videoId; using unmodified GVS URL")
+            return streamUrl
+        }
+
+        Timber.tag(logTag).d("Appending streaming PO token to GVS URL (length=${streamingPoToken.length})")
+        return streamUrl.toUri().buildUpon()
+            .appendQueryParameter("pot", streamingPoToken)
+            .build()
+            .toString()
     }
 
     fun forceRefreshForVideo(videoId: String) {
