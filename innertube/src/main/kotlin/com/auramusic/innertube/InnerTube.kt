@@ -61,6 +61,12 @@ class InnerTube {
 
     var useLoginForBrowse: Boolean = false
 
+    private val hasCompleteLogin: Boolean
+        get() = cookieMap["SAPISID"].isNullOrBlank().not() && !dataSyncId.isNullOrBlank()
+
+    private val shouldUseLoginForBrowse: Boolean
+        get() = useLoginForBrowse && hasCompleteLogin
+
     @OptIn(ExperimentalSerializationApi::class)
     private fun createClient() = HttpClient(OkHttp) {
         expectSuccess = true
@@ -196,13 +202,14 @@ class InnerTube {
         continuation: String? = null,
     ) = withRetry {
         httpClient.post("search") {
-            ytClient(client, setLogin = useLoginForBrowse)
+            val useLogin = shouldUseLoginForBrowse
+            ytClient(client, setLogin = useLogin)
             setBody(
                 SearchBody(
                     context = client.toContext(
                         locale,
                         visitorData,
-                        if (useLoginForBrowse) dataSyncId else null
+                        if (useLogin) dataSyncId else null
                     ),
                     query = query,
                     params = params
@@ -277,13 +284,14 @@ class InnerTube {
         setLogin: Boolean = false,
     ) = withRetry {
         httpClient.post("browse") {
-            ytClient(client, setLogin = setLogin || useLoginForBrowse)
+            val useLogin = setLogin || shouldUseLoginForBrowse
+            ytClient(client, setLogin = useLogin)
             setBody(
                 BrowseBody(
                     context = client.toContext(
                         locale,
                         visitorData,
-                        if (setLogin || useLoginForBrowse) dataSyncId else null
+                        if (useLogin) dataSyncId else null
                     ),
                     browseId = browseId,
                     params = params,

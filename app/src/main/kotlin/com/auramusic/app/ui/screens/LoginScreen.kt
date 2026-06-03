@@ -71,6 +71,9 @@ fun LoginScreen(
 
                         if (url?.startsWith("https://music.youtube.com") == true) {
                             innerTubeCookie = CookieManager.getInstance().getCookie(url)
+                            YouTube.cookie = innerTubeCookie
+                            YouTube.visitorData = visitorData.takeIf { it.isNotBlank() }
+                            YouTube.dataSyncId = dataSyncId.takeIf { it.isNotBlank() }
                             coroutineScope.launch {
                                 YouTube.accountInfo().onSuccess {
                                     accountName = it.name
