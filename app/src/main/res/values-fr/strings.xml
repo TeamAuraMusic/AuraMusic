@@ -949,4 +949,9 @@
     </plurals>
     <string name="aura_canvas_desc">Afficher les vidéos d\'AuraCanvas derrière l\'art de l\'album quand un match se trouve dans le manifeste communautaire. Expérimental.</string>
     <string name="aura_canvas">AuraCanvas</string>
+    <string name="new_releases_channel_desc">Notifications de nouvelles sorties pour les artistes suivis</string>
+    <string name="new_releases_channel_name">Nouveautés</string>
+    <string name="new_release_notification_title_single">Nouvelle sortie d\'un artiste que vous suivez</string>
+    <string name="new_release_notification_title_multiple">%d nouvelles sorties des artistes auxquels vous êtes abonné</string>
+    <string name="new_release_notifications">Notifications de nouvelles versions</string>
 </resources>
