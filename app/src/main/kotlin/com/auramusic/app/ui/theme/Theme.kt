@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.palette.graphics.Palette
 import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamiccolor.ColorSpec
@@ -33,7 +34,7 @@ fun AuraMusicTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     pureBlack: Boolean = false,
     themeColor: Color = DefaultThemeColor,
-    selectedFont: String = "POPPINS",
+    selectedFont: String = "OUTFIT",
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
@@ -63,45 +64,13 @@ fun AuraMusicTheme(
         }
     }
 
-    // Create typography based on selected font
-    val typography = when (selectedFont) {
-        "POPPINS" -> AppTypography
-        "ROBOTO" -> AppTypography.copy(
-            displayLarge = AppTypography.displayLarge.copy(fontFamily = Roboto),
-            displayMedium = AppTypography.displayMedium.copy(fontFamily = Roboto),
-            displaySmall = AppTypography.displaySmall.copy(fontFamily = Roboto),
-            headlineLarge = AppTypography.headlineLarge.copy(fontFamily = Roboto),
-            headlineMedium = AppTypography.headlineMedium.copy(fontFamily = Roboto),
-            headlineSmall = AppTypography.headlineSmall.copy(fontFamily = Roboto),
-            titleLarge = AppTypography.titleLarge.copy(fontFamily = Roboto),
-            titleMedium = AppTypography.titleMedium.copy(fontFamily = Roboto),
-            titleSmall = AppTypography.titleSmall.copy(fontFamily = Roboto),
-            bodyLarge = AppTypography.bodyLarge.copy(fontFamily = Roboto),
-            bodyMedium = AppTypography.bodyMedium.copy(fontFamily = Roboto),
-            bodySmall = AppTypography.bodySmall.copy(fontFamily = Roboto),
-            labelLarge = AppTypography.labelLarge.copy(fontFamily = Roboto),
-            labelMedium = AppTypography.labelMedium.copy(fontFamily = Roboto),
-            labelSmall = AppTypography.labelSmall.copy(fontFamily = Roboto)
-        )
-        "INTER" -> AppTypography.copy(
-            displayLarge = AppTypography.displayLarge.copy(fontFamily = Inter),
-            displayMedium = AppTypography.displayMedium.copy(fontFamily = Inter),
-            displaySmall = AppTypography.displaySmall.copy(fontFamily = Inter),
-            headlineLarge = AppTypography.headlineLarge.copy(fontFamily = Inter),
-            headlineMedium = AppTypography.headlineMedium.copy(fontFamily = Inter),
-            headlineSmall = AppTypography.headlineSmall.copy(fontFamily = Inter),
-            titleLarge = AppTypography.titleLarge.copy(fontFamily = Inter),
-            titleMedium = AppTypography.titleMedium.copy(fontFamily = Inter),
-            titleSmall = AppTypography.titleSmall.copy(fontFamily = Inter),
-            bodyLarge = AppTypography.bodyLarge.copy(fontFamily = Inter),
-            bodyMedium = AppTypography.bodyMedium.copy(fontFamily = Inter),
-            bodySmall = AppTypography.bodySmall.copy(fontFamily = Inter),
-            labelLarge = AppTypography.labelLarge.copy(fontFamily = Inter),
-            labelMedium = AppTypography.labelMedium.copy(fontFamily = Inter),
-            labelSmall = AppTypography.labelSmall.copy(fontFamily = Inter)
-        )
-        else -> AppTypography // Default to Poppins
+    val fontFamily = when (selectedFont) {
+        "MANROPE" -> Manrope
+        "SPACE_GROTESK" -> SpaceGrotesk
+        "DEFAULT", "POPPINS", "ROBOTO", "INTER", "OUTFIT" -> Outfit
+        else -> Outfit
     }
+    val typography = remember(fontFamily) { AppTypography.withFontFamily(fontFamily) }
 
     // Use standard MaterialTheme instead of MaterialExpressiveTheme
     MaterialTheme(
@@ -147,3 +116,21 @@ val ColorSaver = object : Saver<Color, Int> {
     override fun restore(value: Int): Color = Color(value)
     override fun SaverScope.save(value: Color): Int = value.toArgb()
 }
+
+private fun androidx.compose.material3.Typography.withFontFamily(fontFamily: FontFamily) = copy(
+    displayLarge = displayLarge.copy(fontFamily = fontFamily),
+    displayMedium = displayMedium.copy(fontFamily = fontFamily),
+    displaySmall = displaySmall.copy(fontFamily = fontFamily),
+    headlineLarge = headlineLarge.copy(fontFamily = fontFamily),
+    headlineMedium = headlineMedium.copy(fontFamily = fontFamily),
+    headlineSmall = headlineSmall.copy(fontFamily = fontFamily),
+    titleLarge = titleLarge.copy(fontFamily = fontFamily),
+    titleMedium = titleMedium.copy(fontFamily = fontFamily),
+    titleSmall = titleSmall.copy(fontFamily = fontFamily),
+    bodyLarge = bodyLarge.copy(fontFamily = fontFamily),
+    bodyMedium = bodyMedium.copy(fontFamily = fontFamily),
+    bodySmall = bodySmall.copy(fontFamily = fontFamily),
+    labelLarge = labelLarge.copy(fontFamily = fontFamily),
+    labelMedium = labelMedium.copy(fontFamily = fontFamily),
+    labelSmall = labelSmall.copy(fontFamily = fontFamily)
+)

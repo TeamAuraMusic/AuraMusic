@@ -5,36 +5,35 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import com.auramusic.app.R
 
-// Google Fonts integration using downloadable fonts
-val Poppins = FontFamily(
-    Font(R.font.poppins_light, FontWeight.Light),
-    Font(R.font.poppins_regular, FontWeight.Normal),
-    Font(R.font.poppins_medium, FontWeight.Medium),
-    Font(R.font.poppins_semibold, FontWeight.SemiBold),
-    Font(R.font.poppins_bold, FontWeight.Bold),
-    Font(R.font.poppins_black, FontWeight.Black)
+val Outfit = FontFamily(
+    Font(R.font.outfit, FontWeight.Light),
+    Font(R.font.outfit, FontWeight.Normal),
+    Font(R.font.outfit, FontWeight.Medium),
+    Font(R.font.outfit, FontWeight.SemiBold),
+    Font(R.font.outfit, FontWeight.Bold),
+    Font(R.font.outfit, FontWeight.Black)
 )
 
-val Roboto = FontFamily(
-    Font(R.font.roboto_light, FontWeight.Light),
-    Font(R.font.roboto_regular, FontWeight.Normal),
-    Font(R.font.roboto_medium, FontWeight.Medium),
-    Font(R.font.roboto_bold, FontWeight.Bold),
-    Font(R.font.roboto_black, FontWeight.Black)
+val Manrope = FontFamily(
+    Font(R.font.manrope, FontWeight.Light),
+    Font(R.font.manrope, FontWeight.Normal),
+    Font(R.font.manrope, FontWeight.Medium),
+    Font(R.font.manrope, FontWeight.SemiBold),
+    Font(R.font.manrope, FontWeight.Bold),
+    Font(R.font.manrope, FontWeight.Black)
 )
 
-val Inter = FontFamily(
-    Font(R.font.inter_light, FontWeight.Light),
-    Font(R.font.inter_regular, FontWeight.Normal),
-    Font(R.font.inter_medium, FontWeight.Medium),
-    Font(R.font.inter_semibold, FontWeight.SemiBold),
-    Font(R.font.inter_bold, FontWeight.Bold),
-    Font(R.font.inter_black, FontWeight.Black)
+val SpaceGrotesk = FontFamily(
+    Font(R.font.space_grotesk, FontWeight.Light),
+    Font(R.font.space_grotesk, FontWeight.Normal),
+    Font(R.font.space_grotesk, FontWeight.Medium),
+    Font(R.font.space_grotesk, FontWeight.SemiBold),
+    Font(R.font.space_grotesk, FontWeight.Bold),
+    Font(R.font.space_grotesk, FontWeight.Black)
 )
 
-// Enhanced font families with fallbacks
-val DisplayFont = Poppins // For headlines and display text
-val BodyFont = Roboto    // For body text and UI elements
+val DisplayFont = Outfit
+val BodyFont = Outfit
 val MonoFont = FontFamily.Monospace // For code and technical text
 
 // Legacy compatibility

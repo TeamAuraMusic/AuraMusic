@@ -76,6 +76,7 @@ import com.auramusic.app.ui.component.LocalMenuState
 import com.auramusic.app.ui.component.PlaylistGridItem
 import com.auramusic.app.ui.component.PlaylistListItem
 import com.auramusic.app.ui.component.SortHeader
+import com.auramusic.app.ui.component.artistSubscriberSubtitle
 import com.auramusic.app.ui.menu.AlbumMenu
 import com.auramusic.app.ui.menu.ArtistMenu
 import com.auramusic.app.ui.menu.PlaylistMenu
@@ -458,6 +459,7 @@ fun LibraryMixScreen(
                             is Artist -> {
                                 ArtistListItem(
                                     artist = item,
+                                    subtitle = artistSubscriberSubtitle(item),
                                     trailingContent = {
                                         IconButton(
                                             onClick = {
@@ -716,6 +718,7 @@ fun LibraryMixScreen(
                             is Artist -> {
                                 ArtistGridItem(
                                     artist = item,
+                                    subtitle = artistSubscriberSubtitle(item),
                                     fillMaxWidth = true,
                                     modifier =
                                     Modifier

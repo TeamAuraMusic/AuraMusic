@@ -10,8 +10,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-// Enhanced Material 3 Typography with Google Fonts
-// Using Poppins for display/headlines and Roboto for body text
+// Enhanced Material 3 Typography. The selected app font is applied globally in AuraMusicTheme.
 val AppTypography = Typography(
     displayLarge = TextStyle(
         fontFamily = DisplayFont,

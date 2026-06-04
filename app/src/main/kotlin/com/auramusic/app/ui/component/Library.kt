@@ -31,7 +31,7 @@ import com.auramusic.app.utils.rememberPreference
 import kotlinx.coroutines.CoroutineScope
 
 @Composable
-private fun artistSubscriberSubtitle(artist: Artist): String? {
+fun artistSubscriberSubtitle(artist: Artist): String? {
     val showSubscriberCount by rememberPreference(ShowArtistSubscriberCountKey, true)
     return if (showSubscriberCount && artist.artist.bookmarkedAt != null) {
         artist.artist.subscriberCountText?.takeIf { it.isNotBlank() } ?: stringResource(R.string.subscribers)
