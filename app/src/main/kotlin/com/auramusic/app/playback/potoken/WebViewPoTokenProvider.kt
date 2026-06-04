@@ -9,6 +9,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import com.auramusic.innertube.PoTokenProvider
 import com.auramusic.innertube.YouTube
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -66,28 +67,36 @@ class WebViewPoTokenProvider(
     override suspend fun getPlayerPoToken(videoId: String): String? =
         getToken(videoId, isStreaming = false, cache = playerTokenCache)
 
-    override suspend fun getStreamingPoToken(videoId: String): String? =
-        getToken(videoId, isStreaming = true, cache = streamingTokenCache)
+    override suspend fun getStreamingPoToken(videoId: String): String? {
+        val visitorData = YouTube.visitorData.orEmpty()
+        if (visitorData.isBlank()) {
+            Timber.tag(logTag).w("Cannot generate streaming PO token without visitorData")
+            return null
+        }
+        return getToken(visitorData, isStreaming = true, cache = streamingTokenCache)
+    }
 
     private suspend fun getToken(
-        videoId: String,
+        key: String,
         isStreaming: Boolean,
         cache: ConcurrentHashMap<String, CachedToken>,
     ): String? {
-        cache[videoId]?.takeIf { it.isValid() }?.let { return it.value }
+        cache[key]?.takeIf { it.isValid() }?.let { return it.value }
 
         return generationMutex.withLock {
-            cache[videoId]?.takeIf { it.isValid() }?.let { return@withLock it.value }
+            cache[key]?.takeIf { it.isValid() }?.let { return@withLock it.value }
 
             val token = try {
-                generateTokenLocked(videoId, isStreaming)
+                generateTokenLocked(key, isStreaming)
+            } catch (e: CancellationException) {
+                throw e
             } catch (t: Throwable) {
-                Timber.tag(logTag).w(t, "PO token generation threw (video=$videoId, streaming=$isStreaming)")
+                Timber.tag(logTag).w(t, "PO token generation threw (streaming=$isStreaming)")
                 null
             }
 
             if (token != null) {
-                cache[videoId] = CachedToken(token, System.currentTimeMillis() + 6 * 60 * 60 * 1000L)
+                cache[key] = CachedToken(token, System.currentTimeMillis() + 6 * 60 * 60 * 1000L)
             }
             token
         }
@@ -192,10 +201,9 @@ class WebViewPoTokenProvider(
             Timber.tag(logTag).d("Invalidated all cached PO tokens")
         } else {
             playerTokenCache.remove(videoId)
-            streamingTokenCache.remove(videoId)
+            streamingTokenCache.clear()
             Timber.tag(logTag).d("Invalidated PO tokens for video $videoId")
         }
-        destroyWebView()
     }
 
     fun destroy() {

@@ -2694,7 +2694,16 @@ class MusicService :
             val nonNullPlayback = requireNotNull(playbackData) {
                 getString(R.string.error_unknown)
             }
-            run {
+            val streamUrl = nonNullPlayback.streamUrl
+            val streamUri = streamUrl.toUri()
+            val urlExpiresAt = streamUri.getQueryParameter("expire")
+                ?.toLongOrNull()
+                ?.times(1000L)
+            val responseExpiresAt = System.currentTimeMillis() + (nonNullPlayback.streamExpiresInSeconds * 1000L)
+            val expiresAt = minOf(urlExpiresAt ?: Long.MAX_VALUE, responseExpiresAt) - 5 * 60_000L
+            songUrlCache[mediaId] = streamUrl to expiresAt
+
+            scope.launch(Dispatchers.IO) {
                 val format = nonNullPlayback.format
                 val loudnessDb = nonNullPlayback.audioConfig?.loudnessDb
                 val perceptualLoudnessDb = nonNullPlayback.audioConfig?.perceptualLoudnessDb
@@ -2709,25 +2718,21 @@ class MusicService :
                         FormatEntity(
                             id = mediaId,
                             itag = format.itag,
-                            mimeType = format.mimeType.split(";")[0],
-                            codecs = format.mimeType.split("codecs=")[1].removeSurrounding("\""),
+                            mimeType = format.mimeType.substringBefore(";"),
+                            codecs = format.mimeType.substringAfter("codecs=", "").removeSurrounding("\""),
                             bitrate = format.bitrate,
                             sampleRate = format.audioSampleRate,
-                            contentLength = format.contentLength!!,
+                            contentLength = format.contentLength ?: 0L,
                             loudnessDb = loudnessDb,
                             perceptualLoudnessDb = perceptualLoudnessDb,
                             playbackUrl = nonNullPlayback.playbackTracking?.videostatsPlaybackUrl?.baseUrl
                         )
                     )
                 }
-                scope.launch(Dispatchers.IO) { recoverSong(mediaId, nonNullPlayback) }
-
-                val streamUrl = nonNullPlayback.streamUrl
-
-                songUrlCache[mediaId] =
-                    streamUrl to System.currentTimeMillis() + (nonNullPlayback.streamExpiresInSeconds * 1000L)
-                return@Factory dataSpec.withUri(streamUrl.toUri()).subrange(dataSpec.uriPositionOffset, CHUNK_LENGTH)
+                recoverSong(mediaId, nonNullPlayback)
             }
+
+            return@Factory dataSpec.withUri(streamUri).subrange(dataSpec.uriPositionOffset, CHUNK_LENGTH)
         }
     }
 
