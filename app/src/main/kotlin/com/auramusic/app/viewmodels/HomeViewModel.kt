@@ -21,6 +21,7 @@ import com.auramusic.innertube.models.filterVideoSongs
 import com.auramusic.innertube.pages.ExplorePage
 import com.auramusic.innertube.pages.HomePage
 import com.auramusic.innertube.utils.completed
+import com.auramusic.innertube.utils.parseCookieString
 import com.auramusic.app.constants.HideExplicitKey
 import com.auramusic.app.constants.HideVideoSongsKey
 import com.auramusic.app.constants.InnerTubeCookieKey
@@ -29,6 +30,8 @@ import com.auramusic.app.constants.QuickPicksKey
 import com.auramusic.app.constants.ShowWrappedCardKey
 import com.auramusic.app.constants.LastWrappedMonthKey
 import com.auramusic.app.constants.WrappedSeenKey
+import com.auramusic.app.constants.DataSyncIdKey
+import com.auramusic.app.constants.VisitorDataKey
 import com.auramusic.app.db.MusicDatabase
 import com.auramusic.app.db.entities.Album
 import com.auramusic.app.db.entities.LocalItem
@@ -50,6 +53,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -196,10 +200,13 @@ fun markWrappedAsSeen() {
             }
         }
     }
-    // Track last processed cookie to avoid unnecessary updates
-    private var lastProcessedCookie: String? = null
-    // Track if we're currently processing account data
-    private var isProcessingAccountData = false
+    private fun normalizedDataSyncId(dataSyncId: String?): String? = dataSyncId
+        ?.takeIf { it.isNotBlank() }
+        ?.let {
+            it.takeIf { !it.contains("||") }
+                ?: it.takeIf { it.endsWith("||") }?.substringBefore("||")
+                ?: it.substringAfter("||")
+        }
 
     private suspend fun getQuickPicks() {
         val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
@@ -546,14 +553,25 @@ fun markWrappedAsSeen() {
     }
 
     init {
-        // Load home data
+        // Load home data whenever the effective YouTube session changes. Login writes cookie,
+        // visitor data, and dataSyncId separately, so waiting on cookie alone can load stale
+        // guest content until the app is restarted.
         viewModelScope.launch(Dispatchers.IO) {
             context.dataStore.data
-                .map { it[InnerTubeCookieKey] }
+                .map { prefs ->
+                    Triple(
+                        prefs[InnerTubeCookieKey],
+                        prefs[VisitorDataKey],
+                        normalizedDataSyncId(prefs[DataSyncIdKey])
+                    )
+                }
                 .distinctUntilChanged()
-                .first()
-
-            load()
+                .collectLatest { (cookie, visitorData, dataSyncId) ->
+                    YouTube.cookie = cookie
+                    YouTube.visitorData = visitorData?.takeIf { it.isNotBlank() }
+                    YouTube.dataSyncId = dataSyncId
+                    load()
+                }
         }
         
         // Run sync in separate coroutine with cooldown to avoid blocking UI
@@ -580,38 +598,47 @@ fun markWrappedAsSeen() {
             }
         }
 
-        // Listen for cookie changes and reload account data
+        // Listen for complete session changes and reload account data. A cookie without the
+        // matching dataSyncId is not enough for account/account_menu and may return guest-like
+        // results, especially right after WebView login.
         viewModelScope.launch(Dispatchers.IO) {
             context.dataStore.data
-                .map { it[InnerTubeCookieKey] }
-                .collect { cookie ->
-                    // Avoid processing if already processing
-                    if (isProcessingAccountData) return@collect
-                    
-                    // Always process cookie changes, even if same value (for logout/login scenarios)
-                    lastProcessedCookie = cookie
-                    isProcessingAccountData = true
-                    
-                    try {
-                        if (cookie != null && cookie.isNotEmpty()) {
-                            
-                            // Update YouTube.cookie manually to ensure it's set
-                            YouTube.cookie = cookie
-                            
-                            // Fetch new account data
-                            YouTube.accountInfo().onSuccess { info ->
-                                accountName.value = info.name
-                                accountImageUrl.value = info.thumbnailUrl
-                            }.onFailure {
-                                reportException(it)
-                            }
-                        } else {
-                            accountName.value = "Guest"
-                            accountImageUrl.value = null
-                            accountPlaylists.value = null
-                        }
-                    } finally {
-                        isProcessingAccountData = false
+                .map { prefs ->
+                    Triple(
+                        prefs[InnerTubeCookieKey],
+                        prefs[VisitorDataKey],
+                        normalizedDataSyncId(prefs[DataSyncIdKey])
+                    )
+                }
+                .distinctUntilChanged()
+                .collectLatest { (cookie, visitorData, dataSyncId) ->
+                    val isLoggedIn = cookie?.let { "SAPISID" in parseCookieString(it) } == true
+                    if (!isLoggedIn) {
+                        accountName.value = "Guest"
+                        accountImageUrl.value = null
+                        accountPlaylists.value = null
+                        return@collectLatest
+                    }
+
+                    if (dataSyncId == null) {
+                        return@collectLatest
+                    }
+
+                    YouTube.cookie = cookie
+                    YouTube.visitorData = visitorData?.takeIf { it.isNotBlank() }
+                    YouTube.dataSyncId = dataSyncId
+
+                    YouTube.accountInfo().onSuccess { info ->
+                        accountName.value = info.name
+                        accountImageUrl.value = info.thumbnailUrl
+                    }.onFailure {
+                        reportException(it)
+                    }
+
+                    YouTube.library("FEmusic_liked_playlists").completed().onSuccess {
+                        accountPlaylists.value = it.items.filterIsInstance<PlaylistItem>().filterNot { playlist -> playlist.id == "SE" }
+                    }.onFailure {
+                        reportException(it)
                     }
                 }
         }

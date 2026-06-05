@@ -19,7 +19,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -27,6 +29,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
 import com.auramusic.innertube.YouTube
+import com.auramusic.innertube.utils.parseCookieString
 import com.auramusic.app.LocalPlayerAwareWindowInsets
 import com.auramusic.app.R
 import com.auramusic.app.constants.AccountChannelHandleKey
@@ -57,6 +60,30 @@ fun LoginScreen(
     var accountChannelHandle by rememberPreference(AccountChannelHandleKey, "")
 
     var webView: WebView? = null
+    var lastAccountInfoFetchSession by remember { mutableStateOf<String?>(null) }
+
+    fun refreshAccountInfoIfReady() {
+        val cookie = innerTubeCookie.takeIf { "SAPISID" in parseCookieString(it) } ?: return
+        val normalizedDataSyncId = dataSyncId.takeIf { it.isNotBlank() } ?: return
+        val sessionKey = "$cookie|$normalizedDataSyncId"
+        if (lastAccountInfoFetchSession == sessionKey) return
+        lastAccountInfoFetchSession = sessionKey
+
+        YouTube.cookie = cookie
+        YouTube.visitorData = visitorData.takeIf { it.isNotBlank() }
+        YouTube.dataSyncId = normalizedDataSyncId
+
+        coroutineScope.launch {
+            YouTube.accountInfo().onSuccess {
+                accountName = it.name
+                accountEmail = it.email.orEmpty()
+                accountChannelHandle = it.channelHandle.orEmpty()
+            }.onFailure {
+                lastAccountInfoFetchSession = null
+                reportException(it)
+            }
+        }
+    }
 
     AndroidView(
         modifier = Modifier
@@ -74,15 +101,7 @@ fun LoginScreen(
                             YouTube.cookie = innerTubeCookie
                             YouTube.visitorData = visitorData.takeIf { it.isNotBlank() }
                             YouTube.dataSyncId = dataSyncId.takeIf { it.isNotBlank() }
-                            coroutineScope.launch {
-                                YouTube.accountInfo().onSuccess {
-                                    accountName = it.name
-                                    accountEmail = it.email.orEmpty()
-                                    accountChannelHandle = it.channelHandle.orEmpty()
-                                }.onFailure {
-                                    reportException(it)
-                                }
-                            }
+                            refreshAccountInfoIfReady()
                         }
                     }
                 }
@@ -97,12 +116,16 @@ fun LoginScreen(
                     fun onRetrieveVisitorData(newVisitorData: String?) {
                         if (newVisitorData != null) {
                             visitorData = newVisitorData
+                            YouTube.visitorData = newVisitorData
+                            refreshAccountInfoIfReady()
                         }
                     }
                     @JavascriptInterface
                     fun onRetrieveDataSyncId(newDataSyncId: String?) {
                         if (newDataSyncId != null) {
                             dataSyncId = newDataSyncId.substringBefore("||")
+                            YouTube.dataSyncId = dataSyncId
+                            refreshAccountInfoIfReady()
                         }
                     }
                 }, "Android")
