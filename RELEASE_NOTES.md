@@ -2,13 +2,60 @@
 
 <!-- Release notes generated using configuration in .github/release.yml at 7f7ece89489e58a71f5d25f871919f4ed704148b -->
 
-
-
 **Full Changelog**: https://github.com/TeamAuraMusic/AuraMusic/compare/v2.5.0...v2.6.0
 
-## New Contributors
+> [!NOTE]
+> This release brings lyrics font selection improvements, AuraCanvas video backdrop enhancements, YouTube API 2026 compatibility fixes, and Ko-fi funding support.
+
+## What's New
+
+### Lyrics Improvements
+Implemented by @chila254
+
+- feat(lyrics): Implement lyrics font selection for normal lyrics display
+- Fix YouTube Music song parsing after InnerTube response change
+- Fix logged-in YouTube Music browse/search failures
+- Fix YouTube session refresh and logged-out search results
+- Speed up uncached YouTube Music stream startup
+
+Lyrics display has been improved with font selection options and better YouTube Music integration.
+
+### AuraCanvas Enhancements
+Implemented by @chila254
+
+- Fix AuraCanvas display logic and Thumbnail component parameters
+- Fix AuraCanvas to show only when player is expanded, hide thumbnail when canvas active
+- Fix AuraCanvas to show only when canvas is available, hide thumbnail when canvas active
+- Move player canvases to full-screen background
+- Remove CastButton from AuraCanvasOverlay for foss compatibility
+- Tighten player canvas matching
+- Improve AuraCanvasOverlay: switch to TextureView, add error handling and fade-in animation
+
+AuraCanvas now properly shows video backdrops only when available, with improved display logic and better compatibility.
+
+### YouTube API 2026 Compatibility
+- Fix YouTube API 2026 breaking changes
+- Remove karaoke implementation (deprecated server)
+- Changed the client engine to cio for improved networking performance
+
+### Funding & Contributions
+- Add funding details for Ko-fi
+- Update funding sources in FUNDING.yml
+- Fix quotes in custom funding URL
+
+### Subscribed Artists
+- Fix subscribed artists showing local songs instead of subscriber count
+- Fix subscribed artist metadata and release notification polling
+- Improve subscribed artist library metadata and release alerts
+
+## Translation Contributors
 
 - @AntonioOliveira2 made their first contribution to AuraMusic
+- @wafL implemented Translated using Weblate (Portuguese)
+- @Mickael81 implemented Translated using Weblate (French)
+- @SantosSi implemented Translated using Weblate (Portuguese Portugal)
+
+---
 
 # AuraMusic v2.5.0 (Build 22) Release Notes
 

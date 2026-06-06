@@ -2,13 +2,57 @@
 
 <!-- Release notes generated using configuration in .github/release.yml at 7f7ece89489e58a71f5d25f871919f4ed704148b -->
 
-
-
 **Full Changelog**: https://github.com/TeamAuraMusic/AuraMusic/compare/v2.5.0...v2.6.0
 
-## New Contributors
+## Major Features
+
+### Lyrics Improvements
+- feat(lyrics): Implement lyrics font selection for normal lyrics display
+- Fix YouTube Music song parsing after InnerTube response change
+- Fix logged-in YouTube Music browse/search failures
+- Fix YouTube session refresh and logged-out search results
+
+### AuraCanvas Enhancements
+- Fix AuraCanvas display logic and Thumbnail component parameters
+- Fix AuraCanvas to show only when player is expanded, hide thumbnail when canvas active
+- Fix AuraCanvas to show only when canvas is available, hide thumbnail when canvas active
+- Move player canvases to full-screen background
+- Remove CastButton from AuraCanvasOverlay for foss compatibility
+- Tighten player canvas matching
+- Improve AuraCanvasOverlay: switch to TextureView, add error handling and fade-in animation
+
+### YouTube & Playback
+- Changed the client engine to cio for improved networking performance
+- Speed up uncached YouTube Music stream startup
+- Fix preloaded song queues skipping to the next track
+- Play new release from notification tap
+
+### Funding & Contributions
+- Add funding details for Ko-fi
+- Update funding sources in FUNDING.yml
+- Fix quotes in custom funding URL
+
+### Subscribed Artists
+- Fix subscribed artists showing local songs instead of subscriber count
+- Fix subscribed artist metadata and release notification polling
+- Improve subscribed artist library metadata and release alerts
+
+## Bug Fixes
+
+### YouTube API 2026 Compatibility
+- Fix YouTube API 2026 breaking changes
+- Remove karaoke implementation (server-side deprecation)
+
+### General Fixes
+- Fix library artist subtitles and refresh app fonts
+- Delete kilo.json file
+
+## Translation Contributors
 
 - @AntonioOliveira2 made their first contribution to AuraMusic
+- @wafL implemented Translated using Weblate (Portuguese)
+- @Mickael81 implemented Translated using Weblate (French)
+- @SantosSi implemented Translated using Weblate (Portuguese Portugal)
 
 # AuraMusic v2.5.0 (Build 22) Changelog
 
