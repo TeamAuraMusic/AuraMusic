@@ -111,7 +111,6 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.Typeface
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
@@ -136,7 +135,8 @@ import com.auramusic.app.constants.LyricsAnimationStyle
 import com.auramusic.app.constants.LyricsAnimationStyleKey
 import com.auramusic.app.constants.LyricsClickKey
 import com.auramusic.app.constants.LyricsConnectedLinesKey
-import com.auramusic.app.constants.LyricsCustomFontUriKey
+import com.auramusic.app.constants.LyricsFont
+import com.auramusic.app.constants.LyricsFontKey
 import com.auramusic.app.constants.LyricsGlowEffectKey
 import com.auramusic.app.constants.EnhancedLyricsKey
 import com.auramusic.app.constants.LyricsInstrumentalGapMsKey
@@ -187,6 +187,9 @@ import com.auramusic.app.ui.component.shimmer.ShimmerHost
 import com.auramusic.app.ui.component.shimmer.TextPlaceholder
 import com.auramusic.app.ui.screens.settings.DarkMode
 import com.auramusic.app.ui.screens.settings.LyricsPosition
+import com.auramusic.app.ui.theme.Manrope
+import com.auramusic.app.ui.theme.Outfit
+import com.auramusic.app.ui.theme.SpaceGrotesk
 import com.auramusic.app.ui.utils.fadingEdge
 import com.auramusic.app.utils.ComposeToImage
 import com.auramusic.app.ui.component.LyricsBackgroundStyle
@@ -198,35 +201,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.time.Duration.Companion.seconds
-
-/**
- * Resolves a [FontFamily] from a user-provided font URI string. Falls back to the
- * default font family if the URI is blank or the font cannot be loaded.
- *
- * The URI is expected to point to a TTF/OTF file accessible to the app (typically
- * obtained through ACTION_OPEN_DOCUMENT with persistable URI permissions).
- */
-@Composable
-fun rememberLyricsFontFamily(uriString: String): FontFamily? {
-    if (uriString.isBlank()) return null
-    val context = LocalContext.current
-    return remember(uriString) {
-        try {
-            val uri = android.net.Uri.parse(uriString)
-            val cacheFile = java.io.File(context.cacheDir, "lyrics_font_${uriString.hashCode()}.ttf")
-            if (!cacheFile.exists()) {
-                context.contentResolver.openInputStream(uri)?.use { input ->
-                    cacheFile.outputStream().use { output -> input.copyTo(output) }
-                } ?: return@remember null
-            }
-            val typeface = android.graphics.Typeface.createFromFile(cacheFile)
-            FontFamily(Typeface(typeface))
-        } catch (e: Exception) {
-            timber.log.Timber.e(e, "Failed to load custom lyrics font: $uriString")
-            null
-        }
-    }
-}
 
 /**
  * Top-level Lyrics composable that dispatches between the Enhanced Lyrics
@@ -303,8 +277,13 @@ fun OriginalLyrics(
     val lyricsLineSpacing by rememberPreference(LyricsLineSpacingKey, 1.3f)
     val instrumentalGapMs by rememberPreference(LyricsInstrumentalGapMsKey, 5000)
     val connectedLines by rememberPreference(LyricsConnectedLinesKey, true)
-    val customFontUri by rememberPreference(LyricsCustomFontUriKey, "")
-    val customFontFamily = rememberLyricsFontFamily(customFontUri)
+    val lyricsFont by rememberEnumPreference(LyricsFontKey, LyricsFont.SYSTEM_DEFAULT)
+    val lyricsFontFamily = when (lyricsFont) {
+        LyricsFont.SYSTEM_DEFAULT -> FontFamily.Default
+        LyricsFont.OUTFIT -> Outfit
+        LyricsFont.MANROPE -> Manrope
+        LyricsFont.SPACE_GROTESK -> SpaceGrotesk
+    }
     
     val openRouterApiKey by rememberPreference(OpenRouterApiKey, "")
     val openRouterBaseUrl by rememberPreference(OpenRouterBaseUrlKey, "https://openrouter.ai/api/v1/chat/completions")
@@ -993,9 +972,7 @@ fun OriginalLyrics(
             }
         } else {
             val baseLyricsStyle = LocalTextStyle.current
-            val effectiveLyricsStyle = if (customFontFamily != null) {
-                baseLyricsStyle.copy(fontFamily = customFontFamily)
-            } else baseLyricsStyle
+            val effectiveLyricsStyle = baseLyricsStyle.copy(fontFamily = lyricsFontFamily)
             ProvideTextStyle(value = effectiveLyricsStyle) {
             LazyColumn(
             state = lazyListState,

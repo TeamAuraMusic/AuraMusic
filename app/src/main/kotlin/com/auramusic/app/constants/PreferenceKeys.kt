@@ -472,6 +472,14 @@ val LyricsConnectedLinesKey = booleanPreferencesKey("lyricsConnectedLines")
 // Empty string means "use the system default".
 val LyricsCustomFontUriKey = stringPreferencesKey("lyricsCustomFontUri")
 
+val LyricsFontKey = stringPreferencesKey("lyricsFont")
+enum class LyricsFont {
+    SYSTEM_DEFAULT,
+    OUTFIT,
+    MANROPE,
+    SPACE_GROTESK,
+}
+
 val PlayerVolumeKey = floatPreferencesKey("playerVolume")
 val RepeatModeKey = intPreferencesKey("repeatMode")
 

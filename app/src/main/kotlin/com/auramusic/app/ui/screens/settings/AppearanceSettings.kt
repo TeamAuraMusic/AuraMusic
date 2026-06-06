@@ -78,7 +78,8 @@ import com.auramusic.app.constants.LyricsAnimationStyle
 import com.auramusic.app.constants.LyricsAnimationStyleKey
 import com.auramusic.app.constants.LyricsClickKey
 import com.auramusic.app.constants.LyricsConnectedLinesKey
-import com.auramusic.app.constants.LyricsCustomFontUriKey
+import com.auramusic.app.constants.LyricsFont
+import com.auramusic.app.constants.LyricsFontKey
 import com.auramusic.app.constants.LyricsGlowEffectKey
 import com.auramusic.app.constants.LyricsInstrumentalGapMsKey
 import com.auramusic.app.constants.LiquidGlassEffectKey
@@ -232,7 +233,7 @@ fun AppearanceSettings(
     val (lyricsGlowEffect, onLyricsGlowEffectChange) = rememberPreference(LyricsGlowEffectKey, defaultValue = false)
     val (instrumentalGapMs, onInstrumentalGapMsChange) = rememberPreference(LyricsInstrumentalGapMsKey, defaultValue = 5000)
     val (connectedLines, onConnectedLinesChange) = rememberPreference(LyricsConnectedLinesKey, defaultValue = true)
-    val (customFontUri, onCustomFontUriChange) = rememberPreference(LyricsCustomFontUriKey, defaultValue = "")
+    val (lyricsFont, onLyricsFontChange) = rememberEnumPreference(LyricsFontKey, defaultValue = LyricsFont.SYSTEM_DEFAULT)
     val (enhancedLyrics, onEnhancedLyricsChange) = rememberPreference(EnhancedLyricsKey, defaultValue = false)
 
     val (sliderStyle, onSliderStyleChange) = rememberEnumPreference(
@@ -246,25 +247,6 @@ fun AppearanceSettings(
     val context = LocalContext.current
     var hasRecordPermission by remember {
         mutableStateOf(context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED)
-    }
-    val fontPickerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
-        contract = androidx.activity.result.contract.ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            try {
-                context.contentResolver.takePersistableUriPermission(
-                    uri,
-                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
-                )
-            } catch (_: SecurityException) { /* best effort – not all providers grant persistence */ }
-            try {
-                val cacheFile = java.io.File(context.cacheDir, "lyrics_font_${uri.toString().hashCode()}.ttf")
-                context.contentResolver.openInputStream(uri)?.use { input ->
-                    cacheFile.outputStream().use { output -> input.copyTo(output) }
-                }
-            } catch (_: Exception) { /* ignore – will retry on render */ }
-            onCustomFontUriChange(uri.toString())
-        }
     }
 
     val (swipeThumbnail, onSwipeThumbnailChange) = rememberPreference(
@@ -371,6 +353,10 @@ fun AppearanceSettings(
         mutableStateOf(false)
     }
 
+    var showLyricsFontDialog by rememberSaveable {
+        mutableStateOf(false)
+    }
+
     if (showLyricsPositionDialog) {
         EnumDialog(
             onDismiss = { showLyricsPositionDialog = false },
@@ -409,6 +395,27 @@ fun AppearanceSettings(
                     LyricsAnimationStyle.SLIDE -> stringResource(R.string.slide)
                     LyricsAnimationStyle.KARAOKE -> stringResource(R.string.karaoke)
                     LyricsAnimationStyle.APPLE -> stringResource(R.string.apple_music_style)
+                }
+            }
+        )
+    }
+
+    if (showLyricsFontDialog) {
+        EnumDialog(
+            onDismiss = { showLyricsFontDialog = false },
+            onSelect = {
+                onLyricsFontChange(it)
+                showLyricsFontDialog = false
+            },
+            title = stringResource(R.string.lyrics_custom_font),
+            current = lyricsFont,
+            values = LyricsFont.values().toList(),
+            valueText = {
+                when (it) {
+                    LyricsFont.SYSTEM_DEFAULT -> stringResource(R.string.lyrics_custom_font_default)
+                    LyricsFont.OUTFIT -> "Outfit"
+                    LyricsFont.MANROPE -> "Manrope"
+                    LyricsFont.SPACE_GROTESK -> "Space Grotesk"
                 }
             }
         )
@@ -1569,25 +1576,15 @@ fun AppearanceSettings(
                     title = { Text(stringResource(R.string.lyrics_custom_font)) },
                     description = {
                         Text(
-                            if (customFontUri.isBlank()) stringResource(R.string.lyrics_custom_font_default)
-                            else stringResource(R.string.lyrics_custom_font_selected)
+                            when (lyricsFont) {
+                                LyricsFont.SYSTEM_DEFAULT -> stringResource(R.string.lyrics_custom_font_default)
+                                LyricsFont.OUTFIT -> "Outfit"
+                                LyricsFont.MANROPE -> "Manrope"
+                                LyricsFont.SPACE_GROTESK -> "Space Grotesk"
+                            }
                         )
                     },
-                    trailingContent = {
-                        if (customFontUri.isNotBlank()) {
-                            androidx.compose.material3.IconButton(onClick = { onCustomFontUriChange("") }) {
-                                Icon(
-                                    painter = painterResource(R.drawable.close),
-                                    contentDescription = stringResource(R.string.reset)
-                                )
-                            }
-                        }
-                    },
-                    onClick = {
-                        try {
-                            fontPickerLauncher.launch(arrayOf("font/ttf", "font/otf", "application/octet-stream", "application/x-font-ttf", "application/x-font-otf", "*/*"))
-                        } catch (_: Exception) { /* ignore */ }
-                    }
+                    onClick = { showLyricsFontDialog = true }
                 ),
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.lyrics),
