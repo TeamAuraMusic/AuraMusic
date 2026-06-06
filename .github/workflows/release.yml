@@ -227,11 +227,14 @@ jobs:
           debug.persistent.keyPassword=${{ secrets.DEBUG_KEY_PASSWORD }}
           EOF
 
-      - name: Build all release APK variants
+      - name: Build release APK variants
         run: |
           set -euo pipefail
           sed -i 's|tinypinyin = "2.0.3"|tinypinyin = "2.0.1"|g' gradle/libs.versions.toml
-          ./gradlew :app:assembleRelease --no-daemon --no-configuration-cache
+
+          ./gradlew assembleFossMobileUniversalRelease --no-daemon --no-configuration-cache
+          ./gradlew assembleGmsMobileUniversalRelease --no-daemon --no-configuration-cache
+          ./gradlew assembleFossTvUniversalRelease --no-daemon --no-configuration-cache
 
       - name: Collect and rename APK assets
         env:
