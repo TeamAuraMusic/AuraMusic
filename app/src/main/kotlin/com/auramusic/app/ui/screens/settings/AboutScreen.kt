@@ -76,7 +76,8 @@ data class Contributor(
 private val contributors = listOf(
     Contributor("Mickael81", "Mickaël", "Translator"),
     Contributor("iamcrizzzgd", "ItsMeCrizzzGD", "Translator"),
-    Contributor("SantosSi", "Silvério Santos", "Translator")
+    Contributor("SantosSi", "Silvério Santos", "Translator"),
+    Contributor("AntonioOliveira2", "_wafL", "Translator")
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
