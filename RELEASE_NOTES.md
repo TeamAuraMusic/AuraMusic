@@ -1,3 +1,15 @@
+# AuraMusic v2.6.0 (Build 23) Release Notes
+
+<!-- Release notes generated using configuration in .github/release.yml at 7f7ece89489e58a71f5d25f871919f4ed704148b -->
+
+
+
+**Full Changelog**: https://github.com/TeamAuraMusic/AuraMusic/compare/v2.5.0...v2.6.0
+
+## New Contributors
+
+- @AntonioOliveira2 made their first contribution to AuraMusic
+
 # AuraMusic v2.5.0 (Build 22) Release Notes
 
 > [!NOTE]
