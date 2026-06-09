@@ -945,4 +945,24 @@
         <item quantity="other">segundos</item>
     </plurals>
     <string name="aura_canvas">AuraCanvas</string>
+    <string name="audiobooks">Audiolibros</string>
+    <string name="audiobooks_desc">Las largas pistas de biblioteca aparecen aquí automáticamente. Pin todo lo que quieras mantener como audiolibro.</string>
+    <string name="no_audiobooks_found">Todavía no hay audiolibros. Añadir largas pistas a tu biblioteca o pinchar una pista como audiolibro.</string>
+    <string name="add_to_audiobooks">Añadir a audiolibros</string>
+    <string name="remove_from_audiobooks">Eliminar de los audiolibros</string>
+    <string name="clear_resume_position">Posición de hoja de vida clara</string>
+    <string name="late_night_mode">Modo nocturno tarde</string>
+    <string name="late_night_mode_desc">Rango dinámico de compresión así que los detalles silenciosos permanecer audible y los picos ruidosos se suavizan a bajo volumen</string>
+    <string name="new_release_notifications">Nuevas notificaciones de liberación</string>
+    <string name="ko_fi">Ko-fi</string>
+    <string name="ko_fi_desc">Café de una sola vez para el desarrollador</string>
+    <string name="new_releases_channel_desc">Nuevas notificaciones de liberación para artistas suscritos</string>
+    <string name="new_releases_channel_name">Nuevos lanzamientos</string>
+    <string name="new_release_notification_title_single">Nueva versión de un artista suscrito</string>
+    <string name="new_release_notification_title_multiple">%d nuevas versiones de artistas suscritos</string>
+    <string name="resume_at">Resume at %1$s of %2$s</string>
+    <plurals name="n_audiobook">
+        <item quantity="one">%d audiolibro</item>
+        <item quantity="other">%d audiolibros</item>
+    </plurals>
 </resources>
