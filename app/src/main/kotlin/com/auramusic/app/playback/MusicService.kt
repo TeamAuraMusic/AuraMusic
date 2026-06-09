@@ -88,6 +88,8 @@ import com.auramusic.app.MainActivity
 import com.auramusic.app.R
 import com.auramusic.app.constants.AudioNormalizationKey
 import com.auramusic.app.constants.AudioOffload
+import com.auramusic.app.constants.AudiobookIdsKey
+import com.auramusic.app.constants.AudiobookPositionsKey
 import com.auramusic.app.constants.AudioQualityKey
 import com.auramusic.app.constants.AudioQuality
 import com.auramusic.app.utils.YTPlayerUtils
@@ -172,9 +174,14 @@ import com.auramusic.app.utils.CoilBitmapLoader
 import com.auramusic.app.utils.DiscordRPC
 import com.auramusic.app.utils.FlowPlayerUtils
 import com.auramusic.app.utils.NetworkConnectivityObserver
+import com.auramusic.app.utils.AUDIOBOOK_MIN_DURATION_SECONDS
+import com.auramusic.app.utils.AUDIOBOOK_RESUME_THRESHOLD_MS
 import com.auramusic.app.utils.ScrobbleManager
 import com.auramusic.app.utils.SyncUtils
 import com.auramusic.app.utils.dataStore
+import com.auramusic.app.utils.decodeAudiobookIds
+import com.auramusic.app.utils.decodeAudiobookPositions
+import com.auramusic.app.utils.encodeAudiobookPositions
 import com.auramusic.app.utils.get
 import com.auramusic.app.utils.reportException
 import com.auramusic.app.widget.AuraMusicWidgetManager
@@ -871,7 +878,37 @@ class MusicService :
                 if (dataStore.get(PersistentQueueKey, true) && player.isPlaying) {
                     saveQueueToDisk()
                 }
+                saveAudiobookResumePosition()
             }
+        }
+    }
+
+    private suspend fun saveAudiobookResumePosition() {
+        val metadata = player.currentMetadata ?: return
+        val mediaId = metadata.id
+        val durationMs = if (player.duration != C.TIME_UNSET) {
+            player.duration
+        } else {
+            metadata.duration.takeIf { it > 0 }?.times(1000L) ?: 0L
+        }
+        if (durationMs <= 0L) return
+
+        val preferences = dataStore.data.first()
+        val audiobookIds = decodeAudiobookIds(preferences[AudiobookIdsKey])
+        val isAudiobook = mediaId in audiobookIds || metadata.duration >= AUDIOBOOK_MIN_DURATION_SECONDS
+        if (!isAudiobook) return
+
+        val position = player.currentPosition.coerceIn(0L, durationMs)
+        val shouldKeepPosition = position >= AUDIOBOOK_RESUME_THRESHOLD_MS && position < durationMs - AUDIOBOOK_RESUME_THRESHOLD_MS
+
+        dataStore.edit { settings ->
+            val positions = decodeAudiobookPositions(settings[AudiobookPositionsKey]).toMutableMap()
+            if (shouldKeepPosition) {
+                positions[mediaId] = position
+            } else {
+                positions -= mediaId
+            }
+            settings[AudiobookPositionsKey] = encodeAudiobookPositions(positions)
         }
     }
 

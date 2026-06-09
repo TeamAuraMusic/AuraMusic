@@ -27,6 +27,8 @@ import com.auramusic.app.constants.ArtistSongSortTypeKey
 import com.auramusic.app.constants.ArtistSortDescendingKey
 import com.auramusic.app.constants.ArtistSortType
 import com.auramusic.app.constants.ArtistSortTypeKey
+import com.auramusic.app.constants.AudiobookIdsKey
+import com.auramusic.app.constants.AudiobookPositionsKey
 import com.auramusic.app.constants.HideExplicitKey
 import com.auramusic.app.constants.HideVideoSongsKey
 import com.auramusic.app.constants.LibraryFilter
@@ -40,21 +42,29 @@ import com.auramusic.app.constants.SongSortType
 import com.auramusic.app.constants.SongSortTypeKey
 import com.auramusic.app.constants.TopSize
 import com.auramusic.app.db.MusicDatabase
+import com.auramusic.app.db.entities.Song
 import com.auramusic.app.extensions.filterExplicit
 import com.auramusic.app.extensions.filterExplicitAlbums
 import com.auramusic.app.extensions.filterVideoSongs
 import com.auramusic.app.extensions.toEnum
 import com.auramusic.app.playback.DownloadUtil
 import com.auramusic.app.utils.SyncUtils
+import com.auramusic.app.utils.AUDIOBOOK_MIN_DURATION_SECONDS
 import com.auramusic.app.utils.dataStore
+import com.auramusic.app.utils.decodeAudiobookIds
+import com.auramusic.app.utils.decodeAudiobookPositions
+import com.auramusic.app.utils.encodeAudiobookIds
+import com.auramusic.app.utils.encodeAudiobookPositions
 import com.auramusic.app.utils.reportException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import androidx.datastore.preferences.core.edit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
@@ -109,6 +119,71 @@ constructor(
     // Uploaded feature is temporarily disabled
     fun syncUploadedSongs() {
         // viewModelScope.launch(Dispatchers.IO) { syncUtils.syncUploadedSongs() }
+    }
+}
+
+data class AudiobookLibraryItem(
+    val song: Song,
+    val resumePositionMs: Long,
+    val pinned: Boolean,
+)
+
+@HiltViewModel
+class LibraryAudiobooksViewModel
+@Inject
+constructor(
+    @ApplicationContext private val context: Context,
+    database: MusicDatabase,
+) : ViewModel() {
+    val audiobooks =
+        combine(
+            database.allSongs(),
+            context.dataStore.data,
+        ) { songs, preferences ->
+            val audiobookIds = decodeAudiobookIds(preferences[AudiobookIdsKey])
+            val positions = decodeAudiobookPositions(preferences[AudiobookPositionsKey])
+            val hideExplicit = preferences[HideExplicitKey] ?: false
+            val hideVideoSongs = preferences[HideVideoSongsKey] ?: false
+
+            songs
+                .asSequence()
+                .filter { it.song.inLibrary != null || it.song.isDownloaded || it.id in audiobookIds }
+                .filter { it.id in audiobookIds || it.song.duration >= AUDIOBOOK_MIN_DURATION_SECONDS }
+                .filter { !hideExplicit || !it.song.explicit }
+                .filter { !hideVideoSongs || !it.song.isVideo }
+                .map {
+                    AudiobookLibraryItem(
+                        song = it,
+                        resumePositionMs = positions[it.id]?.coerceIn(0L, (it.song.duration * 1000L).coerceAtLeast(0L)) ?: 0L,
+                        pinned = it.id in audiobookIds,
+                    )
+                }
+                .sortedWith(
+                    compareByDescending<AudiobookLibraryItem> { it.resumePositionMs > 0L }
+                        .thenByDescending { it.pinned }
+                        .thenBy { it.song.song.title.lowercase() }
+                )
+                .toList()
+        }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    fun setPinned(songId: String, pinned: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            context.dataStore.edit { preferences ->
+                val ids = decodeAudiobookIds(preferences[AudiobookIdsKey]).toMutableSet()
+                if (pinned) ids += songId else ids -= songId
+                preferences[AudiobookIdsKey] = encodeAudiobookIds(ids)
+            }
+        }
+    }
+
+    fun clearResumePosition(songId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            context.dataStore.edit { preferences ->
+                val positions = decodeAudiobookPositions(preferences[AudiobookPositionsKey]).toMutableMap()
+                positions -= songId
+                preferences[AudiobookPositionsKey] = encodeAudiobookPositions(positions)
+            }
+        }
     }
 }
 

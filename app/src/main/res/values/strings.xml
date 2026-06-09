@@ -73,6 +73,13 @@
     <string name="filter_albums">Albums</string>
     <string name="filter_artists">Artists</string>
     <string name="filter_playlists">Playlists</string>
+    <string name="audiobooks">Audiobooks</string>
+    <string name="audiobooks_desc">Long library tracks appear here automatically. Pin anything you want to keep as an audiobook.</string>
+    <string name="no_audiobooks_found">No audiobooks yet. Add long tracks to your library or pin a track as an audiobook.</string>
+    <string name="add_to_audiobooks">Add to audiobooks</string>
+    <string name="remove_from_audiobooks">Remove from audiobooks</string>
+    <string name="clear_resume_position">Clear resume position</string>
+    <string name="resume_at">Resume at %1$s of %2$s</string>
     <string name="filter_community_playlists">Community playlists</string>
     <string name="filter_featured_playlists">Featured playlists</string>
     <string name="filter_bookmarked">Bookmarked</string>
@@ -249,6 +256,10 @@
     <plurals name="n_playlist">
         <item quantity="one">%d playlist</item>
         <item quantity="other">%d playlists</item>
+    </plurals>
+    <plurals name="n_audiobook">
+        <item quantity="one">%d audiobook</item>
+        <item quantity="other">%d audiobooks</item>
     </plurals>
     <plurals name="n_week">
         <item quantity="one">%d week</item>

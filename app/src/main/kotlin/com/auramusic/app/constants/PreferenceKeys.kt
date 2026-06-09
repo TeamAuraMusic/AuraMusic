@@ -484,6 +484,9 @@ enum class LyricsFont {
 val PlayerVolumeKey = floatPreferencesKey("playerVolume")
 val RepeatModeKey = intPreferencesKey("repeatMode")
 
+val AudiobookIdsKey = stringPreferencesKey("audiobookIds")
+val AudiobookPositionsKey = stringPreferencesKey("audiobookPositions")
+
 val SearchSourceKey = stringPreferencesKey("searchSource")
 val SwipeThumbnailKey = booleanPreferencesKey("swipeThumbnail")
 val SwipeSensitivityKey = floatPreferencesKey("swipeSensitivity")
