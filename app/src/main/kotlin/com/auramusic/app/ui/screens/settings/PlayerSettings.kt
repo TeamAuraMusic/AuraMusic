@@ -66,6 +66,7 @@ import com.auramusic.app.constants.EnableVoiceCommandsKey
 import com.auramusic.app.constants.EnableVoiceWakeWordKey
 import com.auramusic.app.constants.HistoryDuration
 import com.auramusic.app.constants.KeepScreenOn
+import com.auramusic.app.constants.LateNightModeKey
 import com.auramusic.app.constants.PauseOnMute
 import com.auramusic.app.constants.PersistentQueueKey
 import com.auramusic.app.constants.PersistentShuffleAcrossQueuesKey
@@ -130,6 +131,10 @@ fun PlayerSettings(
     val (audioNormalization, onAudioNormalizationChange) = rememberPreference(
         AudioNormalizationKey,
         defaultValue = true
+    )
+    val (lateNightMode, onLateNightModeChange) = rememberPreference(
+        LateNightModeKey,
+        defaultValue = false
     )
 
     val (audioOffload, onAudioOffloadChange) = rememberPreference(
@@ -465,6 +470,27 @@ fun PlayerSettings(
                         )
                     },
                     onClick = { onAudioNormalizationChange(!audioNormalization) }
+                ))
+                add(Material3SettingsItem(
+                    icon = painterResource(R.drawable.volume_off_pause),
+                    title = { Text(stringResource(R.string.late_night_mode)) },
+                    description = { Text(stringResource(R.string.late_night_mode_desc)) },
+                    trailingContent = {
+                        Switch(
+                            checked = lateNightMode,
+                            onCheckedChange = onLateNightModeChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (lateNightMode) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = { onLateNightModeChange(!lateNightMode) }
                 ))
                 add(Material3SettingsItem(
                     icon = painterResource(R.drawable.graphic_eq),

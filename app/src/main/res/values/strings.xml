@@ -546,6 +546,8 @@
     <string name="skip_silence_instant">Instant skip silence</string>
     <string name="skip_silence_instant_desc">Skip silence without delay</string>
     <string name="audio_normalization">Audio normalization</string>
+    <string name="late_night_mode">Late night mode</string>
+    <string name="late_night_mode_desc">Compress dynamic range so quiet details stay audible and loud peaks are softened at low volume</string>
     <string name="audio_offload">Audio offload</string>
     <string name="audio_offload_desc">Use hardware audio decoding when possible</string>
     <string name="audio_offload_disabled_by_crossfade">Disabled by crossfade</string>

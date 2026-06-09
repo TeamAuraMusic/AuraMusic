@@ -60,6 +60,7 @@ import androidx.media3.exoplayer.analytics.PlaybackStats
 import androidx.media3.exoplayer.analytics.PlaybackStatsListener
 import androidx.media3.exoplayer.audio.AudioRendererEventListener
 import androidx.media3.exoplayer.audio.AudioSink
+import androidx.media3.exoplayer.audio.AudioCapabilities
 import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.exoplayer.audio.MediaCodecAudioRenderer
 import androidx.media3.exoplayer.audio.SilenceSkippingAudioProcessor
@@ -111,6 +112,7 @@ import com.auramusic.app.constants.HideExplicitKey
 import com.auramusic.app.constants.HideVideoSongsKey
 import com.auramusic.app.constants.HistoryDuration
 import com.auramusic.app.constants.LastFMUseNowPlaying
+import com.auramusic.app.constants.LateNightModeKey
 import com.auramusic.app.constants.MediaSessionConstants.CommandToggleLike
 import com.auramusic.app.constants.MediaSessionConstants.CommandToggleRepeatMode
 import com.auramusic.app.constants.MediaSessionConstants.CommandToggleShuffle
@@ -159,6 +161,7 @@ import com.auramusic.app.models.PersistPlayerState
 import com.auramusic.app.models.PersistQueue
 import com.auramusic.app.models.toMediaMetadata
 import com.auramusic.app.playback.audio.SilenceDetectorAudioProcessor
+import com.auramusic.app.playback.audio.DynamicRangeCompressionAudioProcessor
 import com.auramusic.app.playback.queues.EmptyQueue
 import com.auramusic.app.playback.queues.Queue
 import com.auramusic.app.playback.queues.YouTubeQueue
@@ -257,6 +260,7 @@ class MusicService :
     private var reentrantFocusGain = false
     private var wasPlayingBeforeVolumeMute = false
     private var isPausedByVolumeMute = false
+    private var dynamicRangeCompressionProcessor: DynamicRangeCompressionAudioProcessor? = null
 
     private lateinit var foregroundNotification: Notification
 
@@ -682,6 +686,13 @@ class MusicService :
                 }
             }
 
+        dataStore.data
+            .map { it[LateNightModeKey] ?: false }
+            .distinctUntilChanged()
+            .collectLatest(scope) { enabled ->
+                dynamicRangeCompressionProcessor?.enabled = enabled
+            }
+
         // details key stuff
         dataStore.data
             .map { it[DiscordUseDetailsKey] ?: false }
@@ -871,6 +882,10 @@ class MusicService :
         val vocalSuppressionProcessor = VocalSuppressionAudioProcessor()
         equalizerService.addVocalSuppressionProcessor(vocalSuppressionProcessor)
 
+        val dynamicRangeCompressionProcessor = DynamicRangeCompressionAudioProcessor().also {
+            this.dynamicRangeCompressionProcessor = it
+        }
+
         val silenceProcessor = SilenceDetectorAudioProcessor { handleLongSilenceDetected() }
         
         // Set initial state
@@ -878,13 +893,14 @@ class MusicService :
             val skipSilence = dataStore.get(SkipSilenceKey, false)
             val instantSkip = dataStore.get(SkipSilenceInstantKey, false)
             silenceProcessor.instantModeEnabled = skipSilence && instantSkip
+            dynamicRangeCompressionProcessor.enabled = dataStore.get(LateNightModeKey, false)
 
             equalizerService.disableVocalSuppression()
         }
 
         val player = ExoPlayer.Builder(this)
             .setMediaSourceFactory(createMediaSourceFactory())
-            .setRenderersFactory(createRenderersFactory(eqProcessor, vocalSuppressionProcessor, silenceProcessor))
+            .setRenderersFactory(createRenderersFactory(eqProcessor, vocalSuppressionProcessor, dynamicRangeCompressionProcessor, silenceProcessor))
             .setHandleAudioBecomingNoisy(true)
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .setAudioAttributes(
@@ -2749,6 +2765,7 @@ class MusicService :
     private fun createRenderersFactory(
         eqProcessor: CustomEqualizerAudioProcessor,
         vocalSuppressionProcessor: VocalSuppressionAudioProcessor,
+        dynamicRangeCompressionProcessor: DynamicRangeCompressionAudioProcessor,
         silenceProcessor: SilenceDetectorAudioProcessor
     ) =
         object : DefaultRenderersFactory(this) {
@@ -2758,6 +2775,7 @@ class MusicService :
                 enableAudioTrackPlaybackParams: Boolean,
             ) = DefaultAudioSink
                 .Builder(this@MusicService)
+                .setAudioCapabilities(AudioCapabilities.getCapabilities(context))
                 .setEnableFloatOutput(enableFloatOutput)
                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                 .setAudioProcessorChain(
@@ -2765,6 +2783,7 @@ class MusicService :
                         // 2. Inject processor into audio pipeline
                         eqProcessor,
                         vocalSuppressionProcessor,
+                        dynamicRangeCompressionProcessor,
                         silenceProcessor,
                         SilenceSkippingAudioProcessor(2_000_000, 20_000, 256),
                         SonicAudioProcessor(),
