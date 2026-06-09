@@ -938,4 +938,6 @@
     <string name="clear_image_cache">清晰的形象</string>
     <string name="max_song_cache_size">马克马氏歌剧团</string>
     <string name="clear_song_cache">清晰的歌曲</string>
+    <string name="ko_fi">Ko-fi</string>
+    <string name="ko_fi_desc">开发商一次性咖啡</string>
 </resources>
