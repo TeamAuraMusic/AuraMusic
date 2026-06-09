@@ -639,6 +639,7 @@ fun AppearanceSettings(
                     LibraryFilter.ARTISTS -> stringResource(R.string.artists)
                     LibraryFilter.ALBUMS -> stringResource(R.string.albums)
                     LibraryFilter.PLAYLISTS -> stringResource(R.string.playlists)
+                    LibraryFilter.AUDIOBOOKS -> stringResource(R.string.audiobooks)
                     LibraryFilter.LIBRARY -> stringResource(R.string.filter_library)
                 }
             }
@@ -1658,6 +1659,7 @@ fun AppearanceSettings(
                                 LibraryFilter.ARTISTS -> stringResource(R.string.artists)
                                 LibraryFilter.ALBUMS -> stringResource(R.string.albums)
                                 LibraryFilter.PLAYLISTS -> stringResource(R.string.playlists)
+                                LibraryFilter.AUDIOBOOKS -> stringResource(R.string.audiobooks)
                                 LibraryFilter.LIBRARY -> stringResource(R.string.filter_library)
                             }
                         )
