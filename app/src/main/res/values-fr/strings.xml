@@ -83,7 +83,7 @@
     <string name="playlist_is_empty">La playlist est vide</string>
     <string name="remove_download_playlist_confirm">Voulez-vous vraiment supprimer tous les titres de la playlist « %s » du stockage des titres téléchargés ?</string>
     <string name="delete_playlist_confirm">Voulez-vous vraiment supprimer la playlist « %s » ?</string>
-    <string name="my_top">Mes Favoris</string>
+    <string name="my_top">Mon Top</string>
     <string name="cached_playlist">En Cache</string>
     <string name="uploaded_playlist">Téléchargé</string>
     <string name="liked">Favoris</string>
@@ -954,4 +954,18 @@
     <string name="new_release_notification_title_single">Nouvelle sortie d\'un artiste que vous suivez</string>
     <string name="new_release_notification_title_multiple">%d nouvelles sorties des artistes auxquels vous êtes abonné</string>
     <string name="new_release_notifications">Notifications de nouvelles versions</string>
+    <string name="audiobooks">Livres audio</string>
+    <string name="audiobooks_desc">Les longues pistes de la bibliothèque s\'affichent automatiquement ici. Ajoutez tout ce que vous souhaitez conserver à votre collection de livres audio.</string>
+    <string name="no_audiobooks_found">Il n\'y a pas encore de livres audio. Ajoutez des morceaux longs à votre bibliothèque ou marquez un morceau comme livre audio.</string>
+    <string name="add_to_audiobooks">Ajouter aux livres audio</string>
+    <string name="remove_from_audiobooks">Supprimer des livres audio</string>
+    <string name="clear_resume_position">Effacer la position de reprise</string>
+    <string name="resume_at">Reprendre à %1$s sur %2$s</string>
+    <plurals name="n_audiobook">
+        <item quantity="one">%d livre audio</item>
+        <item quantity="many">%d livres audio</item>
+        <item quantity="other">%d livres audio</item>
+    </plurals>
+    <string name="late_night_mode">Mode nuit</string>
+    <string name="late_night_mode_desc">Compresser la plage dynamique afin que les détails les plus discrets restent audibles et que les pics sonores soient atténués à faible volume</string>
 </resources>
