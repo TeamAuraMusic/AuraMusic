@@ -949,23 +949,25 @@
     </plurals>
     <string name="aura_canvas_desc">Afficher les vidéos d\'AuraCanvas derrière l\'art de l\'album quand un match se trouve dans le manifeste communautaire. Expérimental.</string>
     <string name="aura_canvas">AuraCanvas</string>
-    <string name="new_releases_channel_desc">Notifications de nouvelles sorties pour les artistes suivis</string>
+    <string name="new_releases_channel_desc">Nouvelles notifications de sortie pour les artistes abonnés</string>
     <string name="new_releases_channel_name">Nouveautés</string>
-    <string name="new_release_notification_title_single">Nouvelle sortie d\'un artiste que vous suivez</string>
-    <string name="new_release_notification_title_multiple">%d nouvelles sorties des artistes auxquels vous êtes abonné</string>
-    <string name="new_release_notifications">Notifications de nouvelles versions</string>
+    <string name="new_release_notification_title_single">Nouvelle sortie d\'un artiste abonné</string>
+    <string name="new_release_notification_title_multiple">%d nouvelles versions d\'artistes abonnés</string>
+    <string name="new_release_notifications">Nouvelles notifications de rejet</string>
     <string name="audiobooks">Livres audio</string>
-    <string name="audiobooks_desc">Les longues pistes de la bibliothèque s\'affichent automatiquement ici. Ajoutez tout ce que vous souhaitez conserver à votre collection de livres audio.</string>
-    <string name="no_audiobooks_found">Il n\'y a pas encore de livres audio. Ajoutez des morceaux longs à votre bibliothèque ou marquez un morceau comme livre audio.</string>
+    <string name="audiobooks_desc">Les longues pistes de bibliothèque apparaissent ici automatiquement. Pince tout ce que vous voulez garder comme un livre audio.</string>
+    <string name="no_audiobooks_found">Pas encore de livres audio. Ajouter de longs titres à votre bibliothèque ou épingler une piste comme un livre audio.</string>
     <string name="add_to_audiobooks">Ajouter aux livres audio</string>
     <string name="remove_from_audiobooks">Supprimer des livres audio</string>
-    <string name="clear_resume_position">Effacer la position de reprise</string>
-    <string name="resume_at">Reprendre à %1$s sur %2$s</string>
+    <string name="clear_resume_position">Position de reprise libre</string>
+    <string name="resume_at">Récupération à %1$s de %2$s</string>
     <plurals name="n_audiobook">
         <item quantity="one">%d livre audio</item>
         <item quantity="many">%d livres audio</item>
         <item quantity="other">%d livres audio</item>
     </plurals>
-    <string name="late_night_mode">Mode nuit</string>
-    <string name="late_night_mode_desc">Compresser la plage dynamique afin que les détails les plus discrets restent audibles et que les pics sonores soient atténués à faible volume</string>
+    <string name="late_night_mode">Mode nuit tardif</string>
+    <string name="late_night_mode_desc">Compress gamme dynamique si calme détails restent audibles et les sommets bruyants sont adoucis à faible volume</string>
+    <string name="ko_fi">Ko-fi</string>
+    <string name="ko_fi_desc">Café unique pour le développeur</string>
 </resources>
