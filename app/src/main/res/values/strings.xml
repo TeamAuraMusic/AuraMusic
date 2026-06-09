@@ -1008,4 +1008,7 @@
     <string name="alarm_dismiss">Dismiss</string>
     <string name="alarm_channel_name">Music alarm</string>
     <string name="alarm_channel_desc">Wake-up alarm that plays your selected songs.</string>
+    <!-- Ko-fi -->
+    <string name="ko-fi">Ko-fi</string>
+    <string name="ko-fi_desc">One-time coffee for the developer</string>
 </resources>

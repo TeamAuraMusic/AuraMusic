@@ -1,0 +1,27 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Ko-fi purple background circle -->
+    <path
+        android:fillColor="#632D91"
+        android:pathData="M12,0a12,12 0 0 0 12,12 12,12 0 0 0 -12,12A12,12 0 0 0 0,12 12,12 0 0 0 12,0z" />
+    <!-- White coffee cup -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M7,10h10c1.1,0 2,0.9 2,2v4c0 1.1-.9 2-2 2H7c-1.1,0-2-.9-2-2v-4c0-1.1.9-2 2-2z M8,12v4h8v-4H8z" />
+    <!-- Steam lines -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.5"
+        android:pathData="M10,8c1,0 1.5-1 1.5-1.5S11,6 10,6" />
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.5"
+        android:pathData="M12,8c1,0 1.5-1 1.5-1.5S13,6 12,6" />
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.5"
+        android:pathData="M14,8c1,0 1.5-1 1.5-1.5S15,6 14,6" />
+</vector>
