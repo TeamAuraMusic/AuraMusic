@@ -15,10 +15,26 @@ import com.auramusic.app.db.entities.Song
 import com.auramusic.app.models.MediaMetadata
 import com.auramusic.app.models.toMediaMetadata
 import com.auramusic.app.ui.utils.resize
+import com.auramusic.app.ui.utils.toHighQualityThumbnail
 import com.auramusic.innertube.models.WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.Companion.MUSIC_VIDEO_TYPE_ATV
 
 val MediaItem.metadata: MediaMetadata?
     get() = localConfiguration?.tag as? MediaMetadata
+
+private const val METADATA_KEY_ALBUM_ART_URI = "android.media.metadata.ALBUM_ART_URI"
+private const val METADATA_KEY_ART_URI = "android.media.metadata.ART_URI"
+private const val METADATA_KEY_DISPLAY_ICON_URI = "android.media.metadata.DISPLAY_ICON_URI"
+
+private fun String?.toLockScreenArtworkUrl(): String? =
+    this?.toHighQualityThumbnail() ?: this?.resize(1200, 1200)
+
+private fun Bundle.putArtworkExtras(artworkUrl: String?) {
+    artworkUrl ?: return
+    putString("artwork_uri", artworkUrl)
+    putString(METADATA_KEY_ALBUM_ART_URI, artworkUrl)
+    putString(METADATA_KEY_ART_URI, artworkUrl)
+    putString(METADATA_KEY_DISPLAY_ICON_URI, artworkUrl)
+}
 
 fun Song.toMediaItem() = MediaItem.Builder()
     .setMediaId(song.id)
@@ -30,7 +46,7 @@ fun Song.toMediaItem() = MediaItem.Builder()
             .setTitle(song.title)
             .setSubtitle(artists.joinToString { it.name })
             .setArtist(artists.joinToString { it.name })
-            .setArtworkUri(song.thumbnailUrl?.toUri())
+            .setArtworkUri(song.thumbnailUrl.toLockScreenArtworkUrl()?.toUri())
             .setAlbumTitle(song.albumName)
             .setAlbumArtist(artists.firstOrNull()?.name)
             .setDisplayTitle(song.title)
@@ -38,7 +54,7 @@ fun Song.toMediaItem() = MediaItem.Builder()
             .setIsBrowsable(false)
             .setIsPlayable(true)
             .setExtras(Bundle().apply {
-                putString("artwork_uri", song.thumbnailUrl)
+                putArtworkExtras(song.thumbnailUrl.toLockScreenArtworkUrl())
             })
             .build()
     )
@@ -54,7 +70,7 @@ fun SongItem.toMediaItem() = MediaItem.Builder()
             .setTitle(title)
             .setSubtitle(artists.joinToString { it.name })
             .setArtist(artists.joinToString { it.name })
-            .setArtworkUri(thumbnail.resize(544, 544).toUri())
+            .setArtworkUri(thumbnail.toLockScreenArtworkUrl()?.toUri())
             .setAlbumTitle(album?.name)
             .setAlbumArtist(artists.firstOrNull()?.name)
             .setDisplayTitle(title)
@@ -62,7 +78,7 @@ fun SongItem.toMediaItem() = MediaItem.Builder()
             .setIsBrowsable(false)
             .setIsPlayable(true)
             .setExtras(Bundle().apply {
-                putString("artwork_uri", thumbnail.resize(544, 544))
+                putArtworkExtras(thumbnail.toLockScreenArtworkUrl())
             })
             .build()
     )
@@ -78,7 +94,7 @@ fun MediaMetadata.toMediaItem() = MediaItem.Builder()
             .setTitle(title)
             .setSubtitle(artists.joinToString { it.name })
             .setArtist(artists.joinToString { it.name })
-            .setArtworkUri(thumbnailUrl?.toUri())
+            .setArtworkUri(thumbnailUrl.toLockScreenArtworkUrl()?.toUri())
             .setAlbumTitle(album?.title)
             .setAlbumArtist(artists.firstOrNull()?.name)
             .setDisplayTitle(title)
@@ -86,7 +102,7 @@ fun MediaMetadata.toMediaItem() = MediaItem.Builder()
             .setIsBrowsable(false)
             .setIsPlayable(true)
             .setExtras(Bundle().apply {
-                thumbnailUrl?.let { putString("artwork_uri", it) }
+                putArtworkExtras(thumbnailUrl.toLockScreenArtworkUrl())
             })
             .build()
     )

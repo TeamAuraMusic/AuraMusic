@@ -437,6 +437,8 @@ class MusicService :
                 .setContentText("")
                 .setSmallIcon(R.drawable.ic_notification_icon)
                 .setContentIntent(pending)
+                .setCategory(NotificationCompat.CATEGORY_TRANSPORT)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setOngoing(true)
                 .build()
             foregroundNotification = notification

@@ -733,9 +733,11 @@ class MainActivity : ComponentActivity() {
                         currentRoute!!.startsWith("search/")
                 }
 
-                val isLandscape = configuration.containerDpSize.width > configuration.containerDpSize.height
+                val windowSize = configuration.containerDpSize
+                val isLandscape = windowSize.width > windowSize.height
+                val isTabletWidth = windowSize.width >= 600.dp && windowSize.height >= 480.dp
 
-                val showRail = isLandscape && !inSearchScreen
+                val showRail = (isLandscape || isTabletWidth) && !inSearchScreen
 
                 val navPadding = if (shouldShowNavigationBar && !showRail) {
                     if (slimNav) SlimNavBarHeight else NavigationBarHeight
