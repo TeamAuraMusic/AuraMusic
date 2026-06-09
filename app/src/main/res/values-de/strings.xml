@@ -934,4 +934,24 @@
     </plurals>
     <string name="aura_canvas_desc">Zeigen Sie Looping AuraCanvas Videos hinter Albumkunst, wenn ein Spiel in der Community Manifest gefunden wird. Experimental.</string>
     <string name="aura_canvas">AuraCanvas</string>
+    <string name="audiobooks">Hörbücher</string>
+    <string name="audiobooks_desc">Lange Bibliothekstracks erscheinen hier automatisch. Pin alles, was Sie als Audiobuch halten möchten.</string>
+    <string name="no_audiobooks_found">Noch keine Hörbücher. Fügen Sie lange Tracks zu Ihrer Bibliothek hinzu oder schreiben Sie einen Track als Audiobook.</string>
+    <string name="add_to_audiobooks">Zu den Hörbüchern hinzufügen</string>
+    <string name="remove_from_audiobooks">Von Audiobooks entfernen</string>
+    <string name="clear_resume_position">Offene Lebenslaufposition</string>
+    <string name="resume_at">Verbrauch bei %1$s von %2$s</string>
+    <string name="late_night_mode">Späterer Nachtmodus</string>
+    <string name="late_night_mode_desc">Compress Dynamikbereich so ruhige Details bleiben hörbar und laute Spitzen werden bei niedrigem Volumen erweicht</string>
+    <plurals name="n_audiobook">
+        <item quantity="one">%d Audiobook</item>
+        <item quantity="other">%d Hörbücher</item>
+    </plurals>
+    <string name="ko_fi">Kofi</string>
+    <string name="ko_fi_desc">Einmaliger Kaffee für den Entwickler</string>
+    <string name="new_releases_channel_desc">Neue Release-Benachrichtigungen für abonnierte Künstler</string>
+    <string name="new_releases_channel_name">Neue Releases</string>
+    <string name="new_release_notification_title_single">Neue Veröffentlichung eines abonnierten Künstlers</string>
+    <string name="new_release_notification_title_multiple">%d neue Releases von abonnierten Künstlern</string>
+    <string name="new_release_notifications">Neue Release-Benachrichtigungen</string>
 </resources>
