@@ -954,4 +954,19 @@
     <string name="new_release_notification_title_single">Novo lançamento de um artista ao qual é subscrito</string>
     <string name="new_release_notification_title_multiple">%d novos lançamentos de artistas aos quais é subscritos</string>
     <string name="new_release_notifications">Notificações de novos lançamentos</string>
+    <string name="audiobooks">Livros de áudio</string>
+    <string name="audiobooks_desc">Faixas de biblioteca longas aparecem aqui automaticamente. Pin qualquer coisa que você queira manter como um audiobook.</string>
+    <string name="no_audiobooks_found">Ainda não há audiobooks. Adicione faixas longas à sua biblioteca ou pinte uma faixa como um audiobook.</string>
+    <string name="add_to_audiobooks">Adicionar aos audiolivros</string>
+    <string name="remove_from_audiobooks">Remover de audiolivros</string>
+    <string name="clear_resume_position">Posição clara do currículo</string>
+    <string name="resume_at">Resumir %1$s de %2$s</string>
+    <string name="late_night_mode">Modo noturno tardio</string>
+    <string name="late_night_mode_desc">Comprimir gama dinâmica de modo detalhes tranquilos ficar audível e altos picos são amolecidos em baixo volume</string>
+    <string name="ko_fi">Ko-fi</string>
+    <string name="ko_fi_desc">Café único para o desenvolvedor</string>
+    <plurals name="n_audiobook">
+        <item quantity="one">%d audiobook</item>
+        <item quantity="other">%d audiolivros</item>
+    </plurals>
 </resources>
