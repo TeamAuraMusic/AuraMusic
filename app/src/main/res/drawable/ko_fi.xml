@@ -1,27 +1,27 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
-    <!-- Ko-fi purple background circle -->
+    android:viewportWidth="64"
+    android:viewportHeight="64">
     <path
-        android:fillColor="#632D91"
-        android:pathData="M12,0a12,12 0 0 0 12,12 12,12 0 0 0 -12,12A12,12 0 0 0 0,12 12,12 0 0 0 12,0z" />
-    <!-- White coffee cup -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M7,10h10c1.1,0 2,0.9 2,2v4c0 1.1-.9 2-2 2H7c-1.1,0-2-.9-2-2v-4c0-1.1.9-2 2-2z M8,12v4h8v-4H8z" />
-    <!-- Steam lines -->
-    <path
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="1.5"
-        android:pathData="M10,8c1,0 1.5-1 1.5-1.5S11,6 10,6" />
-    <path
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="1.5"
-        android:pathData="M12,8c1,0 1.5-1 1.5-1.5S13,6 12,6" />
-    <path
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="1.5"
-        android:pathData="M14,8c1,0 1.5-1 1.5-1.5S15,6 14,6" />
+        android:fillColor="#29ABE0"
+        android:pathData="M32,0a32,32 0,1 0 0,64a32,32 0,1 0 0,-64" />
+
+    <group
+        android:scaleX="1.9656019"
+        android:scaleY="1.9656019">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M22.2579,8.8h1.6076C26.9663,8.8 29.48,11.3137 29.48,14.4145v0.33c0,3.1008 -2.5137,5.6145 -5.6145,5.6145h-1.6076v1.6898c0,1.4311 -1.1602,2.5913 -2.5913,2.5913H7.4313C6.0002,24.64 4.84,23.4798 4.84,22.0487V10.0956C4.84,9.3801 5.4201,8.8 6.1356,8.8zM22.2579,11.7968v5.5654h1.4656c1.5368,0 2.7827,-1.2459 2.7827,-2.7827c0,-1.5368 -1.2459,-2.7827 -2.7827,-2.7827z" />
+    </group>
+
+    <group
+        android:translateX="9.512"
+        android:translateY="17.296"
+        android:scaleX="1.9656019"
+        android:scaleY="1.9656019">
+        <path
+            android:fillColor="#FF5E5B"
+            android:pathData="M8.36,5.2768C8.7603,4.1056 9.7089,3.52 11.2059,3.52c2.2455,0 3.078,2.7937 1.9009,4.62C12.3222,9.3576 10.7399,10.8976 8.36,12.76C5.9801,10.8976 4.3978,9.3576 3.6131,8.14C2.4361,6.3137 3.2686,3.52 5.5141,3.52C7.0111,3.52 7.9597,4.1056 8.36,5.2768z" />
+    </group>
 </vector>
