@@ -69,10 +69,10 @@ class MusicWidgetReceiver : AppWidgetProvider() {
     }
 
     private fun getActionIntent(context: Context, action: String): PendingIntent {
-        val intent = Intent(context, MusicService::class.java).apply {
+        val intent = Intent(context, MusicWidgetReceiver::class.java).apply {
             this.action = action
         }
-        return PendingIntent.getService(
+        return PendingIntent.getBroadcast(
             context,
             action.hashCode(),
             intent,

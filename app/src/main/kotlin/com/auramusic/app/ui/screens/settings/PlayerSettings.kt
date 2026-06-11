@@ -325,7 +325,15 @@ fun PlayerSettings(
                 add(Material3SettingsItem(
                     icon = painterResource(R.drawable.linear_scale),
                     title = { Text(stringResource(R.string.crossfade)) },
-                    description = { Text(stringResource(R.string.crossfade_desc)) },
+                    description = {
+                        Text(
+                            if (crossfadeEnabled) {
+                                "${pluralStringResource(R.plurals.seconds, crossfadeDuration.toInt(), crossfadeDuration.toInt())} • ${stringResource(R.string.crossfade_desc)}"
+                            } else {
+                                stringResource(R.string.crossfade_desc)
+                            }
+                        )
+                    },
                     showBadge = true,
                     trailingContent = {
                         Switch(

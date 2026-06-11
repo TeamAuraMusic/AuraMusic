@@ -14,9 +14,10 @@
         android:src="@drawable/ic_widget_music_placeholder" />
 
     <!-- Dark overlay for text contrast -->
-    <View
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:text=""
         android:background="#30000000" />
 
     <!-- Content container -->

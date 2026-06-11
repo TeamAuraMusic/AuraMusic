@@ -13,9 +13,10 @@
         android:src="@drawable/ic_widget_music_placeholder" />
 
     <!-- Gradient overlay for readability -->
-    <View
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:text=""
         android:background="@drawable/widget_gradient_overlay" />
 
     <!-- Top content area -->
