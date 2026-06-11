@@ -612,7 +612,7 @@
     <string name="listening_to_metrolist">Écoutez sur AuraMusic</string>
     <string name="visit_metrolist">Rendez-vous sur AuraMusic</string>
     <string name="play_on_app">Écouter sur AuraMusic</string>
-    <string name="wrapped_logo_content_description">AuraMusic Wrapped</string>
+    <string name="wrapped_logo_content_description">Récapitulatif AuraMusic</string>
     <string name="wrapped_special_thanks">Un grand merci à vous pour votre soutien à AuraMusic !</string>
     <string name="github_releases_url">https://github.com/TeamAuraMusic/AuraMusic/releases</string>
     <string name="crash_title">AuraMusic a planté</string>
@@ -746,13 +746,13 @@
     <string name="eq_disabled">Égaliseur désactivé</string>
     <string name="delete_profile_desc">Supprimer ce profil ?</string>
     <string name="delete_profile_confirmation">Supprimer le profil</string>
-    <string name="wrapped_ready_title">Votre %s Wrapped est prêt !</string>
+    <string name="wrapped_ready_title">Votre récapitulatif pour %s est prêt !</string>
     <string name="wrapped_ready_subtitle">Découvrez votre mois en musique</string>
     <string name="open">Ouvrir</string>
     <string name="wrapped_year">%s</string>
     <string name="wrapped_intro_title">Votre mois en musique</string>
     <string name="wrapped_intro_subtitle">Découvrez vos morceaux préférés, vos artistes préférés et bien plus encore</string>
-    <string name="wrapped_intro_button">Voir mon %s</string>
+    <string name="wrapped_intro_button">Voir mois de %s</string>
     <string name="wrapped_thank_you">Merci de votre écoute</string>
     <string name="wrapped_close">Fermer</string>
     <string name="wrapped_total_songs_title">Nombre total de titres écoutés</string>
@@ -775,7 +775,7 @@
     <string name="wrapped_playlist_ready">Votre playlist est prête</string>
     <string name="album_art_for">Pochette d\'album pour %s</string>
     <string name="album_cover_desc">Pochette d\'album</string>
-    <string name="wrapped_playlist_title">Votre playlist « %s Wrapped »</string>
+    <string name="wrapped_playlist_title">Votre playlist « Récapitulatif %s »</string>
     <string name="wrapped_create_playlist">Créer une playlist</string>
     <string name="wrapped_playlist_saved">Playlist enregistrée</string>
     <string name="wrapped_no_data">Aucune donnée disponible</string>
