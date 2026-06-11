@@ -79,6 +79,7 @@
     <string name="add_to_audiobooks">Add to audiobooks</string>
     <string name="remove_from_audiobooks">Remove from audiobooks</string>
     <string name="clear_resume_position">Clear resume position</string>
+    <string name="resume_playback">Resume playback</string>
     <string name="resume_at">Resume at %1$s of %2$s</string>
     <string name="filter_community_playlists">Community playlists</string>
     <string name="filter_featured_playlists">Featured playlists</string>

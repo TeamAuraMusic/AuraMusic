@@ -25,6 +25,8 @@ import com.auramusic.innertube.utils.parseCookieString
 import com.auramusic.app.constants.HideExplicitKey
 import com.auramusic.app.constants.HideVideoSongsKey
 import com.auramusic.app.constants.InnerTubeCookieKey
+import com.auramusic.app.constants.AudiobookIdsKey
+import com.auramusic.app.constants.AudiobookPositionsKey
 import com.auramusic.app.constants.QuickPicks
 import com.auramusic.app.constants.QuickPicksKey
 import com.auramusic.app.constants.ShowWrappedCardKey
@@ -42,8 +44,12 @@ import com.auramusic.app.extensions.toEnum
 import com.auramusic.app.models.SimilarRecommendation
 import com.auramusic.app.ui.screens.wrapped.WrappedAudioService
 import com.auramusic.app.ui.screens.wrapped.WrappedManager
+import com.auramusic.app.utils.AUDIOBOOK_MIN_DURATION_SECONDS
+import com.auramusic.app.utils.AUDIOBOOK_RESUME_THRESHOLD_MS
 import com.auramusic.app.utils.SyncUtils
 import com.auramusic.app.utils.dataStore
+import com.auramusic.app.utils.decodeAudiobookIds
+import com.auramusic.app.utils.decodeAudiobookPositions
 import com.auramusic.app.utils.get
 import com.auramusic.app.utils.reportException
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -163,6 +169,38 @@ class HomeViewModel @Inject constructor(
             
             filled.take(targetSize)
         }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    val resumeAudiobook: StateFlow<AudiobookLibraryItem?> =
+        combine(
+            database.allSongs(),
+            context.dataStore.data,
+        ) { songs, preferences ->
+            val audiobookIds = decodeAudiobookIds(preferences[AudiobookIdsKey])
+            val positions = decodeAudiobookPositions(preferences[AudiobookPositionsKey])
+            val hideExplicit = preferences[HideExplicitKey] ?: false
+            val hideVideoSongs = preferences[HideVideoSongsKey] ?: false
+
+            songs
+                .asSequence()
+                .filter { !hideExplicit || !it.song.explicit }
+                .filter { !hideVideoSongs || !it.song.isVideo }
+                .filter { it.id in audiobookIds || it.song.duration >= AUDIOBOOK_MIN_DURATION_SECONDS }
+                .mapNotNull { song ->
+                    val durationMs = (song.song.duration * 1000L).coerceAtLeast(0L)
+                    val positionMs = positions[song.id]?.coerceIn(0L, durationMs) ?: 0L
+                    val resumable = positionMs >= AUDIOBOOK_RESUME_THRESHOLD_MS && positionMs < durationMs - AUDIOBOOK_RESUME_THRESHOLD_MS
+                    if (!resumable) {
+                        null
+                    } else {
+                        AudiobookLibraryItem(
+                            song = song,
+                            resumePositionMs = positionMs,
+                            pinned = song.id in audiobookIds,
+                        )
+                    }
+                }
+                .maxByOrNull { it.resumePositionMs }
+        }.stateIn(viewModelScope, SharingStarted.Lazily, null)
 
     val accountName = MutableStateFlow("Guest")
     val accountImageUrl = MutableStateFlow<String?>(null)

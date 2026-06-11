@@ -57,6 +57,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -157,6 +158,7 @@ import com.auramusic.app.ui.menu.YouTubeArtistMenu
 import com.auramusic.app.ui.menu.YouTubePlaylistMenu
 import com.auramusic.app.ui.menu.YouTubeSongMenu
 import com.auramusic.app.ui.utils.SnapLayoutInfoProvider
+import com.auramusic.app.utils.makeTimeString
 import com.auramusic.app.utils.rememberEnumPreference
 import com.auramusic.app.utils.rememberPreference
 import com.auramusic.app.viewmodels.HomeViewModel
@@ -183,6 +185,7 @@ fun HomeScreen(
     val database = LocalDatabase.current
     val playerConnection = LocalPlayerConnection.current ?: return
     val haptic = LocalHapticFeedback.current
+    val context = LocalContext.current
 
     val isPlaying by playerConnection.isEffectivelyPlaying.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
@@ -197,6 +200,7 @@ fun HomeScreen(
     val speedDialItems by viewModel.speedDialItems.collectAsState()
     val pinnedSpeedDialItems by viewModel.pinnedSpeedDialItems.collectAsState()
     val communityPlaylists by viewModel.communityPlaylists.collectAsState()
+    val resumeAudiobook by viewModel.resumeAudiobook.collectAsState()
 
     val allLocalItems by viewModel.allLocalItems.collectAsState()
     val allYtItems by viewModel.allYtItems.collectAsState()
@@ -541,6 +545,83 @@ fun HomeScreen(
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onPrimaryContainer
                             )
+                        }
+                    }
+                }
+
+                resumeAudiobook?.let { audiobook ->
+                    item(key = "resume_audiobook") {
+                        val song = audiobook.song
+                        val durationMs = (song.song.duration * 1000L).coerceAtLeast(0L)
+                        val resumePositionMs = audiobook.resumePositionMs.coerceIn(0L, durationMs)
+
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                                .combinedClickable(
+                                    onClick = {
+                                        playerConnection.playQueue(
+                                            ListQueue(
+                                                title = context.getString(R.string.audiobooks),
+                                                items = listOf(song.toMediaItem()),
+                                                startIndex = 0,
+                                                position = resumePositionMs,
+                                            )
+                                        )
+                                    }
+                                ),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            ),
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.library_music),
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        modifier = Modifier.size(28.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = stringResource(R.string.resume_playback),
+                                            style = MaterialTheme.typography.labelLarge,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f),
+                                        )
+                                        Text(
+                                            text = song.song.title,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                        )
+                                        Text(
+                                            text = stringResource(
+                                                R.string.resume_at,
+                                                makeTimeString(resumePositionMs),
+                                                makeTimeString(durationMs),
+                                            ),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
+                                        )
+                                    }
+                                    Icon(
+                                        painter = painterResource(R.drawable.play),
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    )
+                                }
+                                if (durationMs > 0L) {
+                                    LinearProgressIndicator(
+                                        progress = { (resumePositionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f) },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 12.dp),
+                                    )
+                                }
+                            }
                         }
                     }
                 }
