@@ -508,7 +508,7 @@
     <string name="join_room">Unirse a la habitación</string>
     <string name="join_existing_room">Únase a la sala existente</string>
     <string name="listen_together_create_room_desc">Crear una nueva sala de Escuchar juntos</string>
-    <string name="listen_together_leave_room">Sala de descanso</string>
+    <string name="listen_together_leave_room">Abandonar sala</string>
     <string name="error_username_empty">El nombre de usuario no puede estar vacío</string>
     <string name="hosting_room">Alojamiento</string>
     <string name="in_room">En la habitación</string>
@@ -522,7 +522,7 @@
     <string name="transfer_ownership_desc">Transfer host privilegios a otro usuario</string>
     <string name="collaborative_playlist">Lista colaborativa</string>
     <string name="create_collab_playlist">Crear lista de reproducción colaborativa</string>
-    <string name="collab_playlist_name">Nombre de la lista</string>
+    <string name="collab_playlist_name">Nombre de la lista de reproducción</string>
     <string name="collab_playlist_created">Colección colaborativa creada</string>
     <string name="collab_playlist_add_song">Canción añadido a la lista de reproducción colaborativa</string>
     <string name="collab_playlist_remove_song">Canción eliminada de la lista de reproducción colaborativa</string>
@@ -923,7 +923,7 @@
     <string name="seek_backward_dynamic">Busca hacia atrás</string>
     <string name="copied_title">Título copiado</string>
     <string name="copied_artist">Artista copiado</string>
-    <string name="like_all">Como todos</string>
+    <string name="like_all">Dar me gusta a todo</string>
     <string name="switch_to_video">Cambiar a vídeo</string>
     <string name="switch_to_audio">Cambiar a audio</string>
     <string name="enable_video_mode_desc">Permitir la reproducción automática de vídeo para las canciones de vídeo</string>
