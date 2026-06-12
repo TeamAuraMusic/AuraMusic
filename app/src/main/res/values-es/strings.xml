@@ -70,8 +70,8 @@
     <string name="quick_picks">Selecciones rápidas</string>
     <string name="similar_content">Contenido similar</string>
     <string name="wrapped_top_5_albums_title">Top 5 álbumes</string>
-    <string name="library_album_empty">Los álbumes guardados en la biblioteca aparecerán aquí</string>
-    <string name="library_playlist_empty">Tus listas de reproducción aparecerán aquí</string>
+    <string name="library_album_empty">Los álbumes de la biblioteca se mostrarán aquí</string>
+    <string name="library_playlist_empty">Tus listas de reproducción se mostrarán aquí</string>
     <string name="from_your_library">De tu biblioteca</string>
     <string name="radio">Radio</string>
     <string name="about_artist">Sobre el artista</string>
