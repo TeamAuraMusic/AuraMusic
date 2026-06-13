@@ -64,8 +64,8 @@ class InnerTube {
     private val hasCompleteLogin: Boolean
         get() = cookieMap["SAPISID"].isNullOrBlank().not() && !dataSyncId.isNullOrBlank()
 
-    private val shouldUseLoginForBrowse: Boolean
-        get() = useLoginForBrowse && hasCompleteLogin
+    private fun shouldUseLogin(client: YouTubeClient, requested: Boolean): Boolean =
+        requested && client.loginSupported && hasCompleteLogin
 
     @OptIn(ExperimentalSerializationApi::class)
     private fun createClient() = HttpClient(OkHttp) {
@@ -200,9 +200,10 @@ class InnerTube {
         query: String? = null,
         params: String? = null,
         continuation: String? = null,
+        setLogin: Boolean = false,
     ) = withRetry {
         httpClient.post("search") {
-            val useLogin = shouldUseLoginForBrowse
+            val useLogin = shouldUseLogin(client, setLogin)
             ytClient(client, setLogin = useLogin)
             setBody(
                 SearchBody(
@@ -226,12 +227,14 @@ class InnerTube {
         playlistId: String?,
         signatureTimestamp: Int?,
         poToken: String? = null,
+        setLogin: Boolean = false,
     ) = withRetry {
         httpClient.post("player") {
-            ytClient(client, setLogin = true)
+            val useLogin = shouldUseLogin(client, setLogin)
+            ytClient(client, setLogin = useLogin)
             setBody(
                 PlayerBody(
-                    context = client.toContext(locale, visitorData, dataSyncId).let {
+                    context = client.toContext(locale, visitorData, if (useLogin) dataSyncId else null).let {
                         if (client.isEmbedded) {
                             it.copy(
                                 thirdParty = Context.ThirdParty(
@@ -284,7 +287,7 @@ class InnerTube {
         setLogin: Boolean = false,
     ) = withRetry {
         httpClient.post("browse") {
-            val useLogin = setLogin || shouldUseLoginForBrowse
+            val useLogin = shouldUseLogin(client, setLogin)
             ytClient(client, setLogin = useLogin)
             setBody(
                 BrowseBody(
@@ -309,12 +312,14 @@ class InnerTube {
         index: Int?,
         params: String?,
         continuation: String? = null,
+        setLogin: Boolean = false,
     ) = withRetry {
         httpClient.post("next") {
-            ytClient(client, setLogin = true)
+            val useLogin = shouldUseLogin(client, setLogin)
+            ytClient(client, setLogin = useLogin)
             setBody(
                 NextBody(
-                    context = client.toContext(locale, visitorData, dataSyncId),
+                    context = client.toContext(locale, visitorData, if (useLogin) dataSyncId else null),
                     videoId = videoId,
                     playlistId = playlistId,
                     playlistSetVideoId = playlistSetVideoId,
