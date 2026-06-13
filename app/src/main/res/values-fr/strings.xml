@@ -970,4 +970,5 @@
     <string name="late_night_mode_desc">Compress gamme dynamique si calme détails restent audibles et les sommets bruyants sont adoucis à faible volume</string>
     <string name="ko_fi">Ko-fi</string>
     <string name="ko_fi_desc">Café unique pour le développeur</string>
+    <string name="resume_playback">Reprendre la lecture</string>
 </resources>
