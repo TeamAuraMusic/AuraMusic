@@ -5,6 +5,7 @@
 
 package com.auramusic.app.ui.tv
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -226,6 +228,17 @@ enum class TvSection(val label: String) {
      val navigator = rememberTvNavigator()
      val isPlayingState = playerConnection?.isPlaying?.collectAsState() ?: remember { mutableStateOf(false) }
      val currentSong by playerConnection?.currentSong?.collectAsState(null) ?: remember { mutableStateOf(null) }
+     val showMiniPlayer = currentSong != null
+
+     // Handle remote back button: go back in navigator, or exit PiP, or finish
+     androidx.activity.compose.BackHandler(enabled = true) {
+         val nav = navigator
+         if (nav.current is TvDestination.Player) {
+             nav.popBack()
+         } else if (nav.current != TvDestination.Home) {
+             nav.popBack()
+         }
+     }
 
      // Keep screen on when music is playing
      val view = LocalView.current
@@ -315,6 +328,7 @@ enum class TvSection(val label: String) {
                          sectionState = sectionState,
                          isPlaying = isPlayingState.value,
                          currentSong = currentSong,
+                         showMiniPlayer = showMiniPlayer,
                          playerConnection = playerConnection,
                          onMiniPlayerClick = { navigator.navigate(TvDestination.Player) },
                          onNavigateDown = {
@@ -572,6 +586,7 @@ fun TvTopBar(
     sectionState: androidx.compose.runtime.MutableState<TvSection>,
     isPlaying: Boolean,
     currentSong: com.auramusic.app.db.entities.Song?,
+    showMiniPlayer: Boolean = false,
     playerConnection: PlayerConnection?,
     onMiniPlayerClick: () -> Unit,
     onNavigateDown: (() -> Unit)? = null,
@@ -654,50 +669,52 @@ fun TvTopBar(
              Spacer(modifier = Modifier.weight(1f))
 
               // Mini player (expanded to show full song and artist info)
-              if (isPlaying && currentSong != null) {
-                  Surface(
-                      onClick = onMiniPlayerClick,
-                       modifier = Modifier
-                           .height(56.dp)
-                           .weight(2f, fill = false) // Increased weight to make it wider
-                           .padding(horizontal = 16.dp)
+              if (showMiniPlayer && currentSong != null) {
+                  Row(
+                      modifier = Modifier
+                          .height(56.dp)
+                          .weight(2f, fill = false)
+                          .padding(horizontal = 16.dp)
                           .clip(RoundedCornerShape(8.dp))
-                          .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
-                      shape = RoundedCornerShape(8.dp),
-                      color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                      tonalElevation = 2.dp,
+                          .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+                      verticalAlignment = Alignment.CenterVertically,
+                      horizontalArrangement = Arrangement.spacedBy(12.dp),
                   ) {
-                     Row(
-                         modifier = Modifier
-                             .fillMaxSize()
-                             .padding(horizontal = 12.dp),
-                         verticalAlignment = Alignment.CenterVertically,
-                         horizontalArrangement = Arrangement.spacedBy(12.dp),
-                     ) {
-                         // Album art
-                         Box(
-                             modifier = Modifier
-                                 .size(40.dp)
-                                 .clip(RoundedCornerShape(6.dp))
-                                 .background(MaterialTheme.colorScheme.surface),
-                             contentAlignment = Alignment.Center,
-                         ) {
-                             AsyncImage(
-                                 model = currentSong.thumbnailUrl,
-                                 contentDescription = currentSong.title,
-                                 contentScale = ContentScale.Crop,
-                                 modifier = Modifier.fillMaxSize(),
-                             )
-                         }
+                      // Clickable album art + song info area
+                      Row(
+                          modifier = Modifier
+                              .weight(1f)
+                              .fillMaxHeight()
+                              .clip(RoundedCornerShape(8.dp))
+                              .clickable { onMiniPlayerClick() }
+                              .padding(horizontal = 12.dp),
+                          verticalAlignment = Alignment.CenterVertically,
+                          horizontalArrangement = Arrangement.spacedBy(12.dp),
+                      ) {
+                          // Album art
+                          Box(
+                              modifier = Modifier
+                                  .size(40.dp)
+                                  .clip(RoundedCornerShape(6.dp))
+                                  .background(MaterialTheme.colorScheme.surface),
+                              contentAlignment = Alignment.Center,
+                          ) {
+                              AsyncImage(
+                                  model = currentSong.thumbnailUrl,
+                                  contentDescription = currentSong.title,
+                                  contentScale = ContentScale.Crop,
+                                  modifier = Modifier.fillMaxSize(),
+                              )
+                          }
 
-                          // Song info (expanded layout for full visibility)
+                          // Song info
                           Column(modifier = Modifier.weight(1f)) {
                               Text(
                                   text = currentSong.title,
                                   style = MaterialTheme.typography.bodyMedium,
                                   fontWeight = FontWeight.SemiBold,
                                   color = MaterialTheme.colorScheme.onSurface,
-                                  maxLines = 2, // Allow title to wrap if needed
+                                  maxLines = 1,
                                   overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                               )
                               Text(
@@ -708,23 +725,22 @@ fun TvTopBar(
                                   overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                               )
                           }
+                      }
 
-                         // Play/Pause button
-                         val scope = rememberCoroutineScope()
-                         IconButton(
-                             onClick = { playerConnection?.togglePlayPause() },
-                             modifier = Modifier.size(40.dp),
-                         ) {
-                             Icon(
-                                 if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                                 contentDescription = if (isPlaying) "Pause" else "Play",
-                                 tint = MaterialTheme.colorScheme.onSurface,
-                                 modifier = Modifier.size(20.dp)
-                             )
-                         }
-                     }
-                 }
-             }
+                      // Play/Pause button (separate from clickable area)
+                      IconButton(
+                          onClick = { playerConnection?.togglePlayPause() },
+                          modifier = Modifier.size(40.dp),
+                      ) {
+                          Icon(
+                              if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                              contentDescription = if (isPlaying) "Pause" else "Play",
+                              tint = MaterialTheme.colorScheme.onSurface,
+                              modifier = Modifier.size(20.dp)
+                          )
+                      }
+                  }
+              }
 
              Spacer(modifier = Modifier.weight(1f))
 
@@ -2800,6 +2816,7 @@ LaunchedEffect(currentDestination) {
      focusRequester: FocusRequester? = null,
      onNavigateUp: (() -> Unit)? = null,
  ) {
+     BackHandler { onBackClick() }
      val (darkMode, onDarkModeChange) = rememberEnumPreference(DarkModeKey, DarkMode.AUTO)
 
      val dynamicThemeSupported = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S

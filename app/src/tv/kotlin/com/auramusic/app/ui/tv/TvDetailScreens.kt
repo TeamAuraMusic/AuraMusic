@@ -5,6 +5,7 @@
 
 package com.auramusic.app.ui.tv
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -114,6 +115,7 @@ sealed class DisplaySong {
 
 @Composable
 fun TvAlbumDetailScreen(albumId: String, playerConnection: PlayerConnection?, onBackClick: () -> Unit, focusRequester: FocusRequester? = null, onNavigateUp: (() -> Unit)? = null) {
+    BackHandler { onBackClick() }
     val albumsViewModel: LibraryAlbumsViewModel = hiltViewModel()
     val database = LocalDatabase.current
 
@@ -165,6 +167,7 @@ fun TvAlbumDetailScreen(albumId: String, playerConnection: PlayerConnection?, on
 
 @Composable
 fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, onBackClick: () -> Unit, focusRequester: FocusRequester? = null, onNavigateUp: (() -> Unit)? = null) {
+    BackHandler { onBackClick() }
     val artistsViewModel: LibraryArtistsViewModel = hiltViewModel()
     val database = LocalDatabase.current
     val navigator = LocalTvNavigator.current
@@ -441,6 +444,7 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
 
 @Composable
  fun TvPlaylistDetailScreen(playlistId: String, playerConnection: PlayerConnection?, onBackClick: () -> Unit, focusRequester: FocusRequester? = null, onNavigateUp: (() -> Unit)? = null) {
+    BackHandler { onBackClick() }
     val playlistsViewModel: LibraryPlaylistsViewModel = hiltViewModel()
     val database = LocalDatabase.current
 

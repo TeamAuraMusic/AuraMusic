@@ -5,6 +5,7 @@
 
 package com.auramusic.app.ui.tv
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -246,6 +247,7 @@ fun TvPlayerScreen(
     playerConnection: PlayerConnection?,
     onBackClick: () -> Unit,
 ) {
+    BackHandler { onBackClick() }
     var duration by remember { mutableStateOf(0L) }
     var currentPosition by remember { mutableStateOf(0L) }
     var sleepTimerMinutes by remember { mutableStateOf<Int?>(null) }
@@ -440,6 +442,23 @@ fun TvPlayerScreen(
                                     modifier = Modifier.fillMaxSize(),
                                 )
                             }
+                            // Subtle visualizer overlay at the bottom of album art
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(32.dp)
+                                    .align(Alignment.BottomCenter)
+                            ) {
+                                TvAudioVisualizer(
+                                    isPlaying = isPlaying,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(32.dp)
+                                        .padding(horizontal = 24.dp),
+                                    barCount = 20,
+                                    barColor = Color.White.copy(alpha = 0.6f),
+                                )
+                            }
                         }
                     }
 
@@ -513,20 +532,9 @@ fun TvPlayerScreen(
                     }
 
                     // Playback controls
-                    TvAudioVisualizer(
-                        isPlaying = isPlaying,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .padding(horizontal = 16.dp),
-                        barCount = 24,
-                        barColor = MaterialTheme.colorScheme.primary,
-                    )
-
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(top = 8.dp)
                     ) {
                         TvPlayerControlButton(
                             onClick = { pc?.seekToPrevious() },

@@ -112,6 +112,7 @@ import kotlinx.coroutines.launch
 @OptIn(DelicateCoroutinesApi::class)
 @Composable
  fun TvLoginScreen(onBackClick: () -> Unit, focusRequester: FocusRequester? = null, onNavigateUp: (() -> Unit)? = null) {
+    BackHandler { onBackClick() }
     var visitorData by rememberPreference(VisitorDataKey, "")
     var dataSyncId by rememberPreference(DataSyncIdKey, "")
     var innerTubeCookie by rememberPreference(InnerTubeCookieKey, "")
@@ -249,6 +250,7 @@ import kotlinx.coroutines.launch
      focusRequester: FocusRequester? = null,
      onNavigateUp: (() -> Unit)? = null,
  ) {
+    BackHandler { onBackClick() }
     val context = LocalContext.current
     val (innerTubeCookie, onInnerTubeCookieChange) = rememberPreference(InnerTubeCookieKey, "")
     val isLoggedIn = remember(innerTubeCookie) {
@@ -393,7 +395,8 @@ import kotlinx.coroutines.launch
 
  @Composable
  fun TvAboutScreen(onBackClick: () -> Unit, focusRequester: FocusRequester? = null, onNavigateUp: (() -> Unit)? = null) {
-     val firstFocus = focusRequester ?: remember { FocusRequester() }
+    BackHandler { onBackClick() }
+    val firstFocus = focusRequester ?: remember { FocusRequester() }
      LaunchedEffect(Unit) { runCatching { firstFocus.requestFocus() } }
      var backButtonFocused by remember { mutableStateOf(false) }
 
@@ -481,6 +484,7 @@ import kotlinx.coroutines.launch
 
 @Composable
  fun TvStorageSettingsScreen(onBackClick: () -> Unit, focusRequester: FocusRequester? = null, onNavigateUp: (() -> Unit)? = null) {
+    BackHandler { onBackClick() }
     val context = LocalContext.current
     val firstFocus = focusRequester ?: remember { FocusRequester() }
     LaunchedEffect(Unit) { runCatching { firstFocus.requestFocus() } }
@@ -559,6 +563,7 @@ import kotlinx.coroutines.launch
 
 @Composable
  fun TvUpdaterScreen(onBackClick: () -> Unit, focusRequester: FocusRequester? = null, onNavigateUp: (() -> Unit)? = null) {
+    BackHandler { onBackClick() }
     val firstFocus = focusRequester ?: remember { FocusRequester() }
     LaunchedEffect(Unit) { runCatching { firstFocus.requestFocus() } }
     var backButtonFocused by remember { mutableStateOf(false) }
@@ -803,6 +808,7 @@ fun TvPlaybackSettingsScreen(
     focusRequester: FocusRequester? = null,
     onNavigateUp: (() -> Unit)? = null,
 ) {
+    BackHandler { onBackClick() }
     val (audioQuality, onAudioQualityChange) = rememberEnumPreference(
         com.auramusic.app.constants.AudioQualityKey,
         com.auramusic.app.constants.AudioQuality.AUTO,
@@ -987,6 +993,7 @@ fun TvPlaybackSettingsScreen(
 
 @Composable
   fun TvContentSettingsScreen(onBackClick: () -> Unit, focusRequester: FocusRequester? = null, onNavigateUp: (() -> Unit)? = null) {
+    BackHandler { onBackClick() }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -1337,6 +1344,7 @@ fun TvSystemSettingsScreen(
     focusRequester: FocusRequester? = null,
     onNavigateUp: (() -> Unit)? = null,
 ) {
+    BackHandler { onBackClick() }
     val (hdmiCecEnabled, onHdmiCecEnabledChange) = rememberPreference(
         com.auramusic.app.constants.TvHdmiCecEnabledKey, true,
     )
