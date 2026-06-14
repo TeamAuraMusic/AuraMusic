@@ -969,4 +969,5 @@
         <item quantity="one">%d audiobook</item>
         <item quantity="other">%d audiolivros</item>
     </plurals>
+    <string name="resume_playback">Reduzir a reprodução</string>
 </resources>
