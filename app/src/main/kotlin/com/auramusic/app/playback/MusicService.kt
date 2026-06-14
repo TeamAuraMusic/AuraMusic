@@ -85,6 +85,7 @@ import com.auramusic.innertube.models.SongItem
 import com.auramusic.innertube.models.WatchEndpoint
 import com.auramusic.lastfm.LastFM
 import com.auramusic.app.MainActivity
+import com.auramusic.app.TvMainActivity
 import com.auramusic.app.R
 import com.auramusic.app.constants.AudioNormalizationKey
 import com.auramusic.app.constants.AudioOffload
@@ -428,8 +429,11 @@ class MusicService :
         // 3. Connect the processor to the service
         // handled in createExoPlayer
 
+        val isTv = packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK)
+
         try {
             val nm = getSystemService(NotificationManager::class.java)
+            // Default channel for phone (low importance, minimally intrusive)
             nm?.createNotificationChannel(
                 NotificationChannel(
                     CHANNEL_ID,
@@ -437,13 +441,28 @@ class MusicService :
                     NotificationManager.IMPORTANCE_LOW
                 )
             )
+            // TV-specific channel: higher importance so the notification shows
+            // prominently on the Android TV launcher as a Now Playing indicator
+            if (isTv) {
+                nm?.createNotificationChannel(
+                    NotificationChannel(
+                        TV_CHANNEL_ID,
+                        "Now Playing",
+                        NotificationManager.IMPORTANCE_DEFAULT
+                    ).apply {
+                        description = "Shows currently playing music on the TV launcher"
+                        setShowBadge(false)
+                    }
+                )
+            }
             val pending = PendingIntent.getActivity(
                 this,
                 0,
-                Intent(this, MainActivity::class.java),
-                PendingIntent.FLAG_IMMUTABLE
+                Intent(this, if (isTv) TvMainActivity::class.java else MainActivity::class.java),
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
             )
-            val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            val notificationChannelId = if (isTv) TV_CHANNEL_ID else CHANNEL_ID
+            val notification: Notification = NotificationCompat.Builder(this, notificationChannelId)
                 .setContentTitle(getString(R.string.music_player))
                 .setContentText("")
                 .setSmallIcon(R.drawable.ic_notification_icon)
@@ -463,7 +482,7 @@ class MusicService :
             DefaultMediaNotificationProvider(
                 this,
                 { NOTIFICATION_ID },
-                CHANNEL_ID,
+                if (isTv) TV_CHANNEL_ID else CHANNEL_ID,
                 R.string.music_player
             )
                 .apply {
@@ -3860,6 +3879,7 @@ class MusicService :
         const val SHUFFLE_ACTION = "__shuffle__"
 
         const val CHANNEL_ID = "music_channel_01"
+        const val TV_CHANNEL_ID = "tv_now_playing"
         const val NOTIFICATION_ID = 888
         const val ERROR_CODE_NO_STREAM = 1000001
         const val CHUNK_LENGTH = 512 * 1024L

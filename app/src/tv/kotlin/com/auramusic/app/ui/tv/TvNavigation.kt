@@ -25,6 +25,7 @@ import androidx.compose.runtime.remember
      data object PlaybackSettings : TvDestination()
       data object ContentSettings : TvDestination()
       data object StorageSettings : TvDestination()
+      data object SystemSettings : TvDestination()
       data object AboutScreen : TvDestination()
      data object UpdaterScreen : TvDestination()
      data object Login : TvDestination()

@@ -33,6 +33,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.FastForward
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Refresh
@@ -43,6 +47,7 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -79,9 +84,19 @@ import com.auramusic.app.BuildConfig
 import com.auramusic.app.constants.AccountChannelHandleKey
 import com.auramusic.app.constants.AccountEmailKey
 import com.auramusic.app.constants.AccountNameKey
+import com.auramusic.app.constants.AudioNormalizationKey
+import com.auramusic.app.constants.AudioQuality
+import com.auramusic.app.constants.AudioQualityKey
+import com.auramusic.app.constants.CrossfadeDurationKey
+import com.auramusic.app.constants.CrossfadeEnabledKey
 import com.auramusic.app.constants.DataSyncIdKey
 import com.auramusic.app.constants.InnerTubeCookieKey
+import com.auramusic.app.constants.LateNightModeKey
+import com.auramusic.app.constants.SeekExtraSeconds
+import com.auramusic.app.constants.SkipSilenceKey
+import com.auramusic.app.constants.VideoModeEnabledKey
 import com.auramusic.app.constants.VisitorDataKey
+import com.auramusic.app.utils.rememberEnumPreference
 import com.auramusic.app.utils.rememberPreference
 import com.auramusic.app.utils.reportException
 import com.auramusic.app.viewmodels.AccountSettingsViewModel
@@ -780,18 +795,194 @@ private fun TvUpdaterButton(
     }
 }
 
-/* -------------------------- Playback / Content placeholders -------------------------- */
+/* -------------------------- Playback Settings -------------------------- */
 
 @Composable
- fun TvPlaybackSettingsScreen(onBackClick: () -> Unit, focusRequester: FocusRequester? = null, onNavigateUp: (() -> Unit)? = null) {
-    TvPlaceholderSettings(
-        title = "Playback",
-        body = "Audio quality, gapless playback and other playback settings " +
-            "follow the values configured on the mobile app for now.",
-        onBackClick = onBackClick,
-        focusRequester = focusRequester,
-        onNavigateUp = onNavigateUp,
+fun TvPlaybackSettingsScreen(
+    onBackClick: () -> Unit,
+    focusRequester: FocusRequester? = null,
+    onNavigateUp: (() -> Unit)? = null,
+) {
+    val (audioQuality, onAudioQualityChange) = rememberEnumPreference(
+        com.auramusic.app.constants.AudioQualityKey,
+        com.auramusic.app.constants.AudioQuality.AUTO,
     )
+    val (audioNormalization, onAudioNormalizationChange) = rememberPreference(
+        com.auramusic.app.constants.AudioNormalizationKey, true,
+    )
+    val (skipSilence, onSkipSilenceChange) = rememberPreference(
+        com.auramusic.app.constants.SkipSilenceKey, false,
+    )
+    val (lateNightMode, onLateNightModeChange) = rememberPreference(
+        com.auramusic.app.constants.LateNightModeKey, false,
+    )
+    val (crossfadeEnabled, onCrossfadeEnabledChange) = rememberPreference(
+        com.auramusic.app.constants.CrossfadeEnabledKey, false,
+    )
+    val (crossfadeDuration, onCrossfadeDurationChange) = rememberPreference(
+        com.auramusic.app.constants.CrossfadeDurationKey, 5f,
+    )
+    val (videoModeEnabled, onVideoModeEnabledChange) = rememberPreference(
+        com.auramusic.app.constants.VideoModeEnabledKey, true,
+    )
+    val (seekExtraSeconds, onSeekExtraSecondsChange) = rememberPreference(
+        com.auramusic.app.constants.SeekExtraSeconds, false,
+    )
+
+    val firstFocus = focusRequester ?: remember { FocusRequester() }
+    LaunchedEffect(Unit) { runCatching { firstFocus.requestFocus() } }
+    var backButtonFocused by remember { mutableStateOf(false) }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .onPreviewKeyEvent { event ->
+                if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionUp) {
+                    if (backButtonFocused) {
+                        onNavigateUp?.invoke()
+                        true
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                }
+            },
+        contentPadding = PaddingValues(horizontal = 48.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        item {
+            TvSettingsHeader(
+                title = "Playback",
+                onBackClick = onBackClick,
+                focusRequester = firstFocus,
+                onFocusChange = { backButtonFocused = it },
+            )
+        }
+
+        item {
+            Text(
+                text = "AUDIO",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            )
+        }
+
+        item {
+            TvSettingsCategoryItem(
+                title = "Audio Quality",
+                subtitle = when (audioQuality) {
+                    com.auramusic.app.constants.AudioQuality.AUTO -> "Automatic (recommended)"
+                    com.auramusic.app.constants.AudioQuality.HIGH -> "High quality"
+                    com.auramusic.app.constants.AudioQuality.LOW -> "Low quality (saves data)"
+                },
+                onClick = {
+                    val next = when (audioQuality) {
+                        com.auramusic.app.constants.AudioQuality.AUTO -> com.auramusic.app.constants.AudioQuality.HIGH
+                        com.auramusic.app.constants.AudioQuality.HIGH -> com.auramusic.app.constants.AudioQuality.LOW
+                        com.auramusic.app.constants.AudioQuality.LOW -> com.auramusic.app.constants.AudioQuality.AUTO
+                    }
+                    onAudioQualityChange(next)
+                },
+                icon = Icons.Filled.Tune,
+            )
+        }
+
+        item {
+            TvContentToggleRow(
+                title = "Audio Normalization",
+                subtitle = "Normalize volume levels across songs",
+                checked = audioNormalization,
+                onCheckedChange = onAudioNormalizationChange,
+                icon = Icons.Filled.Tune,
+            )
+        }
+
+        item {
+            TvContentToggleRow(
+                title = "Skip Silence",
+                subtitle = "Automatically skip silent parts of songs",
+                checked = skipSilence,
+                onCheckedChange = onSkipSilenceChange,
+                icon = Icons.Filled.FastForward,
+            )
+        }
+
+        item {
+            TvContentToggleRow(
+                title = "Late Night Mode",
+                subtitle = "Reduce volume differences for quiet listening",
+                checked = lateNightMode,
+                onCheckedChange = onLateNightModeChange,
+                icon = Icons.Filled.DarkMode,
+            )
+        }
+
+        item {
+            Text(
+                text = "CROSSFADE",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 8.dp).padding(top = 12.dp, bottom = 4.dp),
+            )
+        }
+
+        item {
+            TvContentToggleRow(
+                title = "Crossfade",
+                subtitle = "Smooth transitions between songs",
+                checked = crossfadeEnabled,
+                onCheckedChange = onCrossfadeEnabledChange,
+                icon = Icons.Filled.Tune,
+            )
+        }
+
+        if (crossfadeEnabled) {
+            item {
+                TvSliderRow(
+                    title = "Crossfade Duration",
+                    subtitle = "${crossfadeDuration.toInt()} seconds",
+                    value = crossfadeDuration,
+                    valueRange = 1f..12f,
+                    steps = 10,
+                    onValueChange = onCrossfadeDurationChange,
+                )
+            }
+        }
+
+        item {
+            Text(
+                text = "OTHER",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 8.dp).padding(top = 12.dp, bottom = 4.dp),
+            )
+        }
+
+        item {
+            TvContentToggleRow(
+                title = "Video Mode",
+                subtitle = "Play music videos when available",
+                checked = videoModeEnabled,
+                onCheckedChange = onVideoModeEnabledChange,
+                icon = Icons.Filled.MusicNote,
+            )
+        }
+
+        item {
+            TvContentToggleRow(
+                title = "Seek Extra Seconds",
+                subtitle = "Show 10-second seek buttons on player",
+                checked = seekExtraSeconds,
+                onCheckedChange = onSeekExtraSecondsChange,
+                icon = Icons.Filled.FastForward,
+            )
+        }
+    }
 }
 
 @Composable
@@ -967,6 +1158,63 @@ private fun TvContentToggleRow(
 }
 
 @Composable
+private fun TvSliderRow(
+    title: String,
+    subtitle: String,
+    value: Float,
+    valueRange: ClosedFloatingPointRange<Float>,
+    steps: Int = 0,
+    onValueChange: (Float) -> Unit,
+) {
+    var rowFocused by remember { mutableStateOf(false) }
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .onFocusChanged { rowFocused = it.isFocused }
+            .border(
+                width = if (rowFocused) 3.dp else 0.dp,
+                color = if (rowFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                shape = RoundedCornerShape(16.dp),
+            ),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 4.dp,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            Slider(
+                value = value,
+                onValueChange = onValueChange,
+                valueRange = valueRange,
+                steps = steps,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+}
+
+@Composable
 private fun TvPlaceholderSettings(
     title: String,
     body: String,
@@ -1078,5 +1326,149 @@ fun TvSettingsHeader(
         )
 
         Spacer(modifier = Modifier.size(64.dp))
+    }
+}
+
+/* -------------------------- System Settings -------------------------- */
+
+@Composable
+fun TvSystemSettingsScreen(
+    onBackClick: () -> Unit,
+    focusRequester: FocusRequester? = null,
+    onNavigateUp: (() -> Unit)? = null,
+) {
+    val (hdmiCecEnabled, onHdmiCecEnabledChange) = rememberPreference(
+        com.auramusic.app.constants.TvHdmiCecEnabledKey, true,
+    )
+    val (autoPlayOnBoot, onAutoPlayOnBootChange) = rememberPreference(
+        com.auramusic.app.constants.TvAutoPlayOnBootKey, false,
+    )
+    val (screenSaverTimeout, onScreenSaverTimeoutChange) = rememberPreference(
+        com.auramusic.app.constants.TvScreenSaverTimeoutKey, 0,
+    )
+    val (audioOutput, onAudioOutputChange) = rememberPreference(
+        com.auramusic.app.constants.TvAudioOutputKey, "auto",
+    )
+
+    val firstFocus = focusRequester ?: remember { FocusRequester() }
+    LaunchedEffect(Unit) { runCatching { firstFocus.requestFocus() } }
+    var backButtonFocused by remember { mutableStateOf(false) }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .onPreviewKeyEvent { event ->
+                if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionUp) {
+                    if (backButtonFocused) {
+                        onNavigateUp?.invoke()
+                        true
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                }
+            },
+        contentPadding = PaddingValues(horizontal = 48.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        item {
+            TvSettingsHeader(
+                title = "System",
+                onBackClick = onBackClick,
+                focusRequester = firstFocus,
+                onFocusChange = { backButtonFocused = it },
+            )
+        }
+
+        item {
+            Text(
+                text = "TV INTEGRATION",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            )
+        }
+
+        item {
+            TvContentToggleRow(
+                title = "HDMI-CEC Control",
+                subtitle = "Allow TV remote to control playback via HDMI-CEC",
+                checked = hdmiCecEnabled,
+                onCheckedChange = onHdmiCecEnabledChange,
+                icon = Icons.Filled.Tune,
+            )
+        }
+
+        item {
+            TvContentToggleRow(
+                title = "Auto-play on Boot",
+                subtitle = "Resume playback when the TV starts",
+                checked = autoPlayOnBoot,
+                onCheckedChange = onAutoPlayOnBootChange,
+                icon = Icons.Filled.PlayArrow,
+            )
+        }
+
+        item {
+            TvSettingsCategoryItem(
+                title = "Screen Saver Timeout",
+                subtitle = when (screenSaverTimeout) {
+                    0 -> "Never"
+                    5 -> "5 minutes"
+                    10 -> "10 minutes"
+                    15 -> "15 minutes"
+                    30 -> "30 minutes"
+                    60 -> "1 hour"
+                    else -> "Disabled"
+                },
+                onClick = {
+                    val next = when (screenSaverTimeout) {
+                        0 -> 5
+                        5 -> 10
+                        10 -> 15
+                        15 -> 30
+                        30 -> 60
+                        else -> 0
+                    }
+                    onScreenSaverTimeoutChange(next)
+                },
+                icon = Icons.Filled.DarkMode,
+            )
+        }
+
+        item {
+            Text(
+                text = "AUDIO OUTPUT",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 12.dp),
+            )
+        }
+
+        item {
+            TvSettingsCategoryItem(
+                title = "Audio Output",
+                subtitle = when (audioOutput) {
+                    "auto" -> "Automatic (system default)"
+                    "tv_speakers" -> "TV Speakers"
+                    "optical" -> "Optical / S/PDIF"
+                    "hdmi_arc" -> "HDMI ARC"
+                    else -> "Automatic"
+                },
+                onClick = {
+                    val next = when (audioOutput) {
+                        "auto" -> "tv_speakers"
+                        "tv_speakers" -> "optical"
+                        "optical" -> "hdmi_arc"
+                        else -> "auto"
+                    }
+                    onAudioOutputChange(next)
+                },
+                icon = Icons.Filled.MusicNote,
+            )
+        }
     }
 }

@@ -172,6 +172,12 @@ val ListenTogetherUserIdKey = stringPreferencesKey("listenTogetherUserId")
 val ListenTogetherIsHostKey = booleanPreferencesKey("listenTogetherIsHost")
 val ListenTogetherSessionTimestampKey = longPreferencesKey("listenTogetherSessionTimestamp")
 
+// Android TV Settings
+val TvHdmiCecEnabledKey = booleanPreferencesKey("tvHdmiCecEnabled")
+val TvAutoPlayOnBootKey = booleanPreferencesKey("tvAutoPlayOnBoot")
+val TvScreenSaverTimeoutKey = intPreferencesKey("tvScreenSaverTimeout")
+val TvAudioOutputKey = stringPreferencesKey("tvAudioOutput")
+
 val LastFMSessionKey = stringPreferencesKey("lastfmSession")
 val LastFMUsernameKey = stringPreferencesKey("lastfmUsername")
 val EnableLastFMScrobblingKey = booleanPreferencesKey("lastfmScrobblingEnable")

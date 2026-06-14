@@ -513,10 +513,20 @@ fun TvPlayerScreen(
                     }
 
                     // Playback controls
+                    TvAudioVisualizer(
+                        isPlaying = isPlaying,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .padding(horizontal = 16.dp),
+                        barCount = 24,
+                        barColor = MaterialTheme.colorScheme.primary,
+                    )
+
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(top = 16.dp)
+                        modifier = Modifier.padding(top = 8.dp)
                     ) {
                         TvPlayerControlButton(
                             onClick = { pc?.seekToPrevious() },
@@ -622,6 +632,18 @@ fun TvPlayerScreen(
                             icon = Icons.Filled.Lyrics,
                             contentDescription = if (showLyrics) "Hide lyrics" else "Show lyrics",
                             tint = if (showLyrics) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f),
+                        )
+
+                        TvPlayerControlButton(
+                            onClick = {
+                                val activity = context as? android.app.Activity
+                                if (activity is com.auramusic.app.TvMainActivity) {
+                                    activity.enterPictureInPicture()
+                                }
+                            },
+                            painter = painterResource(R.drawable.ic_notification_icon),
+                            contentDescription = "Picture in Picture",
+                            tint = Color.White.copy(alpha = 0.7f),
                         )
                     }
                 }

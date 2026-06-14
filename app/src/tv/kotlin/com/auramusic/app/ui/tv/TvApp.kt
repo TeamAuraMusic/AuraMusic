@@ -221,7 +221,7 @@ enum class TvSection(val label: String) {
  *   navigating immediately without a touchscreen.
  */
  @Composable
- fun TvApp(playerConnection: PlayerConnection?) {
+ fun TvApp(playerConnection: PlayerConnection?, isTvInPipMode: Boolean = false) {
      val sectionState = remember { mutableStateOf<TvSection>(TvSection.HOME) }
      val navigator = rememberTvNavigator()
      val isPlayingState = playerConnection?.isPlaying?.collectAsState() ?: remember { mutableStateOf(false) }
@@ -276,6 +276,15 @@ enum class TvSection(val label: String) {
          } else {
              false
          }
+     }
+
+     // In PiP mode, show a simplified player-only view
+     if (isTvInPipMode) {
+         TvPlayerScreen(
+             playerConnection = playerConnection,
+             onBackClick = {},
+         )
+         return
      }
 
      CompositionLocalProvider(LocalTvNavigator provides navigator) {
@@ -351,17 +360,18 @@ enum class TvSection(val label: String) {
                                  onNavigateUp = { runCatching { topBarFocusRequester.requestFocus() } }
                              )
                               TvSection.SETTINGS -> TvSettingsScreen(
-                                  onBackClick = { sectionState.value = TvSection.HOME },
-                                  onAppearanceClick = { navigator.navigate(TvDestination.AppearanceSettings) },
-                                  onAccountClick = { navigator.navigate(TvDestination.AccountSettings) },
-                                  onPlaybackClick = { navigator.navigate(TvDestination.PlaybackSettings) },
-                                  onContentClick = { navigator.navigate(TvDestination.ContentSettings) },
-                                  onStorageClick = { navigator.navigate(TvDestination.StorageSettings) },
-                                  onUpdaterClick = { navigator.navigate(TvDestination.UpdaterScreen) },
-                                  onAboutClick = { navigator.navigate(TvDestination.AboutScreen) },
-                                  focusRequester = detailFocusRequester,
-                                  onNavigateUp = { runCatching { topBarFocusRequester.requestFocus() } }
-                              )
+                                   onBackClick = { sectionState.value = TvSection.HOME },
+                                   onAppearanceClick = { navigator.navigate(TvDestination.AppearanceSettings) },
+                                   onAccountClick = { navigator.navigate(TvDestination.AccountSettings) },
+                                   onPlaybackClick = { navigator.navigate(TvDestination.PlaybackSettings) },
+                                   onContentClick = { navigator.navigate(TvDestination.ContentSettings) },
+                                   onStorageClick = { navigator.navigate(TvDestination.StorageSettings) },
+                                   onSystemClick = { navigator.navigate(TvDestination.SystemSettings) },
+                                   onUpdaterClick = { navigator.navigate(TvDestination.UpdaterScreen) },
+                                   onAboutClick = { navigator.navigate(TvDestination.AboutScreen) },
+                                   focusRequester = detailFocusRequester,
+                                   onNavigateUp = { runCatching { topBarFocusRequester.requestFocus() } }
+                               )
                          }
 
                          // Overlay detail/setting screens if needed
@@ -394,18 +404,19 @@ enum class TvSection(val label: String) {
                                          focusRequester = overlayFocusRequester,
                                          onNavigateUp = onUp,
                                      )
-                                      TvDestination.Settings -> TvSettingsScreen(
-                                          onBackClick = { navigator.popBack() },
-                                          onAppearanceClick = { navigator.navigate(TvDestination.AppearanceSettings) },
-                                          onAccountClick = { navigator.navigate(TvDestination.AccountSettings) },
-                                          onPlaybackClick = { navigator.navigate(TvDestination.PlaybackSettings) },
-                                          onContentClick = { navigator.navigate(TvDestination.ContentSettings) },
-                                          onStorageClick = { navigator.navigate(TvDestination.StorageSettings) },
-                                          onUpdaterClick = { navigator.navigate(TvDestination.UpdaterScreen) },
-                                          onAboutClick = { navigator.navigate(TvDestination.AboutScreen) },
-                                          focusRequester = overlayFocusRequester,
-                                          onNavigateUp = onUp,
-                                      )
+                                     TvDestination.Settings -> TvSettingsScreen(
+                                         onBackClick = { navigator.popBack() },
+                                         onAppearanceClick = { navigator.navigate(TvDestination.AppearanceSettings) },
+                                         onAccountClick = { navigator.navigate(TvDestination.AccountSettings) },
+                                         onPlaybackClick = { navigator.navigate(TvDestination.PlaybackSettings) },
+                                         onContentClick = { navigator.navigate(TvDestination.ContentSettings) },
+                                         onStorageClick = { navigator.navigate(TvDestination.StorageSettings) },
+                                         onSystemClick = { navigator.navigate(TvDestination.SystemSettings) },
+                                         onUpdaterClick = { navigator.navigate(TvDestination.UpdaterScreen) },
+                                         onAboutClick = { navigator.navigate(TvDestination.AboutScreen) },
+                                         focusRequester = overlayFocusRequester,
+                                         onNavigateUp = onUp,
+                                     )
                                      TvDestination.AppearanceSettings -> TvAppearanceSettingsScreen(
                                          onBackClick = { navigator.popBack() },
                                          focusRequester = overlayFocusRequester,
@@ -443,6 +454,11 @@ enum class TvSection(val label: String) {
                                          onNavigateUp = onUp,
                                      )
                                      TvDestination.Login -> TvLoginScreen(
+                                         onBackClick = { navigator.popBack() },
+                                         focusRequester = overlayFocusRequester,
+                                         onNavigateUp = onUp,
+                                     )
+                                     TvDestination.SystemSettings -> TvSystemSettingsScreen(
                                          onBackClick = { navigator.popBack() },
                                          focusRequester = overlayFocusRequester,
                                          onNavigateUp = onUp,
@@ -1026,25 +1042,28 @@ fun TvHomeScreen(
 
         if (quickPicks.isNullOrEmpty() && forgottenFavorites.isNullOrEmpty() && homePage?.sections.isNullOrEmpty() != false) {
             item {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.fillMaxWidth().padding(top = 64.dp),
-                ) {
-                    Text(
-                        text = when {
-                            isLoading -> "Loading your music…"
-                            playerConnection == null -> "Connecting to player…"
-                            else -> "No music available"
-                        },
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    if (!isLoading && playerConnection != null) {
-                        Text(
-                            text = "Pull down to refresh or use the refresh button",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                when {
+                    isLoading -> {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(24.dp),
+                            modifier = Modifier.fillMaxWidth().padding(top = 32.dp),
+                        ) {
+                            TvLoadingRow(itemCount = 5, itemWidth = 160.dp, itemHeight = 200.dp)
+                            TvLoadingRow(itemCount = 6, itemWidth = 140.dp, itemHeight = 180.dp)
+                            TvLoadingRow(itemCount = 5, itemWidth = 160.dp, itemHeight = 200.dp)
+                        }
+                    }
+                    playerConnection == null -> {
+                        TvLoadingScreen(
+                            message = "Connecting to player…",
+                            modifier = Modifier.padding(top = 64.dp),
+                        )
+                    }
+                    else -> {
+                        TvEmptyState(
+                            message = "No music available",
+                            subtitle = "Sign in to YouTube Music or play local songs to get started",
+                            modifier = Modifier.padding(top = 64.dp),
                         )
                     }
                 }
@@ -2592,6 +2611,7 @@ fun TvSettingsScreen(
     onPlaybackClick: () -> Unit = {},
     onContentClick: () -> Unit = {},
     onStorageClick: () -> Unit = {},
+    onSystemClick: () -> Unit = {},
     onUpdaterClick: () -> Unit = {},
     onAboutClick: () -> Unit = {},
     focusRequester: FocusRequester? = null,
@@ -2608,9 +2628,9 @@ fun TvSettingsScreen(
     // Track which content row is currently focused (index 0 == back button / first focusable)
     var focusedItemIndex by remember { mutableStateOf(0) }
     val firstItemFocus = focusRequester ?: remember { FocusRequester() }
-    // FocusRequesters for all settings items: index 0=back button, 1=Account, 2=Appearance, 3=Playback, 4=Content, 5=Storage, 6=Check Updates, 7=About
+    // FocusRequesters for all settings items
     val allFocusRequesters = remember {
-        listOf(firstItemFocus) + List(7) { FocusRequester() }
+        listOf(firstItemFocus) + List(8) { FocusRequester() }
     }
 
 // Re-claim focus on the previously focused item whenever a sub-settings overlay
@@ -2734,6 +2754,18 @@ LaunchedEffect(currentDestination) {
             )
         }
 
+        item(key = "system_settings") {
+            TvSettingsCategoryItem(
+                title = "System",
+                subtitle = "HDMI-CEC, auto-play, screen saver, audio output",
+                onClick = onSystemClick,
+                icon = Icons.Filled.Tune,
+                modifier = Modifier
+                    .onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 6 }
+                    .focusRequester(allFocusRequesters[6]),
+            )
+        }
+
         item(key = "info_label") { TvSettingsSectionLabel("Information") }
 
         item(key = "updater_settings") {
@@ -2743,8 +2775,8 @@ LaunchedEffect(currentDestination) {
                 onClick = onUpdaterClick,
                 icon = Icons.Filled.Refresh,
                 modifier = Modifier
-                    .onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 6 }
-                    .focusRequester(allFocusRequesters[6]),
+                    .onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 7 }
+                    .focusRequester(allFocusRequesters[7]),
             )
         }
 
@@ -2755,8 +2787,8 @@ LaunchedEffect(currentDestination) {
                 onClick = onAboutClick,
                 icon = Icons.Filled.Info,
                 modifier = Modifier
-                    .onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 7 }
-                    .focusRequester(allFocusRequesters[7]),
+                    .onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 8 }
+                    .focusRequester(allFocusRequesters[8]),
             )
         }
     }
