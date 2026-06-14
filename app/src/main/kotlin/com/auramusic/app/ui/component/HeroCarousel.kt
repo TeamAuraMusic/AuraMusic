@@ -303,7 +303,8 @@ private fun HeroCarouselCard(
             Text(
                 text = subtitle,
                 style = subtitleStyle,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.86f),
+                fontWeight = FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

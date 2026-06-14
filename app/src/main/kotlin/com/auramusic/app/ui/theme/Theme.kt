@@ -65,9 +65,10 @@ fun AuraMusicTheme(
     }
 
     val fontFamily = when (selectedFont) {
+        "DEFAULT" -> FontFamily.Default
         "MANROPE" -> Manrope
         "SPACE_GROTESK" -> SpaceGrotesk
-        "DEFAULT", "POPPINS", "ROBOTO", "INTER", "OUTFIT" -> Outfit
+        "POPPINS", "ROBOTO", "INTER", "OUTFIT" -> Outfit
         else -> Outfit
     }
     val typography = remember(fontFamily) { AppTypography.withFontFamily(fontFamily) }

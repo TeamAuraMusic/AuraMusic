@@ -239,12 +239,13 @@ fun markWrappedAsSeen() {
         }
     }
     private fun normalizedDataSyncId(dataSyncId: String?): String? = dataSyncId
-        ?.takeIf { it.isNotBlank() }
+        ?.takeIf { it.isNotBlank() && it != "null" }
         ?.let {
             it.takeIf { !it.contains("||") }
                 ?: it.takeIf { it.endsWith("||") }?.substringBefore("||")
                 ?: it.substringAfter("||")
         }
+        ?.takeIf { it.isNotBlank() && it != "null" }
 
     private suspend fun getQuickPicks() {
         val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)

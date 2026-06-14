@@ -190,10 +190,10 @@ class App : Application(), SingletonImageLoader.Factory {
                 .distinctUntilChanged()
                 .collect { dataSyncId ->
                     YouTube.dataSyncId = dataSyncId?.let {
-                        it.takeIf { !it.contains("||") }
+                        it.takeIf { it.isNotBlank() && it != "null" && !it.contains("||") }
                             ?: it.takeIf { it.endsWith("||") }?.substringBefore("||")
                             ?: it.substringAfter("||")
-                    }
+                    }?.takeIf { it.isNotBlank() && it != "null" }
                 }
         }
 

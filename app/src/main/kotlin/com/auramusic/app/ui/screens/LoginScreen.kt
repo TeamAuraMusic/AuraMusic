@@ -64,7 +64,10 @@ fun LoginScreen(
 
     fun refreshAccountInfoIfReady() {
         val cookie = innerTubeCookie.takeIf { "SAPISID" in parseCookieString(it) } ?: return
-        val normalizedDataSyncId = dataSyncId.takeIf { it.isNotBlank() } ?: return
+        val normalizedDataSyncId = dataSyncId
+            .substringBefore("||")
+            .takeIf { it.isNotBlank() && it != "null" }
+            ?: return
         val sessionKey = "$cookie|$normalizedDataSyncId"
         if (lastAccountInfoFetchSession == sessionKey) return
         lastAccountInfoFetchSession = sessionKey
@@ -114,7 +117,7 @@ fun LoginScreen(
                 addJavascriptInterface(object {
                     @JavascriptInterface
                     fun onRetrieveVisitorData(newVisitorData: String?) {
-                        if (newVisitorData != null) {
+                        if (!newVisitorData.isNullOrBlank() && newVisitorData != "null") {
                             visitorData = newVisitorData
                             YouTube.visitorData = newVisitorData
                             refreshAccountInfoIfReady()
@@ -122,8 +125,11 @@ fun LoginScreen(
                     }
                     @JavascriptInterface
                     fun onRetrieveDataSyncId(newDataSyncId: String?) {
-                        if (newDataSyncId != null) {
-                            dataSyncId = newDataSyncId.substringBefore("||")
+                        val normalizedDataSyncId = newDataSyncId
+                            ?.substringBefore("||")
+                            ?.takeIf { it.isNotBlank() && it != "null" }
+                        if (normalizedDataSyncId != null) {
+                            dataSyncId = normalizedDataSyncId
                             YouTube.dataSyncId = dataSyncId
                             refreshAccountInfoIfReady()
                         }

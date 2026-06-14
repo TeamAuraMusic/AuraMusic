@@ -157,7 +157,7 @@ fun AppearanceSettings(
     )
     val (selectedFont, onSelectedFontChange) = rememberEnumPreference(
         SelectedFontKey,
-        defaultValue = AppFont.OUTFIT
+        defaultValue = AppFont.DEFAULT
     )
     // Check if user has selected a custom color (not the default/dynamic color)
     val isUsingCustomColor = selectedThemeColorInt != DefaultThemeColor.toArgb()
@@ -658,6 +658,7 @@ fun AppearanceSettings(
             values = AppFont.values().toList(),
             valueText = {
                 when (it) {
+                    AppFont.DEFAULT -> "Default"
                     AppFont.OUTFIT -> "Outfit"
                     AppFont.MANROPE -> "Manrope"
                     AppFont.SPACE_GROTESK -> "Space Grotesk"
@@ -1882,6 +1883,7 @@ fun AppearanceSettings(
                     description = {
                         Text(
                             when (selectedFont) {
+                                AppFont.DEFAULT -> "Default"
                                 AppFont.OUTFIT -> "Outfit"
                                 AppFont.MANROPE -> "Manrope"
                                 AppFont.SPACE_GROTESK -> "Space Grotesk"
@@ -1936,6 +1938,7 @@ enum class PlayerTextAlignment {
 }
 
 enum class AppFont {
+    DEFAULT,
     OUTFIT,
     MANROPE,
     SPACE_GROTESK,

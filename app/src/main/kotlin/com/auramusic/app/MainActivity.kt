@@ -534,7 +534,7 @@ class MainActivity : ComponentActivity() {
         val (selectedThemeColorInt) = rememberPreference(SelectedThemeColorKey, defaultValue = DefaultThemeColor.toArgb())
         val selectedThemeColor = Color(selectedThemeColorInt)
 
-        val selectedFont by rememberPreference(SelectedFontKey, defaultValue = "OUTFIT")
+        val selectedFont by rememberPreference(SelectedFontKey, defaultValue = "DEFAULT")
 
         var themeColor by rememberSaveable(stateSaver = ColorSaver) {
             mutableStateOf(selectedThemeColor)

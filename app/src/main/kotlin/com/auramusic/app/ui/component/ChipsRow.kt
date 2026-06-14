@@ -51,6 +51,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.auramusic.app.R
 import com.auramusic.app.ui.screens.OptionStats
@@ -80,7 +81,13 @@ fun <E> ChipsRow(
                 delayMillis = 50
             ) {
                 FilterChip(
-                    label = { Text(label) },
+                    label = {
+                        Text(
+                            text = label,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    },
                     selected = currentValue == value,
                     colors = FilterChipDefaults.filterChipColors(
                         containerColor = containerColor,
@@ -139,6 +146,8 @@ fun <Int> ChoiceChipsRow(
                             OptionStats.YEARS -> stringResource(id = R.string.years)
                             OptionStats.CONTINUOUS -> stringResource(id = R.string.continuous)
                         },
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.SemiBold
                     )
                 },
                 trailingIcon = {
@@ -199,7 +208,13 @@ fun <Int> ChoiceChipsRow(
                     Spacer(Modifier.width(8.dp))
 
                     FilterChip(
-                        label = { Text(label) },
+                        label = {
+                            Text(
+                                text = label,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        },
                         selected = currentValue == value,
                         colors = FilterChipDefaults.filterChipColors(
                             containerColor = containerColor,
