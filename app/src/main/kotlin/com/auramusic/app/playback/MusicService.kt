@@ -85,7 +85,6 @@ import com.auramusic.innertube.models.SongItem
 import com.auramusic.innertube.models.WatchEndpoint
 import com.auramusic.lastfm.LastFM
 import com.auramusic.app.MainActivity
-import com.auramusic.app.TvMainActivity
 import com.auramusic.app.R
 import com.auramusic.app.constants.AudioNormalizationKey
 import com.auramusic.app.constants.AudioOffload
@@ -455,10 +454,13 @@ class MusicService :
                     }
                 )
             }
+            val pendingIntentClass = if (isTv) {
+                try { Class.forName("com.auramusic.app.TvMainActivity") } catch (_: Exception) { null }
+            } else null
             val pending = PendingIntent.getActivity(
                 this,
                 0,
-                Intent(this, if (isTv) TvMainActivity::class.java else MainActivity::class.java),
+                Intent(this, pendingIntentClass ?: MainActivity::class.java),
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
             )
             val notificationChannelId = if (isTv) TV_CHANNEL_ID else CHANNEL_ID
