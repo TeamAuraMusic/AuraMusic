@@ -970,4 +970,5 @@
         <item quantity="many">%d audiolibros</item>
         <item quantity="other">%d audiolibros</item>
     </plurals>
+    <string name="resume_playback">Resumir la reproducción</string>
 </resources>
