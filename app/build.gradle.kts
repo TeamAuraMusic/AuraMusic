@@ -155,9 +155,9 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
-            isShrinkResources = false
-            isCrunchPngs = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            isCrunchPngs = true
             isDebuggable = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

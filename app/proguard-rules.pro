@@ -31,5 +31,43 @@
     public static ** valueOf(java.lang.String);
 }
 
-# Keep custom exceptions
--keep class com.auramusic.app.** { *; }
+# Hilt
+-keep class dagger.hilt.** { *; }
+-keep class javax.inject.** { *; }
+-keep class * extends dagger.hilt.android.internal.managers.ViewComponentManager$FragmentContextWrapper { *; }
+
+# Room
+-keep class * extends androidx.room.RoomDatabase { *; }
+-keep @androidx.room.Entity class * { *; }
+-keep @androidx.room.Dao class * { *; }
+
+# Media3 / ExoPlayer
+-keep class androidx.media3.** { *; }
+-dontwarn androidx.media3.**
+
+# VOSK
+-keep class org.vosk.** { *; }
+-keep class com.alphacephei.** { *; }
+-dontwarn org.vosk.**
+
+# Ktor
+-keep class io.ktor.** { *; }
+-dontwarn io.ktor.**
+
+# Jsoup
+-keep class org.jsoup.** { *; }
+-dontwarn org.jsoup.**
+
+# Coil
+-keep class coil3.** { *; }
+
+# Protobuf
+-keep class * extends com.google.protobuf.GeneratedMessageLite { *; }
+
+# Innertube / YouTube models
+-keep class com.auramusic.innertube.models.** { *; }
+
+# App entities and DAOs
+-keep class com.auramusic.app.db.entities.** { *; }
+-keep class com.auramusic.app.db.dao.** { *; }
+-keep class com.auramusic.app.db.MusicDatabase { *; }
