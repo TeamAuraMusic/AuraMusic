@@ -1605,6 +1605,38 @@ interface DatabaseDao {
         from: Int,
     ): List<PlaylistSongMap>
 
+    @Query("""
+        SELECT event.* FROM event
+        WHERE timestamp >= :fromTimeStamp AND timestamp <= :toTimeStamp
+        ORDER BY timestamp
+    """)
+    fun getEventsInRange(fromTimeStamp: Long, toTimeStamp: Long): Flow<List<Event>>
+
+    @Query("""
+        SELECT songId FROM event
+        WHERE timestamp >= :fromTimeStamp AND timestamp <= :toTimeStamp
+        GROUP BY songId
+        ORDER BY COUNT(*) DESC
+        LIMIT 1
+    """)
+    fun getMostReplayedSongInRange(fromTimeStamp: Long, toTimeStamp: Long): Flow<String?>
+
+    @Query("""
+        SELECT COUNT(DISTINCT song_artist_map.artistId)
+        FROM event
+        JOIN song ON event.songId = song.id
+        JOIN song_artist_map ON song.id = song_artist_map.songId
+        WHERE event.timestamp >= :fromTimeStamp AND event.timestamp <= :toTimeStamp
+        AND song_artist_map.artistId NOT IN (
+            SELECT DISTINCT song_artist_map2.artistId
+            FROM event
+            JOIN song ON event.songId = song.id
+            JOIN song_artist_map AS song_artist_map2 ON song.id = song_artist_map2.songId
+            WHERE event.timestamp < :fromTimeStamp
+        )
+    """)
+    fun getNewArtistCountInRange(fromTimeStamp: Long, toTimeStamp: Long): Flow<Int>
+
     @RawQuery
     fun raw(supportSQLiteQuery: SupportSQLiteQuery): Int
 

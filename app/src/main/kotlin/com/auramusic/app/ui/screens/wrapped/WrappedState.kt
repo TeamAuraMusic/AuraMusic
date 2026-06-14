@@ -23,5 +23,15 @@ data class WrappedState(
     val isDataReady: Boolean = false,
     val trackMap: Map<WrappedScreenType, String?> = emptyMap(),
     val playlistCreationState: PlaylistCreationState = PlaylistCreationState.Idle,
-    val topArtistAlbums: List<Album> = emptyList()
+    val topArtistAlbums: List<Album> = emptyList(),
+    // New stats
+    val listeningByDayOfWeek: Map<Int, Long> = emptyMap(), // dayOfWeek(1=Mon..7=Sun) -> minutes
+    val listeningByTimeOfDay: Map<String, Long> = emptyMap(), // "Morning"|"Afternoon"|"Evening"|"Night" -> minutes
+    val repeatOffenderSong: SongWithStats? = null, // Most replayed song
+    val discoveryScore: Int = 0, // Number of new artists discovered
+    val totalPlayCount: Int = 0,
+    val previousMonthMinutes: Long = 0,
+    val previousMonthUniqueSongs: Int = 0,
+    val previousMonthUniqueArtists: Int = 0,
+    val monthOverMonthChange: Float = 0f, // percentage change in listening time
 )

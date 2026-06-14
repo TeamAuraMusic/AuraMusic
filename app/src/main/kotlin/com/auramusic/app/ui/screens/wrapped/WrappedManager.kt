@@ -188,6 +188,12 @@ class WrappedManager(
             // End Part
             val endSongPool = topSongs.subList(2, 5)
             val endSong = endSongPool.randomOrNull()?.id ?: topSongs[2].id
+            playlistMap[WrappedScreenType.DayOfWeek] = endSong
+            playlistMap[WrappedScreenType.TimeOfDay] = endSong
+            playlistMap[WrappedScreenType.RepeatOffender] = topSong.id
+            playlistMap[WrappedScreenType.DiscoveryScore] = endSong
+            playlistMap[WrappedScreenType.Comparison] = endSong
+            playlistMap[WrappedScreenType.ShareCard] = endSong
             playlistMap[WrappedScreenType.Playlist] = endSong
             playlistMap[WrappedScreenType.Conclusion] = "2-p9DM2Xvsc"
 
@@ -223,6 +229,27 @@ class WrappedManager(
             val uniqueAlbumCountDeferred = async { databaseDao.getUniqueAlbumCountInRange(fromTimestamp, toTimestamp).first() }
             val totalPlayTimeMsDeferred = async { databaseDao.getTotalPlayTimeInRange(fromTimestamp, toTimestamp).first() ?: 0L }
 
+            // New stats
+            val eventsDeferred = async { databaseDao.getEventsInRange(fromTimestamp, toTimestamp).first() }
+            val mostReplayedSongIdDeferred = async { databaseDao.getMostReplayedSongInRange(fromTimestamp, toTimestamp).first() }
+            val newArtistCountDeferred = async { databaseDao.getNewArtistCountInRange(fromTimestamp, toTimestamp).first() }
+
+            // Previous month for comparison
+            val prevMonth = java.time.LocalDate.now().minusMonths(2)
+            val prevYear = prevMonth.year
+            val prevCalMonth = prevMonth.monthValue - 1
+            val prevFromTimestamp = Calendar.getInstance().apply {
+                set(prevYear, prevCalMonth, 1, 0, 0, 0)
+            }.timeInMillis
+            val prevToTimestamp = Calendar.getInstance().apply {
+                set(prevYear, prevCalMonth, getActualMaximum(Calendar.DAY_OF_MONTH), 23, 59, 59)
+            }.timeInMillis
+            val prevMonthMinutesDeferred = async {
+                (databaseDao.getTotalPlayTimeInRange(prevFromTimestamp, prevToTimestamp).first() ?: 0L) / 1000 / 60
+            }
+            val prevMonthUniqueSongsDeferred = async { databaseDao.getUniqueSongCountInRange(prevFromTimestamp, prevToTimestamp).first() }
+            val prevMonthUniqueArtistsDeferred = async { databaseDao.getUniqueArtistCountInRange(prevFromTimestamp, prevToTimestamp).first() }
+
             val results = awaitAll(
                 accountInfoDeferred,
                 topSongsDeferred,
@@ -234,13 +261,55 @@ class WrappedManager(
                 totalPlayTimeMsDeferred
             )
 
+            val events = eventsDeferred.await()
+            val mostReplayedSongId = mostReplayedSongIdDeferred.await()
+            val newArtistCount = newArtistCountDeferred.await()
+            val prevMonthMinutes = prevMonthMinutesDeferred.await()
+            val prevMonthUniqueSongs = prevMonthUniqueSongsDeferred.await()
+            val prevMonthUniqueArtists = prevMonthUniqueArtistsDeferred.await()
+
             @Suppress("UNCHECKED_CAST")
             val topSongsResult = results[1] as List<SongWithStats>
             @Suppress("UNCHECKED_CAST")
             val topAlbumsResult = results[3] as List<com.auramusic.app.db.entities.Album>
             @Suppress("UNCHECKED_CAST")
             val topArtistsResult = results[2] as List<Artist>
-            
+
+            // Calculate listening by day of week (1=Mon..7=Sun)
+            val dayOfWeekMinutes = mutableMapOf<Int, Long>()
+            events.forEach { event ->
+                val dayOfWeek = event.timestamp.dayOfWeek.value
+                dayOfWeekMinutes[dayOfWeek] = (dayOfWeekMinutes[dayOfWeek] ?: 0L) + event.playTime
+            }
+            val listeningByDayOfWeek = dayOfWeekMinutes.mapValues { it.value / 1000 / 60 }
+
+            // Calculate listening by time of day
+            val timeOfDayMinutes = mutableMapOf<String, Long>()
+            events.forEach { event ->
+                val hour = event.timestamp.hour
+                val timeOfDay = when (hour) {
+                    in 5..11 -> "Morning"
+                    in 12..16 -> "Afternoon"
+                    in 17..21 -> "Evening"
+                    else -> "Night"
+                }
+                timeOfDayMinutes[timeOfDay] = (timeOfDayMinutes[timeOfDay] ?: 0L) + event.playTime
+            }
+            val listeningByTimeOfDay = timeOfDayMinutes.mapValues { it.value / 1000 / 60 }
+
+            // Find repeat offender song
+            val repeatOffenderSong = mostReplayedSongId?.let { songId ->
+                topSongsResult.find { it.id == songId }
+            } ?: topSongsResult.firstOrNull()
+
+            // Calculate month over month change
+            val currentMinutes = (results[7] as Long) / 1000 / 60
+            val monthOverMonthChange = if (prevMonthMinutes > 0) {
+                ((currentMinutes - prevMonthMinutes).toFloat() / prevMonthMinutes) * 100
+            } else {
+                0f
+            }
+
             // Get albums for top artist
             val topArtistId = topArtistsResult.firstOrNull()?.id
             val topArtistAlbumsDeferred = async {
@@ -262,8 +331,17 @@ class WrappedManager(
                     uniqueSongCount = results[4] as Int,
                     uniqueArtistCount = results[5] as Int,
                     totalAlbums = results[6] as Int,
-                    totalMinutes = (results[7] as Long) / 1000 / 60,
-                    topArtistAlbums = topArtistAlbumsResult
+                    totalMinutes = currentMinutes,
+                    topArtistAlbums = topArtistAlbumsResult,
+                    listeningByDayOfWeek = listeningByDayOfWeek,
+                    listeningByTimeOfDay = listeningByTimeOfDay,
+                    repeatOffenderSong = repeatOffenderSong,
+                    discoveryScore = newArtistCount,
+                    totalPlayCount = events.size,
+                    previousMonthMinutes = prevMonthMinutes,
+                    previousMonthUniqueSongs = prevMonthUniqueSongs,
+                    previousMonthUniqueArtists = prevMonthUniqueArtists,
+                    monthOverMonthChange = monthOverMonthChange
                 )
             }
         }

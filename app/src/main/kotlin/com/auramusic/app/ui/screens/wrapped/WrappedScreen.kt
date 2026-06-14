@@ -55,6 +55,12 @@ import com.auramusic.app.ui.screens.wrapped.pages.WrappedTopSongScreen
 import com.auramusic.app.ui.screens.wrapped.pages.WrappedTotalAlbumsScreen
 import com.auramusic.app.ui.screens.wrapped.pages.WrappedTotalArtistsScreen
 import com.auramusic.app.ui.screens.wrapped.pages.WrappedTotalSongsScreen
+import com.auramusic.app.ui.screens.wrapped.pages.WrappedDayOfWeekScreen
+import com.auramusic.app.ui.screens.wrapped.pages.WrappedTimeOfDayScreen
+import com.auramusic.app.ui.screens.wrapped.pages.WrappedRepeatOffenderScreen
+import com.auramusic.app.ui.screens.wrapped.pages.WrappedDiscoveryScoreScreen
+import com.auramusic.app.ui.screens.wrapped.pages.WrappedComparisonScreen
+import com.auramusic.app.ui.screens.wrapped.pages.WrappedShareCardScreen
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
@@ -73,6 +79,12 @@ sealed class WrappedScreenType {
     object TopArtistReveal : WrappedScreenType()
     object Top5Artists : WrappedScreenType()
     object TopArtistAlbums : WrappedScreenType()
+    object DayOfWeek : WrappedScreenType()
+    object TimeOfDay : WrappedScreenType()
+    object RepeatOffender : WrappedScreenType()
+    object DiscoveryScore : WrappedScreenType()
+    object Comparison : WrappedScreenType()
+    object ShareCard : WrappedScreenType()
     object Playlist : WrappedScreenType()
     object Conclusion : WrappedScreenType()
 }
@@ -148,6 +160,12 @@ fun WrappedScreenContent(navController: NavController) {
             WrappedScreenType.TopArtistReveal,
             WrappedScreenType.Top5Artists,
             WrappedScreenType.TopArtistAlbums,
+            WrappedScreenType.DayOfWeek,
+            WrappedScreenType.TimeOfDay,
+            WrappedScreenType.RepeatOffender,
+            WrappedScreenType.DiscoveryScore,
+            WrappedScreenType.Comparison,
+            WrappedScreenType.ShareCard,
             WrappedScreenType.Playlist,
             WrappedScreenType.Conclusion
         )
@@ -161,6 +179,17 @@ fun WrappedScreenContent(navController: NavController) {
 
     LaunchedEffect(Unit) {
         manager.prepare()
+    }
+
+    // Haptic feedback on page change
+    LaunchedEffect(pagerState) {
+        var lastPage = pagerState.currentPage
+        snapshotFlow { pagerState.currentPage }.distinctUntilChanged().collect { page ->
+            if (page != lastPage) {
+                view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+                lastPage = page
+            }
+        }
     }
 
     LaunchedEffect(pagerState, state.trackMap) {
@@ -247,6 +276,37 @@ fun WrappedScreenContent(navController: NavController) {
                     topArtistName = state.topArtists.firstOrNull()?.artist?.name,
                     topArtistAlbums = state.topArtistAlbums,
                     isVisible = pagerState.currentPage == screens.indexOf(WrappedScreenType.TopArtistAlbums)
+                )
+                is WrappedScreenType.DayOfWeek -> WrappedDayOfWeekScreen(
+                    listeningByDayOfWeek = state.listeningByDayOfWeek,
+                    isVisible = pagerState.currentPage == screens.indexOf(WrappedScreenType.DayOfWeek)
+                )
+                is WrappedScreenType.TimeOfDay -> WrappedTimeOfDayScreen(
+                    listeningByTimeOfDay = state.listeningByTimeOfDay,
+                    isVisible = pagerState.currentPage == screens.indexOf(WrappedScreenType.TimeOfDay)
+                )
+                is WrappedScreenType.RepeatOffender -> WrappedRepeatOffenderScreen(
+                    repeatOffenderSong = state.repeatOffenderSong,
+                    isVisible = pagerState.currentPage == screens.indexOf(WrappedScreenType.RepeatOffender)
+                )
+                is WrappedScreenType.DiscoveryScore -> WrappedDiscoveryScoreScreen(
+                    discoveryScore = state.discoveryScore,
+                    uniqueArtistCount = state.uniqueArtistCount,
+                    isVisible = pagerState.currentPage == screens.indexOf(WrappedScreenType.DiscoveryScore)
+                )
+                is WrappedScreenType.Comparison -> WrappedComparisonScreen(
+                    currentMinutes = state.totalMinutes,
+                    previousMonthMinutes = state.previousMonthMinutes,
+                    currentUniqueSongs = state.uniqueSongCount,
+                    previousMonthUniqueSongs = state.previousMonthUniqueSongs,
+                    currentUniqueArtists = state.uniqueArtistCount,
+                    previousMonthUniqueArtists = state.previousMonthUniqueArtists,
+                    monthOverMonthChange = state.monthOverMonthChange,
+                    isVisible = pagerState.currentPage == screens.indexOf(WrappedScreenType.Comparison)
+                )
+                is WrappedScreenType.ShareCard -> WrappedShareCardScreen(
+                    state = state,
+                    isVisible = pagerState.currentPage == screens.indexOf(WrappedScreenType.ShareCard)
                 )
                 is WrappedScreenType.Playlist -> PlaylistPage()
                 is WrappedScreenType.Conclusion -> ConclusionPage(onClose = onClose)
