@@ -1,0 +1,4 @@
+- Pubblicazione iniziale da F-Droid
+- Supporto playback dei video
+- Display dei testi e traduzione
+- Streaming di musica da YouTube Music
