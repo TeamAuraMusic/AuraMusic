@@ -512,6 +512,9 @@ class MusicService :
         // SponsorBlock
         sponsorBlockManager = SponsorBlockManager(this@MusicService, scope)
         scope.launch { sponsorBlockManager.loadPreferences() }
+        sponsorBlockManager.observePreferences {
+            loadSponsorBlockSegmentsForCurrentItem()
+        }
 
         // SponsorBlock periodic skip check
         scope.launch {
@@ -1842,9 +1845,9 @@ class MusicService :
         reason: Int,
     ) {
         // Load SponsorBlock segments for the new video
-        if (sponsorBlockManager.enabled.value && mediaItem?.mediaId != null) {
+        if (sponsorBlockManager.enabled.value) {
             scope.launch {
-                sponsorBlockManager.loadSegments(mediaItem.mediaId)
+                loadSponsorBlockSegmentsForCurrentItem(mediaItem?.mediaId)
             }
         }
 
@@ -3278,6 +3281,15 @@ class MusicService :
         _selectedSubtitleIndex.value = -1
     }
 
+    private suspend fun loadSponsorBlockSegmentsForCurrentItem(videoId: String? = null) {
+        if (!sponsorBlockManager.enabled.value) return
+        val sponsorBlockVideoId = videoId
+            ?: _currentVideoId.value
+            ?: player.currentMediaItem?.mediaId
+            ?: return
+        sponsorBlockManager.loadSegments(sponsorBlockVideoId)
+    }
+
     /**
      * Safely switch to audio mode, restoring original audio stream
      */
@@ -3570,6 +3582,7 @@ class MusicService :
                                 isVideoMode = true
                                 _videoModeEnabled.value = true
                                 _currentVideoId.value = videoId
+                                loadSponsorBlockSegmentsForCurrentItem(videoId)
                                 Timber.d("setVideoMode: SUCCESS - Video stream prepared with mimeType: $primaryMimeType, player state: ${player.playbackState}, playWhenReady: true")
                                 android.util.Log.d("MusicService", ">>> SUCCESS - Video mode enabled for: ${videoData.title}")
                             } else {

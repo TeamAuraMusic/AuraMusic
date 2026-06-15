@@ -6,6 +6,7 @@
 package com.auramusic.app.sponsorblock
 
 import android.content.Context
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import com.auramusic.app.constants.SponsorBlockEnabledKey
 import com.auramusic.app.constants.SponsorBlockSkipSponsorKey
@@ -20,7 +21,10 @@ import com.auramusic.app.utils.dataStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 class SponsorBlockManager(
@@ -37,10 +41,45 @@ class SponsorBlockManager(
     val currentSegment = _currentSegment.asStateFlow()
 
     private var currentVideoId: String? = null
+    private var activeCategories: Set<String> = emptySet()
 
     suspend fun loadPreferences() {
         val prefs = context.dataStore.data.first()
         _enabled.value = prefs[SponsorBlockEnabledKey] ?: false
+        activeCategories = categoriesFromPreferences(prefs)
+    }
+
+    fun observePreferences(onEnabledChanged: suspend (Boolean) -> Unit = {}) {
+        scope.launch {
+            context.dataStore.data
+                .map { prefs ->
+                    SponsorBlockPreferences(
+                        enabled = prefs[SponsorBlockEnabledKey] ?: false,
+                        categories = categoriesFromPreferences(prefs),
+                    )
+                }
+                .distinctUntilChanged()
+                .collect { prefs ->
+                    val wasEnabled = _enabled.value
+                    val categoriesChanged = activeCategories != prefs.categories
+
+                    _enabled.value = prefs.enabled
+                    activeCategories = prefs.categories
+
+                    if (!prefs.enabled) {
+                        reset()
+                    } else {
+                        if (categoriesChanged) {
+                            val videoId = currentVideoId
+                            currentVideoId = null
+                            if (videoId != null) loadSegments(videoId)
+                        }
+                        if (!wasEnabled) {
+                            onEnabledChanged(true)
+                        }
+                    }
+                }
+        }
     }
 
     fun setEnabled(value: Boolean) {
@@ -56,16 +95,7 @@ class SponsorBlockManager(
 
     suspend fun getActiveCategories(): Set<String> {
         val prefs = context.dataStore.data.first()
-        val categories = mutableSetOf<String>()
-        if (prefs[SponsorBlockSkipSponsorKey] != false) categories.add("sponsor")
-        if (prefs[SponsorBlockSkipSelfPromoKey] != false) categories.add("selfpromo")
-        if (prefs[SponsorBlockSkipInteractionKey] != false) categories.add("interaction")
-        if (prefs[SponsorBlockSkipIntroKey] != false) categories.add("intro")
-        if (prefs[SponsorBlockSkipOutroKey] != false) categories.add("outro")
-        if (prefs[SponsorBlockSkipPreviewKey] != false) categories.add("preview")
-        if (prefs[SponsorBlockSkipMusicOffTopicKey] != false) categories.add("music_offtopic")
-        if (prefs[SponsorBlockSkipFillerKey] != false) categories.add("filler")
-        return categories
+        return categoriesFromPreferences(prefs)
     }
 
     suspend fun loadSegments(videoId: String) {
@@ -73,10 +103,14 @@ class SponsorBlockManager(
             _segments.value = emptyList()
             return
         }
-        if (videoId == currentVideoId && _segments.value.isNotEmpty()) return
+        if (videoId == currentVideoId) return
 
         currentVideoId = videoId
-        val categories = getActiveCategories()
+        val categories = activeCategories.ifEmpty { getActiveCategories() }
+        if (categories.isEmpty()) {
+            _segments.value = emptyList()
+            return
+        }
         val fetched = SponsorBlockApi.getSegments(videoId, categories)
         _segments.value = fetched
     }
@@ -85,7 +119,10 @@ class SponsorBlockManager(
         if (!_enabled.value || _segments.value.isEmpty()) return null
         val positionSec = positionMs.toDouble() / 1000.0
         val segment = _segments.value.find { seg ->
-            positionSec >= seg.segment[0] && positionSec < seg.segment[1] && seg.actionType == "skip"
+            seg.segment.size >= 2 &&
+                positionSec >= seg.segment[0] &&
+                positionSec < seg.segment[1] &&
+                seg.actionType == "skip"
         }
         return if (segment != null) {
             _currentSegment.value = segment
@@ -101,4 +138,22 @@ class SponsorBlockManager(
         _currentSegment.value = null
         currentVideoId = null
     }
+
+    private fun categoriesFromPreferences(prefs: Preferences): Set<String> {
+        val categories = mutableSetOf<String>()
+        if (prefs[SponsorBlockSkipSponsorKey] != false) categories.add("sponsor")
+        if (prefs[SponsorBlockSkipSelfPromoKey] != false) categories.add("selfpromo")
+        if (prefs[SponsorBlockSkipInteractionKey] != false) categories.add("interaction")
+        if (prefs[SponsorBlockSkipIntroKey] != false) categories.add("intro")
+        if (prefs[SponsorBlockSkipOutroKey] != false) categories.add("outro")
+        if (prefs[SponsorBlockSkipPreviewKey] != false) categories.add("preview")
+        if (prefs[SponsorBlockSkipMusicOffTopicKey] != false) categories.add("music_offtopic")
+        if (prefs[SponsorBlockSkipFillerKey] != false) categories.add("filler")
+        return categories
+    }
+
+    private data class SponsorBlockPreferences(
+        val enabled: Boolean,
+        val categories: Set<String>,
+    )
 }

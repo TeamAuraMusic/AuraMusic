@@ -719,7 +719,7 @@ fun PlayerSettings(
             title = "SponsorBlock",
             items = listOf(
                 Material3SettingsItem(
-                    icon = painterResource(R.drawable.ic_notification_icon),
+                    icon = painterResource(R.drawable.ic_sponsor_block),
                     title = { Text("SponsorBlock") },
                     description = { Text("Auto-skip sponsor segments in videos") },
                     trailingContent = {

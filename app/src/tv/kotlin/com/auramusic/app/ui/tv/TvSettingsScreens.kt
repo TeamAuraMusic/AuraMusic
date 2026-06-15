@@ -33,6 +33,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.MusicNote
@@ -1008,7 +1009,7 @@ fun TvPlaybackSettingsScreen(
                 subtitle = if (sbEnabled) "Auto-skip sponsor segments in videos" else "Skip sponsor segments (powered by SponsorBlock)",
                 checked = sbEnabled,
                 onCheckedChange = onSbEnabledChange,
-                icon = Icons.Filled.FastForward,
+                icon = Icons.Filled.Block,
             )
         }
 
