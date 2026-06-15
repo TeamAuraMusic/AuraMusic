@@ -6,7 +6,6 @@
 package com.auramusic.app.sponsorblock
 
 import android.content.Context
-import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import com.auramusic.app.constants.SponsorBlockEnabledKey
 import com.auramusic.app.constants.SponsorBlockSkipSponsorKey
@@ -21,10 +20,7 @@ import com.auramusic.app.utils.dataStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 class SponsorBlockManager(
@@ -40,49 +36,14 @@ class SponsorBlockManager(
     private val _currentSegment = MutableStateFlow<SponsorBlockSegment?>(null)
     val currentSegment = _currentSegment.asStateFlow()
 
+    private val _seekBarSegments = MutableStateFlow<List<SeekBarSegment>>(emptyList())
+    val seekBarSegments = _seekBarSegments.asStateFlow()
+
     private var currentVideoId: String? = null
-    private var activeCategories: Set<String> = emptySet()
-    private var hasObservedPreferences = false
 
     suspend fun loadPreferences() {
         val prefs = context.dataStore.data.first()
         _enabled.value = prefs[SponsorBlockEnabledKey] ?: false
-        activeCategories = categoriesFromPreferences(prefs)
-    }
-
-    fun observePreferences(onEnabledChanged: suspend (Boolean) -> Unit = {}) {
-        scope.launch {
-            context.dataStore.data
-                .map { prefs ->
-                    SponsorBlockPreferences(
-                        enabled = prefs[SponsorBlockEnabledKey] ?: false,
-                        categories = categoriesFromPreferences(prefs),
-                    )
-                }
-                .distinctUntilChanged()
-                .collect { prefs ->
-                    val isFirstEmission = !hasObservedPreferences
-                    val wasEnabled = _enabled.value
-                    val categoriesChanged = activeCategories != prefs.categories
-                    hasObservedPreferences = true
-
-                    _enabled.value = prefs.enabled
-                    activeCategories = prefs.categories
-
-                    if (!prefs.enabled) {
-                        reset()
-                    } else {
-                        if (categoriesChanged) {
-                            val videoId = currentVideoId
-                            currentVideoId = null
-                            if (videoId != null) loadSegments(videoId)
-                        }
-                        if (isFirstEmission || !wasEnabled) {
-                            onEnabledChanged(true)
-                        }
-                    }
-                }
-        }
     }
 
     fun setEnabled(value: Boolean) {
@@ -92,57 +53,13 @@ class SponsorBlockManager(
         }
         if (!value) {
             _segments.value = emptyList()
+            _seekBarSegments.value = emptyList()
             _currentSegment.value = null
         }
     }
 
-    suspend fun getActiveCategories(): Set<String> {
+    private suspend fun getActiveCategories(): Set<String> {
         val prefs = context.dataStore.data.first()
-        return categoriesFromPreferences(prefs)
-    }
-
-    suspend fun loadSegments(videoId: String) {
-        if (!_enabled.value) {
-            _segments.value = emptyList()
-            return
-        }
-        if (videoId == currentVideoId) return
-
-        currentVideoId = videoId
-        val categories = activeCategories.ifEmpty { getActiveCategories() }
-        if (categories.isEmpty()) {
-            _segments.value = emptyList()
-            return
-        }
-        val fetched = SponsorBlockApi.getSegments(videoId, categories)
-        _segments.value = fetched
-    }
-
-    fun findSkipTarget(positionMs: Long): Long? {
-        if (!_enabled.value || _segments.value.isEmpty()) return null
-        val positionSec = positionMs.toDouble() / 1000.0
-        val segment = _segments.value.find { seg ->
-            seg.segment.size >= 2 &&
-                positionSec >= seg.segment[0] &&
-                positionSec < seg.segment[1] &&
-                seg.actionType == "skip"
-        }
-        return if (segment != null) {
-            _currentSegment.value = segment
-            (segment.segment[1] * 1000).toLong()
-        } else {
-            _currentSegment.value = null
-            null
-        }
-    }
-
-    fun reset() {
-        _segments.value = emptyList()
-        _currentSegment.value = null
-        currentVideoId = null
-    }
-
-    private fun categoriesFromPreferences(prefs: Preferences): Set<String> {
         val categories = mutableSetOf<String>()
         if (prefs[SponsorBlockSkipSponsorKey] != false) categories.add("sponsor")
         if (prefs[SponsorBlockSkipSelfPromoKey] != false) categories.add("selfpromo")
@@ -155,8 +72,47 @@ class SponsorBlockManager(
         return categories
     }
 
-    private data class SponsorBlockPreferences(
-        val enabled: Boolean,
-        val categories: Set<String>,
-    )
+    suspend fun loadSegments(videoId: String, durationMs: Long = 0) {
+        if (!_enabled.value) {
+            _segments.value = emptyList()
+            _seekBarSegments.value = emptyList()
+            return
+        }
+        if (videoId == currentVideoId && _segments.value.isNotEmpty()) return
+
+        currentVideoId = videoId
+        val categories = getActiveCategories()
+        val fetched = SponsorBlockApi.getSegments(videoId, categories)
+        _segments.value = fetched
+        _seekBarSegments.value = SponsorBlockApi.toSeekBarSegments(fetched, durationMs)
+    }
+
+    fun updateDuration(durationMs: Long) {
+        if (durationMs > 0 && _segments.value.isNotEmpty()) {
+            _seekBarSegments.value = SponsorBlockApi.toSeekBarSegments(_segments.value, durationMs)
+        }
+    }
+
+    fun findSkipTarget(positionMs: Long, speed: Float = 1f): Long? {
+        if (!_enabled.value || _segments.value.isEmpty()) return null
+        // 2-second window scaled by playback speed (matches SmartTube behavior)
+        val windowMs = (2000L * speed).toLong()
+        val segment = _segments.value.find { seg ->
+            positionMs >= seg.startMs && positionMs <= minOf(seg.startMs + windowMs, seg.endMs)
+        }
+        return if (segment != null) {
+            _currentSegment.value = segment
+            segment.endMs
+        } else {
+            _currentSegment.value = null
+            null
+        }
+    }
+
+    fun reset() {
+        _segments.value = emptyList()
+        _seekBarSegments.value = emptyList()
+        _currentSegment.value = null
+        currentVideoId = null
+    }
 }

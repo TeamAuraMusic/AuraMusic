@@ -185,6 +185,9 @@ import timber.log.Timber
     val availableSubtitles = service.availableSubtitles
     val selectedSubtitleIndex = service.selectedSubtitleIndex
 
+    val sponsorBlockManager get() = service.sponsorBlockManager
+    val sponsorBlockSegments get() = service.sponsorBlockManager.seekBarSegments
+
     fun selectSubtitle(index: Int) {
         service.selectSubtitle(index)
     }
