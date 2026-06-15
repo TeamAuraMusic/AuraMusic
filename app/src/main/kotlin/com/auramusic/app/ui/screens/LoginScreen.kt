@@ -19,7 +19,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -44,6 +43,7 @@ import com.auramusic.app.utils.rememberPreference
 import com.auramusic.app.utils.reportException
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicReference
 
 @SuppressLint("SetJavaScriptEnabled")
 @OptIn(ExperimentalMaterial3Api::class, DelicateCoroutinesApi::class)
@@ -60,20 +60,23 @@ fun LoginScreen(
     var accountChannelHandle by rememberPreference(AccountChannelHandleKey, "")
 
     var webView: WebView? = null
-    var lastAccountInfoFetchSession by remember { mutableStateOf<String?>(null) }
+    val lastAccountInfoFetchSession = remember { AtomicReference<String?>(null) }
+    val latestCookie = remember { AtomicReference(innerTubeCookie) }
+    val latestVisitorData = remember { AtomicReference(visitorData) }
+    val latestDataSyncId = remember { AtomicReference(dataSyncId) }
 
     fun refreshAccountInfoIfReady() {
-        val cookie = innerTubeCookie.takeIf { "SAPISID" in parseCookieString(it) } ?: return
-        val normalizedDataSyncId = dataSyncId
+        val cookie = latestCookie.get().takeIf { "SAPISID" in parseCookieString(it) } ?: return
+        val normalizedDataSyncId = latestDataSyncId.get()
             .substringBefore("||")
             .takeIf { it.isNotBlank() && it != "null" }
             ?: return
         val sessionKey = "$cookie|$normalizedDataSyncId"
-        if (lastAccountInfoFetchSession == sessionKey) return
-        lastAccountInfoFetchSession = sessionKey
+        if (lastAccountInfoFetchSession.get() == sessionKey) return
+        lastAccountInfoFetchSession.set(sessionKey)
 
         YouTube.cookie = cookie
-        YouTube.visitorData = visitorData.takeIf { it.isNotBlank() }
+        YouTube.visitorData = latestVisitorData.get().takeIf { it.isNotBlank() }
         YouTube.dataSyncId = normalizedDataSyncId
 
         coroutineScope.launch {
@@ -82,7 +85,7 @@ fun LoginScreen(
                 accountEmail = it.email.orEmpty()
                 accountChannelHandle = it.channelHandle.orEmpty()
             }.onFailure {
-                lastAccountInfoFetchSession = null
+                lastAccountInfoFetchSession.set(null)
                 reportException(it)
             }
         }
@@ -100,10 +103,13 @@ fun LoginScreen(
                         loadUrl("javascript:Android.onRetrieveDataSyncId(window.yt.config_.DATASYNC_ID)")
 
                         if (url?.startsWith("https://music.youtube.com") == true) {
-                            innerTubeCookie = CookieManager.getInstance().getCookie(url)
-                            YouTube.cookie = innerTubeCookie
-                            YouTube.visitorData = visitorData.takeIf { it.isNotBlank() }
-                            YouTube.dataSyncId = dataSyncId.takeIf { it.isNotBlank() }
+                            CookieManager.getInstance().flush()
+                            val cookie = CookieManager.getInstance().getCookie(url).orEmpty()
+                            latestCookie.set(cookie)
+                            innerTubeCookie = cookie
+                            YouTube.cookie = cookie
+                            YouTube.visitorData = latestVisitorData.get().takeIf { it.isNotBlank() }
+                            YouTube.dataSyncId = latestDataSyncId.get().takeIf { it.isNotBlank() }
                             refreshAccountInfoIfReady()
                         }
                     }
@@ -118,6 +124,7 @@ fun LoginScreen(
                     @JavascriptInterface
                     fun onRetrieveVisitorData(newVisitorData: String?) {
                         if (!newVisitorData.isNullOrBlank() && newVisitorData != "null") {
+                            latestVisitorData.set(newVisitorData)
                             visitorData = newVisitorData
                             YouTube.visitorData = newVisitorData
                             refreshAccountInfoIfReady()
@@ -129,8 +136,9 @@ fun LoginScreen(
                             ?.substringBefore("||")
                             ?.takeIf { it.isNotBlank() && it != "null" }
                         if (normalizedDataSyncId != null) {
+                            latestDataSyncId.set(normalizedDataSyncId)
                             dataSyncId = normalizedDataSyncId
-                            YouTube.dataSyncId = dataSyncId
+                            YouTube.dataSyncId = normalizedDataSyncId
                             refreshAccountInfoIfReady()
                         }
                     }
