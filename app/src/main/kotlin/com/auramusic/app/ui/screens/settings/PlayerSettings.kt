@@ -79,6 +79,8 @@ import com.auramusic.app.constants.SponsorBlockSkipInteractionKey
 import com.auramusic.app.constants.SponsorBlockSkipIntroKey
 import com.auramusic.app.constants.SponsorBlockSkipOutroKey
 import com.auramusic.app.constants.SponsorBlockSkipPreviewKey
+import com.auramusic.app.constants.SponsorBlockSkipMusicOffTopicKey
+import com.auramusic.app.constants.SponsorBlockSkipFillerKey
 import com.auramusic.app.constants.ShufflePlaylistFirstKey
 import com.auramusic.app.constants.AuraCanvasEnabledKey
 import com.auramusic.app.constants.SimilarContent
@@ -168,6 +170,8 @@ fun PlayerSettings(
     val (sbSkipIntro, onSbSkipIntroChange) = rememberPreference(SponsorBlockSkipIntroKey, true)
     val (sbSkipOutro, onSbSkipOutroChange) = rememberPreference(SponsorBlockSkipOutroKey, true)
     val (sbSkipPreview, onSbSkipPreviewChange) = rememberPreference(SponsorBlockSkipPreviewKey, true)
+    val (sbSkipMusicOffTopic, onSbSkipMusicOffTopicChange) = rememberPreference(SponsorBlockSkipMusicOffTopicKey, true)
+    val (sbSkipFiller, onSbSkipFillerChange) = rememberPreference(SponsorBlockSkipFillerKey, true)
 
     val (autoLoadMore, onAutoLoadMoreChange) = rememberPreference(
         AutoLoadMoreKey,
@@ -864,6 +868,48 @@ fun PlayerSettings(
                         )
                     },
                     onClick = { onSbSkipPreviewChange(!sbSkipPreview) }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.check),
+                    title = { Text("Skip Non-Music") },
+                    description = { Text("Parts of music videos where the song is not playing") },
+                    trailingContent = {
+                        Switch(
+                            checked = sbSkipMusicOffTopic,
+                            onCheckedChange = onSbSkipMusicOffTopicChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (sbSkipMusicOffTopic) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = { onSbSkipMusicOffTopicChange(!sbSkipMusicOffTopic) }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.check),
+                    title = { Text("Skip Filler") },
+                    description = { Text("Tangents or filler sections") },
+                    trailingContent = {
+                        Switch(
+                            checked = sbSkipFiller,
+                            onCheckedChange = onSbSkipFillerChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (sbSkipFiller) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = { onSbSkipFillerChange(!sbSkipFiller) }
                 ),
             )
         )

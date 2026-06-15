@@ -1032,6 +1032,12 @@ fun TvPlaybackSettingsScreen(
             val (sbPreview, onSbPreviewChange) = rememberPreference(
                 com.auramusic.app.constants.SponsorBlockSkipPreviewKey, true,
             )
+            val (sbMusicOffTopic, onSbMusicOffTopicChange) = rememberPreference(
+                com.auramusic.app.constants.SponsorBlockSkipMusicOffTopicKey, true,
+            )
+            val (sbFiller, onSbFillerChange) = rememberPreference(
+                com.auramusic.app.constants.SponsorBlockSkipFillerKey, true,
+            )
 
             Surface(
                 modifier = Modifier
@@ -1061,6 +1067,8 @@ fun TvPlaybackSettingsScreen(
                     TvContentToggleRow(title = "Intro", subtitle = "Intro sequences", checked = sbIntro, onCheckedChange = onSbIntroChange, icon = Icons.Filled.Tune)
                     TvContentToggleRow(title = "Outro", subtitle = "End cards/outro", checked = sbOutro, onCheckedChange = onSbOutroChange, icon = Icons.Filled.Tune)
                     TvContentToggleRow(title = "Preview", subtitle = "Recap of what you've seen", checked = sbPreview, onCheckedChange = onSbPreviewChange, icon = Icons.Filled.Tune)
+                    TvContentToggleRow(title = "Non-music", subtitle = "Parts where the song is not playing", checked = sbMusicOffTopic, onCheckedChange = onSbMusicOffTopicChange, icon = Icons.Filled.Tune)
+                    TvContentToggleRow(title = "Filler", subtitle = "Tangents or filler sections", checked = sbFiller, onCheckedChange = onSbFillerChange, icon = Icons.Filled.Tune)
                 }
             }
         }

@@ -42,6 +42,7 @@ class SponsorBlockManager(
 
     private var currentVideoId: String? = null
     private var activeCategories: Set<String> = emptySet()
+    private var hasObservedPreferences = false
 
     suspend fun loadPreferences() {
         val prefs = context.dataStore.data.first()
@@ -60,8 +61,10 @@ class SponsorBlockManager(
                 }
                 .distinctUntilChanged()
                 .collect { prefs ->
+                    val isFirstEmission = !hasObservedPreferences
                     val wasEnabled = _enabled.value
                     val categoriesChanged = activeCategories != prefs.categories
+                    hasObservedPreferences = true
 
                     _enabled.value = prefs.enabled
                     activeCategories = prefs.categories
@@ -74,7 +77,7 @@ class SponsorBlockManager(
                             currentVideoId = null
                             if (videoId != null) loadSegments(videoId)
                         }
-                        if (!wasEnabled) {
+                        if (isFirstEmission || !wasEnabled) {
                             onEnabledChanged(true)
                         }
                     }
