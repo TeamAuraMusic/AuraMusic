@@ -121,7 +121,8 @@ class TvMainActivity : ComponentActivity() {
               val dynamicTheme by rememberPreference(DynamicThemeKey, defaultValue = true)
               val selectedThemeColorInt by rememberPreference(SelectedThemeColorKey, defaultValue = DefaultThemeColor.toArgb())
               val selectedThemeColor = Color(selectedThemeColorInt)
-              val themeColor = if (dynamicTheme) DefaultThemeColor else selectedThemeColor
+              val dynamicThemeSupported = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S
+              val themeColor = if (dynamicTheme && dynamicThemeSupported) DefaultThemeColor else selectedThemeColor
 
               AuraMusicTheme(
                   darkTheme = useDarkTheme,

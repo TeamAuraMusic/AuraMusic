@@ -389,8 +389,8 @@ enum class TvSection(val label: String) {
                          }
 
                          // Overlay detail/setting screens if needed
-                         if (currentDestination != TvDestination.Home) {
-                             val onUp: () -> Unit = { runCatching { topBarFocusRequester.requestFocus() } }
+                         if (currentDestination != TvDestination.Home && currentDestination != TvDestination.Settings) {
+                             val onUp: () -> Unit = { runCatching { detailFocusRequester.requestFocus() } }
                              // Full screen overlay for all destinations
                              Surface(
                                  modifier = Modifier.fillMaxSize(),
@@ -415,19 +415,6 @@ enum class TvSection(val label: String) {
                                          playlistId = currentDestination.id,
                                          playerConnection = playerConnection,
                                          onBackClick = { navigator.popBack() },
-                                         focusRequester = overlayFocusRequester,
-                                         onNavigateUp = onUp,
-                                     )
-                                     TvDestination.Settings -> TvSettingsScreen(
-                                         onBackClick = { navigator.popBack() },
-                                         onAppearanceClick = { navigator.navigate(TvDestination.AppearanceSettings) },
-                                         onAccountClick = { navigator.navigate(TvDestination.AccountSettings) },
-                                         onPlaybackClick = { navigator.navigate(TvDestination.PlaybackSettings) },
-                                         onContentClick = { navigator.navigate(TvDestination.ContentSettings) },
-                                         onStorageClick = { navigator.navigate(TvDestination.StorageSettings) },
-                                         onSystemClick = { navigator.navigate(TvDestination.SystemSettings) },
-                                         onUpdaterClick = { navigator.navigate(TvDestination.UpdaterScreen) },
-                                         onAboutClick = { navigator.navigate(TvDestination.AboutScreen) },
                                          focusRequester = overlayFocusRequester,
                                          onNavigateUp = onUp,
                                      )
@@ -2658,7 +2645,7 @@ val navigator = LocalTvNavigator.current
 val currentDestination = navigator.current
 LaunchedEffect(currentDestination) {
     if (currentDestination == TvDestination.Settings) {
-        // Request focus immediately to prevent mini player from stealing it
+        kotlinx.coroutines.delay(50)
         val index = focusedItemIndex.coerceIn(0, allFocusRequesters.size - 1)
         runCatching { allFocusRequesters[index].requestFocus() }
     }
@@ -2666,14 +2653,6 @@ LaunchedEffect(currentDestination) {
 
     LaunchedEffect(Unit) {
         runCatching { firstItemFocus.requestFocus() }
-    }
-
-    // Re-claim focus when overlay disappears
-    LaunchedEffect(currentDestination) {
-        if (currentDestination == TvDestination.Home) {
-            kotlinx.coroutines.delay(50)
-            runCatching { firstItemFocus.requestFocus() }
-        }
     }
 
     LazyColumn(
