@@ -72,6 +72,13 @@ import com.auramusic.app.constants.PersistentQueueKey
 import com.auramusic.app.constants.PersistentShuffleAcrossQueuesKey
 import com.auramusic.app.constants.RememberShuffleAndRepeatKey
 import com.auramusic.app.constants.SeekExtraSeconds
+import com.auramusic.app.constants.SponsorBlockEnabledKey
+import com.auramusic.app.constants.SponsorBlockSkipSponsorKey
+import com.auramusic.app.constants.SponsorBlockSkipSelfPromoKey
+import com.auramusic.app.constants.SponsorBlockSkipInteractionKey
+import com.auramusic.app.constants.SponsorBlockSkipIntroKey
+import com.auramusic.app.constants.SponsorBlockSkipOutroKey
+import com.auramusic.app.constants.SponsorBlockSkipPreviewKey
 import com.auramusic.app.constants.ShufflePlaylistFirstKey
 import com.auramusic.app.constants.AuraCanvasEnabledKey
 import com.auramusic.app.constants.SimilarContent
@@ -151,6 +158,16 @@ fun PlayerSettings(
         SeekExtraSeconds,
         defaultValue = false
     )
+
+    val (sponsorBlockEnabled, onSponsorBlockEnabledChange) = rememberPreference(
+        SponsorBlockEnabledKey, false,
+    )
+    val (sbSkipSponsor, onSbSkipSponsorChange) = rememberPreference(SponsorBlockSkipSponsorKey, true)
+    val (sbSkipSelfPromo, onSbSkipSelfPromoChange) = rememberPreference(SponsorBlockSkipSelfPromoKey, true)
+    val (sbSkipInteraction, onSbSkipInteractionChange) = rememberPreference(SponsorBlockSkipInteractionKey, true)
+    val (sbSkipIntro, onSbSkipIntroChange) = rememberPreference(SponsorBlockSkipIntroKey, true)
+    val (sbSkipOutro, onSbSkipOutroChange) = rememberPreference(SponsorBlockSkipOutroKey, true)
+    val (sbSkipPreview, onSbSkipPreviewChange) = rememberPreference(SponsorBlockSkipPreviewKey, true)
 
     val (autoLoadMore, onAutoLoadMoreChange) = rememberPreference(
         AutoLoadMoreKey,
@@ -694,6 +711,161 @@ fun PlayerSettings(
                     onClick = { onSeekExtraSeconds(!seekExtraSeconds) }
                 ))
             }
+        )
+
+        Spacer(modifier = Modifier.height(27.dp))
+
+        Material3SettingsGroup(
+            title = "SponsorBlock",
+            items = listOf(
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.ic_notification_icon),
+                    title = { Text("SponsorBlock") },
+                    description = { Text("Auto-skip sponsor segments in videos") },
+                    trailingContent = {
+                        Switch(
+                            checked = sponsorBlockEnabled,
+                            onCheckedChange = onSponsorBlockEnabledChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (sponsorBlockEnabled) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = { onSponsorBlockEnabledChange(!sponsorBlockEnabled) }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.check),
+                    title = { Text("Skip Sponsor") },
+                    description = { Text("Paid promotion, not necessarily an ad") },
+                    trailingContent = {
+                        Switch(
+                            checked = sbSkipSponsor,
+                            onCheckedChange = onSbSkipSponsorChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (sbSkipSponsor) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = { onSbSkipSponsorChange(!sbSkipSponsor) }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.check),
+                    title = { Text("Skip Self-Promo") },
+                    description = { Text("Unpaid self-promotion or bonus content") },
+                    trailingContent = {
+                        Switch(
+                            checked = sbSkipSelfPromo,
+                            onCheckedChange = onSbSkipSelfPromoChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (sbSkipSelfPromo) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = { onSbSkipSelfPromoChange(!sbSkipSelfPromo) }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.check),
+                    title = { Text("Skip Interaction") },
+                    description = { Text("Subscribe, like, share reminders") },
+                    trailingContent = {
+                        Switch(
+                            checked = sbSkipInteraction,
+                            onCheckedChange = onSbSkipInteractionChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (sbSkipInteraction) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = { onSbSkipInteractionChange(!sbSkipInteraction) }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.check),
+                    title = { Text("Skip Intro") },
+                    description = { Text("Intro sequences and animations") },
+                    trailingContent = {
+                        Switch(
+                            checked = sbSkipIntro,
+                            onCheckedChange = onSbSkipIntroChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (sbSkipIntro) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = { onSbSkipIntroChange(!sbSkipIntro) }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.check),
+                    title = { Text("Skip Outro") },
+                    description = { Text("End cards and outro sequences") },
+                    trailingContent = {
+                        Switch(
+                            checked = sbSkipOutro,
+                            onCheckedChange = onSbSkipOutroChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (sbSkipOutro) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = { onSbSkipOutroChange(!sbSkipOutro) }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.check),
+                    title = { Text("Skip Preview") },
+                    description = { Text("Recap of what you have already seen") },
+                    trailingContent = {
+                        Switch(
+                            checked = sbSkipPreview,
+                            onCheckedChange = onSbSkipPreviewChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (sbSkipPreview) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = { onSbSkipPreviewChange(!sbSkipPreview) }
+                ),
+            )
         )
 
         Spacer(modifier = Modifier.height(27.dp))

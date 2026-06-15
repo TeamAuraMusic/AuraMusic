@@ -93,6 +93,7 @@ import com.auramusic.app.constants.AudiobookPositionsKey
 import com.auramusic.app.constants.AudioQualityKey
 import com.auramusic.app.constants.AudioQuality
 import com.auramusic.app.utils.YTPlayerUtils
+import com.auramusic.app.sponsorblock.SponsorBlockManager
 import kotlinx.coroutines.flow.firstOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -329,6 +330,7 @@ class MusicService :
 
 
     lateinit var sleepTimer: SleepTimer
+    lateinit var sponsorBlockManager: SponsorBlockManager
 
     @Inject
     @PlayerCache
@@ -506,6 +508,23 @@ class MusicService :
         sleepTimer = SleepTimer(scope, player)
         player.addListener(sleepTimer)
         player.addAnalyticsListener(PlaybackStatsListener(false, this@MusicService))
+
+        // SponsorBlock
+        sponsorBlockManager = SponsorBlockManager(this@MusicService, scope)
+        scope.launch { sponsorBlockManager.loadPreferences() }
+
+        // SponsorBlock periodic skip check
+        scope.launch {
+            while (true) {
+                if (sponsorBlockManager.enabled.value && player.isPlaying) {
+                    val skipTo = sponsorBlockManager.findSkipTarget(player.currentPosition)
+                    if (skipTo != null) {
+                        player.seekTo(skipTo)
+                    }
+                }
+                delay(250)
+            }
+        }
 
         // Mark player as initialized after successful creation
         playerInitialized.value = true
@@ -1822,6 +1841,13 @@ class MusicService :
         mediaItem: MediaItem?,
         reason: Int,
     ) {
+        // Load SponsorBlock segments for the new video
+        if (sponsorBlockManager.enabled.value && mediaItem?.mediaId != null) {
+            scope.launch {
+                sponsorBlockManager.loadSegments(mediaItem.mediaId)
+            }
+        }
+
         // Don't reset video mode if:
         // 1. We're currently switching to video mode (_isVideoSwitching is true)
         // 2. The transition is due to our own video mode switch (same mediaId)

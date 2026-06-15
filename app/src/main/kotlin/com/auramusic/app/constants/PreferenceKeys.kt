@@ -158,6 +158,17 @@ val DiscordUseDetailsKey = booleanPreferencesKey("discordUseDetails")
 // Google Cast
 val EnableGoogleCastKey = booleanPreferencesKey("enableGoogleCast")
 
+// SponsorBlock
+val SponsorBlockEnabledKey = booleanPreferencesKey("sponsorBlockEnabled")
+val SponsorBlockSkipSponsorKey = booleanPreferencesKey("sponsorBlockSkipSponsor")
+val SponsorBlockSkipIntroKey = booleanPreferencesKey("sponsorBlockSkipIntro")
+val SponsorBlockSkipOutroKey = booleanPreferencesKey("sponsorBlockSkipOutro")
+val SponsorBlockSkipSelfPromoKey = booleanPreferencesKey("sponsorBlockSkipSelfPromo")
+val SponsorBlockSkipInteractionKey = booleanPreferencesKey("sponsorBlockSkipInteraction")
+val SponsorBlockSkipPreviewKey = booleanPreferencesKey("sponsorBlockSkipPreview")
+val SponsorBlockSkipMusicOffTopicKey = booleanPreferencesKey("sponsorBlockSkipMusicOffTopic")
+val SponsorBlockSkipFillerKey = booleanPreferencesKey("sponsorBlockSkipFiller")
+
 // Listen Together
 val ListenTogetherServerUrlKey = stringPreferencesKey("listenTogetherServerUrl")
 val ListenTogetherUsernameKey = stringPreferencesKey("listenTogetherUsername")

@@ -280,6 +280,7 @@ If you'd like to support my work, you can donate via PayPal or Liberapay:
 - [**Flow**](https://github.com/A-EDev/Flow) - Extract videos from YouTube 
 - [**Vosk**](https://github.com/alphacep/vosk-api) - Offline wake word recognition
 - [**Monochrome**](https://github.com/monochrome-music/monochrome) - Monochrome-inspired animated background and lyrics style
+- [**SponsorBlock**](https://github.com/ajayyy/SponsorBlock) - Crowdsourced sponsor segment skipping
   
 The open-source community for tools, libraries, and APIs that make this project possible.
 

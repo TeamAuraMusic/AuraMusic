@@ -988,6 +988,81 @@ fun TvPlaybackSettingsScreen(
                 icon = Icons.Filled.FastForward,
             )
         }
+
+        item {
+            Text(
+                text = "SPONSORBLOCK",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 8.dp).padding(top = 12.dp, bottom = 4.dp),
+            )
+        }
+
+        item {
+            val (sbEnabled, onSbEnabledChange) = rememberPreference(
+                com.auramusic.app.constants.SponsorBlockEnabledKey, false,
+            )
+            TvContentToggleRow(
+                title = "SponsorBlock",
+                subtitle = if (sbEnabled) "Auto-skip sponsor segments in videos" else "Skip sponsor segments (powered by SponsorBlock)",
+                checked = sbEnabled,
+                onCheckedChange = onSbEnabledChange,
+                icon = Icons.Filled.FastForward,
+            )
+        }
+
+        item {
+            val (sbSponsor, onSbSponsorChange) = rememberPreference(
+                com.auramusic.app.constants.SponsorBlockSkipSponsorKey, true,
+            )
+            val (sbSelfPromo, onSbSelfPromoChange) = rememberPreference(
+                com.auramusic.app.constants.SponsorBlockSkipSelfPromoKey, true,
+            )
+            val (sbInteraction, onSbInteractionChange) = rememberPreference(
+                com.auramusic.app.constants.SponsorBlockSkipInteractionKey, true,
+            )
+            val (sbIntro, onSbIntroChange) = rememberPreference(
+                com.auramusic.app.constants.SponsorBlockSkipIntroKey, true,
+            )
+            val (sbOutro, onSbOutroChange) = rememberPreference(
+                com.auramusic.app.constants.SponsorBlockSkipOutroKey, true,
+            )
+            val (sbPreview, onSbPreviewChange) = rememberPreference(
+                com.auramusic.app.constants.SponsorBlockSkipPreviewKey, true,
+            )
+
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp)),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 4.dp,
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text(
+                        text = "Skip Categories",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = "Choose which segment types to auto-skip",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    TvContentToggleRow(title = "Sponsor", subtitle = "Paid promotion, not necessarily an ad", checked = sbSponsor, onCheckedChange = onSbSponsorChange, icon = Icons.Filled.Tune)
+                    TvContentToggleRow(title = "Self-promotion", subtitle = "Unpaid self-promotion", checked = sbSelfPromo, onCheckedChange = onSbSelfPromoChange, icon = Icons.Filled.Tune)
+                    TvContentToggleRow(title = "Interaction reminder", subtitle = "Subscribe, like, etc.", checked = sbInteraction, onCheckedChange = onSbInteractionChange, icon = Icons.Filled.Tune)
+                    TvContentToggleRow(title = "Intro", subtitle = "Intro sequences", checked = sbIntro, onCheckedChange = onSbIntroChange, icon = Icons.Filled.Tune)
+                    TvContentToggleRow(title = "Outro", subtitle = "End cards/outro", checked = sbOutro, onCheckedChange = onSbOutroChange, icon = Icons.Filled.Tune)
+                    TvContentToggleRow(title = "Preview", subtitle = "Recap of what you've seen", checked = sbPreview, onCheckedChange = onSbPreviewChange, icon = Icons.Filled.Tune)
+                }
+            }
+        }
     }
 }
 
