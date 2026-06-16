@@ -270,7 +270,7 @@ private fun saveAndShareBitmap(context: Context, bitmap: Bitmap) {
 
     val uri = androidx.core.content.FileProvider.getUriForFile(
         context,
-        "${context.packageName}.fileprovider",
+        "${context.packageName}.FileProvider",
         file
     )
 
