@@ -18,6 +18,7 @@ import coil3.SingletonImageLoader
 import coil3.disk.DiskCache
 import coil3.disk.directory
 import coil3.memory.MemoryCache
+import com.auramusic.music.betterlyrics.BetterLyrics
 import coil3.request.CachePolicy
 import coil3.request.allowHardware
 import coil3.request.crossfade
@@ -109,6 +110,9 @@ class App : Application(), SingletonImageLoader.Factory {
             apiKey = BuildConfig.LASTFM_API_KEY.takeIf { it.isNotEmpty() } ?: "",
             secret = BuildConfig.LASTFM_SECRET.takeIf { it.isNotEmpty() } ?: ""
         )
+
+        // Initialize BetterLyrics with API key from BuildConfig (GitHub Secrets)
+        BetterLyrics.apiKey = BuildConfig.BETTERLYRICS_API_KEY.takeIf { it.isNotEmpty() } ?: ""
 
         if (settings[ProxyEnabledKey] == true) {
             val username = settings[ProxyUsernameKey].orEmpty()

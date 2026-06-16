@@ -3,11 +3,12 @@ package com.auramusic.music.betterlyrics
 import com.auramusic.music.betterlyrics.models.TTMLResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
-import io.ktor.client.engine.cio.CIO
+import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.client.request.parameter
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
@@ -16,8 +17,9 @@ import timber.log.Timber
 
 object BetterLyrics {
     private const val TAG = "BetterLyrics"
+    var apiKey: String = ""
     private val client by lazy {
-        HttpClient(CIO) {
+        HttpClient(OkHttp) {
             install(ContentNegotiation) {
                 json(
                     Json {
@@ -53,6 +55,9 @@ object BetterLyrics {
     ): String? = runCatching {
         Timber.tag(TAG).d("Fetching TTML for: $title by $artist (dur=$duration, album=$album)")
         val response = client.get("/getLyrics") {
+            if (apiKey.isNotEmpty()) {
+                header("X-API-Key", apiKey)
+            }
             parameter("s", title)
             parameter("a", artist)
             if (duration > 0) {

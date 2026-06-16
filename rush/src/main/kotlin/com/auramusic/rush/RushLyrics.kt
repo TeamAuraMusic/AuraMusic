@@ -4,7 +4,6 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
@@ -36,19 +35,10 @@ object RushLyrics {
         }
     }
 
-    private val servers = listOf(
-        "https://lyricsplus.atomix.one",
-        "https://lyricsplus-seven.vercel.app",
-        "https://lyricsplus.prjktla.workers.dev",
-        "https://lyrics-plus-backend.vercel.app",
-        "https://youlyplus.binimum.org",
-    )
+    private val servers = listOf<String>()
 
     @Serializable
     private data class TTMLResponse(val ttml: String)
-
-    @Serializable
-    private data class LRCResponse(val lrc: String)
 
     @Serializable
     private data class SearchResponse(
@@ -66,7 +56,7 @@ object RushLyrics {
     )
 
     /**
-     * Fetch TTML lyrics from LyricsPlus API
+     * Fetch TTML lyrics from LyricsPlus-compatible API
      */
     private suspend fun fetchTTML(
         title: String,
@@ -74,15 +64,14 @@ object RushLyrics {
     ): String? = runCatching {
         for (server in servers) {
             try {
-                val response = client.get("$server/v1/ttml/get") {
-                    parameter("title", title)
-                    parameter("artist", artist)
+                val response = client.get("$server/getLyrics") {
+                    parameter("s", title)
+                    parameter("a", artist)
                 }
                 if (response.status == HttpStatusCode.OK) {
                     return@runCatching response.body<TTMLResponse>().ttml
                 }
             } catch (e: Exception) {
-                // Try next server
                 continue
             }
         }
@@ -90,7 +79,7 @@ object RushLyrics {
     }.getOrNull()
 
     /**
-     * Fetch LRC lyrics directly from LyricsPlus API
+     * Fetch LRC lyrics directly from API
      */
     private suspend fun fetchLRC(
         title: String,
@@ -98,15 +87,18 @@ object RushLyrics {
     ): String? = runCatching {
         for (server in servers) {
             try {
-                val response = client.get("$server/v1/lrc/get") {
-                    parameter("title", title)
-                    parameter("artist", artist)
+                val response = client.get("$server/getLyrics") {
+                    parameter("s", title)
+                    parameter("a", artist)
                 }
                 if (response.status == HttpStatusCode.OK) {
-                    return@runCatching response.body<LRCResponse>().lrc
+                    val ttml = response.body<TTMLResponse>().ttml
+                    val parsed = TTMLParser.parseTTML(ttml)
+                    if (parsed.isNotEmpty()) {
+                        return@runCatching TTMLParser.toLRC(parsed)
+                    }
                 }
             } catch (e: Exception) {
-                // Try next server
                 continue
             }
         }
@@ -114,7 +106,7 @@ object RushLyrics {
     }.getOrNull()
 
     /**
-     * Search for lyrics using LyricsPlus API
+     * Search for lyrics
      */
     suspend fun searchLyrics(
         title: String,
@@ -122,15 +114,22 @@ object RushLyrics {
     ): List<SearchResult> = runCatching {
         for (server in servers) {
             try {
-                val response = client.get("$server/v1/search") {
-                    parameter("title", title)
-                    parameter("artist", artist)
+                val response = client.get("$server/getLyrics") {
+                    parameter("s", title)
+                    parameter("a", artist)
                 }
                 if (response.status == HttpStatusCode.OK) {
-                    return@runCatching response.body<SearchResponse>().results
+                    val ttml = response.body<TTMLResponse>().ttml
+                    return@runCatching listOf(
+                        SearchResult(
+                            id = "$title-$artist",
+                            title = title,
+                            artist = artist,
+                            provider = "RushLyrics"
+                        )
+                    )
                 }
             } catch (e: Exception) {
-                // Try next server
                 continue
             }
         }
@@ -138,7 +137,7 @@ object RushLyrics {
     }.getOrDefault(emptyList())
 
     /**
-     * Get lyrics - tries TTML first, then falls back to LRC
+     * Get lyrics - fetches TTML and converts to LRC
      */
     suspend fun getLyrics(
         title: String,
@@ -146,15 +145,12 @@ object RushLyrics {
         duration: Int = -1,
         album: String? = null,
     ) = runCatching {
-        // Try LRC first (faster and more direct)
         val lrc = fetchLRC(title, artist)
         if (lrc != null && lrc.isNotBlank()) {
-            // Fix malformed timestamps if needed
             val fixedLrc = fixMalformedLrc(lrc, duration)
             return@runCatching fixedLrc
         }
 
-        // Fall back to TTML and convert to LRC
         val ttml = fetchTTML(title, artist)
             ?: throw IllegalStateException("Lyrics unavailable")
         
@@ -163,7 +159,6 @@ object RushLyrics {
             throw IllegalStateException("Failed to parse lyrics")
         }
         
-        // If no word-level timing, try to generate line-level sync
         if (!TTMLParser.hasWordLevelTiming(parsedLines)) {
             val linesWithTiming = generateLineTiming(parsedLines, duration)
             if (linesWithTiming != null) {
@@ -320,23 +315,22 @@ object RushLyrics {
         duration: Int = -1,
         album: String? = null,
     ) = runCatching {
-        // Try LRC first (faster and more direct)
         val lrc = fetchLRC(title, artist)
         if (lrc != null && lrc.isNotBlank()) {
-            val lines = lrc.lines().filter { it.startsWith("[") && it.contains("]") }
+            val fixedLrc = fixMalformedLrc(lrc, duration)
+            val lines = fixedLrc.lines().filter { it.startsWith("[") && it.contains("]") }
             return@runCatching LyricsResult(
-                lrc = lrc,
-                hasWordSync = lrc.contains(Regex("<.*>")),
+                lrc = fixedLrc,
+                hasWordSync = fixedLrc.contains(Regex("<.*>")),
                 quality = TTMLParser.LyricsQuality(
                     hasLineSync = lines.isNotEmpty(),
-                    hasWordSync = lrc.contains(Regex("<.*>")),
+                    hasWordSync = fixedLrc.contains(Regex("<.*>")),
                     totalLines = lines.size,
                     linesWithWords = 0
                 )
             )
         }
 
-        // Fall back to TTML and convert to LRC
         val ttml = fetchTTML(title, artist)
             ?: throw IllegalStateException("Lyrics unavailable")
         
@@ -345,6 +339,18 @@ object RushLyrics {
             throw IllegalStateException("Failed to parse lyrics")
         }
         
+        if (!TTMLParser.hasWordLevelTiming(parsedLines)) {
+            val linesWithTiming = generateLineTiming(parsedLines, duration)
+            if (linesWithTiming != null) {
+                val quality = TTMLParser.analyzeQuality(linesWithTiming)
+                return@runCatching LyricsResult(
+                    lrc = TTMLParser.toLRC(linesWithTiming),
+                    hasWordSync = quality.hasWordSync,
+                    quality = quality
+                )
+            }
+        }
+
         val quality = TTMLParser.analyzeQuality(parsedLines)
         LyricsResult(
             lrc = TTMLParser.toLRC(parsedLines),

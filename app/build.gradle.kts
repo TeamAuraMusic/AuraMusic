@@ -37,6 +37,10 @@ android {
 
         buildConfigField("String", "LASTFM_API_KEY", "\"$lastFmKey\"")
         buildConfigField("String", "LASTFM_SECRET", "\"$lastFmSecret\"")
+
+        // BetterLyrics API key from GitHub Secrets
+        val betterLyricsKey = localProperties.getProperty("BETTERLYRICS_API_KEY") ?: System.getenv("BETTERLYRICS_API_KEY") ?: ""
+        buildConfigField("String", "BETTERLYRICS_API_KEY", "\"$betterLyricsKey\"")
         
         // NDK configuration for vibra_fp library
         ndk {
