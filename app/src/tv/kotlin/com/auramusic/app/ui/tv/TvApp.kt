@@ -134,6 +134,7 @@ import com.auramusic.innertube.YouTube.SearchFilter.Companion.FILTER_VIDEO
 import com.auramusic.innertube.pages.HomePage
 import com.auramusic.app.constants.DarkModeKey
 import com.auramusic.app.ui.screens.settings.DarkMode
+import com.auramusic.app.ui.screens.settings.AppFont
 import com.auramusic.app.utils.rememberEnumPreference
 import com.auramusic.app.utils.rememberPreference
 import android.os.Build
@@ -228,7 +229,8 @@ enum class TvSection(val label: String) {
      val navigator = rememberTvNavigator()
      val isPlayingState = playerConnection?.isPlaying?.collectAsState() ?: remember { mutableStateOf(false) }
      val currentSong by playerConnection?.currentSong?.collectAsState(null) ?: remember { mutableStateOf(null) }
-     val showMiniPlayer = currentSong != null
+     val currentMediaMetadata by playerConnection?.mediaMetadata?.collectAsState(null) ?: remember { mutableStateOf(null) }
+     val showMiniPlayer = currentSong != null || currentMediaMetadata != null
 
      // Handle remote back button: go back in navigator, or exit PiP, or finish
      androidx.activity.compose.BackHandler(enabled = true) {
@@ -328,6 +330,7 @@ enum class TvSection(val label: String) {
                          sectionState = sectionState,
                          isPlaying = isPlayingState.value,
                          currentSong = currentSong,
+                         currentMediaMetadata = currentMediaMetadata,
                          showMiniPlayer = showMiniPlayer,
                          playerConnection = playerConnection,
                          onMiniPlayerClick = { navigator.navigate(TvDestination.Player) },
@@ -573,6 +576,7 @@ fun TvTopBar(
     sectionState: androidx.compose.runtime.MutableState<TvSection>,
     isPlaying: Boolean,
     currentSong: com.auramusic.app.db.entities.Song?,
+    currentMediaMetadata: com.auramusic.app.models.MediaMetadata? = null,
     showMiniPlayer: Boolean = false,
     playerConnection: PlayerConnection?,
     onMiniPlayerClick: () -> Unit,
@@ -656,7 +660,11 @@ fun TvTopBar(
              Spacer(modifier = Modifier.weight(1f))
 
               // Mini player (expanded to show full song and artist info)
-              if (showMiniPlayer && currentSong != null) {
+              if (showMiniPlayer && (currentSong != null || currentMediaMetadata != null)) {
+                  val miniTitle = currentSong?.title ?: currentMediaMetadata?.title.orEmpty()
+                  val miniArtists = currentSong?.artists?.joinToString(", ") { it.name }
+                      ?: currentMediaMetadata?.artists?.joinToString(", ") { it.name }.orEmpty()
+                  val miniThumbnail = currentSong?.thumbnailUrl ?: currentMediaMetadata?.thumbnailUrl
                   Row(
                       modifier = Modifier
                           .height(56.dp)
@@ -687,8 +695,8 @@ fun TvTopBar(
                               contentAlignment = Alignment.Center,
                           ) {
                               AsyncImage(
-                                  model = currentSong.thumbnailUrl,
-                                  contentDescription = currentSong.title,
+                                  model = miniThumbnail,
+                                  contentDescription = miniTitle,
                                   contentScale = ContentScale.Crop,
                                   modifier = Modifier.fillMaxSize(),
                               )
@@ -697,7 +705,7 @@ fun TvTopBar(
                           // Song info
                           Column(modifier = Modifier.weight(1f)) {
                               Text(
-                                  text = currentSong.title,
+                                  text = miniTitle,
                                   style = MaterialTheme.typography.bodyMedium,
                                   fontWeight = FontWeight.SemiBold,
                                   color = MaterialTheme.colorScheme.onSurface,
@@ -705,7 +713,7 @@ fun TvTopBar(
                                   overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                               )
                               Text(
-                                  text = currentSong.artists?.joinToString(", ") { it.name } ?: "",
+                                  text = miniArtists,
                                   style = MaterialTheme.typography.bodySmall,
                                   color = MaterialTheme.colorScheme.onSurfaceVariant,
                                   maxLines = 1,
@@ -1178,7 +1186,7 @@ fun YouTubeMediaCard(
             .onFocusChanged { focusState ->
                 isFocusedState.value = focusState.isFocused
                 if (focusState.isFocused) {
-                    scope.launch { bringIntoViewRequester.bringIntoView() }
+                    scope.launch { runCatching { bringIntoViewRequester.bringIntoView() } }
                 }
             }
             .border(width = 3.dp, color = borderColor, shape = RoundedCornerShape(12.dp)),
@@ -1316,7 +1324,7 @@ fun YouTubeAlbumCard(
             .onFocusChanged { focusState ->
                 isFocusedState.value = focusState.isFocused
                 if (focusState.isFocused) {
-                    scope.launch { bringIntoViewRequester.bringIntoView() }
+                    scope.launch { runCatching { bringIntoViewRequester.bringIntoView() } }
                 }
             }
             .border(width = 3.dp, color = borderColor, shape = RoundedCornerShape(12.dp)),
@@ -2177,7 +2185,7 @@ fun MediaCard(
             .onFocusChanged { focusState ->
                 isFocusedState.value = focusState.isFocused
                 if (focusState.isFocused) {
-                    scope.launch { bringIntoViewRequester.bringIntoView() }
+                    scope.launch { runCatching { bringIntoViewRequester.bringIntoView() } }
                 }
             }
             .border(width = 3.dp, color = borderColor, shape = RoundedCornerShape(12.dp)),
@@ -2410,7 +2418,7 @@ fun TvHeroCard(
              .onFocusChanged { focusState ->
                  isFocusedState.value = focusState.isFocused
                  if (focusState.isFocused) {
-                     scope.launch { bringIntoViewRequester.bringIntoView() }
+                     scope.launch { runCatching { bringIntoViewRequester.bringIntoView() } }
                  }
              }
              .border(width = 3.dp, color = borderColor, shape = RoundedCornerShape(12.dp)),
@@ -2536,7 +2544,7 @@ fun TvSettingsCategoryItem(
             .onFocusChanged { focusState ->
                 isFocusedState.value = focusState.isFocused
                 if (focusState.isFocused) {
-                    scope.launch { bringIntoViewRequester.bringIntoView() }
+                    scope.launch { runCatching { bringIntoViewRequester.bringIntoView() } }
                 }
             }
             .border(width = 3.dp, color = borderColor, shape = RoundedCornerShape(16.dp)),
@@ -2636,20 +2644,19 @@ fun TvSettingsScreen(
         listOf(firstItemFocus) + List(8) { FocusRequester() }
     }
 
-// Re-claim focus on the previously focused item whenever a sub-settings overlay
-// closes (destination returns to Settings). Without this, when the user
-// backs out of Account / Appearance / Playback / Content / Updater /
-// About the focus drifts to the mini player instead of restoring
-// to the item they were on.
-val navigator = LocalTvNavigator.current
-val currentDestination = navigator.current
-LaunchedEffect(currentDestination) {
-    if (currentDestination == TvDestination.Settings) {
-        kotlinx.coroutines.delay(50)
-        val index = focusedItemIndex.coerceIn(0, allFocusRequesters.size - 1)
-        runCatching { allFocusRequesters[index].requestFocus() }
+    // Re-claim focus on the previously focused item whenever a sub-settings overlay
+    // closes. Settings is a top-level section while the lightweight navigator's
+    // base destination remains Home, so returning from a settings child can land
+    // on Home rather than a Settings destination.
+    val navigator = LocalTvNavigator.current
+    val currentDestination = navigator.current
+    LaunchedEffect(currentDestination) {
+        if (currentDestination == TvDestination.Home || currentDestination == TvDestination.Settings) {
+            kotlinx.coroutines.delay(50)
+            val index = focusedItemIndex.coerceIn(0, allFocusRequesters.size - 1)
+            runCatching { allFocusRequesters[index].requestFocus() }
+        }
     }
-}
 
     LaunchedEffect(Unit) {
         runCatching { firstItemFocus.requestFocus() }
@@ -2797,6 +2804,10 @@ LaunchedEffect(currentDestination) {
  ) {
      BackHandler { onBackClick() }
      val (darkMode, onDarkModeChange) = rememberEnumPreference(DarkModeKey, DarkMode.AUTO)
+     val (selectedFont, onSelectedFontChange) = rememberEnumPreference(
+         com.auramusic.app.constants.SelectedFontKey,
+         AppFont.DEFAULT,
+     )
 
      val dynamicThemeSupported = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S
      val dynamicThemeState: MutableState<Boolean> = if (dynamicThemeSupported) {
@@ -2930,8 +2941,39 @@ LaunchedEffect(currentDestination) {
                 )
             }
         }
+
+        item {
+            Text(
+                text = "FONTS",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            )
+        }
+
+        item {
+            TvSettingsCategoryItem(
+                title = "App Font",
+                subtitle = selectedFont.tvLabel,
+                onClick = {
+                    val fonts = AppFont.values()
+                    val nextIndex = (fonts.indexOf(selectedFont) + 1) % fonts.size
+                    onSelectedFontChange(fonts[nextIndex])
+                },
+                icon = Icons.Filled.Tune,
+            )
+        }
     }
 }
+
+private val AppFont.tvLabel: String
+    get() = when (this) {
+        AppFont.DEFAULT -> "Default"
+        AppFont.OUTFIT -> "Outfit"
+        AppFont.MANROPE -> "Manrope"
+        AppFont.SPACE_GROTESK -> "Space Grotesk"
+    }
 
 private val TvThemeColorPresets: List<androidx.compose.ui.graphics.Color> = listOf(
     com.auramusic.app.ui.theme.DefaultThemeColor, // brand red

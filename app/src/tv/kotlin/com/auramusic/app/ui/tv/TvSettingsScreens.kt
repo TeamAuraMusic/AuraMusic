@@ -36,6 +36,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.FastForward
+import androidx.compose.material.icons.filled.Lyrics
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.QueueMusic
@@ -93,6 +94,7 @@ import com.auramusic.app.constants.CrossfadeEnabledKey
 import com.auramusic.app.constants.DataSyncIdKey
 import com.auramusic.app.constants.InnerTubeCookieKey
 import com.auramusic.app.constants.LateNightModeKey
+import com.auramusic.app.constants.PreferredLyricsProvider
 import com.auramusic.app.constants.SeekExtraSeconds
 import com.auramusic.app.constants.SkipSilenceKey
 import com.auramusic.app.constants.VideoModeEnabledKey
@@ -1078,8 +1080,6 @@ fun TvPlaybackSettingsScreen(
 @Composable
   fun TvContentSettingsScreen(onBackClick: () -> Unit, focusRequester: FocusRequester? = null, onNavigateUp: (() -> Unit)? = null) {
     BackHandler { onBackClick() }
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
 
     // Auto-load-more matches the mobile "Auto load more songs" toggle: when
     // the queue reaches the end the app will automatically extend it with
@@ -1093,6 +1093,30 @@ fun TvPlaybackSettingsScreen(
     val (similarContentEnabled, onSimilarContentEnabledChange) = rememberPreference(
         key = com.auramusic.app.constants.SimilarContent,
         defaultValue = true
+    )
+    val (preferredProvider, onPreferredProviderChange) = rememberEnumPreference(
+        key = com.auramusic.app.constants.PreferredLyricsProviderKey,
+        defaultValue = PreferredLyricsProvider.BETTER_LYRICS,
+    )
+    val (enableKugou, onEnableKugouChange) = rememberPreference(
+        key = com.auramusic.app.constants.EnableKugouKey,
+        defaultValue = true,
+    )
+    val (enableLrclib, onEnableLrclibChange) = rememberPreference(
+        key = com.auramusic.app.constants.EnableLrcLibKey,
+        defaultValue = true,
+    )
+    val (enableBetterLyrics, onEnableBetterLyricsChange) = rememberPreference(
+        key = com.auramusic.app.constants.EnableBetterLyricsKey,
+        defaultValue = true,
+    )
+    val (enableSimpMusic, onEnableSimpMusicChange) = rememberPreference(
+        key = com.auramusic.app.constants.EnableSimpMusicKey,
+        defaultValue = true,
+    )
+    val (enableRushLyrics, onEnableRushLyricsChange) = rememberPreference(
+        key = com.auramusic.app.constants.EnableRushLyricsKey,
+        defaultValue = true,
     )
 
     val firstFocus = focusRequester ?: remember { FocusRequester() }
@@ -1174,8 +1198,90 @@ fun TvPlaybackSettingsScreen(
                 icon = Icons.Filled.Tune,
             )
         }
+
+        item {
+            Text(
+                text = "LYRICS",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 8.dp).padding(top = 12.dp, bottom = 4.dp),
+            )
+        }
+
+        item {
+            TvSettingsCategoryItem(
+                title = "Preferred lyrics provider",
+                subtitle = preferredProvider.tvLabel,
+                onClick = {
+                    val providers = PreferredLyricsProvider.values()
+                    val nextIndex = (providers.indexOf(preferredProvider) + 1) % providers.size
+                    onPreferredProviderChange(providers[nextIndex])
+                },
+                icon = Icons.Filled.Lyrics,
+            )
+        }
+
+        item {
+            TvContentToggleRow(
+                title = "BetterLyrics",
+                subtitle = "Allow BetterLyrics results",
+                checked = enableBetterLyrics,
+                onCheckedChange = onEnableBetterLyricsChange,
+                icon = Icons.Filled.Lyrics,
+            )
+        }
+
+        item {
+            TvContentToggleRow(
+                title = "RushLyrics",
+                subtitle = "Allow RushLyrics results",
+                checked = enableRushLyrics,
+                onCheckedChange = onEnableRushLyricsChange,
+                icon = Icons.Filled.Lyrics,
+            )
+        }
+
+        item {
+            TvContentToggleRow(
+                title = "LrcLib",
+                subtitle = "Allow LrcLib results",
+                checked = enableLrclib,
+                onCheckedChange = onEnableLrclibChange,
+                icon = Icons.Filled.Lyrics,
+            )
+        }
+
+        item {
+            TvContentToggleRow(
+                title = "KuGou",
+                subtitle = "Allow KuGou results",
+                checked = enableKugou,
+                onCheckedChange = onEnableKugouChange,
+                icon = Icons.Filled.Lyrics,
+            )
+        }
+
+        item {
+            TvContentToggleRow(
+                title = "SimpMusic",
+                subtitle = "Allow SimpMusic results",
+                checked = enableSimpMusic,
+                onCheckedChange = onEnableSimpMusicChange,
+                icon = Icons.Filled.Lyrics,
+            )
+        }
     }
 }
+
+private val PreferredLyricsProvider.tvLabel: String
+    get() = when (this) {
+        PreferredLyricsProvider.LRCLIB -> "LrcLib"
+        PreferredLyricsProvider.KUGOU -> "KuGou"
+        PreferredLyricsProvider.BETTER_LYRICS -> "BetterLyrics"
+        PreferredLyricsProvider.SIMPMUSIC -> "SimpMusic"
+        PreferredLyricsProvider.RUSH_LYRICS -> "RushLyrics"
+    }
 
 /**
  * Standard focusable, clickable toggle row used inside the TV Content

@@ -28,6 +28,7 @@ import androidx.lifecycle.lifecycleScope
  import com.auramusic.app.constants.DarkModeKey
  import com.auramusic.app.constants.DynamicThemeKey
  import com.auramusic.app.constants.PureBlackKey
+ import com.auramusic.app.constants.SelectedFontKey
  import com.auramusic.app.constants.SelectedThemeColorKey
  import com.auramusic.app.db.MusicDatabase
  import com.auramusic.app.listentogether.ListenTogetherManager
@@ -123,11 +124,13 @@ class TvMainActivity : ComponentActivity() {
               val selectedThemeColor = Color(selectedThemeColorInt)
               val dynamicThemeSupported = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S
               val themeColor = if (dynamicTheme && dynamicThemeSupported) DefaultThemeColor else selectedThemeColor
+              val selectedFont by rememberPreference(SelectedFontKey, defaultValue = "DEFAULT")
 
               AuraMusicTheme(
                   darkTheme = useDarkTheme,
                   pureBlack = pureBlack,
-                  themeColor = themeColor
+                  themeColor = themeColor,
+                  selectedFont = selectedFont,
               ) {
                   CompositionLocalProvider(
                       LocalDatabase provides database,

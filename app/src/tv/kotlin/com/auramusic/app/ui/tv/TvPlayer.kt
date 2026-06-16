@@ -104,7 +104,12 @@ import androidx.compose.ui.text.style.TextAlign
  import androidx.compose.ui.platform.LocalDensity
  import androidx.compose.ui.platform.LocalContext
  import androidx.compose.ui.platform.LocalWindowInfo
+ import androidx.compose.ui.viewinterop.AndroidView
+ import androidx.media3.ui.AspectRatioFrameLayout
+ import androidx.media3.ui.PlayerView
  import com.auramusic.app.LocalListenTogetherManager
+ import com.auramusic.app.constants.VideoModeEnabledKey
+ import com.auramusic.app.models.toMediaMetadata
  import com.auramusic.app.ui.component.Lyrics
 
  @Composable
@@ -264,9 +269,19 @@ fun TvPlayerScreen(
 
     // Collect state from the resolved connection; if null, show loading/empty state
     val currentSong by effectivePlayerConnection?.currentSong?.collectAsState(null) ?: remember { mutableStateOf(null) }
+    val currentMediaMetadata by effectivePlayerConnection?.mediaMetadata?.collectAsState(null) ?: remember { mutableStateOf(null) }
     val isPlaying by effectivePlayerConnection?.isPlaying?.collectAsState(false) ?: remember { mutableStateOf(false) }
     val queueWindows by effectivePlayerConnection?.queueWindows?.collectAsState() ?: remember { mutableStateOf(emptyList()) }
     val currentWindowIndex = effectivePlayerConnection?.player?.currentMediaItemIndex ?: 0
+    val videoModeToggleEnabled by com.auramusic.app.utils.rememberPreference(
+        VideoModeEnabledKey,
+        defaultValue = true,
+    )
+    val videoModeEnabled by effectivePlayerConnection?.videoModeEnabled?.collectAsState(false) ?: remember { mutableStateOf(false) }
+    val isVideoAvailable by effectivePlayerConnection?.isVideoAvailable?.collectAsState(false) ?: remember { mutableStateOf(false) }
+    val isVideoSwitching by effectivePlayerConnection?.isVideoSwitching?.collectAsState(false) ?: remember { mutableStateOf(false) }
+    val playbackState by effectivePlayerConnection?.playbackState?.collectAsState(androidx.media3.common.Player.STATE_IDLE)
+        ?: remember { mutableStateOf(androidx.media3.common.Player.STATE_IDLE) }
 
     val currentLyrics by (effectivePlayerConnection?.currentLyrics?.collectAsState(initial = null)
         ?: remember { mutableStateOf(null) })
@@ -293,17 +308,21 @@ fun TvPlayerScreen(
         }
     }
 
-    // Fetch lyrics when song changes
-    val mediaMetadata = currentSong?.let { song ->
-        // Create MediaMetadata from Song entity
-        com.auramusic.app.models.MediaMetadata(
-            id = song.song.id,
-            title = song.song.title,
-            artists = song.artists.map { com.auramusic.app.models.MediaMetadata.Artist(it.id, it.name) },
-            duration = song.song.duration,
-            thumbnailUrl = song.song.thumbnailUrl,
-            album = song.album?.let { com.auramusic.app.models.MediaMetadata.Album(it.id, it.title) }
-        )
+    // Fetch lyrics when song changes. Use player metadata as a fallback so TV
+    // playback that starts before the song row is present in the local DB still
+    // has player artwork, lyrics and video state.
+    val mediaMetadata = currentSong?.toMediaMetadata() ?: currentMediaMetadata
+
+    LaunchedEffect(mediaMetadata?.id, mediaMetadata?.isVideoSong, videoModeToggleEnabled) {
+        val videoId = mediaMetadata?.id ?: return@LaunchedEffect
+        val playerConnection = pc ?: return@LaunchedEffect
+        val available = playerConnection.service.checkVideoAvailability(videoId)
+
+        if (videoModeToggleEnabled && mediaMetadata.isVideoSong && available && !videoModeEnabled) {
+            playerConnection.enableVideoMode(true)
+        } else if (videoModeEnabled && !mediaMetadata.isVideoSong) {
+            playerConnection.enableVideoMode(false)
+        }
     }
 
     // TV-specific: fetch lyrics fresh per song without database storage.
@@ -341,7 +360,7 @@ fun TvPlayerScreen(
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             // Background with album art blur (full screen)
-            currentSong?.thumbnailUrl?.let { thumbnailUrl ->
+            mediaMetadata?.thumbnailUrl?.let { thumbnailUrl ->
                 AsyncImage(
                     model = thumbnailUrl,
                     contentDescription = null,
@@ -392,7 +411,32 @@ fun TvPlayerScreen(
                             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.1f)),
                         contentAlignment = Alignment.Center,
                     ) {
-                        if (showLyrics) {
+                        if (videoModeEnabled && (isVideoAvailable || isVideoSwitching)) {
+                            val isVideoBuffering = playbackState == androidx.media3.common.Player.STATE_BUFFERING
+                            if (isVideoSwitching || isVideoBuffering) {
+                                CircularProgressIndicator(
+                                    color = Color.White,
+                                    modifier = Modifier.size(48.dp),
+                                )
+                            }
+
+                            AndroidView(
+                                factory = { ctx ->
+                                    PlayerView(ctx).apply {
+                                        player = pc?.player
+                                        useController = false
+                                        resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                                        setBackgroundColor(android.graphics.Color.BLACK)
+                                        setShutterBackgroundColor(android.graphics.Color.BLACK)
+                                    }
+                                },
+                                modifier = Modifier.fillMaxSize(),
+                                update = { playerView ->
+                                    playerView.player = pc?.player
+                                    playerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                                },
+                            )
+                        } else if (showLyrics) {
                             // Show lyrics behind thumbnail when enabled
                             val positionProvider = { currentPosition }
 
@@ -434,10 +478,10 @@ fun TvPlayerScreen(
                             }
                         } else {
                             // Show album art when lyrics are disabled
-                            currentSong?.let { song ->
+                            mediaMetadata?.let { metadata ->
                                 AsyncImage(
-                                    model = song.thumbnailUrl,
-                                    contentDescription = song.title,
+                                    model = metadata.thumbnailUrl,
+                                    contentDescription = metadata.title,
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier.fillMaxSize(),
                                 )
@@ -468,7 +512,7 @@ fun TvPlayerScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                     Text(
-                        text = currentSong?.title ?: "No song playing",
+                        text = mediaMetadata?.title ?: "No song playing",
                         style = MaterialTheme.typography.headlineMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),
@@ -484,7 +528,7 @@ fun TvPlayerScreen(
                     )
 
                         Text(
-                            text = currentSong?.artists?.joinToString(", ") { it.name } ?: "",
+                            text = mediaMetadata?.artists?.joinToString(", ") { it.name }.orEmpty(),
                             style = MaterialTheme.typography.titleMedium,
                             color = Color.White.copy(alpha = 0.8f),
                             textAlign = TextAlign.Center,
