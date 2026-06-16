@@ -1173,11 +1173,12 @@ fun YouTubeMediaCard(
     } else {
         Color.Transparent
     }
+    val isArtist = item is ArtistItem
 
     Surface(
         onClick = onClick,
         modifier = Modifier
-            .size(width = 220.dp, height = 280.dp)
+            .then(if (isArtist) Modifier.size(280.dp) else Modifier.size(width = 220.dp, height = 280.dp))
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
@@ -1189,17 +1190,17 @@ fun YouTubeMediaCard(
                     scope.launch { runCatching { bringIntoViewRequester.bringIntoView() } }
                 }
             }
-            .border(width = 3.dp, color = borderColor, shape = RoundedCornerShape(12.dp)),
-        shape = RoundedCornerShape(12.dp),
+            .then(if (isArtist) Modifier.clip(CircleShape) else Modifier.clip(RoundedCornerShape(12.dp)))
+            .border(width = 3.dp, color = borderColor, shape = if (isArtist) CircleShape else RoundedCornerShape(12.dp)),
+        shape = if (isArtist) CircleShape else RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surfaceVariant,
         tonalElevation = 4.dp,
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(196.dp)
-                    .clip(RoundedCornerShape(8.dp))
+                    .then(if (isArtist) Modifier.size(196.dp) else Modifier.fillMaxWidth().height(196.dp))
+                    .then(if (isArtist) Modifier.clip(CircleShape) else Modifier.clip(RoundedCornerShape(8.dp)))
                     .background(MaterialTheme.colorScheme.surface),
                 contentAlignment = Alignment.Center,
             ) {
@@ -1892,18 +1893,19 @@ fun TvRecentSearchItem(query: String, onClick: () -> Unit, modifier: Modifier = 
 @Composable
 fun TvSearchResultItem(item: LocalItem, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val isFocusedState = remember { mutableStateOf(false) }
+    val isArtist = item is Artist
 
     Surface(
-        onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
             .onFocusChanged { isFocusedState.value = it.isFocused }
             .border(
-                width = if (isFocusedState.value) 2.dp else 0.dp,
+                width = if (isFocusedState.value) 3.dp else 0.dp,
                 color = if (isFocusedState.value) MaterialTheme.colorScheme.primary else Color.Transparent,
-                shape = RoundedCornerShape(8.dp)
-            ),
-        shape = RoundedCornerShape(8.dp),
+                shape = RoundedCornerShape(12.dp),
+            )
+            .clickable(onClick = onClick),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 2.dp,
     ) {
@@ -1917,7 +1919,7 @@ fun TvSearchResultItem(item: LocalItem, onClick: () -> Unit, modifier: Modifier 
             Box(
                 modifier = Modifier
                     .size(56.dp)
-                    .clip(RoundedCornerShape(6.dp))
+                    .then(if (isArtist) Modifier.clip(CircleShape) else Modifier.clip(RoundedCornerShape(6.dp)))
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center,
             ) {
@@ -1970,6 +1972,7 @@ fun TvSearchResultItem(item: LocalItem, onClick: () -> Unit, modifier: Modifier 
 @Composable
 fun TvYTSearchResultItem(item: YTItem, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val isFocusedState = remember { mutableStateOf(false) }
+    val isArtist = item is com.auramusic.innertube.models.ArtistItem
 
     Surface(
         onClick = onClick,
@@ -1995,7 +1998,7 @@ fun TvYTSearchResultItem(item: YTItem, onClick: () -> Unit, modifier: Modifier =
             Box(
                 modifier = Modifier
                     .size(56.dp)
-                    .clip(RoundedCornerShape(6.dp))
+                    .then(if (isArtist) Modifier.clip(CircleShape) else Modifier.clip(RoundedCornerShape(6.dp)))
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center,
             ) {
@@ -2180,6 +2183,7 @@ fun MediaCard(
     subtitle: String,
     thumbnailUrl: String?,
     onClick: () -> Unit,
+    isRound: Boolean = false,
 ) {
     val isFocusedState = remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -2193,11 +2197,12 @@ fun MediaCard(
     } else {
         Color.Transparent
     }
+    val shape = if (isRound) CircleShape else RoundedCornerShape(12.dp)
 
     Surface(
         onClick = onClick,
         modifier = Modifier
-            .size(width = 220.dp, height = 280.dp)
+            .then(if (isRound) Modifier.size(280.dp) else Modifier.size(width = 220.dp, height = 280.dp))
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
@@ -2209,17 +2214,16 @@ fun MediaCard(
                     scope.launch { runCatching { bringIntoViewRequester.bringIntoView() } }
                 }
             }
-            .border(width = 3.dp, color = borderColor, shape = RoundedCornerShape(12.dp)),
-        shape = RoundedCornerShape(12.dp),
+            .border(width = 3.dp, color = borderColor, shape = shape),
+        shape = shape,
         color = MaterialTheme.colorScheme.surfaceVariant,
         tonalElevation = 4.dp,
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(196.dp)
-                    .clip(RoundedCornerShape(8.dp))
+                    .then(if (isRound) Modifier.size(196.dp) else Modifier.fillMaxWidth().height(196.dp))
+                    .then(if (isRound) Modifier.clip(CircleShape) else Modifier.clip(RoundedCornerShape(8.dp)))
                     .background(MaterialTheme.colorScheme.surface),
                 contentAlignment = Alignment.Center,
             ) {
@@ -2290,6 +2294,7 @@ fun LocalItemRow(title: String, localItems: List<LocalItem>, playerConnection: P
                         subtitle = "${item.songCount} songs",
                         thumbnailUrl = item.artist.thumbnailUrl,
                         onClick = { navigator.navigate(TvDestination.Artist(item.id)) },
+                        isRound = true,
                     )
                     is Album -> MediaCard(
                         title = item.album.title,
@@ -2827,7 +2832,7 @@ fun TvSettingsScreen(
      val (darkMode, onDarkModeChange) = rememberEnumPreference(DarkModeKey, DarkMode.AUTO)
      val (selectedFont, onSelectedFontChange) = rememberEnumPreference(
          com.auramusic.app.constants.SelectedFontKey,
-         AppFont.DEFAULT,
+         com.auramusic.app.ui.screens.settings.AppFont.DEFAULT,
      )
 
      val dynamicThemeSupported = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S
@@ -2978,7 +2983,7 @@ fun TvSettingsScreen(
                 title = "App Font",
                 subtitle = selectedFont.tvLabel,
                 onClick = {
-                    val fonts = AppFont.values()
+                    val fonts = com.auramusic.app.ui.screens.settings.AppFont.values()
                     val nextIndex = (fonts.indexOf(selectedFont) + 1) % fonts.size
                     onSelectedFontChange(fonts[nextIndex])
                 },
@@ -2988,12 +2993,12 @@ fun TvSettingsScreen(
     }
 }
 
-private val AppFont.tvLabel: String
+private val com.auramusic.app.ui.screens.settings.AppFont.tvLabel: String
     get() = when (this) {
-        AppFont.DEFAULT -> "Default"
-        AppFont.OUTFIT -> "Outfit"
-        AppFont.MANROPE -> "Manrope"
-        AppFont.SPACE_GROTESK -> "Space Grotesk"
+        com.auramusic.app.ui.screens.settings.AppFont.DEFAULT -> "Default"
+        com.auramusic.app.ui.screens.settings.AppFont.OUTFIT -> "Outfit"
+        com.auramusic.app.ui.screens.settings.AppFont.MANROPE -> "Manrope"
+        com.auramusic.app.ui.screens.settings.AppFont.SPACE_GROTESK -> "Space Grotesk"
     }
 
 private val TvThemeColorPresets: List<androidx.compose.ui.graphics.Color> = listOf(

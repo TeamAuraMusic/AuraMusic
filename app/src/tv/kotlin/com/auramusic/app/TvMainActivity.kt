@@ -163,7 +163,9 @@ class TvMainActivity : ComponentActivity() {
             }
             serviceBound = false
         }
-        disposePlayerConnection()
+        // Don't dispose PlayerConnection here - keep it alive so playback
+        // continues smoothly when the activity resumes (PiP, system dialogs, etc.)
+        // PlayerConnection is only disposed in onDestroy or when service disconnects.
         super.onStop()
     }
 
@@ -192,5 +194,10 @@ class TvMainActivity : ComponentActivity() {
         listenTogetherManager.setPlayerConnection(null)
         playerConnectionFlow.value?.dispose()
         playerConnectionFlow.value = null
+    }
+
+    override fun onDestroy() {
+        disposePlayerConnection()
+        super.onDestroy()
     }
 }

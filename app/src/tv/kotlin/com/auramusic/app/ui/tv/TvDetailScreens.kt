@@ -8,6 +8,7 @@ package com.auramusic.app.ui.tv
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
@@ -257,7 +258,7 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
                 Box(
                     modifier = Modifier
                         .size(220.dp)
-                        .clip(RoundedCornerShape(16.dp))
+                        .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center,
                 ) {

@@ -720,7 +720,10 @@ fun TvPlayerScreen(
                         contentPadding = PaddingValues(vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        items(queueWindows.size) { index ->
+                        items(
+                            count = queueWindows.size,
+                            key = { index -> queueWindows.getOrNull(index)?.mediaItem?.mediaId ?: "queue_$index" }
+                        ) { index ->
                             val window = queueWindows.getOrNull(index)
                             val isCurrentSong = index == currentWindowIndex
 
