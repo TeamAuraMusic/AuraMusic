@@ -29,6 +29,7 @@ import com.auramusic.innertube.YouTube.SearchFilter.Companion.FILTER_VIDEO
 import com.auramusic.innertube.models.YTItem
 import com.auramusic.innertube.models.filterExplicit
 import com.auramusic.innertube.models.filterVideoSongs
+import com.auramusic.innertube.pages.SearchSummaryPage
 import com.auramusic.app.utils.dataStore
 import com.auramusic.app.utils.get
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -138,11 +139,15 @@ constructor(
                     if (searchFilter != null) {
                         YouTube.search(searchQuery, searchFilter).getOrNull()?.items?.filterExplicit(hideExplicit)?.filterVideoSongs(hideVideoSongs).orEmpty()
                     } else {
-                        // For "all" filter, get summary results like mobile app
+                        // For "all" filter, get summary results with section titles
                         val summaryPage = YouTube.searchSummary(searchQuery).getOrNull()
-                        summaryPage?.summaries?.flatMap { summary -> 
-                            summary.items.filterExplicit(hideExplicit).filterVideoSongs(hideVideoSongs)
-                        }.orEmpty()
+                        _searchResults.value = CombinedSearchResult(
+                            localItems = localSearchResults.value,
+                            ytItems = emptyList(),
+                            searchSummaryPage = summaryPage?.filterExplicit(hideExplicit)?.filterVideoSongs(hideVideoSongs),
+                            isLoading = false
+                        )
+                        return@launch
                     }
                 } catch (e: Exception) {
                     emptyList()
@@ -220,5 +225,6 @@ constructor(
 data class CombinedSearchResult(
     val localItems: List<LocalItem> = emptyList(),
     val ytItems: List<YTItem> = emptyList(),
+    val searchSummaryPage: SearchSummaryPage? = null,
     val isLoading: Boolean = false,
 )

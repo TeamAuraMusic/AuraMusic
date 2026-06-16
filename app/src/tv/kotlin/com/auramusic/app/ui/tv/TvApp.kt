@@ -1635,14 +1635,9 @@ fun TvSearchScreen(
             val localAlbums = searchResults.localItems.filterIsInstance<Album>().take(5)
             val localPlaylists = searchResults.localItems.filterIsInstance<Playlist>().take(5)
 
-            val ytSongs = searchResults.ytItems.filterIsInstance<com.auramusic.innertube.models.SongItem>().take(5)
-            val ytArtists = searchResults.ytItems.filterIsInstance<com.auramusic.innertube.models.ArtistItem>().take(5)
-            val ytAlbums = searchResults.ytItems.filterIsInstance<com.auramusic.innertube.models.AlbumItem>().take(5)
-            val ytPlaylists = searchResults.ytItems.filterIsInstance<com.auramusic.innertube.models.PlaylistItem>().take(5)
-
             var sectionIndex = 2 // Start after search bar(0) and filter chips(1)
 
-            // Local Songs
+            // Local results sections
             if (localSongs.isNotEmpty()) {
                 item(key = "local_songs_header_$sectionIndex") {
                     Text(
@@ -1659,10 +1654,9 @@ fun TvSearchScreen(
                         modifier = Modifier.onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 2 }
                     )
                 }
-                sectionIndex += 2 // header + items
+                sectionIndex += 2
             }
 
-            // Local Artists
             if (localArtists.isNotEmpty()) {
                 item(key = "local_artists_header_$sectionIndex") {
                     Text(
@@ -1682,7 +1676,6 @@ fun TvSearchScreen(
                 sectionIndex += 2
             }
 
-            // Local Albums
             if (localAlbums.isNotEmpty()) {
                 item(key = "local_albums_header_$sectionIndex") {
                     Text(
@@ -1702,7 +1695,6 @@ fun TvSearchScreen(
                 sectionIndex += 2
             }
 
-            // Local Playlists
             if (localPlaylists.isNotEmpty()) {
                 item(key = "local_playlists_header_$sectionIndex") {
                     Text(
@@ -1722,87 +1714,116 @@ fun TvSearchScreen(
                 sectionIndex += 2
             }
 
-            // YouTube Songs
-            if (ytSongs.isNotEmpty()) {
-                item(key = "yt_songs_header_$sectionIndex") {
-                    Text(
-                        text = "YouTube Songs",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onBackground,
-                    )
+            // YouTube results: use summary sections when available (filter == null), otherwise re-categorize
+            val searchSummaryPage = searchResults.searchSummaryPage
+            if (searchSummaryPage != null && filter == null) {
+                // Render YouTube sections with their original titles from the API
+                searchSummaryPage.summaries.forEach { summary ->
+                    item(key = "yt_section_header_${summary.title}_$sectionIndex") {
+                        Text(
+                            text = summary.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onBackground,
+                        )
+                    }
+                    items(
+                        items = summary.items.take(10),
+                        key = { "${summary.title}_${it.id}" }
+                    ) { item ->
+                        TvYTSearchResultItem(
+                            item = item,
+                            onClick = { handleYTSearchItemClick(item, playerConnection, navigator) },
+                            modifier = Modifier.onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = sectionIndex + 1 }
+                        )
+                    }
+                    sectionIndex += 2
                 }
-                items(ytSongs, key = { it.id }) { item ->
-                    TvYTSearchResultItem(
-                        item = item,
-                        onClick = { handleYTSearchItemClick(item, playerConnection, navigator) },
-                        modifier = Modifier.onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 2 }
-                    )
+            } else {
+                // Fallback: re-categorize filtered results by type
+                val ytSongs = searchResults.ytItems.filterIsInstance<com.auramusic.innertube.models.SongItem>().take(5)
+                val ytArtists = searchResults.ytItems.filterIsInstance<com.auramusic.innertube.models.ArtistItem>().take(5)
+                val ytAlbums = searchResults.ytItems.filterIsInstance<com.auramusic.innertube.models.AlbumItem>().take(5)
+                val ytPlaylists = searchResults.ytItems.filterIsInstance<com.auramusic.innertube.models.PlaylistItem>().take(5)
+
+                if (ytSongs.isNotEmpty()) {
+                    item(key = "yt_songs_header_$sectionIndex") {
+                        Text(
+                            text = "YouTube Songs",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onBackground,
+                        )
+                    }
+                    items(ytSongs, key = { it.id }) { item ->
+                        TvYTSearchResultItem(
+                            item = item,
+                            onClick = { handleYTSearchItemClick(item, playerConnection, navigator) },
+                            modifier = Modifier.onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 2 }
+                        )
+                    }
+                    sectionIndex += 2
                 }
-                sectionIndex += 2
+
+                if (ytArtists.isNotEmpty()) {
+                    item(key = "yt_artists_header_$sectionIndex") {
+                        Text(
+                            text = "YouTube Artists",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onBackground,
+                        )
+                    }
+                    items(ytArtists, key = { it.id ?: it.title }) { item ->
+                        TvYTSearchResultItem(
+                            item = item,
+                            onClick = { handleYTSearchItemClick(item, playerConnection, navigator) },
+                            modifier = Modifier.onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 2 }
+                        )
+                    }
+                    sectionIndex += 2
+                }
+
+                if (ytAlbums.isNotEmpty()) {
+                    item(key = "yt_albums_header_$sectionIndex") {
+                        Text(
+                            text = "YouTube Albums",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onBackground,
+                        )
+                    }
+                    items(ytAlbums, key = { it.browseId ?: it.id }) { item ->
+                        TvYTSearchResultItem(
+                            item = item,
+                            onClick = { handleYTSearchItemClick(item, playerConnection, navigator) },
+                            modifier = Modifier.onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 2 }
+                        )
+                    }
+                    sectionIndex += 2
+                }
+
+                if (ytPlaylists.isNotEmpty()) {
+                    item(key = "yt_playlists_header_$sectionIndex") {
+                        Text(
+                            text = "YouTube Playlists",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onBackground,
+                        )
+                    }
+                    items(ytPlaylists, key = { it.id }) { item ->
+                        TvYTSearchResultItem(
+                            item = item,
+                            onClick = { handleYTSearchItemClick(item, playerConnection, navigator) },
+                            modifier = Modifier.onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 2 }
+                        )
+                    }
+                    sectionIndex += 2
+                }
             }
 
-            // YouTube Artists
-            if (ytArtists.isNotEmpty()) {
-                item(key = "yt_artists_header_$sectionIndex") {
-                    Text(
-                        text = "YouTube Artists",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onBackground,
-                    )
-                }
-                items(ytArtists, key = { it.id ?: it.title }) { item ->
-                    TvYTSearchResultItem(
-                        item = item,
-                        onClick = { handleYTSearchItemClick(item, playerConnection, navigator) },
-                        modifier = Modifier.onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 2 }
-                    )
-                }
-                sectionIndex += 2
-            }
-
-            // YouTube Albums
-            if (ytAlbums.isNotEmpty()) {
-                item(key = "yt_albums_header_$sectionIndex") {
-                    Text(
-                        text = "YouTube Albums",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onBackground,
-                    )
-                }
-                items(ytAlbums, key = { it.browseId ?: it.id }) { item ->
-                    TvYTSearchResultItem(
-                        item = item,
-                        onClick = { handleYTSearchItemClick(item, playerConnection, navigator) },
-                        modifier = Modifier.onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 2 }
-                    )
-                }
-                sectionIndex += 2
-            }
-
-            // YouTube Playlists
-            if (ytPlaylists.isNotEmpty()) {
-                item(key = "yt_playlists_header_$sectionIndex") {
-                    Text(
-                        text = "YouTube Playlists",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onBackground,
-                    )
-                }
-                items(ytPlaylists, key = { it.id }) { item ->
-                    TvYTSearchResultItem(
-                        item = item,
-                        onClick = { handleYTSearchItemClick(item, playerConnection, navigator) },
-                        modifier = Modifier.onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 2 }
-                    )
-                }
-                sectionIndex += 2
-            }
-
-            if (searchResults.localItems.isEmpty() && searchResults.ytItems.isEmpty()) {
+            if (searchResults.localItems.isEmpty() && searchResults.ytItems.isEmpty() && searchSummaryPage == null) {
                 item(key = "no_results") {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,

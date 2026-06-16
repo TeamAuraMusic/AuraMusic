@@ -183,6 +183,32 @@ object YouTube {
                                 ?.ifEmpty { null } ?: return@mapNotNull null
                         )
                     }
+                    it.musicPlaylistShelfRenderer != null -> {
+                        val shelf = it.musicPlaylistShelfRenderer
+                        SearchSummary(
+                            title = YouTubeConstants.DEFAULT_OTHER_RESULTS,
+                            items = shelf.contents.mapNotNull { content ->
+                                content.musicResponsiveListItemRenderer?.let {
+                                    SearchSummaryPage.fromMusicResponsiveListItemRenderer(it)
+                                }
+                            }
+                                .distinctBy { it.id }
+                                .ifEmpty { null } ?: return@mapNotNull null
+                        )
+                    }
+                    it.gridRenderer != null -> {
+                        val grid = it.gridRenderer
+                        SearchSummary(
+                            title = grid.header?.gridHeaderRenderer?.title?.runs?.firstOrNull()?.text ?: YouTubeConstants.DEFAULT_OTHER_RESULTS,
+                            items = grid.items.mapNotNull { content ->
+                                content.musicTwoRowItemRenderer?.let {
+                                    SearchSummaryPage.fromMusicTwoRowItemRenderer(it)
+                                }
+                            }
+                                .distinctBy { it.id }
+                                .ifEmpty { null } ?: return@mapNotNull null
+                        )
+                    }
                     else -> null
                 }
             }!!
