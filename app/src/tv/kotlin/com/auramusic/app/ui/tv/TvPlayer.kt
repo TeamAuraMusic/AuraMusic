@@ -282,6 +282,8 @@ fun TvPlayerScreen(
     val isVideoSwitching by effectivePlayerConnection?.isVideoSwitching?.collectAsState(false) ?: remember { mutableStateOf(false) }
     val playbackState by effectivePlayerConnection?.playbackState?.collectAsState(androidx.media3.common.Player.STATE_IDLE)
         ?: remember { mutableStateOf(androidx.media3.common.Player.STATE_IDLE) }
+    val serviceSleepTimer = effectivePlayerConnection?.service?.sleepTimer
+    val sleepTimerActive = serviceSleepTimer?.isActive == true
 
     val currentLyrics by (effectivePlayerConnection?.currentLyrics?.collectAsState(initial = null)
         ?: remember { mutableStateOf(null) })
@@ -296,6 +298,13 @@ fun TvPlayerScreen(
     LaunchedEffect(Unit) {
         // Request focus on play button initially
         runCatching { playButtonFocus.requestFocus() }
+    }
+
+    LaunchedEffect(sleepTimerActive) {
+        if (!sleepTimerActive) {
+            sleepTimerMinutes = null
+            sleepTimerEndTime = null
+        }
     }
 
     LaunchedEffect(pc?.player) {
@@ -669,14 +678,16 @@ fun TvPlayerScreen(
                                 if (newMinutes != null) {
                                     sleepTimerEndTime = System.currentTimeMillis() + (newMinutes * 60 * 1000L)
                                     sleepTimerMinutes = newMinutes
+                                    pc?.service?.sleepTimer?.start(newMinutes)
                                 } else {
                                     sleepTimerEndTime = null
                                     sleepTimerMinutes = null
+                                    pc?.service?.sleepTimer?.clear()
                                 }
                             },
                             painter = painterResource(R.drawable.bedtime),
-                            contentDescription = if (sleepTimerMinutes != null) "Cancel sleep timer (${sleepTimerMinutes} min)" else "Set sleep timer",
-                            tint = if (sleepTimerMinutes != null) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f),
+                            contentDescription = if (sleepTimerActive) "Cancel sleep timer" else "Set sleep timer",
+                            tint = if (sleepTimerActive) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f),
                         )
 
                         TvPlayerControlButton(

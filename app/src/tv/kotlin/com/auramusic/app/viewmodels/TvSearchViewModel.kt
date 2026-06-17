@@ -36,6 +36,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -93,6 +95,8 @@ constructor(
 
     val ytSearchResults = MutableStateFlow<List<YTItem>>(emptyList())
 
+    private var searchJob: Job? = null
+
     init {
         loadRecentSearches()
     }
@@ -102,6 +106,7 @@ constructor(
         if (newQuery.isNotBlank()) {
             performSearch(newQuery)
         } else {
+            searchJob?.cancel()
             clearResults()
         }
     }
@@ -114,7 +119,9 @@ constructor(
 
         _isLoading.value = true
 
-        viewModelScope.launch(Dispatchers.IO) {
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch(Dispatchers.IO) {
+            delay(600)
             try {
                 // Save to recent searches
                 saveRecentSearch(searchQuery)

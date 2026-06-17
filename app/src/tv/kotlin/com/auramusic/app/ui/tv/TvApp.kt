@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -76,6 +77,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -145,6 +147,7 @@ import androidx.compose.foundation.layout.width
 import com.auramusic.app.ui.component.ChipsRow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlin.time.Duration.Companion.milliseconds
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -826,11 +829,28 @@ fun TvHomeScreen(
     val isRefreshing = viewModel.isRefreshing.collectAsState().value
     val isLoading = viewModel.isLoading.collectAsState().value
     val isPlaying = (playerConnection?.isPlaying?.collectAsState() ?: remember { mutableStateOf(false) }).value
+    val homeListState = rememberLazyListState()
 
     // Track which content section (row) is currently focused
     var focusedItemIndex by remember { mutableStateOf(-1) }
 
+    LaunchedEffect(homeListState, homePage?.continuation) {
+        snapshotFlow {
+            val lastVisibleIndex = homeListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            val totalItems = homeListState.layoutInfo.totalItemsCount
+            lastVisibleIndex >= totalItems - 3
+        }
+            .distinctUntilChanged()
+            .collect { nearBottom ->
+                val continuation = homePage?.continuation
+                if (nearBottom && continuation != null) {
+                    viewModel.loadMoreYouTubeItems(continuation)
+                }
+            }
+    }
+
     LazyColumn(
+        state = homeListState,
         modifier = Modifier
             .fillMaxSize()
             .focusRequester(focusRequester ?: remember { FocusRequester() })
@@ -1197,7 +1217,7 @@ fun YouTubeSectionRow(
             horizontalArrangement = Arrangement.spacedBy(24.dp),
             modifier = Modifier.fillMaxWidth(),
         ) {
-            items(items) { item ->
+            items(items, key = { it.id }) { item ->
                 YouTubeMediaCard(
                     item = item,
                     onClick = { onYTItemClick(item) },
@@ -1251,6 +1271,9 @@ fun YouTubeMediaCard(
     } else {
         Color.Transparent
     }
+    val title = item.tvTitle
+    val subtitle = item.tvSubtitle
+    val metadata = item.tvMetadata
     val isArtist = item is ArtistItem
 
     if (isArtist) {
@@ -1282,14 +1305,14 @@ fun YouTubeMediaCard(
             ) {
                 AsyncImage(
                     model = item.thumbnail,
-                    contentDescription = item.title,
+                    contentDescription = title,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )
             }
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = item.title,
+                text = title,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -1331,34 +1354,20 @@ fun YouTubeMediaCard(
                     contentAlignment = Alignment.Center,
                 ) {
                     AsyncImage(
-                        model = when (item) {
-                            is SongItem -> item.thumbnail
-                            is AlbumItem -> item.thumbnail
-                            is PlaylistItem -> item.thumbnail
-                            else -> ""
-                        },
-                        contentDescription = when (item) {
-                            is SongItem -> item.title
-                            is AlbumItem -> item.title
-                            is PlaylistItem -> item.title
-                            else -> ""
-                        },
+                        model = item.thumbnail,
+                        contentDescription = title,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = when (item) {
-                        is SongItem -> item.title
-                        is AlbumItem -> item.title
-                        is PlaylistItem -> item.title
-                        else -> ""
-                    },
+                    text = title,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1366,57 +1375,50 @@ fun YouTubeMediaCard(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = when (item) {
-                            is SongItem -> item.artists?.joinToString(", ") { it.name } ?: ""
-                            is AlbumItem -> item.artists?.joinToString(", ") { it.name } ?: ""
-                            is PlaylistItem -> item.author?.name ?: "Playlist"
-                            else -> ""
-                        },
+                        text = subtitle,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
                     )
 
-                // Additional metadata
-                when (item) {
-                    is SongItem -> {
-                        val duration = item.duration
-                        if (duration != null) {
-                            Text(
-                                text = makeTimeString(duration * 1000L),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                            )
-                        }
+                    metadata?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            maxLines = 1,
+                        )
                     }
-                    is AlbumItem -> {
-                        val year = item.year
-                        if (year != null) {
-                            Text(
-                                text = year.toString(),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                            )
-                        }
-                    }
-                    is PlaylistItem -> {
-                        val countText = item.songCountText
-                        if (countText != null) {
-                            Text(
-                                text = countText,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                            )
-                        }
-                    }
-                    else -> {} // No additional metadata for ArtistItem, EpisodeItem, PodcastItem
-                }
                 }
             }
         }
     }
 }
+
+private val YTItem.tvTitle: String
+    get() = title
+
+private val YTItem.tvSubtitle: String
+    get() = when (this) {
+        is SongItem -> artists.joinToString(", ") { it.name }
+        is AlbumItem -> artists?.joinToString(", ") { it.name }.orEmpty()
+        is ArtistItem -> "Artist"
+        is PlaylistItem -> author?.name ?: "Playlist"
+        is PodcastItem -> author?.name ?: "Podcast"
+        is EpisodeItem -> author?.name ?: podcast?.name ?: "Episode"
+    }
+
+private val YTItem.tvMetadata: String?
+    get() = when (this) {
+        is SongItem -> duration?.let { makeTimeString(it * 1000L) }
+        is AlbumItem -> year?.toString()
+        is PlaylistItem -> songCountText
+        is PodcastItem -> episodeCountText
+        is EpisodeItem -> duration?.let { makeTimeString(it * 1000L) } ?: publishDateText
+        is ArtistItem -> null
+    }
 
 @Composable
 fun YouTubeAlbumCard(
@@ -2612,6 +2614,9 @@ fun TvHeroCard(
     } else {
         Color.Transparent
     }
+    val title = item.tvTitle
+    val subtitle = item.tvSubtitle
+    val metadata = item.tvMetadata
 
     Surface(
         onClick = onClick,
@@ -2637,13 +2642,7 @@ fun TvHeroCard(
         Box(modifier = Modifier.fillMaxSize()) {
             // Background image - use FillBounds like mobile to cover without cropping
             AsyncImage(
-                model = when (item) {
-                    is SongItem -> item.thumbnail
-                    is AlbumItem -> item.thumbnail
-                    is ArtistItem -> item.thumbnail
-                    is PlaylistItem -> item.thumbnail
-                    else -> ""
-                },
+                model = item.thumbnail,
                 contentDescription = null,
                 contentScale = ContentScale.FillBounds,
                 modifier = Modifier.fillMaxSize(),
@@ -2672,30 +2671,20 @@ fun TvHeroCard(
                 horizontalAlignment = Alignment.Start,
             ) {
                 Text(
-                    text = when (item) {
-                        is SongItem -> item.title
-                        is AlbumItem -> item.title
-                        is ArtistItem -> item.title
-                        is PlaylistItem -> item.title
-                        else -> ""
-                    },
+                    text = title,
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
                     maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
 
                 Text(
-                    text = when (item) {
-                        is SongItem -> item.artists?.joinToString(", ") { it.name } ?: ""
-                        is AlbumItem -> item.artists?.joinToString(", ") { it.name } ?: ""
-                        is ArtistItem -> "Artist"
-                        is PlaylistItem -> item.author?.name ?: "Playlist"
-                        else -> ""
-                    },
+                    text = listOfNotNull(subtitle.takeIf { it.isNotBlank() }, metadata).joinToString(" • "),
                     style = MaterialTheme.typography.titleMedium,
                     color = Color.White.copy(alpha = 0.8f),
                     maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
 
                 // Play button

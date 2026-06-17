@@ -67,6 +67,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
@@ -1476,6 +1477,7 @@ private fun TvSliderRow(
                 color = if (rowFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
                 shape = RoundedCornerShape(16.dp),
             )
+            .focusable()
             .onPreviewKeyEvent { event ->
                 // Allow D-pad left/right to adjust slider, but let down/up pass through
                 if (event.type == KeyEventType.KeyDown) {
@@ -1525,7 +1527,9 @@ private fun TvSliderRow(
                 onValueChange = onValueChange,
                 valueRange = valueRange,
                 steps = steps,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusProperties { canFocus = false },
             )
         }
     }

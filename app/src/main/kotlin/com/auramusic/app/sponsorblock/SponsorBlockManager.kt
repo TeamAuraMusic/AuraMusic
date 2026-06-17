@@ -43,18 +43,22 @@ class SponsorBlockManager(
 
     suspend fun loadPreferences() {
         val prefs = context.dataStore.data.first()
-        _enabled.value = prefs[SponsorBlockEnabledKey] ?: false
+        updateEnabled(prefs[SponsorBlockEnabledKey] ?: false)
     }
 
-    fun setEnabled(value: Boolean) {
+    fun updateEnabled(value: Boolean) {
         _enabled.value = value
-        scope.launch {
-            context.dataStore.edit { it[SponsorBlockEnabledKey] = value }
-        }
         if (!value) {
             _segments.value = emptyList()
             _seekBarSegments.value = emptyList()
             _currentSegment.value = null
+        }
+    }
+
+    fun setEnabled(value: Boolean) {
+        updateEnabled(value)
+        scope.launch {
+            context.dataStore.edit { it[SponsorBlockEnabledKey] = value }
         }
     }
 

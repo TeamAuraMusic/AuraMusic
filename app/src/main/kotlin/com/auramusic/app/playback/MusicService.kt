@@ -134,6 +134,7 @@ import com.auramusic.app.constants.ShowLyricsKey
 import com.auramusic.app.constants.ShuffleModeKey
 import com.auramusic.app.constants.ShufflePlaylistFirstKey
 import com.auramusic.app.constants.SimilarContent
+import com.auramusic.app.constants.SponsorBlockEnabledKey
 import com.auramusic.app.constants.SkipSilenceInstantKey
 import com.auramusic.app.constants.SkipSilenceKey
 import com.auramusic.app.db.MusicDatabase
@@ -816,6 +817,20 @@ class MusicService :
                 crossfadeEnabled = enabled
                 crossfadeDuration = duration * 1000f // Convert to ms
                 crossfadeGapless = gapless
+            }
+
+        dataStore.data
+            .map { it[SponsorBlockEnabledKey] ?: false }
+            .distinctUntilChanged()
+            .collect(scope) { enabled ->
+                sponsorBlockManager.updateEnabled(enabled)
+                if (enabled) {
+                    val videoId = currentVideoId.value ?: player.currentMediaItem?.mediaId
+                    if (videoId != null) {
+                        val durationMs = if (player.duration > 0) player.duration else 0L
+                        sponsorBlockManager.forceReload(videoId, durationMs)
+                    }
+                }
             }
 
         if (dataStore.get(PersistentQueueKey, true)) {

@@ -55,7 +55,6 @@ import com.auramusic.app.utils.reportException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -66,6 +65,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -296,7 +296,7 @@ fun markWrappedAsSeen() {
         val hideExplicit = context.dataStore.get(HideExplicitKey, false)
         val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
 
-        coroutineScope {
+        supervisorScope {
             // Local database queries - fast, run first
             launch {
                 getQuickPicks()
@@ -462,7 +462,7 @@ fun markWrappedAsSeen() {
 
         val candidatePlaylists = java.util.Collections.synchronizedList(mutableListOf<PlaylistItem>())
 
-        coroutineScope {
+        supervisorScope {
             artistSeeds.map { seed ->
                 launch(Dispatchers.IO) {
                     YouTube.artist(seed.id).onSuccess { page ->
@@ -508,7 +508,7 @@ fun markWrappedAsSeen() {
 
         val playlists = java.util.Collections.synchronizedList(mutableListOf<CommunityPlaylistItem>())
 
-        coroutineScope {
+        supervisorScope {
             uniqueCandidates.map { playlist ->
                 launch(Dispatchers.IO) {
                     YouTube.playlist(playlist.id).onSuccess { page ->
