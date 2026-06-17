@@ -1475,7 +1475,25 @@ private fun TvSliderRow(
                 width = if (rowFocused) 3.dp else 0.dp,
                 color = if (rowFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
                 shape = RoundedCornerShape(16.dp),
-            ),
+            )
+            .onPreviewKeyEvent { event ->
+                // Allow D-pad left/right to adjust slider, but let down/up pass through
+                if (event.type == KeyEventType.KeyDown) {
+                    when (event.key) {
+                        Key.DirectionLeft -> {
+                            val step = (valueRange.endInclusive - valueRange.start) / 10f
+                            onValueChange((value - step).coerceAtLeast(valueRange.start))
+                            true
+                        }
+                        Key.DirectionRight -> {
+                            val step = (valueRange.endInclusive - valueRange.start) / 10f
+                            onValueChange((value + step).coerceAtMost(valueRange.endInclusive))
+                            true
+                        }
+                        else -> false
+                    }
+                } else false
+            },
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 4.dp,
     ) {

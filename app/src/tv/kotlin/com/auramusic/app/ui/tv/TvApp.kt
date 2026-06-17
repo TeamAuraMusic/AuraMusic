@@ -822,6 +822,7 @@ fun TvHomeScreen(
     val homePage = viewModel.homePage.collectAsState().value
     val explorePage = viewModel.explorePage.collectAsState().value
     val pinnedSpeedDialItems = viewModel.pinnedSpeedDialItems.collectAsState().value
+    val communityPlaylists = viewModel.communityPlaylists.collectAsState().value
     val isRefreshing = viewModel.isRefreshing.collectAsState().value
     val isLoading = viewModel.isLoading.collectAsState().value
     val isPlaying = (playerConnection?.isPlaying?.collectAsState() ?: remember { mutableStateOf(false) }).value
@@ -1095,6 +1096,36 @@ fun TvHomeScreen(
                         }
                     )
                 }
+            }
+        }
+
+        // Community Playlists
+        communityPlaylists?.takeIf { it.isNotEmpty() }?.let { playlists ->
+            item(key = "community_playlists") {
+                YouTubeSectionRow(
+                    title = "Community Playlists",
+                    items = playlists.map { it.playlist },
+                    playerConnection = playerConnection,
+                    onYTItemClick = { item: YTItem ->
+                        when (item) {
+                            is PlaylistItem -> navigator.navigate(TvDestination.Playlist(item.id))
+                            is SongItem -> playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id)))
+                            else -> {}
+                        }
+                    },
+                )
+            }
+        }
+
+        // Recently played from local library
+        val recentSongs = keepListening?.filterIsInstance<com.auramusic.app.db.entities.Song>()?.take(5)
+        if (!recentSongs.isNullOrEmpty()) {
+            item(key = "recently_played") {
+                SongRow(
+                    title = "Recently Played",
+                    songs = recentSongs,
+                    onSongClick = { song -> playerConnection?.playQueue(YouTubeQueue.radio(song.toMediaMetadata())) },
+                )
             }
         }
 

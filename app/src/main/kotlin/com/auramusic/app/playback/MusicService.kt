@@ -3573,10 +3573,8 @@ class MusicService :
                                 _videoModeEnabled.value = true
                                 _currentVideoId.value = videoId
                                 if (sponsorBlockManager.enabled.value) {
-                                    scope.launch {
-                                        val durMs = if (player.duration > 0) player.duration else 0L
-                                        sponsorBlockManager.loadSegments(videoId, durMs)
-                                    }
+                                    val durMs = if (player.duration > 0) player.duration else 0L
+                                    sponsorBlockManager.forceReload(videoId, durMs)
                                 }
                                 Timber.d("setVideoMode: SUCCESS - Video stream prepared with mimeType: $primaryMimeType, player state: ${player.playbackState}, playWhenReady: true")
                                 android.util.Log.d("MusicService", ">>> SUCCESS - Video mode enabled for: ${videoData.title}")

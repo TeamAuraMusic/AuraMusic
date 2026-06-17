@@ -78,6 +78,7 @@ class SponsorBlockManager(
             _seekBarSegments.value = emptyList()
             return
         }
+        // Always reload if videoId changed or segments are empty
         if (videoId == currentVideoId && _segments.value.isNotEmpty()) return
 
         currentVideoId = videoId
@@ -85,6 +86,13 @@ class SponsorBlockManager(
         val fetched = SponsorBlockApi.getSegments(videoId, categories)
         _segments.value = fetched
         _seekBarSegments.value = SponsorBlockApi.toSeekBarSegments(fetched, durationMs)
+    }
+
+    fun forceReload(videoId: String, durationMs: Long = 0) {
+        currentVideoId = null
+        scope.launch {
+            loadSegments(videoId, durationMs)
+        }
     }
 
     fun updateDuration(durationMs: Long) {
