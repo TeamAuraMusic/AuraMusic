@@ -9,6 +9,8 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -231,28 +233,73 @@ enum class TvSection(val label: String) {
      val currentSong by playerConnection?.currentSong?.collectAsState(null) ?: remember { mutableStateOf(null) }
      val currentMediaMetadata by playerConnection?.mediaMetadata?.collectAsState(null) ?: remember { mutableStateOf(null) }
      val showMiniPlayer = currentSong != null || currentMediaMetadata != null
+     var showExitDialog by remember { mutableStateOf(false) }
 
-     // Handle remote back button: go back in navigator, or exit PiP, or finish
+     // Handle remote back button: go back in navigator, or show exit dialog
      androidx.activity.compose.BackHandler(enabled = true) {
          val nav = navigator
          if (nav.current is TvDestination.Player) {
              nav.popBack()
          } else if (nav.current != TvDestination.Home) {
              nav.popBack()
+         } else {
+             showExitDialog = true
          }
      }
 
-     // Keep screen on when music is playing
      val view = LocalView.current
-     DisposableEffect(isPlayingState.value) {
-         val window = (view.context as? android.app.Activity)?.window
-         if (isPlayingState.value) {
-             window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+     // Exit confirmation dialog
+     if (showExitDialog) {
+         androidx.compose.material3.AlertDialog(
+             onDismissRequest = { showExitDialog = false },
+             title = { Text("Exit AuraMusic?", fontWeight = FontWeight.Bold) },
+             text = { Text("Music will stop playing if you exit.") },
+              confirmButton = {
+                  Button(onClick = {
+                      showExitDialog = false
+                      (view.context as? android.app.Activity)?.finish()
+                  }) {
+                      Text("Exit")
+                  }
+              },
+             dismissButton = {
+                 Button(onClick = { showExitDialog = false }) {
+                     Text("Stay")
+                 }
+             },
+         )
+     }
+
+     // Keep screen on when music is playing
+     val (keepScreenOnPref, _) = rememberPreference(com.auramusic.app.constants.KeepScreenOn, true)
+     DisposableEffect(isPlayingState.value, keepScreenOnPref) {
+         val activity = view.context as? android.app.Activity
+         val window = activity?.window
+         if (isPlayingState.value && keepScreenOnPref) {
+             window?.addFlags(
+                 android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
+                 android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
+                 android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
+             )
+             // Disable TV screensaver while music is playing
+             try {
+                 val uiModeManager = activity?.getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager
+                 uiModeManager?.disableCarMode(0)
+             } catch (_: Exception) {}
          } else {
-             window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+             window?.clearFlags(
+                 android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
+                 android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
+                 android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
+             )
          }
          onDispose {
-             window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+             window?.clearFlags(
+                 android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
+                 android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
+                 android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
+             )
          }
      }
 
@@ -1175,86 +1222,130 @@ fun YouTubeMediaCard(
     }
     val isArtist = item is ArtistItem
 
-    Surface(
-        onClick = onClick,
-        modifier = Modifier
-            .then(if (isArtist) Modifier.size(280.dp) else Modifier.size(width = 220.dp, height = 280.dp))
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .bringIntoViewRequester(bringIntoViewRequester)
-            .onFocusChanged { focusState ->
-                isFocusedState.value = focusState.isFocused
-                if (focusState.isFocused) {
-                    scope.launch { runCatching { bringIntoViewRequester.bringIntoView() } }
+    if (isArtist) {
+        // Artist: circular thumbnail with name below, no card surface
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .width(200.dp)
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
                 }
-            }
-            .then(if (isArtist) Modifier.clip(CircleShape) else Modifier.clip(RoundedCornerShape(12.dp)))
-            .border(width = 3.dp, color = borderColor, shape = if (isArtist) CircleShape else RoundedCornerShape(12.dp)),
-        shape = if (isArtist) CircleShape else RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        tonalElevation = 4.dp,
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+                .bringIntoViewRequester(bringIntoViewRequester)
+                .onFocusChanged { focusState ->
+                    isFocusedState.value = focusState.isFocused
+                    if (focusState.isFocused) {
+                        scope.launch { runCatching { bringIntoViewRequester.bringIntoView() } }
+                    }
+                }
+                .clickable(onClick = onClick)
+                .padding(8.dp),
+        ) {
             Box(
                 modifier = Modifier
-                    .then(if (isArtist) Modifier.size(196.dp) else Modifier.fillMaxWidth().height(196.dp))
-                    .then(if (isArtist) Modifier.clip(CircleShape) else Modifier.clip(RoundedCornerShape(8.dp)))
-                    .background(MaterialTheme.colorScheme.surface),
+                    .size(160.dp)
+                    .clip(CircleShape)
+                    .border(width = 3.dp, color = borderColor, shape = CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
                 AsyncImage(
-                    model = when (item) {
-                        is SongItem -> item.thumbnail
-                        is AlbumItem -> item.thumbnail
-                        is ArtistItem -> item.thumbnail
-                        is PlaylistItem -> item.thumbnail
-                        else -> ""
-                    },
-                    contentDescription = when (item) {
-                        is SongItem -> item.title
-                        is AlbumItem -> item.title
-                        is ArtistItem -> item.title
-                        is PlaylistItem -> item.title
-                        else -> ""
-                    },
+                    model = item.thumbnail,
+                    contentDescription = item.title,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )
             }
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = when (item) {
-                    is SongItem -> item.title
-                    is AlbumItem -> item.title
-                    is ArtistItem -> item.title
-                    is PlaylistItem -> item.title
-                    else -> ""
-                },
+                text = item.title,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
+                textAlign = TextAlign.Center,
+                overflow = TextOverflow.Ellipsis,
             )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
+        }
+    } else {
+        // Non-artist: regular card with square thumbnail
+        val shape = RoundedCornerShape(12.dp)
+        Surface(
+            onClick = onClick,
+            modifier = Modifier
+                .size(width = 220.dp, height = 280.dp)
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }
+                .bringIntoViewRequester(bringIntoViewRequester)
+                .onFocusChanged { focusState ->
+                    isFocusedState.value = focusState.isFocused
+                    if (focusState.isFocused) {
+                        scope.launch { runCatching { bringIntoViewRequester.bringIntoView() } }
+                    }
+                }
+                .border(width = 3.dp, color = borderColor, shape = shape),
+            shape = shape,
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            tonalElevation = 4.dp,
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(196.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surface),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    AsyncImage(
+                        model = when (item) {
+                            is SongItem -> item.thumbnail
+                            is AlbumItem -> item.thumbnail
+                            is PlaylistItem -> item.thumbnail
+                            else -> ""
+                        },
+                        contentDescription = when (item) {
+                            is SongItem -> item.title
+                            is AlbumItem -> item.title
+                            is PlaylistItem -> item.title
+                            else -> ""
+                        },
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = when (item) {
-                        is SongItem -> item.artists?.joinToString(", ") { it.name } ?: ""
-                        is AlbumItem -> item.artists?.joinToString(", ") { it.name } ?: ""
-                        is ArtistItem -> "Artist"
-                        is PlaylistItem -> item.author?.name ?: "Playlist"
+                        is SongItem -> item.title
+                        is AlbumItem -> item.title
+                        is PlaylistItem -> item.title
                         else -> ""
                     },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
-                    modifier = Modifier.weight(1f),
                 )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = when (item) {
+                            is SongItem -> item.artists?.joinToString(", ") { it.name } ?: ""
+                            is AlbumItem -> item.artists?.joinToString(", ") { it.name } ?: ""
+                            is PlaylistItem -> item.author?.name ?: "Playlist"
+                            else -> ""
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        modifier = Modifier.weight(1f),
+                    )
 
                 // Additional metadata
                 when (item) {
@@ -1289,6 +1380,7 @@ fun YouTubeMediaCard(
                         }
                     }
                     else -> {} // No additional metadata for ArtistItem, EpisodeItem, PodcastItem
+                }
                 }
             }
         }
@@ -2197,34 +2289,32 @@ fun MediaCard(
     } else {
         Color.Transparent
     }
-    val shape = if (isRound) CircleShape else RoundedCornerShape(12.dp)
 
-    Surface(
-        onClick = onClick,
-        modifier = Modifier
-            .then(if (isRound) Modifier.size(280.dp) else Modifier.size(width = 220.dp, height = 280.dp))
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .bringIntoViewRequester(bringIntoViewRequester)
-            .onFocusChanged { focusState ->
-                isFocusedState.value = focusState.isFocused
-                if (focusState.isFocused) {
-                    scope.launch { runCatching { bringIntoViewRequester.bringIntoView() } }
+    if (isRound) {
+        // Artist card: circular thumbnail with name below, no card surface
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .width(200.dp)
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
                 }
-            }
-            .border(width = 3.dp, color = borderColor, shape = shape),
-        shape = shape,
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        tonalElevation = 4.dp,
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+                .bringIntoViewRequester(bringIntoViewRequester)
+                .onFocusChanged { focusState ->
+                    isFocusedState.value = focusState.isFocused
+                    if (focusState.isFocused) {
+                        scope.launch { runCatching { bringIntoViewRequester.bringIntoView() } }
+                    }
+                }
+                .clickable(onClick = onClick)
+                .padding(8.dp),
+        ) {
             Box(
                 modifier = Modifier
-                    .then(if (isRound) Modifier.size(196.dp) else Modifier.fillMaxWidth().height(196.dp))
-                    .then(if (isRound) Modifier.clip(CircleShape) else Modifier.clip(RoundedCornerShape(8.dp)))
-                    .background(MaterialTheme.colorScheme.surface),
+                    .size(160.dp)
+                    .clip(CircleShape)
+                    .border(width = 3.dp, color = borderColor, shape = CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
                 AsyncImage(
@@ -2234,20 +2324,81 @@ fun MediaCard(
                     modifier = Modifier.fillMaxSize(),
                 )
             }
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
+                textAlign = TextAlign.Center,
+                overflow = TextOverflow.Ellipsis,
             )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-            )
+            if (subtitle.isNotEmpty()) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    textAlign = TextAlign.Center,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    } else {
+        // Regular card: square thumbnail with rounded corners
+        val shape = RoundedCornerShape(12.dp)
+        Surface(
+            onClick = onClick,
+            modifier = Modifier
+                .size(width = 220.dp, height = 280.dp)
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }
+                .bringIntoViewRequester(bringIntoViewRequester)
+                .onFocusChanged { focusState ->
+                    isFocusedState.value = focusState.isFocused
+                    if (focusState.isFocused) {
+                        scope.launch { runCatching { bringIntoViewRequester.bringIntoView() } }
+                    }
+                }
+                .border(width = 3.dp, color = borderColor, shape = shape),
+            shape = shape,
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            tonalElevation = 4.dp,
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(196.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surface),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    AsyncImage(
+                        model = thumbnailUrl,
+                        contentDescription = title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+            }
         }
     }
 }
@@ -2981,7 +3132,12 @@ fun TvSettingsScreen(
         item {
             TvSettingsCategoryItem(
                 title = "App Font",
-                subtitle = selectedFont.tvLabel,
+                subtitle = when (selectedFont) {
+                    com.auramusic.app.ui.screens.settings.AppFont.DEFAULT -> "Default"
+                    com.auramusic.app.ui.screens.settings.AppFont.OUTFIT -> "Outfit"
+                    com.auramusic.app.ui.screens.settings.AppFont.MANROPE -> "Manrope"
+                    com.auramusic.app.ui.screens.settings.AppFont.SPACE_GROTESK -> "Space Grotesk"
+                },
                 onClick = {
                     val fonts = com.auramusic.app.ui.screens.settings.AppFont.values()
                     val nextIndex = (fonts.indexOf(selectedFont) + 1) % fonts.size
@@ -2992,14 +3148,6 @@ fun TvSettingsScreen(
         }
     }
 }
-
-private val com.auramusic.app.ui.screens.settings.AppFont.tvLabel: String
-    get() = when (this) {
-        com.auramusic.app.ui.screens.settings.AppFont.DEFAULT -> "Default"
-        com.auramusic.app.ui.screens.settings.AppFont.OUTFIT -> "Outfit"
-        com.auramusic.app.ui.screens.settings.AppFont.MANROPE -> "Manrope"
-        com.auramusic.app.ui.screens.settings.AppFont.SPACE_GROTESK -> "Space Grotesk"
-    }
 
 private val TvThemeColorPresets: List<androidx.compose.ui.graphics.Color> = listOf(
     com.auramusic.app.ui.theme.DefaultThemeColor, // brand red

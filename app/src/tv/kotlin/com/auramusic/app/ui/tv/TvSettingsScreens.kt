@@ -8,6 +8,7 @@ package com.auramusic.app.ui.tv
 import android.annotation.SuppressLint
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
@@ -124,9 +125,11 @@ import kotlinx.coroutines.launch
     var accountChannelHandle by rememberPreference(AccountChannelHandleKey, "")
 
     val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
+    val context = LocalContext.current
 
     var webView: WebView? = null
     val backFocus = focusRequester ?: remember { FocusRequester() }
+    var webViewFocused by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         runCatching { backFocus.requestFocus() }
@@ -140,13 +143,102 @@ import kotlinx.coroutines.launch
             AndroidView(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(top = 72.dp),
-                factory = { context ->
-                    WebView(context).apply {
+                    .padding(top = 72.dp)
+                    .focusRequester(remember { FocusRequester() })
+                    .onFocusChanged { state ->
+                        webViewFocused = state.isFocused
+                    }
+                    .onPreviewKeyEvent { event ->
+                        // Forward D-pad events to WebView for form navigation
+                        if (event.type == KeyEventType.KeyDown) {
+                            when (event.key) {
+                                Key.DirectionDown, Key.DirectionUp,
+                                Key.DirectionLeft, Key.DirectionRight -> {
+                                    webView?.let { wv ->
+                                        // Inject JavaScript to simulate focus navigation in the web form
+                                        val direction = when (event.key) {
+                                            Key.DirectionDown -> "next"
+                                            Key.DirectionUp -> "previous"
+                                            Key.DirectionLeft -> "previous"
+                                            Key.DirectionRight -> "next"
+                                            else -> "next"
+                                        }
+                                        wv.evaluateJavascript("""
+                                            (function() {
+                                                var focused = document.activeElement;
+                                                if (focused && (focused.tagName === 'INPUT' || focused.tagName === 'BUTTON')) {
+                                                    var elements = Array.from(document.querySelectorAll('input[type="email"], input[type="password"], input[type="text"], button, [role="button"]'));
+                                                    var idx = elements.indexOf(focused);
+                                                    if (idx >= 0) {
+                                                        var nextIdx = '$direction' === 'next' ? idx + 1 : idx - 1;
+                                                        if (nextIdx >= 0 && nextIdx < elements.length) {
+                                                            elements[nextIdx].focus();
+                                                            elements[nextIdx].scrollIntoView({behavior: 'smooth', block: 'center'});
+                                                        }
+                                                    }
+                                                }
+                                            })();
+                                        """, null)
+                                        true
+                                    } ?: false
+                                }
+                                Key.DirectionCenter, Key.Enter -> {
+                                    webView?.let { wv ->
+                                        // Click the currently focused element
+                                        wv.evaluateJavascript("""
+                                            (function() {
+                                                var focused = document.activeElement;
+                                                if (focused && (focused.tagName === 'BUTTON' || focused.getAttribute('role') === 'button')) {
+                                                    focused.click();
+                                                } else if (focused && focused.tagName === 'INPUT') {
+                                                    // For input fields, try to find and click the "Next" button
+                                                    var nextBtn = document.querySelector('button[type="submit"], #identifierNext button, #passwordNext button, [data-idom-class]');
+                                                    if (nextBtn) nextBtn.click();
+                                                }
+                                            })();
+                                        """, null)
+                                        true
+                                    } ?: false
+                                }
+                                Key.Back -> {
+                                    webView?.let { wv ->
+                                        if (wv.canGoBack()) {
+                                            wv.goBack()
+                                            true
+                                        } else {
+                                            onBackClick()
+                                            true
+                                        }
+                                    } ?: false
+                                }
+                                else -> false
+                            }
+                        } else {
+                            false
+                        }
+                    },
+                factory = { ctx ->
+                    WebView(ctx).apply {
                         webViewClient = object : WebViewClient() {
                             override fun onPageFinished(view: WebView, url: String?) {
-                                loadUrl("javascript:Android.onRetrieveVisitorData(window.yt.config_.VISITOR_DATA)")
-                                loadUrl("javascript:Android.onRetrieveDataSyncId(window.yt.config_.DATASYNC_ID)")
+                                // Inject D-pad navigation helper script
+                                view.evaluateJavascript("""
+                                    (function() {
+                                        // Make form elements focusable via D-pad
+                                        var style = document.createElement('style');
+                                        style.textContent = '*:focus { outline: 3px solid #1a73e8 !important; outline-offset: 2px; }';
+                                        document.head.appendChild(style);
+
+                                        // Auto-focus first input field after page load
+                                        setTimeout(function() {
+                                            var firstInput = document.querySelector('input[type="email"], input[type="text"]');
+                                            if (firstInput) firstInput.focus();
+                                        }, 1000);
+                                    })();
+                                """, null)
+
+                                view.loadUrl("javascript:Android.onRetrieveVisitorData(window.yt.config_.VISITOR_DATA)")
+                                view.loadUrl("javascript:Android.onRetrieveDataSyncId(window.yt.config_.DATASYNC_ID)")
 
                                 if (url?.startsWith("https://music.youtube.com") == true) {
                                     innerTubeCookie =
@@ -168,6 +260,11 @@ import kotlinx.coroutines.launch
                             setSupportZoom(true)
                             builtInZoomControls = true
                             displayZoomControls = false
+                            // Enable DOM storage for Google login
+                            domStorageEnabled = true
+                            databaseEnabled = true
+                            // Allow mixed content for login pages
+                            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                         }
                         addJavascriptInterface(object {
                             @JavascriptInterface
@@ -184,9 +281,10 @@ import kotlinx.coroutines.launch
                                 }
                             }
                         }, "Android")
-                        // Make WebView focusable so the user can tab into it via D-pad
+                        // Make WebView focusable for D-pad navigation
                         isFocusable = true
                         isFocusableInTouchMode = true
+                        requestFocus()
                         webView = this
                         loadUrl("https://accounts.google.com/ServiceLogin?continue=https%3A%2F%2Fmusic.youtube.com")
                     }
@@ -202,6 +300,10 @@ import kotlinx.coroutines.launch
                     .onPreviewKeyEvent { event ->
                         if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionUp) {
                             onNavigateUp?.invoke()
+                            true
+                        } else if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionDown) {
+                            // Move focus to WebView
+                            webView?.requestFocus()
                             true
                         } else {
                             false
@@ -1606,6 +1708,19 @@ fun TvSystemSettingsScreen(
                 checked = autoPlayOnBoot,
                 onCheckedChange = onAutoPlayOnBootChange,
                 icon = Icons.Filled.PlayArrow,
+            )
+        }
+
+        item {
+            val (keepScreenOn, onKeepScreenOnChange) = rememberPreference(
+                com.auramusic.app.constants.KeepScreenOn, false,
+            )
+            TvContentToggleRow(
+                title = "Keep Screen On",
+                subtitle = "Prevent screen from dimming while music plays",
+                checked = keepScreenOn,
+                onCheckedChange = onKeepScreenOnChange,
+                icon = Icons.Filled.DarkMode,
             )
         }
 
