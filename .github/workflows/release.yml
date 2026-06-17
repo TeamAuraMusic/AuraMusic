@@ -122,11 +122,37 @@ jobs:
           PREVIOUS_TAG: ${{ steps.previous_release.outputs.previous_tag }}
         run: |
           set -euo pipefail
+          target_sha="$(git rev-parse "${GITHUB_SHA}^{commit}")"
           gh api repos/${GITHUB_REPOSITORY}/releases/generate-notes \
             -f tag_name="${TAG_NAME}" \
             -f previous_tag_name="${PREVIOUS_TAG}" \
-            -f target_commitish="${GITHUB_SHA}" \
+            -f target_commitish="${target_sha}" \
             --jq '.body' > release-notes-body.md
+
+      - name: Add commits since previous release to release notes
+        env:
+          TAG_NAME: ${{ steps.metadata.outputs.tag_name }}
+          PREVIOUS_TAG: ${{ steps.previous_release.outputs.previous_tag }}
+        run: |
+          set -euo pipefail
+
+          target_sha="$(git rev-parse "${GITHUB_SHA}^{commit}")"
+          compare_url="https://github.com/${GITHUB_REPOSITORY}/compare/${PREVIOUS_TAG}...${target_sha}"
+
+          : > release-commits.md
+          git log --reverse --pretty=format:'- %s ([%h](https://github.com/${{ github.repository }}/commit/%H)) — %an' "${PREVIOUS_TAG}..${target_sha}" >> release-commits.md
+
+          if [ -s release-commits.md ] && ! grep -q '^## Full Changelog (Commits since last release)' release-notes-body.md; then
+            {
+              echo
+              echo "## Full Changelog (Commits since last release)"
+              echo
+              cat release-commits.md
+              echo
+              echo
+              echo "**Full diff:** ${compare_url}"
+            } >> release-notes-body.md
+          fi
 
       - name: Add first-time contributors to release notes
         env:
@@ -136,7 +162,8 @@ jobs:
           set -euo pipefail
 
           previous_date="$(git log -1 --format=%cI "${PREVIOUS_TAG}")"
-          compare_json="$(gh api "repos/${GITHUB_REPOSITORY}/compare/${PREVIOUS_TAG}...${GITHUB_SHA}")"
+          target_sha="$(git rev-parse "${GITHUB_SHA}^{commit}")"
+          compare_json="$(gh api "repos/${GITHUB_REPOSITORY}/compare/${PREVIOUS_TAG}...${target_sha}")"
 
           echo "${compare_json}" \
             | jq -r '.commits[].author.login // empty' \
