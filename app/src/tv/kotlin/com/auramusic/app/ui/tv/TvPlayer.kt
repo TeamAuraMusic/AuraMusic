@@ -80,6 +80,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.zIndex
  import androidx.compose.ui.unit.dp
  import androidx.compose.ui.unit.sp
   import androidx.media3.common.C
@@ -257,6 +258,7 @@ fun TvPlayerScreen(
     var currentPosition by remember { mutableStateOf(0L) }
     var sleepTimerMinutes by remember { mutableStateOf<Int?>(null) }
     var sleepTimerEndTime by remember { mutableStateOf<Long?>(null) }
+    var sleepTimerMessage by remember { mutableStateOf<String?>(null) }
     // Wire to ShowLyricsKey so MusicService fetches lyrics for the current song
     val (showLyrics, onShowLyricsChange) = com.auramusic.app.utils.rememberPreference(
         com.auramusic.app.constants.ShowLyricsKey,
@@ -304,6 +306,13 @@ fun TvPlayerScreen(
         if (!sleepTimerActive) {
             sleepTimerMinutes = null
             sleepTimerEndTime = null
+        }
+    }
+
+    LaunchedEffect(sleepTimerMessage) {
+        if (sleepTimerMessage != null) {
+            delay(1800)
+            sleepTimerMessage = null
         }
     }
 
@@ -393,6 +402,25 @@ fun TvPlayerScreen(
                     .fillMaxSize()
                     .background(Color.Black.copy(alpha = 0.9f))
             )
+
+            sleepTimerMessage?.let { message ->
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .zIndex(1f)
+                        .padding(top = 32.dp),
+                    shape = RoundedCornerShape(28.dp),
+                    color = MaterialTheme.colorScheme.inverseSurface.copy(alpha = 0.95f),
+                    tonalElevation = 8.dp,
+                ) {
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.inverseOnSurface,
+                        modifier = Modifier.padding(horizontal = 28.dp, vertical = 14.dp),
+                    )
+                }
+            }
 
             // Main content: Two-column layout
             Row(
@@ -679,10 +707,12 @@ fun TvPlayerScreen(
                                     sleepTimerEndTime = System.currentTimeMillis() + (newMinutes * 60 * 1000L)
                                     sleepTimerMinutes = newMinutes
                                     pc?.service?.sleepTimer?.start(newMinutes)
+                                    sleepTimerMessage = "Sleep timer: $newMinutes minutes"
                                 } else {
                                     sleepTimerEndTime = null
                                     sleepTimerMinutes = null
                                     pc?.service?.sleepTimer?.clear()
+                                    sleepTimerMessage = "Sleep timer off"
                                 }
                             },
                             painter = painterResource(R.drawable.bedtime),
@@ -704,7 +734,7 @@ fun TvPlayerScreen(
                                     activity.enterPictureInPicture()
                                 }
                             },
-                            painter = painterResource(R.drawable.ic_notification_icon),
+                            painter = painterResource(R.drawable.fullscreen),
                             contentDescription = "Picture in Picture",
                             tint = Color.White.copy(alpha = 0.7f),
                         )

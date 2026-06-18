@@ -659,10 +659,6 @@ fun markWrappedAsSeen() {
                         return@collectLatest
                     }
 
-                    if (dataSyncId == null) {
-                        return@collectLatest
-                    }
-
                     YouTube.cookie = cookie
                     YouTube.visitorData = visitorData?.takeIf { it.isNotBlank() }
                     YouTube.dataSyncId = dataSyncId

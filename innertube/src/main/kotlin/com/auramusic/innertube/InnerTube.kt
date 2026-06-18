@@ -62,7 +62,7 @@ class InnerTube {
     var useLoginForBrowse: Boolean = false
 
     private val hasCompleteLogin: Boolean
-        get() = cookieMap["SAPISID"].isNullOrBlank().not() && !dataSyncId.isNullOrBlank()
+        get() = cookieMap["SAPISID"].isNullOrBlank().not()
 
     private fun shouldUseLogin(client: YouTubeClient, requested: Boolean): Boolean =
         requested && client.loginSupported && hasCompleteLogin

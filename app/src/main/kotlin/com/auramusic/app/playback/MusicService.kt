@@ -3248,6 +3248,7 @@ class MusicService :
 
     private var isVideoMode = false
     private var currentVideoUrl: String? = null
+    private var currentVideoSourceMediaId: String? = null
     private var originalAudioMediaItem: MediaItem? = null
     private var videoSwitchJob: Job? = null
     private val _videoModeEnabled = MutableStateFlow(false)
@@ -3287,6 +3288,7 @@ class MusicService :
         _isVideoSwitching.value = false
         isVideoMode = false
         currentVideoUrl = null
+        currentVideoSourceMediaId = null
         _currentVideoId.value = null
         originalAudioMediaItem = null
         _videoFetchError.value = null
@@ -3329,17 +3331,17 @@ class MusicService :
         Timber.d("setVideoMode: Called with enabled = $enabled, current isVideoMode = $isVideoMode")
         android.util.Log.d("MusicService", ">>> setVideoMode called: enabled=$enabled, current isVideoMode=$isVideoMode")
 
-        if (enabled == isVideoMode) {
-            Timber.d("setVideoMode: Already in requested mode, skipping")
-            android.util.Log.d("MusicService", ">>> Already in requested mode, skipping")
-            return
-        }
-
         val mediaId = currentMediaMetadata.value?.id
             ?: player.currentMediaItem?.mediaId
             ?: run {
             Timber.d("setVideoMode: No current media, skipping")
             android.util.Log.d("MusicService", ">>> No current media, skipping")
+            return
+        }
+
+        if (enabled == isVideoMode && (!enabled || currentVideoSourceMediaId == mediaId)) {
+            Timber.d("setVideoMode: Already in requested mode for current media, skipping")
+            android.util.Log.d("MusicService", ">>> Already in requested mode for current media, skipping")
             return
         }
 
@@ -3586,6 +3588,7 @@ class MusicService :
                                 player.addListener(readyListener)
                                 isVideoMode = true
                                 _videoModeEnabled.value = true
+                                currentVideoSourceMediaId = mediaId
                                 _currentVideoId.value = videoId
                                 if (sponsorBlockManager.enabled.value) {
                                     val durMs = if (player.duration > 0) player.duration else 0L
@@ -3623,6 +3626,7 @@ class MusicService :
                     isVideoMode = false
                     _videoModeEnabled.value = false
                     currentVideoUrl = null
+                    currentVideoSourceMediaId = null
                     originalAudioMediaItem = null
                     Timber.d("setVideoMode: Switched back to audio")
                 }

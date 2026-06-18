@@ -70,8 +70,7 @@ fun LoginScreen(
         val normalizedDataSyncId = latestDataSyncId.get()
             .substringBefore("||")
             .takeIf { it.isNotBlank() && it != "null" }
-            ?: return
-        val sessionKey = "$cookie|$normalizedDataSyncId"
+        val sessionKey = "$cookie|${normalizedDataSyncId.orEmpty()}"
         if (lastAccountInfoFetchSession.get() == sessionKey) return
         lastAccountInfoFetchSession.set(sessionKey)
 
@@ -97,10 +96,12 @@ fun LoginScreen(
             .fillMaxSize(),
         factory = { context ->
             WebView(context).apply {
+                CookieManager.getInstance().setAcceptCookie(true)
+                CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
                 webViewClient = object : WebViewClient() {
                     override fun onPageFinished(view: WebView, url: String?) {
-                        loadUrl("javascript:Android.onRetrieveVisitorData(window.yt.config_.VISITOR_DATA)")
-                        loadUrl("javascript:Android.onRetrieveDataSyncId(window.yt.config_.DATASYNC_ID)")
+                        loadUrl("javascript:Android.onRetrieveVisitorData((window.ytcfg&&ytcfg.get&&ytcfg.get('VISITOR_DATA'))||(window.yt&&yt.config_&&yt.config_.VISITOR_DATA)||'')")
+                        loadUrl("javascript:Android.onRetrieveDataSyncId((window.ytcfg&&ytcfg.get&&ytcfg.get('DATASYNC_ID'))||(window.yt&&yt.config_&&yt.config_.DATASYNC_ID)||'')")
 
                         if (url?.startsWith("https://music.youtube.com") == true) {
                             CookieManager.getInstance().flush()
@@ -119,6 +120,8 @@ fun LoginScreen(
                     setSupportZoom(true)
                     builtInZoomControls = true
                     displayZoomControls = false
+                    domStorageEnabled = true
+                    databaseEnabled = true
                 }
                 addJavascriptInterface(object {
                     @JavascriptInterface

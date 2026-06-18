@@ -220,6 +220,8 @@ import kotlinx.coroutines.launch
                     },
                 factory = { ctx ->
                     WebView(ctx).apply {
+                        CookieManager.getInstance().setAcceptCookie(true)
+                        CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
                         webViewClient = object : WebViewClient() {
                             override fun onPageFinished(view: WebView, url: String?) {
                                 // Inject D-pad navigation helper script
@@ -238,12 +240,16 @@ import kotlinx.coroutines.launch
                                     })();
                                 """, null)
 
-                                view.loadUrl("javascript:Android.onRetrieveVisitorData(window.yt.config_.VISITOR_DATA)")
-                                view.loadUrl("javascript:Android.onRetrieveDataSyncId(window.yt.config_.DATASYNC_ID)")
+                                view.loadUrl("javascript:Android.onRetrieveVisitorData((window.ytcfg&&ytcfg.get&&ytcfg.get('VISITOR_DATA'))||(window.yt&&yt.config_&&yt.config_.VISITOR_DATA)||'')")
+                                view.loadUrl("javascript:Android.onRetrieveDataSyncId((window.ytcfg&&ytcfg.get&&ytcfg.get('DATASYNC_ID'))||(window.yt&&yt.config_&&yt.config_.DATASYNC_ID)||'')")
 
                                 if (url?.startsWith("https://music.youtube.com") == true) {
-                                    innerTubeCookie =
-                                        CookieManager.getInstance().getCookie(url) ?: ""
+                                    CookieManager.getInstance().flush()
+                                    val cookie = CookieManager.getInstance().getCookie(url).orEmpty()
+                                    innerTubeCookie = cookie
+                                    YouTube.cookie = cookie
+                                    YouTube.visitorData = visitorData.takeIf { it.isNotBlank() && it != "null" }
+                                    YouTube.dataSyncId = dataSyncId.substringBefore("||").takeIf { it.isNotBlank() && it != "null" }
                                     coroutineScope.launch {
                                         YouTube.accountInfo().onSuccess {
                                             accountName = it.name
@@ -270,15 +276,20 @@ import kotlinx.coroutines.launch
                         addJavascriptInterface(object {
                             @JavascriptInterface
                             fun onRetrieveVisitorData(newVisitorData: String?) {
-                                if (newVisitorData != null) {
+                                if (!newVisitorData.isNullOrBlank() && newVisitorData != "null") {
                                     visitorData = newVisitorData
+                                    YouTube.visitorData = newVisitorData
                                 }
                             }
 
                             @JavascriptInterface
                             fun onRetrieveDataSyncId(newDataSyncId: String?) {
-                                if (newDataSyncId != null) {
-                                    dataSyncId = newDataSyncId.substringBefore("||")
+                                val normalizedDataSyncId = newDataSyncId
+                                    ?.substringBefore("||")
+                                    ?.takeIf { it.isNotBlank() && it != "null" }
+                                if (normalizedDataSyncId != null) {
+                                    dataSyncId = normalizedDataSyncId
+                                    YouTube.dataSyncId = normalizedDataSyncId
                                 }
                             }
                         }, "Android")
