@@ -1,3 +1,86 @@
+# AuraMusic v2.7.0 (Build 24) Release Notes
+
+<!-- Release notes generated using configuration in .github/release.yml at 3a8e42ba4419a8e2451e5e440e63e85894a05e23 -->
+
+
+
+**Full Changelog**: https://github.com/TeamAuraMusic/AuraMusic/compare/v2.6.0...v2.7.0
+
+## Full Changelog (Commits since last release)
+
+- Update v2.6.0 release notes and changelog ([8c5fd23](https://github.com/TeamAuraMusic/AuraMusic/commit/8c5fd23f204720bfb470ff3350a9391bf32ca23d)) — chila254
+- feat: improve tablet split-view and lock-screen playback metadata ([3e23b3e](https://github.com/TeamAuraMusic/AuraMusic/commit/3e23b3ec705566cb6f28ce844762a4c4e06a87e8)) — chila254
+- feat: add late night audio mode and surround passthrough ([cddc04b](https://github.com/TeamAuraMusic/AuraMusic/commit/cddc04b96186d97ee43a3b250dfdbfa9e6772cbb)) — chila254
+- feat: add library audiobooks with resume bookmarks ([d44536a](https://github.com/TeamAuraMusic/AuraMusic/commit/d44536a590043d1845fb1e9149194d3e7201b5fc)) — chila254
+- Added translation using Weblate (Chinese (Simplified Han script)) ([20369a6](https://github.com/TeamAuraMusic/AuraMusic/commit/20369a6374a298a9f0e9797d8a9d7a7d921907a6)) — Franklin Chilango
+- fix: add missing AUDIOBOOKS case in AppearanceSettings ([d589f54](https://github.com/TeamAuraMusic/AuraMusic/commit/d589f5434d4a5adc0d91ed263cbf54e9a2dfa4fc)) — chila254
+- feat: add Ko-fi donation option in About screen ([1246be9](https://github.com/TeamAuraMusic/AuraMusic/commit/1246be9ffaa186541c6c837ddf3ac1785ebe1172)) — chila254
+- feat: add Ko-fi donation option in About screen ([0b2db2d](https://github.com/TeamAuraMusic/AuraMusic/commit/0b2db2dcdf70493a3a143a005645bf5f063a15eb)) — chila254
+- Merge branch 'main' of https://github.com/TeamAuraMusic/AuraMusic ([d370bfe](https://github.com/TeamAuraMusic/AuraMusic/commit/d370bfe4cccb4bdfc206ef06cc91486f9134b154)) — chila254
+- feat: add Ko-fi donation option in About screen ([12e8242](https://github.com/TeamAuraMusic/AuraMusic/commit/12e8242f7f03e6d40c8418152961499a6136bf48)) — chila254
+- Translated using Weblate (Chinese (Simplified Han script)) ([368a126](https://github.com/TeamAuraMusic/AuraMusic/commit/368a126699f4de9f3f798e93eaa7487c5578b15f)) — LibreTranslate
+- Translated using Weblate (Chinese (Simplified Han script)) ([7c55a00](https://github.com/TeamAuraMusic/AuraMusic/commit/7c55a006342050fc1ca4470db9ffce8e8ca6ea55)) — LibreTranslate
+- Translated using Weblate (French) ([7253a3d](https://github.com/TeamAuraMusic/AuraMusic/commit/7253a3daee6d72b43afa178e7d88df98e8706195)) — Mickaël Binos
+- Translated using Weblate (Portuguese (Portugal)) ([844cc48](https://github.com/TeamAuraMusic/AuraMusic/commit/844cc48158ef018833fd62431835eec9893244b7)) — LibreTranslate
+- Translated using Weblate (Portuguese) ([d8554ca](https://github.com/TeamAuraMusic/AuraMusic/commit/d8554caaa43cc35edcf937e73d853b4f271f7049)) — LibreTranslate
+- Translated using Weblate (Chinese (Simplified Han script)) ([b54a02c](https://github.com/TeamAuraMusic/AuraMusic/commit/b54a02ce7a6e2b5f65422e41cff2e517c516f0e0)) — LibreTranslate
+- Translated using Weblate (German) ([00c5f2f](https://github.com/TeamAuraMusic/AuraMusic/commit/00c5f2fd502704db97c1f3840b210347d9c361eb)) — LibreTranslate
+- Translated using Weblate (French) ([1b95ff6](https://github.com/TeamAuraMusic/AuraMusic/commit/1b95ff65d65fdadf04ce966c0c54b3953c4d5736)) — LibreTranslate
+- Translated using Weblate (Spanish) ([6673824](https://github.com/TeamAuraMusic/AuraMusic/commit/66738242b57fbc86b0568bb9e72fe1dfc47316cd)) — LibreTranslate
+- Added translation using Weblate (Arabic) ([2ac9db1](https://github.com/TeamAuraMusic/AuraMusic/commit/2ac9db134d34261f35069cda9af011e94b130753)) — Franklin Chilango
+- Added translation using Weblate (Filipino) ([b442c41](https://github.com/TeamAuraMusic/AuraMusic/commit/b442c41fe4ec8959599caf6fc564b5f4dbdb82f4)) — Franklin Chilango
+- feat: add audiobook resume playback on home ([b51915a](https://github.com/TeamAuraMusic/AuraMusic/commit/b51915a8beca717a43e35838b625bd7f736bc62f)) — chila254
+- fix: show crossfade seconds and repair home widgets ([a277c4f](https://github.com/TeamAuraMusic/AuraMusic/commit/a277c4f6c49d38f07d889ca1a6b90c8b8d1b92cf)) — chila254
+- fix: replace Ko-fi about icon with correct brand mark ([9eac05b](https://github.com/TeamAuraMusic/AuraMusic/commit/9eac05b7328d31659a594a04734b9d589af19b1d)) — chila254
+- Translated using Weblate (Arabic) ([ae64d1d](https://github.com/TeamAuraMusic/AuraMusic/commit/ae64d1d8f1c2a3dc042a99d175732177e95ae2eb)) — LibreTranslate
+- Translated using Weblate (Arabic) ([1cf8fb7](https://github.com/TeamAuraMusic/AuraMusic/commit/1cf8fb7b38b5b0989a41fe532c2b0a6e4629466c)) — LibreTranslate
+- Translated using Weblate (French) ([55046f0](https://github.com/TeamAuraMusic/AuraMusic/commit/55046f06edf4caf5e936addee1b3ea36656c3b2f)) — Mickaël Binos
+- Translated using Weblate (Spanish) ([b9e2215](https://github.com/TeamAuraMusic/AuraMusic/commit/b9e2215724dcd24408a95af79aba42400c1b3417)) — Libre
+- Translated using Weblate (Spanish) ([4de6976](https://github.com/TeamAuraMusic/AuraMusic/commit/4de697697f63b74679d279e95df7f6d58d947538)) — ItsMeCrizzzGD
+- Translated using Weblate (Spanish) ([549baf6](https://github.com/TeamAuraMusic/AuraMusic/commit/549baf66a73a8ac2116580f9a492de03d92c4287)) — Weblate Translation Memory
+- Fix signed-in YouTube Music public requests ([b2adc07](https://github.com/TeamAuraMusic/AuraMusic/commit/b2adc0712c1e6219fa1564eeb99092d4f1753622)) — chila254
+- Fix InnerTube login state and improve font readability ([38eac54](https://github.com/TeamAuraMusic/AuraMusic/commit/38eac5422e187352cddc3a0217113b076c7cb72c)) — chila254
+- Translated using Weblate (French) ([15225ef](https://github.com/TeamAuraMusic/AuraMusic/commit/15225ef014735f1224f469db467f88be082a61cc)) — Mickaël Binos
+- feat(tv): enhance TV variant with playback settings, visualizer, PiP, system settings, and polish ([145cbfc](https://github.com/TeamAuraMusic/AuraMusic/commit/145cbfc4cf904fcadcc10ac785f9e3f178923adc)) — chila254
+- Merge branch 'main' of https://github.com/TeamAuraMusic/AuraMusic ([e070511](https://github.com/TeamAuraMusic/AuraMusic/commit/e0705117b85e3b15041e3265841eb6a075df8d21)) — chila254
+- fix(playback): use reflection for TvMainActivity to fix mobile build ([17981ed](https://github.com/TeamAuraMusic/AuraMusic/commit/17981ed5dfff7c9279a32684905aac8483917739)) — chila254
+- fix(tv): fix mini player, visualizer, and add BackHandler to all TV screens ([c14930d](https://github.com/TeamAuraMusic/AuraMusic/commit/c14930d0adfbb489846c6801f8b5ecab0ad77920)) — chila254
+- build: enable minification and resource shrinking for release builds ([0d5a425](https://github.com/TeamAuraMusic/AuraMusic/commit/0d5a42549cc33bf795260ae99e540f5d5c831e02)) — chila254
+- feat(wrapped): add 5 new pages and improve Wrapped experience ([1270277](https://github.com/TeamAuraMusic/AuraMusic/commit/1270277a9f7a61f68e089b9ea60efb3b17ce4f31)) — chila254
+- Added translation using Weblate (Italian) ([bd7b350](https://github.com/TeamAuraMusic/AuraMusic/commit/bd7b3504e3012b482d92ed85af6682a98a042ac4)) — ferrari
+- Translated using Weblate (Italian) ([a27899f](https://github.com/TeamAuraMusic/AuraMusic/commit/a27899f62eca47b3308a294db18a780141c61ba4)) — ferrari
+- Translated using Weblate (Portuguese (Portugal)) ([974de54](https://github.com/TeamAuraMusic/AuraMusic/commit/974de5440c24cea7dcaeddc094230e11c0b01d17)) — LibreTranslate
+- Translated using Weblate (Italian) ([6e70be5](https://github.com/TeamAuraMusic/AuraMusic/commit/6e70be5cf05343bf717ffeef59a93cebfb8b6e51)) — ferrari
+- Translated using Weblate (Spanish) ([91edf83](https://github.com/TeamAuraMusic/AuraMusic/commit/91edf83e261243fe0130cf1319a779a10b7f120a)) — LibreTranslate
+- Translated using Weblate (Italian) ([4e3a11d](https://github.com/TeamAuraMusic/AuraMusic/commit/4e3a11d637161bc2237c7024560017aff86f4db7)) — ferrari
+- fix(tv): fix theme color not applying and focus escaping to miniplayer ([b11461c](https://github.com/TeamAuraMusic/AuraMusic/commit/b11461ca263634be5c4e0f2025cf99b51ac7751c)) — chila254
+- feat: integrate SponsorBlock for auto-skipping sponsor segments ([1e5d7f6](https://github.com/TeamAuraMusic/AuraMusic/commit/1e5d7f6a18426cdf86f8cb05a355ed4f6e5449e4)) — chila254
+- Fix SponsorBlock playback integration and settings icon ([59d4b93](https://github.com/TeamAuraMusic/AuraMusic/commit/59d4b936b52aa32ac5bfec8187149df21c0e12e4)) — chila254
+- Expose music-focused SponsorBlock categories ([04700d9](https://github.com/TeamAuraMusic/AuraMusic/commit/04700d9a00b1161c198ee1b28e7f35c4fa024625)) — chila254
+- Fix mobile YouTube login session refresh ([65ff27c](https://github.com/TeamAuraMusic/AuraMusic/commit/65ff27c438c68ffaab55a5d1668782f9fabe3a35)) — chila254
+- Added translation using Weblate (Tamil) ([e53442a](https://github.com/TeamAuraMusic/AuraMusic/commit/e53442a5a244e1e50cb7e607e4df514d58a643ff)) — தமிழ்நேரம்
+- fix: improve SponsorBlock integration based on SmartTube implementation ([ce49a88](https://github.com/TeamAuraMusic/AuraMusic/commit/ce49a88025288a49563bd670b09cf63c3dde3979)) — chila254
+- Translated using Weblate (Tamil) ([1e2485c](https://github.com/TeamAuraMusic/AuraMusic/commit/1e2485ccc53e81ca115a9606d997465c7bec22ec)) — தமிழ்நேரம்
+- Translated using Weblate (Tamil) ([a8a565b](https://github.com/TeamAuraMusic/AuraMusic/commit/a8a565b6f8f4fc2c5c8c6b73dcb7030bc8ac1b27)) — தமிழ்நேரம்
+- Fix TV playback UI, settings, and focus stability ([df6cde6](https://github.com/TeamAuraMusic/AuraMusic/commit/df6cde668a1346bb9562f74c4341d3ff73c06852)) — chila254
+- fix(lyrics): fix broken Rush and BetterLyrics providers ([42971f4](https://github.com/TeamAuraMusic/AuraMusic/commit/42971f4ef82ea089f5684e0fc9af15d0822d5da8)) — chila254
+- fix(search): handle musicCarouselShelfRenderer in search summary ([1fad31a](https://github.com/TeamAuraMusic/AuraMusic/commit/1fad31a53ca4f43b37f62d8944fbb157fb9a6e28)) — chila254
+- fix: correct FileProvider authority case to prevent crash ([c16ce75](https://github.com/TeamAuraMusic/AuraMusic/commit/c16ce7547c48f13c6fb15ddf7a5e5dd1fc2ca093)) — chila254
+- fix: show all search result categories instead of only top result ([dd6b453](https://github.com/TeamAuraMusic/AuraMusic/commit/dd6b45382216a18565eebf1a61a71f9445278db0)) — chila254
+- fix(tv): smooth playback, add stable keys, round artist thumbnails ([39281a4](https://github.com/TeamAuraMusic/AuraMusic/commit/39281a437bcbc3960ee0aa0d03b37d89cfe734d3)) — chila254
+- fix(tv): exit dialog, keep screen on, login D-pad navigation ([ce7354d](https://github.com/TeamAuraMusic/AuraMusic/commit/ce7354d2056d8dfad7ab211c27c3213d903771a2)) — chila254
+- fix(tv): crossfade slider focus, SponsorBlock video songs, more home categories ([5f2499f](https://github.com/TeamAuraMusic/AuraMusic/commit/5f2499fd95adade71534cb8d61b2145c0897d935)) — chila254
+- Fix TV home metadata and remote playback controls ([eda4d1a](https://github.com/TeamAuraMusic/AuraMusic/commit/eda4d1a48e8e0aa15401ffc317a31343f0bc4ebd)) — chila254
+- Fix release notes commit range generation ([f5abb49](https://github.com/TeamAuraMusic/AuraMusic/commit/f5abb49a56514e797b1033efbfd7c4f4adb8b9cd)) — chila254
+- Fix TV player sleep feedback, video handoff, and YouTube login persistence ([8cf7c30](https://github.com/TeamAuraMusic/AuraMusic/commit/8cf7c306ecc28036a18890f335a727529e93d1b2)) — chila254
+- chore(release): prepare v2.7.0 ([3a8e42b](https://github.com/TeamAuraMusic/AuraMusic/commit/3a8e42ba4419a8e2451e5e440e63e85894a05e23)) — chila254
+
+**Full diff:** https://github.com/TeamAuraMusic/AuraMusic/compare/v2.6.0...3a8e42ba4419a8e2451e5e440e63e85894a05e23
+
+## New Contributors
+
+- @TamilNeram made their first contribution to AuraMusic
+
 # AuraMusic v2.6.0 (Build 23) Release Notes
 
 <!-- Release notes generated using configuration in .github/release.yml at 7f7ece89489e58a71f5d25f871919f4ed704148b -->
