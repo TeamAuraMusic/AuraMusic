@@ -123,8 +123,6 @@ constructor(
         searchJob = viewModelScope.launch(Dispatchers.IO) {
             delay(600)
             try {
-                // Save to recent searches
-                saveRecentSearch(searchQuery)
 
                 val hideExplicit = context.dataStore.get(HideExplicitKey, false)
                 val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
@@ -184,6 +182,7 @@ constructor(
     }
 
     fun addToRecentSearches(query: String) {
+        if (query.isBlank()) return
         viewModelScope.launch(Dispatchers.IO) {
             val current = _recentSearches.value.toMutableList()
             current.remove(query) // Remove if exists
@@ -192,6 +191,15 @@ constructor(
             _recentSearches.value = current
             saveRecentSearch(query)
         }
+    }
+
+    /**
+     * Called when the user explicitly submits a search (presses enter,
+     * clicks a search result, or selects a recent search item).
+     * Saves the query to recent searches so it appears in the history list.
+     */
+    fun onSearchSubmitted(query: String) {
+        addToRecentSearches(query)
     }
 
     private fun loadRecentSearches() {

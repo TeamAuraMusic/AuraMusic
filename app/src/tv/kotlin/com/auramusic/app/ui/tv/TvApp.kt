@@ -1653,6 +1653,13 @@ fun TvSearchScreen(
     // Track which item is currently focused
     var focusedItemIndex by remember { mutableStateOf(-1) }
 
+    // Save current query to recent searches when user clicks a result
+    val saveQueryToHistory: () -> Unit = {
+        if (query.isNotBlank()) {
+            tvSearchViewModel.onSearchSubmitted(query)
+        }
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -1699,7 +1706,10 @@ fun TvSearchScreen(
                 items(recentSearches, key = { it }) { recentQuery ->
                     TvRecentSearchItem(
                         query = recentQuery,
-                        onClick = { tvSearchViewModel.updateQuery(recentQuery) },
+                        onClick = {
+                            tvSearchViewModel.onSearchSubmitted(recentQuery)
+                            tvSearchViewModel.updateQuery(recentQuery)
+                        },
                         modifier = Modifier.onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 1 }
                     )
                 }
@@ -1777,7 +1787,7 @@ fun TvSearchScreen(
                 items(localSongs, key = { "local_song_${it.id}" }) { item ->
                     TvSearchResultItem(
                         item = item,
-                        onClick = { handleSearchItemClick(item, playerConnection, navigator) },
+                        onClick = { saveQueryToHistory(); handleSearchItemClick(item, playerConnection, navigator) },
                         modifier = Modifier.onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 2 }
                     )
                 }
@@ -1796,7 +1806,7 @@ fun TvSearchScreen(
                 items(localArtists, key = { it.id }) { item ->
                     TvSearchResultItem(
                         item = item,
-                        onClick = { handleSearchItemClick(item, playerConnection, navigator) },
+                        onClick = { saveQueryToHistory(); handleSearchItemClick(item, playerConnection, navigator) },
                         modifier = Modifier.onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = sectionIndex + 1 }
                     )
                 }
@@ -1815,7 +1825,7 @@ fun TvSearchScreen(
                 items(localAlbums, key = { it.id }) { item ->
                     TvSearchResultItem(
                         item = item,
-                        onClick = { handleSearchItemClick(item, playerConnection, navigator) },
+                        onClick = { saveQueryToHistory(); handleSearchItemClick(item, playerConnection, navigator) },
                         modifier = Modifier.onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 2 }
                     )
                 }
@@ -1834,7 +1844,7 @@ fun TvSearchScreen(
                 items(localPlaylists, key = { it.id }) { item ->
                     TvSearchResultItem(
                         item = item,
-                        onClick = { handleSearchItemClick(item, playerConnection, navigator) },
+                        onClick = { saveQueryToHistory(); handleSearchItemClick(item, playerConnection, navigator) },
                         modifier = Modifier.onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 2 }
                     )
                 }
@@ -1860,7 +1870,7 @@ fun TvSearchScreen(
                     ) { item ->
                         TvYTSearchResultItem(
                             item = item,
-                            onClick = { handleYTSearchItemClick(item, playerConnection, navigator) },
+                            onClick = { saveQueryToHistory(); handleYTSearchItemClick(item, playerConnection, navigator) },
                             modifier = Modifier.onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = sectionIndex + 1 }
                         )
                     }
@@ -1885,7 +1895,7 @@ fun TvSearchScreen(
                     items(ytSongs, key = { it.id }) { item ->
                         TvYTSearchResultItem(
                             item = item,
-                            onClick = { handleYTSearchItemClick(item, playerConnection, navigator) },
+                            onClick = { saveQueryToHistory(); handleYTSearchItemClick(item, playerConnection, navigator) },
                             modifier = Modifier.onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 2 }
                         )
                     }
@@ -1904,7 +1914,7 @@ fun TvSearchScreen(
                     items(ytArtists, key = { it.id ?: it.title }) { item ->
                         TvYTSearchResultItem(
                             item = item,
-                            onClick = { handleYTSearchItemClick(item, playerConnection, navigator) },
+                            onClick = { saveQueryToHistory(); handleYTSearchItemClick(item, playerConnection, navigator) },
                             modifier = Modifier.onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 2 }
                         )
                     }
@@ -1923,7 +1933,7 @@ fun TvSearchScreen(
                     items(ytAlbums, key = { it.browseId ?: it.id }) { item ->
                         TvYTSearchResultItem(
                             item = item,
-                            onClick = { handleYTSearchItemClick(item, playerConnection, navigator) },
+                            onClick = { saveQueryToHistory(); handleYTSearchItemClick(item, playerConnection, navigator) },
                             modifier = Modifier.onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 2 }
                         )
                     }
@@ -1942,7 +1952,7 @@ fun TvSearchScreen(
                     items(ytPlaylists, key = { it.id }) { item ->
                         TvYTSearchResultItem(
                             item = item,
-                            onClick = { handleYTSearchItemClick(item, playerConnection, navigator) },
+                            onClick = { saveQueryToHistory(); handleYTSearchItemClick(item, playerConnection, navigator) },
                             modifier = Modifier.onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 2 }
                         )
                     }
