@@ -30,6 +30,22 @@
             </intent-filter>
         </activity>
 
+        <!-- TV Recommendations: "Continue Listening" row on Google TV home screen -->
+        <service
+            android:name=".tv.TvRecommendationService"
+            android:foregroundServiceType="mediaPlayback"
+            android:exported="false" />
+
+        <!-- Refresh recommendations on device boot -->
+        <receiver
+            android:name=".tv.TvBootReceiver"
+            android:exported="true"
+            android:enabled="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
         <!-- Hide the phone launcher aliases on TV. -->
         <activity-alias
             android:name=".MainActivityAlias"

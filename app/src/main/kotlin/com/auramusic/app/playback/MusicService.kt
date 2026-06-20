@@ -1977,6 +1977,20 @@ class MusicService :
         if (dataStore.get(PersistentQueueKey, true)) {
             saveQueueToDisk()
         }
+
+        // Update TV home screen recommendations when song changes
+        val isTv = packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK)
+        if (isTv) {
+            try {
+                val helperClass = Class.forName("com.auramusic.app.tv.TvRecommendationHelper")
+                val method = helperClass.getMethod("scheduleUpdate", android.content.Context::class.java)
+                method.invoke(null, this)
+            } catch (_: ClassNotFoundException) {
+                // TV variant not available in this build
+            } catch (e: Exception) {
+                Timber.tag(TAG).w(e, "Failed to update TV recommendations")
+            }
+        }
     }
 
     override fun onPlaybackStateChanged(
@@ -2011,6 +2025,20 @@ class MusicService :
 
         if (playbackState == Player.STATE_IDLE || playbackState == Player.STATE_ENDED) {
             scrobbleManager?.onSongStop()
+
+            // Update TV recommendations when playback stops (saves position for "Continue Watching")
+            val isTv = packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK)
+            if (isTv) {
+                try {
+                    val helperClass = Class.forName("com.auramusic.app.tv.TvRecommendationHelper")
+                    val method = helperClass.getMethod("scheduleUpdate", android.content.Context::class.java)
+                    method.invoke(null, this@MusicService)
+                } catch (_: ClassNotFoundException) {
+                    // TV variant not available in this build
+                } catch (e: Exception) {
+                    Timber.tag(TAG).w(e, "Failed to update TV recommendations on stop")
+                }
+            }
         }
     }
 
