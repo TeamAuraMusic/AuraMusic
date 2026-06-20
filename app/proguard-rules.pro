@@ -64,6 +64,12 @@
 # Protobuf
 -keep class * extends com.google.protobuf.GeneratedMessageLite { *; }
 
+# Kuromoji loads dictionary .bin files via Class.getResourceAsStream with
+# package-relative paths. If R8 obfuscates these classes/packages, release
+# builds look for the dictionaries under the obfuscated package and crash.
+-keep class com.atilika.kuromoji.** { *; }
+-dontwarn com.atilika.kuromoji.**
+
 # Innertube / YouTube models
 -keep class com.auramusic.innertube.models.** { *; }
 
