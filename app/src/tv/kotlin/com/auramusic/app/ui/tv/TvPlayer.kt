@@ -349,7 +349,6 @@ fun TvPlayerScreen(
     val context = LocalContext.current
     LaunchedEffect(mediaMetadata?.id, showLyrics) {
         if (!showLyrics || mediaMetadata == null || pc == null) return@LaunchedEffect
-        if (currentLyrics != null) return@LaunchedEffect
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
             try {
                 val entryPoint = dagger.hilt.android.EntryPointAccessors.fromApplication(
