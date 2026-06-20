@@ -810,6 +810,140 @@ fun TvTopBar(
 
 /* -------------------------- Home -------------------------- */
 
+data class FocusedItemInfo(
+    val title: String,
+    val subtitle: String = "",
+    val description: String = "",
+    val thumbnailUrl: String? = null,
+    val type: String = "", // "Song", "Artist", "Album", "Playlist"
+)
+
+@Composable
+fun TvFocusedDetailPanel(
+    focusedItem: FocusedItemInfo?,
+    modifier: Modifier = Modifier,
+) {
+    val animatedAlpha by animateFloatAsState(
+        targetValue = if (focusedItem != null) 1f else 0.3f,
+        animationSpec = tween(300),
+        label = "detailAlpha",
+    )
+
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(320.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+        tonalElevation = 4.dp,
+    ) {
+        if (focusedItem != null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(32.dp),
+                horizontalArrangement = Arrangement.spacedBy(32.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // Left side: info
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .graphicsLayer { alpha = animatedAlpha },
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    // Type badge
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                    ) {
+                        Text(
+                            text = focusedItem.type,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        )
+                    }
+
+                    Text(
+                        text = focusedItem.title,
+                        style = MaterialTheme.typography.headlineLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+
+                    if (focusedItem.subtitle.isNotBlank()) {
+                        Text(
+                            text = focusedItem.subtitle,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+
+                    if (focusedItem.description.isNotBlank()) {
+                        Text(
+                            text = focusedItem.description,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+
+                // Right side: artwork
+                Box(
+                    modifier = Modifier
+                        .size(260.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surface),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    AsyncImage(
+                        model = focusedItem.thumbnailUrl,
+                        contentDescription = focusedItem.title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+            }
+        } else {
+            // Default state when nothing is focused
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Icon(
+                        painterResource(R.drawable.ic_launcher_foreground),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                        modifier = Modifier.size(64.dp),
+                    )
+                    Text(
+                        text = "Browse your music",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    )
+                    Text(
+                        text = "Navigate through rows to explore",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                    )
+                }
+            }
+        }
+    }
+}
+
 @Composable
 fun TvHomeScreen(
     playerConnection: PlayerConnection?,
@@ -834,6 +968,9 @@ fun TvHomeScreen(
 
     // Track which content section (row) is currently focused
     var focusedItemIndex by remember { mutableStateOf(-1) }
+
+    // Spotify-style focused detail panel state
+    var focusedItem by remember { mutableStateOf<FocusedItemInfo?>(null) }
 
     LaunchedEffect(homeListState, homePage?.continuation) {
         snapshotFlow {
@@ -882,65 +1019,25 @@ fun TvHomeScreen(
             }
         }
 
-        // Hero Carousel - Trending content
-        homePage?.sections?.flatMap { it.items }
-           ?.distinctBy { it.id }
-           ?.take(6)
-           ?.takeIf { it.isNotEmpty() }
-           ?.let { heroItems ->
-               item(key = "hero") {
-                   TvHeroCarousel(
-                       title = "Trending Now",
-                       items = heroItems,
-                       playerConnection = playerConnection,
-                       onYTItemClick = { item: YTItem ->
-                           when (item) {
-                               is SongItem -> {
-                                   playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id)))
-                               }
-                               is AlbumItem -> {
-                                   val browseId = item.browseId
-                                   if (browseId != null) {
-                                       navigator.navigate(TvDestination.Album(browseId))
-                                   } else {
-                                       playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(playlistId = item.playlistId)))
-                                   }
-                               }
-                               is ArtistItem -> {
-                                   item.id?.let { artistId ->
-                                       navigator.navigate(TvDestination.Artist(artistId))
-                                   }
-                               }
-                               is PlaylistItem -> {
-                                   navigator.navigate(TvDestination.Playlist(item.id))
-                               }
-                               is EpisodeItem -> {
-                                   playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id)))
-                               }
-                               is PodcastItem -> {
-                                   item.id?.let { podcastId ->
-                                       // Navigate to podcast detail (could reuse playlist destination)
-                                       navigator.navigate(TvDestination.Playlist(podcastId))
-                                   }
-                               }
-                               else -> {}
-                           }
-                       },
-                       modifier = Modifier.onFocusChanged { state ->
-                           if (state.hasFocus) focusedItemIndex = 0
-                       }
-                   )
-               }
-           }
+        // Focused detail panel (Spotify-style)
+        item(key = "detail_panel") {
+            TvFocusedDetailPanel(
+                focusedItem = focusedItem,
+                modifier = Modifier.onFocusChanged { state ->
+                    if (state.hasFocus) focusedItemIndex = 0
+                },
+            )
+        }
 
         // Speed Dial Section
         pinnedSpeedDialItems.takeIf { it.isNotEmpty() }?.let { speedDialItems ->
            item(key = "speed_dial") {
-               YouTubeSectionRow(
-                   title = "Speed Dial",
-                   items = speedDialItems.take(6).map { it.toYTItem() },
-                   playerConnection = playerConnection,
-                   onYTItemClick = { item: YTItem ->
+                YouTubeSectionRow(
+                    title = "Speed Dial",
+                    items = speedDialItems.take(6).map { it.toYTItem() },
+                    playerConnection = playerConnection,
+                    onItemFocused = { focusedItem = it },
+                    onYTItemClick = { item: YTItem ->
                        when (item) {
                            is SongItem -> playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id)))
                            is AlbumItem -> {
@@ -971,6 +1068,7 @@ fun TvHomeScreen(
                         title = "Quick picks",
                         songs = quickPicks!!,
                         onSongClick = { song: Song -> playerConnection?.playQueue(YouTubeQueue.radio(song.toMediaMetadata())) },
+                        onItemFocused = { focusedItem = it },
                         modifier = Modifier.onFocusChanged { state ->
                             if (state.hasFocus) focusedItemIndex = 2
                         }
@@ -984,6 +1082,7 @@ fun TvHomeScreen(
                         title = "Forgotten favorites",
                         songs = forgottenFavorites!!,
                         onSongClick = { song: Song -> playerConnection?.playQueue(YouTubeQueue.radio(song.toMediaMetadata())) },
+                        onItemFocused = { focusedItem = it },
                         modifier = Modifier.onFocusChanged { state ->
                             if (state.hasFocus) focusedItemIndex = 3
                         }
@@ -994,10 +1093,11 @@ fun TvHomeScreen(
            if (!keepListening.isNullOrEmpty()) {
                item(key = "keep_listening") {
                    LocalItemRow(
-                       title = "Keep listening",
-                       localItems = keepListening!!,
-                       playerConnection = playerConnection,
-                       modifier = Modifier.onFocusChanged { state ->
+                        title = "Keep listening",
+                        localItems = keepListening!!,
+                        playerConnection = playerConnection,
+                        onItemFocused = { focusedItem = it },
+                        modifier = Modifier.onFocusChanged { state ->
                            if (state.hasFocus) focusedItemIndex = 4
                        }
                    )
@@ -1019,6 +1119,7 @@ fun TvHomeScreen(
                             title = "Similar to $titleName",
                             items = recommendation.items,
                             playerConnection = playerConnection,
+                            onItemFocused = { focusedItem = it },
                             onYTItemClick = { item: YTItem ->
                                 when (item) {
                                     is SongItem -> {
@@ -1068,6 +1169,7 @@ fun TvHomeScreen(
                     title = "Your YouTube Playlists",
                     items = playlists.take(10),
                     playerConnection = playerConnection,
+                    onItemFocused = { focusedItem = it },
                     onYTItemClick = { item: YTItem ->
                         when (item) {
                             is PlaylistItem -> {
@@ -1093,6 +1195,7 @@ fun TvHomeScreen(
                         title = section.title,
                         items = section.items,
                         playerConnection = playerConnection,
+                        onItemFocused = { focusedItem = it },
                         onYTItemClick = { item: YTItem ->
                             when (item) {
                                 is SongItem -> playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id)))
@@ -1125,8 +1228,9 @@ fun TvHomeScreen(
             item(key = "community_playlists") {
                 YouTubeSectionRow(
                     title = "Community Playlists",
-                    items = playlists.map { it.playlist },
+                    items = communityPlaylists.map { it.playlist },
                     playerConnection = playerConnection,
+                    onItemFocused = { focusedItem = it },
                     onYTItemClick = { item: YTItem ->
                         when (item) {
                             is PlaylistItem -> navigator.navigate(TvDestination.Playlist(item.id))
@@ -1189,6 +1293,7 @@ fun YouTubeSectionRow(
     playerConnection: PlayerConnection?,
     onYTItemClick: (YTItem) -> Unit,
     modifier: Modifier = Modifier,
+    onItemFocused: ((FocusedItemInfo?) -> Unit)? = null,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
         // Section header with underline
@@ -1222,6 +1327,7 @@ fun YouTubeSectionRow(
                 YouTubeMediaCard(
                     item = item,
                     onClick = { onYTItemClick(item) },
+                    onFocusChanged = onItemFocused,
                 )
             }
         }
@@ -1259,6 +1365,7 @@ fun YouTubeAlbumRow(
 fun YouTubeMediaCard(
     item: YTItem,
     onClick: () -> Unit,
+    onFocusChanged: ((FocusedItemInfo?) -> Unit)? = null,
 ) {
     val isFocusedState = remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -1276,6 +1383,30 @@ fun YouTubeMediaCard(
     val subtitle = item.tvSubtitle
     val metadata = item.tvMetadata
     val isArtist = item is ArtistItem
+
+    // Build focused item info based on type
+    LaunchedEffect(isFocusedState.value) {
+        if (isFocusedState.value && onFocusChanged != null) {
+            val type = when (item) {
+                is SongItem -> "Song"
+                is ArtistItem -> "Artist"
+                is AlbumItem -> "Album"
+                is PlaylistItem -> "Playlist"
+                is EpisodeItem -> "Episode"
+                is PodcastItem -> "Podcast"
+                else -> ""
+            }
+            onFocusChanged(FocusedItemInfo(
+                title = title,
+                subtitle = subtitle,
+                description = metadata ?: "",
+                thumbnailUrl = item.thumbnail,
+                type = type,
+            ))
+        } else if (!isFocusedState.value && onFocusChanged != null) {
+            // Don't clear if another item might have focus
+        }
+    }
 
     if (isArtist) {
         // Artist: circular thumbnail with name below, no card surface
@@ -2263,6 +2394,7 @@ fun SongRow(
     songs: List<Song>,
     onSongClick: (Song) -> Unit,
     modifier: Modifier = Modifier,
+    onItemFocused: ((FocusedItemInfo?) -> Unit)? = null,
 ) {
     Column(
         modifier = modifier,
@@ -2301,6 +2433,7 @@ fun SongRow(
                     subtitle = song.artists.joinToString(", ") { it.name },
                     thumbnailUrl = song.song.thumbnailUrl,
                     onClick = { onSongClick(song) },
+                    onFocusChanged = onItemFocused,
                 )
             }
         }
@@ -2320,6 +2453,7 @@ fun MediaCard(
     thumbnailUrl: String?,
     onClick: () -> Unit,
     isRound: Boolean = false,
+    onFocusChanged: ((FocusedItemInfo?) -> Unit)? = null,
 ) {
     val isFocusedState = remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -2332,6 +2466,20 @@ fun MediaCard(
         MaterialTheme.colorScheme.primary
     } else {
         Color.Transparent
+    }
+
+    // Report focus state to parent
+    LaunchedEffect(isFocusedState.value) {
+        if (onFocusChanged != null) {
+            if (isFocusedState.value) {
+                onFocusChanged(FocusedItemInfo(
+                    title = title,
+                    subtitle = subtitle,
+                    thumbnailUrl = thumbnailUrl,
+                    type = if (isRound) "Artist" else "Song",
+                ))
+            }
+        }
     }
 
     if (isRound) {
@@ -2448,7 +2596,7 @@ fun MediaCard(
 }
 
 @Composable
-fun LocalItemRow(title: String, localItems: List<LocalItem>, playerConnection: PlayerConnection?, modifier: Modifier = Modifier) {
+fun LocalItemRow(title: String, localItems: List<LocalItem>, playerConnection: PlayerConnection?, modifier: Modifier = Modifier, onItemFocused: ((FocusedItemInfo?) -> Unit)? = null) {
     val navigator = LocalTvNavigator.current
 
     Column(
@@ -2490,24 +2638,28 @@ fun LocalItemRow(title: String, localItems: List<LocalItem>, playerConnection: P
                         thumbnailUrl = item.artist.thumbnailUrl,
                         onClick = { navigator.navigate(TvDestination.Artist(item.id)) },
                         isRound = true,
+                        onFocusChanged = onItemFocused,
                     )
                     is Album -> MediaCard(
                         title = item.album.title,
                         subtitle = item.artists.joinToString(", ") { it.name },
                         thumbnailUrl = item.album.thumbnailUrl,
                         onClick = { navigator.navigate(TvDestination.Album(item.id)) },
+                        onFocusChanged = onItemFocused,
                     )
                     is Playlist -> MediaCard(
                         title = item.playlist.name,
                         subtitle = "${item.songCount} songs",
                         thumbnailUrl = item.playlist.thumbnailUrl,
                         onClick = { navigator.navigate(TvDestination.Playlist(item.id)) },
+                        onFocusChanged = onItemFocused,
                     )
                     is Song -> MediaCard(
                         title = item.song.title,
                         subtitle = item.artists.joinToString(", ") { it.name },
                         thumbnailUrl = item.song.thumbnailUrl,
                         onClick = { playerConnection?.playQueue(YouTubeQueue.radio(item.toMediaMetadata())) },
+                        onFocusChanged = onItemFocused,
                     )
                 }
             }
