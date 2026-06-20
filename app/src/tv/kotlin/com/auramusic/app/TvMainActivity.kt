@@ -94,7 +94,13 @@ class TvMainActivity : ComponentActivity() {
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
-            disposePlayerConnection()
+            // Only dispose if we're actually being destroyed, not just rebinding
+            if (isFinishing || isDestroyed) {
+                disposePlayerConnection()
+            } else {
+                Timber.tag("TvMainActivity").w("Service disconnected unexpectedly (will rebind)")
+                playerConnectionFlow.value = null
+            }
         }
     }
 
@@ -147,25 +153,18 @@ class TvMainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-        serviceBound = bindService(
-            Intent(this, MusicService::class.java),
-            serviceConnection,
-            BIND_AUTO_CREATE,
-        )
+        if (!serviceBound) {
+            serviceBound = bindService(
+                Intent(this, MusicService::class.java),
+                serviceConnection,
+                BIND_AUTO_CREATE,
+            )
+        }
     }
 
     override fun onStop() {
-        if (serviceBound) {
-            try {
-                unbindService(serviceConnection)
-            } catch (e: IllegalArgumentException) {
-                Timber.tag("TvMainActivity").w(e, "Service was not bound")
-            }
-            serviceBound = false
-        }
-        // Don't dispose PlayerConnection here - keep it alive so playback
-        // continues smoothly when the activity resumes (PiP, system dialogs, etc.)
-        // PlayerConnection is only disposed in onDestroy or when service disconnects.
+        // Keep the service bound so playback continues during PiP, system dialogs,
+        // and brief activity transitions. Only unbind in onDestroy.
         super.onStop()
     }
 
@@ -197,6 +196,20 @@ class TvMainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        if (serviceBound) {
+            try {
+                unbindService(serviceConnection)
+            } catch (e: IllegalArgumentException) {
+                Timber.tag("TvMainActivity").w(e, "Service was not bound")
+            }
+            serviceBound = false
+        }
+        disposePlayerConnection()
+        super.onDestroy()
+    }
+}
+            serviceBound = false
+        }
         disposePlayerConnection()
         super.onDestroy()
     }

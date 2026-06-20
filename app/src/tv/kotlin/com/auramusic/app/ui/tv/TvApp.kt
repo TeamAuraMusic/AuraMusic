@@ -239,7 +239,8 @@ enum class TvSection(val label: String) {
      var showExitDialog by remember { mutableStateOf(false) }
 
      // Handle remote back button: go back in navigator, or show exit dialog
-     androidx.activity.compose.BackHandler(enabled = true) {
+     // Only handle back when no overlay/dialog is showing to avoid conflicts
+     androidx.activity.compose.BackHandler(enabled = !showExitDialog) {
          val nav = navigator
          if (nav.current is TvDestination.Player) {
              nav.popBack()
@@ -400,14 +401,14 @@ enum class TvSection(val label: String) {
                      )
 
                       // Set up focus for content screens - focus content when section changes
-                      LaunchedEffect(sectionState.value, currentDestination) {
-                          kotlinx.coroutines.delay(100)
-                          when {
-                              currentDestination != TvDestination.Home && currentDestination != TvDestination.Settings -> runCatching { overlayFocusRequester.requestFocus() }
-                              sectionState.value == TvSection.HOME -> runCatching { homeFocusRequester.requestFocus() }
-                              else -> runCatching { detailFocusRequester.requestFocus() }
-                          }
-                      }
+                       LaunchedEffect(sectionState.value, currentDestination) {
+                           kotlinx.coroutines.delay(50)
+                           when {
+                               currentDestination != TvDestination.Home && currentDestination != TvDestination.Settings -> runCatching { overlayFocusRequester.requestFocus() }
+                               sectionState.value == TvSection.HOME -> runCatching { homeFocusRequester.requestFocus() }
+                               else -> runCatching { detailFocusRequester.requestFocus() }
+                           }
+                       }
 
                      Box(modifier = Modifier.fillMaxSize()) {
                          when (sectionState.value) {
