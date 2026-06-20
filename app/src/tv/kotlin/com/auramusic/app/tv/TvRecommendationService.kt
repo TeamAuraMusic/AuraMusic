@@ -11,7 +11,6 @@ import androidx.tvprovider.media.tv.PreviewProgram
 import androidx.tvprovider.media.tv.TvContractCompat
 import com.auramusic.app.R
 import com.auramusic.app.models.PersistQueue
-import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -19,7 +18,6 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.io.File
 import java.io.ObjectInputStream
-import javax.inject.Inject
 
 /**
  * Android TV Recommendations service.
@@ -27,11 +25,7 @@ import javax.inject.Inject
  * Publishes "Continue Listening" recommendations to the Google TV home screen,
  * similar to how Netflix shows "Continue Watching".
  */
-@AndroidEntryPoint
 class TvRecommendationService : android.app.Service() {
-
-    @Inject
-    lateinit var hiltInjector: dagger.hilt.android.EntryPointAccessors
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
