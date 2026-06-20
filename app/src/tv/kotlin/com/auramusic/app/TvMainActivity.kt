@@ -208,9 +208,3 @@ class TvMainActivity : ComponentActivity() {
         super.onDestroy()
     }
 }
-            serviceBound = false
-        }
-        disposePlayerConnection()
-        super.onDestroy()
-    }
-}

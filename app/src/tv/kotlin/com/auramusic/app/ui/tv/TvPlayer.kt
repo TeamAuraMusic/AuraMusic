@@ -459,7 +459,6 @@ fun TvPlayerScreen(
                                 )
                             }
 
-                            val videoId = mediaMetadata?.id ?: ""
                             AndroidView(
                                 factory = { ctx ->
                                     PlayerView(ctx).apply {
@@ -475,7 +474,6 @@ fun TvPlayerScreen(
                                     playerView.player = pc?.player
                                     playerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                                 },
-                                key = videoId,
                             )
                         } else if (showLyrics) {
                             // Show lyrics behind thumbnail when enabled
