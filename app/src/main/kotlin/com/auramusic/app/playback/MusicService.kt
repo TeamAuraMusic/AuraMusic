@@ -1865,33 +1865,47 @@ class MusicService :
             }
         }
 
-        // Don't reset video mode if:
-        // 1. We're currently switching to video mode (_isVideoSwitching is true)
-        // 2. The transition is due to our own video mode switch (same mediaId)
-        // Only reset when actually changing to a NEW song
         val currentMediaId = currentMediaMetadata.value?.id
         val newMediaId = mediaItem?.mediaId
         
         val isNewSong = currentMediaId != null && newMediaId != null && currentMediaId != newMediaId
         
         if (isNewSong || !_isVideoSwitching.value) {
-            resetVideoMode()
+            // If we were in video mode, just clear the source tracking without
+            // resetting the full video state — this avoids the black screen gap
+            // where video surface has no content while we re-fetch for the new song.
+            if (isVideoMode) {
+                videoSwitchJob?.cancel()
+                _isVideoSwitching.value = false
+                currentVideoUrl = null
+                currentVideoSourceMediaId = null
+                _currentVideoId.value = null
+                _videoFetchError.value = null
+                _videoModeMessage.value = null
+                // Keep isVideoMode = true so the video surface stays visible
+                // during the transition to the next song
+            } else {
+                resetVideoMode()
+            }
             
-            // Auto-enable video mode for new video songs in background
-            val newMediaId = mediaItem?.mediaId
+            // Auto-enable video mode for new video songs
             if (newMediaId != null) {
                 scope.launch {
                     try {
-                        // Wait for currentMediaMetadata to update from onPlayerEvents
-                        delay(100)
-                        
                         val isVideoAvailable = checkVideoAvailability(newMediaId)
                         val isVideoSong = mediaItem.metadata?.isVideoSong == true
                         val videoModeEnabledPref = dataStore.get(VideoModeEnabledKey, true)
                         
                         if (videoModeEnabledPref && isVideoSong && isVideoAvailable) {
-                            Timber.d("onMediaItemTransition: Auto-enabling video mode for new video song: $newMediaId")
-                            setVideoMode(true)
+                            // Only trigger setVideoMode if we're not already in video mode
+                            // or if the media ID changed (new song)
+                            if (!isVideoMode || currentVideoSourceMediaId != newMediaId) {
+                                Timber.d("onMediaItemTransition: Auto-enabling video mode for new video song: $newMediaId")
+                                setVideoMode(true)
+                            }
+                        } else if (isVideoMode) {
+                            // New song is NOT a video — switch back to audio
+                            switchToAudioMode()
                         }
                     } catch (e: Exception) {
                         Timber.e(e, "onMediaItemTransition: Error auto-enabling video mode")
@@ -1899,7 +1913,7 @@ class MusicService :
                 }
             }
         } else {
-            Timber.d("onMediaItemTransition: Skipping video mode reset - likely a video mode switch")
+            Timber.d("onMediaItemTransition: Skipping video mode reset - currently switching")
         }
 
         lastPlaybackSpeed = -1.0f // force update song
@@ -3358,8 +3372,8 @@ class MusicService :
                 val wasPlaying = player.playWhenReady
 
                 if (enabled) {
-                    // Pause audio immediately so it doesn't play while video loads
-                    player.playWhenReady = false
+                    // Don't pause audio — let it keep playing while we load video
+                    // This prevents the audio stutter/gap during video mode switch
                     
                     // Save original item before switching
                     originalAudioMediaItem = player.getMediaItemAt(index)
@@ -3556,7 +3570,6 @@ class MusicService :
                                         player.addMediaSource(index, merged)
                                     }
                                 }
-                                player.playWhenReady = false
                                 player.prepare()
                                 Timber.d("setVideoMode: Called prepare(), player state: ${player.playbackState}")
                                 
@@ -3564,28 +3577,7 @@ class MusicService :
                                     player.seekTo(index, position)
                                     Timber.d("setVideoMode: Seeked to position $position")
                                 }
-                                val readyListener = object : Player.Listener {
-                                    override fun onRenderedFirstFrame() {
-                                        player.removeListener(this)
-                                        player.playWhenReady = true
-                                        Timber.d("setVideoMode: Auto-started playback after first video frame rendered")
-                                    }
-
-                                    override fun onPlaybackStateChanged(playbackState: Int) {
-                                        if (playbackState == Player.STATE_READY && !player.playWhenReady) {
-                                            player.removeListener(this)
-                                            player.playWhenReady = true
-                                            Timber.d("setVideoMode: Auto-started playback on STATE_READY (no surface attached)")
-                                        }
-                                    }
-                                    
-                                    override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
-                                        player.removeListener(this)
-                                        player.playWhenReady = true
-                                        Timber.e(error, "setVideoMode: Error waiting for video frame, starting playback anyway")
-                                    }
-                                }
-                                player.addListener(readyListener)
+                                player.playWhenReady = true
                                 isVideoMode = true
                                 _videoModeEnabled.value = true
                                 currentVideoSourceMediaId = mediaId

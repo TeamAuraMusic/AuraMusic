@@ -62,7 +62,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -97,7 +96,6 @@ import androidx.compose.ui.zIndex
  import com.auramusic.innertube.models.WatchEndpoint
  import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
  import androidx.lifecycle.viewModelScope
  import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -320,12 +318,11 @@ fun TvPlayerScreen(
 
     LaunchedEffect(pc?.player) {
         val player = pc?.player ?: return@LaunchedEffect
-        snapshotFlow { player.currentPosition }
-            .distinctUntilChanged()
-            .collect { pos ->
-                duration = player.duration.takeIf { it != C.TIME_UNSET } ?: 0L
-                currentPosition = pos
-            }
+        while (true) {
+            delay(250)
+            duration = player.duration.takeIf { it != C.TIME_UNSET } ?: 0L
+            currentPosition = player.currentPosition
+        }
     }
 
     // Fetch lyrics when song changes. Use player metadata as a fallback so TV
