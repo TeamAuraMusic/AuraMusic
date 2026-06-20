@@ -761,7 +761,7 @@ fun TvPlayerScreen(
                     ) {
                         items(
                             count = queueWindows.size,
-                            key = { index -> queueWindows.getOrNull(index)?.mediaItem?.mediaId ?: "queue_$index" }
+                            key = { index -> "${queueWindows.getOrNull(index)?.mediaItem?.mediaId ?: "unknown"}_$index" }
                         ) { index ->
                             val window = queueWindows.getOrNull(index)
                             val isCurrentSong = index == currentWindowIndex

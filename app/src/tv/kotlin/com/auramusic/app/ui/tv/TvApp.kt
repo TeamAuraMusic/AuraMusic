@@ -1218,7 +1218,7 @@ fun YouTubeSectionRow(
             horizontalArrangement = Arrangement.spacedBy(24.dp),
             modifier = Modifier.fillMaxWidth(),
         ) {
-            items(items, key = { it.id }) { item ->
+            items(items.distinctBy { it.id }, key = { it.id }) { item ->
                 YouTubeMediaCard(
                     item = item,
                     onClick = { onYTItemClick(item) },
@@ -1803,7 +1803,7 @@ fun TvSearchScreen(
                         color = MaterialTheme.colorScheme.onBackground,
                     )
                 }
-                items(localArtists, key = { it.id }) { item ->
+                items(localArtists, key = { "artist_${it.id}" }) { item ->
                     TvSearchResultItem(
                         item = item,
                         onClick = { saveQueryToHistory(); handleSearchItemClick(item, playerConnection, navigator) },
@@ -1822,7 +1822,7 @@ fun TvSearchScreen(
                         color = MaterialTheme.colorScheme.onBackground,
                     )
                 }
-                items(localAlbums, key = { it.id }) { item ->
+                items(localAlbums, key = { "album_${it.id}" }) { item ->
                     TvSearchResultItem(
                         item = item,
                         onClick = { saveQueryToHistory(); handleSearchItemClick(item, playerConnection, navigator) },
@@ -1841,7 +1841,7 @@ fun TvSearchScreen(
                         color = MaterialTheme.colorScheme.onBackground,
                     )
                 }
-                items(localPlaylists, key = { it.id }) { item ->
+                items(localPlaylists, key = { "playlist_${it.id}" }) { item ->
                     TvSearchResultItem(
                         item = item,
                         onClick = { saveQueryToHistory(); handleSearchItemClick(item, playerConnection, navigator) },
@@ -1892,7 +1892,7 @@ fun TvSearchScreen(
                             color = MaterialTheme.colorScheme.onBackground,
                         )
                     }
-                    items(ytSongs, key = { it.id }) { item ->
+                    items(ytSongs, key = { "song_${it.id}" }) { item ->
                         TvYTSearchResultItem(
                             item = item,
                             onClick = { saveQueryToHistory(); handleYTSearchItemClick(item, playerConnection, navigator) },
@@ -1949,7 +1949,7 @@ fun TvSearchScreen(
                             color = MaterialTheme.colorScheme.onBackground,
                         )
                     }
-                    items(ytPlaylists, key = { it.id }) { item ->
+                    items(ytPlaylists, key = { "ytplaylist_${it.id}" }) { item ->
                         TvYTSearchResultItem(
                             item = item,
                             onClick = { saveQueryToHistory(); handleYTSearchItemClick(item, playerConnection, navigator) },
