@@ -835,10 +835,10 @@ fun TvFocusedDetailPanel(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .height(340.dp),
-        shape = RoundedCornerShape(28.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.74f),
-        tonalElevation = 8.dp,
+            .height(280.dp),
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 4.dp,
     ) {
         if (focusedItem != null) {
             Box(modifier = Modifier.fillMaxSize()) {
@@ -849,7 +849,7 @@ fun TvFocusedDetailPanel(
                     modifier = Modifier
                         .fillMaxSize()
                         .graphicsLayer {
-                            alpha = 0.32f
+                            alpha = 0.25f
                             scaleX = 1.08f
                             scaleY = 1.08f
                         },
@@ -860,22 +860,9 @@ fun TvFocusedDetailPanel(
                         .background(
                             Brush.horizontalGradient(
                                 colors = listOf(
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.82f),
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.36f),
-                                )
-                            )
-                        )
-                )
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Black.copy(alpha = 0.18f),
-                                    Color.Transparent,
-                                    Color.Black.copy(alpha = 0.34f),
+                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.80f),
+                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.30f),
                                 )
                             )
                         )
@@ -884,33 +871,33 @@ fun TvFocusedDetailPanel(
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 36.dp, vertical = 30.dp),
-                    horizontalArrangement = Arrangement.spacedBy(36.dp),
+                        .padding(horizontal = 28.dp, vertical = 20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(24.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(
                         modifier = Modifier
                             .weight(1f)
                             .graphicsLayer { alpha = animatedAlpha },
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Surface(
                             shape = RoundedCornerShape(50),
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
                         ) {
                             Text(
                                 text = focusedItem.type.ifBlank { "Music" },
-                                style = MaterialTheme.typography.labelLarge,
+                                style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
                             )
                         }
 
                         Text(
                             text = focusedItem.title,
-                            style = MaterialTheme.typography.headlineLarge,
-                            fontWeight = FontWeight.ExtraBold,
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
@@ -919,7 +906,7 @@ fun TvFocusedDetailPanel(
                         if (focusedItem.subtitle.isNotBlank()) {
                             Text(
                                 text = focusedItem.subtitle,
-                                style = MaterialTheme.typography.titleMedium,
+                                style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
@@ -931,18 +918,18 @@ fun TvFocusedDetailPanel(
                             focusedItem.subscriberCountText?.takeIf { it.isNotBlank() },
                         )
                         if (stats.isNotEmpty()) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 stats.forEach { stat ->
                                     Surface(
                                         shape = RoundedCornerShape(50),
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.09f),
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
                                     ) {
                                         Text(
                                             text = stat,
-                                            style = MaterialTheme.typography.bodyMedium,
+                                            style = MaterialTheme.typography.bodySmall,
                                             fontWeight = FontWeight.SemiBold,
                                             color = MaterialTheme.colorScheme.onSurface,
-                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                                         )
                                     }
                                 }
@@ -952,9 +939,9 @@ fun TvFocusedDetailPanel(
                         if (focusedItem.description.isNotBlank()) {
                             Text(
                                 text = focusedItem.description,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.88f),
-                                maxLines = if (focusedItem.type == "Artist") 4 else 3,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
+                                maxLines = if (focusedItem.type == "Artist") 3 else 2,
                                 overflow = TextOverflow.Ellipsis,
                             )
                         }
@@ -962,13 +949,13 @@ fun TvFocusedDetailPanel(
 
                     Box(
                         modifier = Modifier
-                            .size(230.dp)
-                            .clip(if (focusedItem.type == "Artist") CircleShape else RoundedCornerShape(24.dp))
-                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.4f))
+                            .size(200.dp)
+                            .clip(if (focusedItem.type == "Artist") CircleShape else RoundedCornerShape(20.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
                             .border(
                                 width = 2.dp,
-                                color = Color.White.copy(alpha = 0.20f),
-                                shape = if (focusedItem.type == "Artist") CircleShape else RoundedCornerShape(24.dp),
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                                shape = if (focusedItem.type == "Artist") CircleShape else RoundedCornerShape(20.dp),
                             ),
                         contentAlignment = Alignment.Center,
                     ) {
@@ -989,23 +976,18 @@ fun TvFocusedDetailPanel(
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Icon(
                         painterResource(R.drawable.ic_launcher_foreground),
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                        modifier = Modifier.size(48.dp),
                     )
                     Text(
                         text = "Browse your music",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                    )
-                    Text(
-                        text = "Navigate through rows to explore",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                     )
                 }
             }
@@ -1086,11 +1068,17 @@ fun TvHomeScreen(
             }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        TvFocusedDetailPanel(
+            focusedItem = focusedItem,
+            modifier = Modifier.fillMaxWidth(),
+        )
+
         LazyColumn(
             state = homeListState,
             modifier = Modifier
-                .fillMaxSize()
+                .weight(1f)
+                .fillMaxWidth()
                 .focusRequester(focusRequester ?: remember { FocusRequester() })
                 .onPreviewKeyEvent { event ->
                     if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionUp) {
@@ -1104,7 +1092,7 @@ fun TvHomeScreen(
                         false
                     }
                 },
-            contentPadding = PaddingValues(start = 48.dp, top = 380.dp, end = 48.dp, bottom = 16.dp),
+            contentPadding = PaddingValues(start = 48.dp, end = 48.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
          // Refresh indicator
@@ -1373,13 +1361,6 @@ fun TvHomeScreen(
             }
         }
     }
-
-        TvFocusedDetailPanel(
-            focusedItem = focusedItem,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(horizontal = 48.dp, vertical = 16.dp),
-        )
     }
 }
 
@@ -1560,7 +1541,7 @@ fun YouTubeMediaCard(
         Surface(
             onClick = onClick,
             modifier = Modifier
-                .size(width = 220.dp, height = 280.dp)
+                .size(width = 200.dp, height = 220.dp)
                 .graphicsLayer {
                     scaleX = scale
                     scaleY = scale
@@ -1581,7 +1562,7 @@ fun YouTubeMediaCard(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(196.dp)
+                        .height(150.dp)
                         .clip(RoundedCornerShape(8.dp))
                         .background(MaterialTheme.colorScheme.surface),
                     contentAlignment = Alignment.Center,
@@ -1596,35 +1577,19 @@ fun YouTubeMediaCard(
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-
-                    metadata?.let {
-                        Text(
-                            text = it,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                            maxLines = 1,
-                        )
-                    }
-                }
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
     }
@@ -1674,7 +1639,7 @@ fun YouTubeAlbumCard(
     Surface(
         onClick = onClick,
         modifier = Modifier
-            .size(width = 220.dp, height = 280.dp)
+            .size(width = 200.dp, height = 220.dp)
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
@@ -1695,7 +1660,7 @@ fun YouTubeAlbumCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(196.dp)
+                    .height(150.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(MaterialTheme.colorScheme.surface),
                 contentAlignment = Alignment.Center,
@@ -1710,7 +1675,7 @@ fun YouTubeAlbumCard(
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = album.title,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
@@ -2652,7 +2617,7 @@ fun MediaCard(
         Surface(
             onClick = onClick,
             modifier = Modifier
-                .size(width = 220.dp, height = 280.dp)
+                .size(width = 200.dp, height = 220.dp)
                 .graphicsLayer {
                     scaleX = scale
                     scaleY = scale
@@ -2673,7 +2638,7 @@ fun MediaCard(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(196.dp)
+                        .height(150.dp)
                         .clip(RoundedCornerShape(8.dp))
                         .background(MaterialTheme.colorScheme.surface),
                     contentAlignment = Alignment.Center,
@@ -2688,7 +2653,7 @@ fun MediaCard(
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
