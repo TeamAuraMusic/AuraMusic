@@ -5,15 +5,13 @@
 
 package com.auramusic.app
 
-import android.app.PictureInPictureParams
+
 import android.content.ComponentName
 import android.content.Intent
 import android.content.ServiceConnection
-import android.content.res.Configuration
-import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
-import android.util.Rational
+
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -56,8 +54,6 @@ import javax.inject.Inject
  * Compose UI observes. This avoids the race where fragments/screens were
  * being created with a `null` player connection because the [MusicService]
  * binds asynchronously after `onCreate`.
- *
- * Supports Picture-in-Picture (PiP) for background playback on Android TV 8.0+.
  */
 @AndroidEntryPoint
 class TvMainActivity : ComponentActivity() {
@@ -73,7 +69,6 @@ class TvMainActivity : ComponentActivity() {
 
     private val playerConnectionFlow = MutableStateFlow<PlayerConnection?>(null)
     private var serviceBound = false
-    private var isInPipMode = false
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -144,7 +139,6 @@ class TvMainActivity : ComponentActivity() {
                   ) {
                       TvApp(
                           playerConnection = playerConnection,
-                          isTvInPipMode = isInPipMode,
                       )
                   }
               }
@@ -163,30 +157,7 @@ class TvMainActivity : ComponentActivity() {
     }
 
     override fun onStop() {
-        // Keep the service bound so playback continues during PiP, system dialogs,
-        // and brief activity transitions. Only unbind in onDestroy.
         super.onStop()
-    }
-
-    override fun onPictureInPictureModeChanged(
-        isInPictureInPictureMode: Boolean,
-        newConfig: Configuration,
-    ) {
-        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
-        isInPipMode = isInPictureInPictureMode
-        Timber.tag("TvMainActivity").d("PiP mode: $isInPictureInPictureMode")
-    }
-
-    /**
-     * Enter Picture-in-Picture mode. Available on Android 8.0+ (API 26).
-     */
-    fun enterPictureInPicture() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val params = PictureInPictureParams.Builder()
-                .setAspectRatio(Rational(16, 9))
-                .build()
-            enterPictureInPictureMode(params)
-        }
     }
 
     private fun disposePlayerConnection() {

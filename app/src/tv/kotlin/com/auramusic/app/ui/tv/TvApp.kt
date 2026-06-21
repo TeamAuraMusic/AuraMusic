@@ -229,7 +229,7 @@ enum class TvSection(val label: String) {
  *   navigating immediately without a touchscreen.
  */
  @Composable
- fun TvApp(playerConnection: PlayerConnection?, isTvInPipMode: Boolean = false) {
+ fun TvApp(playerConnection: PlayerConnection?) {
      val sectionState = remember { mutableStateOf<TvSection>(TvSection.HOME) }
      val navigator = rememberTvNavigator()
      val isPlayingState = playerConnection?.isPlaying?.collectAsState() ?: remember { mutableStateOf(false) }
@@ -238,42 +238,68 @@ enum class TvSection(val label: String) {
      val showMiniPlayer = currentSong != null || currentMediaMetadata != null
      var showExitDialog by remember { mutableStateOf(false) }
 
-     // Handle remote back button: go back in navigator, or show exit dialog
-     // Only handle back when no overlay/dialog is showing to avoid conflicts
-     androidx.activity.compose.BackHandler(enabled = !showExitDialog) {
-         val nav = navigator
-         if (nav.current is TvDestination.Player) {
-             nav.popBack()
-         } else if (nav.current != TvDestination.Home) {
-             nav.popBack()
-         } else {
-             showExitDialog = true
-         }
-     }
+      // Handle remote back button: go back in navigator, or show exit dialog
+      // Only handle back when no overlay/dialog is showing to avoid conflicts
+      androidx.activity.compose.BackHandler(enabled = !showExitDialog) {
+          val nav = navigator
+          if (nav.current is TvDestination.Player) {
+              nav.popBack()
+          } else if (nav.current != TvDestination.Home) {
+              nav.popBack()
+          } else if (sectionState.value != TvSection.HOME) {
+              sectionState.value = TvSection.HOME
+          } else {
+              showExitDialog = true
+          }
+      }
 
      val view = LocalView.current
 
-     // Exit confirmation dialog
-     if (showExitDialog) {
-         androidx.compose.material3.AlertDialog(
-             onDismissRequest = { showExitDialog = false },
-             title = { Text("Exit AuraMusic?", fontWeight = FontWeight.Bold) },
-             text = { Text("Music will stop playing if you exit.") },
-              confirmButton = {
-                  Button(onClick = {
-                      showExitDialog = false
-                      (view.context as? android.app.Activity)?.finish()
-                  }) {
-                      Text("Exit")
+      // Exit confirmation dialog
+      if (showExitDialog) {
+          var exitButtonFocused by remember { mutableStateOf(false) }
+          var stayButtonFocused by remember { mutableStateOf(false) }
+          androidx.compose.material3.AlertDialog(
+              onDismissRequest = { showExitDialog = false },
+              title = { Text("Exit AuraMusic?", fontWeight = FontWeight.Bold) },
+              text = { Text("Music will stop playing if you exit.") },
+               confirmButton = {
+                   Button(
+                       onClick = {
+                           showExitDialog = false
+                           (view.context as? android.app.Activity)?.finish()
+                       },
+                       modifier = Modifier
+                           .onFocusChanged { exitButtonFocused = it.isFocused }
+                           .border(
+                               width = if (exitButtonFocused) 3.dp else 0.dp,
+                               color = if (exitButtonFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                               shape = RoundedCornerShape(8.dp),
+                           ),
+                   ) {
+                       Text("Exit")
+                   }
+               },
+              dismissButton = {
+                  Button(
+                      onClick = { showExitDialog = false },
+                      colors = ButtonDefaults.outlinedButtonColors(
+                          containerColor = MaterialTheme.colorScheme.surface,
+                          contentColor = MaterialTheme.colorScheme.onSurface,
+                      ),
+                      modifier = Modifier
+                          .onFocusChanged { stayButtonFocused = it.isFocused }
+                          .border(
+                              width = if (stayButtonFocused) 3.dp else 0.dp,
+                              color = if (stayButtonFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                              shape = RoundedCornerShape(8.dp),
+                          ),
+                  ) {
+                      Text("Stay")
                   }
               },
-             dismissButton = {
-                 Button(onClick = { showExitDialog = false }) {
-                     Text("Stay")
-                 }
-             },
-         )
-     }
+          )
+      }
 
      // Keep screen on when music is playing
      val (keepScreenOnPref, _) = rememberPreference(com.auramusic.app.constants.KeepScreenOn, true)
@@ -342,18 +368,9 @@ enum class TvSection(val label: String) {
          } else {
              false
          }
-     }
+      }
 
-     // In PiP mode, show a simplified player-only view
-     if (isTvInPipMode) {
-         TvPlayerScreen(
-             playerConnection = playerConnection,
-             onBackClick = {},
-         )
-         return
-     }
-
-     CompositionLocalProvider(LocalTvNavigator provides navigator) {
+      CompositionLocalProvider(LocalTvNavigator provides navigator) {
          Surface(
              modifier = Modifier
                  .fillMaxSize()
@@ -654,28 +671,28 @@ fun TvTopBar(
         }
     }
 
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .onPreviewKeyEvent { event ->
-                if (event.type == KeyEventType.KeyDown) {
-                    when (event.key) {
-                        Key.DirectionDown -> {
-                            onNavigateDown?.invoke()
-                            true
-                        }
-                        Key.DirectionUp -> {
-                            onNavigateUp?.invoke()
-                            true
-                        }
-                        else -> false
-                    }
-                } else {
-                    false
-                }
-            },
-         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-         tonalElevation = 8.dp,
+     Surface(
+         modifier = Modifier
+             .fillMaxWidth()
+             .onPreviewKeyEvent { event ->
+                 if (event.type == KeyEventType.KeyDown) {
+                     when (event.key) {
+                         Key.DirectionDown -> {
+                             onNavigateDown?.invoke()
+                             true
+                         }
+                         Key.DirectionUp -> {
+                             onNavigateUp?.invoke()
+                             true
+                         }
+                         else -> false
+                     }
+                 } else {
+                     false
+                 }
+             },
+         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+         tonalElevation = 4.dp,
      ) {
          Row(
              modifier = Modifier
@@ -710,83 +727,97 @@ fun TvTopBar(
 
              Spacer(modifier = Modifier.weight(1f))
 
-              // Mini player (expanded to show full song and artist info)
-              if (showMiniPlayer && (currentSong != null || currentMediaMetadata != null)) {
-                  val miniTitle = currentSong?.title ?: currentMediaMetadata?.title.orEmpty()
-                  val miniArtists = currentSong?.artists?.joinToString(", ") { it.name }
-                      ?: currentMediaMetadata?.artists?.joinToString(", ") { it.name }.orEmpty()
-                  val miniThumbnail = currentSong?.thumbnailUrl ?: currentMediaMetadata?.thumbnailUrl
-                  Row(
-                      modifier = Modifier
-                          .height(56.dp)
-                          .weight(2f, fill = false)
-                          .padding(horizontal = 16.dp)
-                          .clip(RoundedCornerShape(8.dp))
-                          .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
-                      verticalAlignment = Alignment.CenterVertically,
-                      horizontalArrangement = Arrangement.spacedBy(12.dp),
-                  ) {
-                      // Clickable album art + song info area
-                      Row(
-                          modifier = Modifier
-                              .weight(1f)
-                              .fillMaxHeight()
-                              .clip(RoundedCornerShape(8.dp))
-                              .clickable { onMiniPlayerClick() }
-                              .padding(horizontal = 12.dp),
-                          verticalAlignment = Alignment.CenterVertically,
-                          horizontalArrangement = Arrangement.spacedBy(12.dp),
-                      ) {
-                          // Album art
-                          Box(
-                              modifier = Modifier
-                                  .size(40.dp)
-                                  .clip(RoundedCornerShape(6.dp))
-                                  .background(MaterialTheme.colorScheme.surface),
-                              contentAlignment = Alignment.Center,
-                          ) {
-                              AsyncImage(
-                                  model = miniThumbnail,
-                                  contentDescription = miniTitle,
-                                  contentScale = ContentScale.Crop,
-                                  modifier = Modifier.fillMaxSize(),
-                              )
-                          }
+               // Mini player (expanded to show full song and artist info)
+               if (showMiniPlayer && (currentSong != null || currentMediaMetadata != null)) {
+                   val miniTitle = currentSong?.title ?: currentMediaMetadata?.title.orEmpty()
+                   val miniArtists = currentSong?.artists?.joinToString(", ") { it.name }
+                       ?: currentMediaMetadata?.artists?.joinToString(", ") { it.name }.orEmpty()
+                   val miniThumbnail = currentSong?.thumbnailUrl ?: currentMediaMetadata?.thumbnailUrl
+                   var miniPlayerFocused by remember { mutableStateOf(false) }
+                   val miniPlayerScale by animateFloatAsState(
+                       targetValue = if (miniPlayerFocused) 1.03f else 1f,
+                       label = "miniPlayerScale",
+                   )
+                   Row(
+                       modifier = Modifier
+                           .height(56.dp)
+                           .weight(2f, fill = false)
+                           .padding(horizontal = 16.dp)
+                           .clip(RoundedCornerShape(8.dp))
+                           .background(
+                               if (miniPlayerFocused)
+                                   MaterialTheme.colorScheme.surfaceVariant
+                               else
+                                   MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                           )
+                           .graphicsLayer {
+                               scaleX = miniPlayerScale
+                               scaleY = miniPlayerScale
+                           }
+                           .border(
+                               width = if (miniPlayerFocused) 3.dp else 0.dp,
+                               color = if (miniPlayerFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                               shape = RoundedCornerShape(8.dp),
+                           )
+                           .onFocusChanged { miniPlayerFocused = it.isFocused }
+                           .focusable()
+                           .clickable { onMiniPlayerClick() },
+                       verticalAlignment = Alignment.CenterVertically,
+                       horizontalArrangement = Arrangement.spacedBy(12.dp),
+                   ) {
+                       // Album art
+                       Box(
+                           modifier = Modifier
+                               .padding(start = 12.dp)
+                               .size(40.dp)
+                               .clip(RoundedCornerShape(6.dp))
+                               .background(MaterialTheme.colorScheme.surface),
+                           contentAlignment = Alignment.Center,
+                       ) {
+                           AsyncImage(
+                               model = miniThumbnail,
+                               contentDescription = miniTitle,
+                               contentScale = ContentScale.Crop,
+                               modifier = Modifier.fillMaxSize(),
+                           )
+                       }
 
-                          // Song info
-                          Column(modifier = Modifier.weight(1f)) {
-                              Text(
-                                  text = miniTitle,
-                                  style = MaterialTheme.typography.bodyMedium,
-                                  fontWeight = FontWeight.SemiBold,
-                                  color = MaterialTheme.colorScheme.onSurface,
-                                  maxLines = 1,
-                                  overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                              )
-                              Text(
-                                  text = miniArtists,
-                                  style = MaterialTheme.typography.bodySmall,
-                                  color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                  maxLines = 1,
-                                  overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                              )
-                          }
-                      }
+                       // Song info
+                       Column(modifier = Modifier.weight(1f)) {
+                           Text(
+                               text = miniTitle,
+                               style = MaterialTheme.typography.bodyMedium,
+                               fontWeight = FontWeight.SemiBold,
+                               color = MaterialTheme.colorScheme.onSurface,
+                               maxLines = 1,
+                               overflow = TextOverflow.Ellipsis,
+                           )
+                           Text(
+                               text = miniArtists,
+                               style = MaterialTheme.typography.bodySmall,
+                               color = MaterialTheme.colorScheme.onSurfaceVariant,
+                               maxLines = 1,
+                               overflow = TextOverflow.Ellipsis,
+                           )
+                       }
 
-                      // Play/Pause button (separate from clickable area)
-                      IconButton(
-                          onClick = { playerConnection?.togglePlayPause() },
-                          modifier = Modifier.size(40.dp),
-                      ) {
-                          Icon(
-                              if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                              contentDescription = if (isPlaying) "Pause" else "Play",
-                              tint = MaterialTheme.colorScheme.onSurface,
-                              modifier = Modifier.size(20.dp)
-                          )
-                      }
-                  }
-              }
+                       // Play/Pause button (separate from clickable area)
+                       IconButton(
+                           onClick = { playerConnection?.togglePlayPause() },
+                           modifier = Modifier
+                               .size(40.dp)
+                               .padding(end = 8.dp)
+                               .onFocusChanged { /* consume focus events */ },
+                       ) {
+                           Icon(
+                               if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                               contentDescription = if (isPlaying) "Pause" else "Play",
+                               tint = MaterialTheme.colorScheme.onSurface,
+                               modifier = Modifier.size(20.dp)
+                           )
+                       }
+                   }
+               }
 
              Spacer(modifier = Modifier.weight(1f))
 
@@ -837,8 +868,8 @@ fun TvFocusedDetailPanel(
             .fillMaxWidth()
             .height(280.dp),
         shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 4.dp,
+        color = Color.Transparent,
+        tonalElevation = 0.dp,
     ) {
         if (focusedItem != null) {
             Box(modifier = Modifier.fillMaxSize()) {
@@ -849,9 +880,9 @@ fun TvFocusedDetailPanel(
                     modifier = Modifier
                         .fillMaxSize()
                         .graphicsLayer {
-                            alpha = 0.25f
-                            scaleX = 1.08f
-                            scaleY = 1.08f
+                            alpha = 0.45f
+                            scaleX = 1.05f
+                            scaleY = 1.05f
                         },
                 )
                 Box(
@@ -860,9 +891,9 @@ fun TvFocusedDetailPanel(
                         .background(
                             Brush.horizontalGradient(
                                 colors = listOf(
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.80f),
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.30f),
+                                    Color.Black.copy(alpha = 0.75f),
+                                    Color.Black.copy(alpha = 0.50f),
+                                    Color.Black.copy(alpha = 0.20f),
                                 )
                             )
                         )
@@ -883,7 +914,7 @@ fun TvFocusedDetailPanel(
                     ) {
                         Surface(
                             shape = RoundedCornerShape(50),
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
                         ) {
                             Text(
                                 text = focusedItem.type.ifBlank { "Music" },
@@ -898,7 +929,7 @@ fun TvFocusedDetailPanel(
                             text = focusedItem.title,
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = Color.White,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -907,7 +938,7 @@ fun TvFocusedDetailPanel(
                             Text(
                                 text = focusedItem.subtitle,
                                 style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = Color.White.copy(alpha = 0.8f),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -922,13 +953,13 @@ fun TvFocusedDetailPanel(
                                 stats.forEach { stat ->
                                     Surface(
                                         shape = RoundedCornerShape(50),
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                                        color = Color.White.copy(alpha = 0.12f),
                                     ) {
                                         Text(
                                             text = stat,
                                             style = MaterialTheme.typography.bodySmall,
                                             fontWeight = FontWeight.SemiBold,
-                                            color = MaterialTheme.colorScheme.onSurface,
+                                            color = Color.White,
                                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                                         )
                                     }
@@ -940,7 +971,7 @@ fun TvFocusedDetailPanel(
                             Text(
                                 text = focusedItem.description,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
+                                color = Color.White.copy(alpha = 0.75f),
                                 maxLines = if (focusedItem.type == "Artist") 3 else 2,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -951,10 +982,10 @@ fun TvFocusedDetailPanel(
                         modifier = Modifier
                             .size(200.dp)
                             .clip(if (focusedItem.type == "Artist") CircleShape else RoundedCornerShape(20.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .background(Color.Black.copy(alpha = 0.3f))
                             .border(
                                 width = 2.dp,
-                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                                color = Color.White.copy(alpha = 0.3f),
                                 shape = if (focusedItem.type == "Artist") CircleShape else RoundedCornerShape(20.dp),
                             ),
                         contentAlignment = Alignment.Center,
@@ -971,7 +1002,16 @@ fun TvFocusedDetailPanel(
         } else {
             // Default state when nothing is focused
             Box(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.surface,
+                                MaterialTheme.colorScheme.surfaceVariant,
+                            )
+                        )
+                    ),
                 contentAlignment = Alignment.Center,
             ) {
                 Column(

@@ -20,7 +20,6 @@
             android:exported="true"
             android:banner="@mipmap/tv_banner"
             android:launchMode="singleTask"
-            android:supportsPictureInPicture="true"
             android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
             android:theme="@style/Theme.AuraMusic">
             <intent-filter>

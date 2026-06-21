@@ -725,17 +725,7 @@ fun TvPlayerScreen(
                             tint = if (showLyrics) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f),
                         )
 
-                        TvPlayerControlButton(
-                            onClick = {
-                                val activity = context as? android.app.Activity
-                                if (activity is com.auramusic.app.TvMainActivity) {
-                                    activity.enterPictureInPicture()
-                                }
-                            },
-                            painter = painterResource(R.drawable.fullscreen),
-                            contentDescription = "Picture in Picture",
-                            tint = Color.White.copy(alpha = 0.7f),
-                        )
+
                     }
                 }
 
