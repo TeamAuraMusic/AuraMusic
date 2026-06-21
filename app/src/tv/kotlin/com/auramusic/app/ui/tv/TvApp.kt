@@ -941,7 +941,7 @@ fun TvFocusedDetailPanel(
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(start = 28.dp, end = 28.dp, top = 80.dp, bottom = 20.dp),
+                        .padding(start = 28.dp, end = 28.dp, top = 95.dp, bottom = 20.dp),
                     horizontalArrangement = Arrangement.spacedBy(24.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
