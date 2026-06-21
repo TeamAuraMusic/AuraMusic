@@ -438,7 +438,7 @@ fun TvPlayerScreen(
                 ) {
                     Spacer(modifier = Modifier.height(48.dp)) // Space for back button
 
-                    // Album art / Lyrics container
+                    // Album art / Lyrics / Video container
                     Box(
                         modifier = Modifier
                             .size(280.dp)
@@ -446,31 +446,66 @@ fun TvPlayerScreen(
                             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.1f)),
                         contentAlignment = Alignment.Center,
                     ) {
-                        if (videoModeEnabled && (isVideoAvailable || isVideoSwitching)) {
-                            val isVideoBuffering = playbackState == androidx.media3.common.Player.STATE_BUFFERING
-                            if (isVideoSwitching || isVideoBuffering) {
-                                CircularProgressIndicator(
-                                    color = Color.White,
-                                    modifier = Modifier.size(48.dp),
-                                )
-                            }
+                        val isVideoBuffering = videoModeEnabled && playbackState == androidx.media3.common.Player.STATE_BUFFERING
 
-                            AndroidView(
-                                factory = { ctx ->
-                                    PlayerView(ctx).apply {
-                                        player = pc?.player
-                                        useController = false
-                                        resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                                        setBackgroundColor(android.graphics.Color.BLACK)
-                                        setShutterBackgroundColor(android.graphics.Color.BLACK)
+                        if (videoModeEnabled && (isVideoAvailable || isVideoSwitching)) {
+                            if (isVideoSwitching) {
+                                // Show loading while video source is being fetched
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(Color.Black),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                                    ) {
+                                        CircularProgressIndicator(
+                                            color = Color.White,
+                                            modifier = Modifier.size(48.dp),
+                                        )
+                                        Text(
+                                            text = "Loading video...",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = Color.White.copy(alpha = 0.7f),
+                                        )
                                     }
-                                },
-                                modifier = Modifier.fillMaxSize(),
-                                update = { playerView ->
-                                    playerView.player = pc?.player
-                                    playerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                                },
-                            )
+                                }
+                            } else {
+                                // Video is ready - show PlayerView
+                                AndroidView(
+                                    factory = { ctx ->
+                                        PlayerView(ctx).apply {
+                                            player = pc?.player
+                                            useController = false
+                                            resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                                            setBackgroundColor(android.graphics.Color.BLACK)
+                                            setShutterBackgroundColor(android.graphics.Color.BLACK)
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxSize(),
+                                    update = { playerView ->
+                                        playerView.player = pc?.player
+                                        playerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                                    },
+                                )
+
+                                // Show buffering indicator on top of video when buffering
+                                if (isVideoBuffering) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(Color.Black.copy(alpha = 0.5f)),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        CircularProgressIndicator(
+                                            color = Color.White,
+                                            modifier = Modifier.size(48.dp),
+                                        )
+                                    }
+                                }
+                            }
                         } else if (showLyrics) {
                             // Show lyrics behind thumbnail when enabled
                             val positionProvider = { currentPosition }
