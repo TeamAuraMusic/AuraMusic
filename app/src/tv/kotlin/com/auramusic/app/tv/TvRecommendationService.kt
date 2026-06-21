@@ -1,6 +1,7 @@
 package com.auramusic.app.tv
 
 import android.app.Notification
+import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
@@ -32,6 +33,28 @@ class TvRecommendationService : android.app.Service() {
     override fun onBind(intent: Intent?) = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // Create notification channel (required for Android 8+)
+        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        nm.createNotificationChannel(
+            NotificationChannel(
+                NOTIFICATION_CHANNEL_ID,
+                "TV Recommendations",
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "Continue Listening recommendations for Google TV home screen"
+            }
+        )
+
+        // Android 14 requires startForeground() within 5 seconds
+        val notification: Notification = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle("AuraMusic")
+            .setContentText("Updating recommendations...")
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setOngoing(true)
+            .build()
+        startForeground(NOTIFICATION_ID, notification)
+
         scope.launch {
             try {
                 updateRecommendations()
@@ -119,7 +142,7 @@ class TvRecommendationService : android.app.Service() {
 
         Timber.d("Published $count TV recommendations for '$queueTitle'")
 
-        // Foreground notification required by Android for services
+        // Update the foreground notification with final info
         val notification: Notification = NotificationCompat.Builder(ctx, NOTIFICATION_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle("AuraMusic")
@@ -128,7 +151,8 @@ class TvRecommendationService : android.app.Service() {
             .setOngoing(true)
             .build()
 
-        startForeground(NOTIFICATION_ID, notification)
+        val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        nm.notify(NOTIFICATION_ID, notification)
     }
 
     private fun ensureChannel(ctx: Context): Long {
