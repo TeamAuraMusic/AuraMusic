@@ -482,12 +482,14 @@ fun TvPlayerScreen(
                                             resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                                             setBackgroundColor(android.graphics.Color.BLACK)
                                             setShutterBackgroundColor(android.graphics.Color.BLACK)
+                                            keepScreenOn = true
                                         }
                                     },
                                     modifier = Modifier.fillMaxSize(),
                                     update = { playerView ->
                                         playerView.player = pc?.player
                                         playerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                                        playerView.requestLayout()
                                     },
                                 )
 

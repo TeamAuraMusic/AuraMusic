@@ -757,11 +757,11 @@ fun TvTopBar(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         // Clickable song info area (opens full player)
-                        Row(
+                        Surface(
+                            onClick = onMiniPlayerClick,
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxHeight()
-                                .clip(RoundedCornerShape(8.dp))
                                 .graphicsLayer {
                                     scaleX = miniInfoScale
                                     scaleY = miniInfoScale
@@ -771,19 +771,20 @@ fun TvTopBar(
                                     color = if (miniInfoFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
                                     shape = RoundedCornerShape(8.dp),
                                 )
-                                .background(
-                                    if (miniInfoFocused)
-                                        MaterialTheme.colorScheme.surfaceVariant
-                                    else
-                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                                )
-                                .onFocusChanged { miniInfoFocused = it.isFocused }
-                                .focusable()
-                                .clickable { onMiniPlayerClick() }
-                                .padding(horizontal = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                .onFocusChanged { miniInfoFocused = it.isFocused },
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (miniInfoFocused)
+                                MaterialTheme.colorScheme.surfaceVariant
+                            else
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                         ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
                             // Album art
                             Box(
                                 modifier = Modifier
@@ -904,7 +905,7 @@ fun TvFocusedDetailPanel(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .height(280.dp),
+            .height(310.dp),
         shape = RoundedCornerShape(20.dp),
         color = Color.Transparent,
         tonalElevation = 0.dp,
@@ -940,7 +941,7 @@ fun TvFocusedDetailPanel(
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 28.dp, vertical = 20.dp),
+                        .padding(start = 28.dp, end = 28.dp, top = 80.dp, bottom = 20.dp),
                     horizontalArrangement = Arrangement.spacedBy(24.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -1453,20 +1454,20 @@ fun YouTubeSectionRow(
 ) {
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         // Section header with underline
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground,
             )
             Box(
                 modifier = Modifier
-                    .width(120.dp)
-                    .height(3.dp)
+                    .width(80.dp)
+                    .height(2.dp)
                     .background(
                         brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
                             colors = listOf(
@@ -2542,20 +2543,20 @@ fun SongRow(
 ) {
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Section header with underline
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground,
             )
             Box(
                 modifier = Modifier
-                    .width(120.dp)
-                    .height(3.dp)
+                    .width(80.dp)
+                    .height(2.dp)
                     .background(
                         brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
                             colors = listOf(
@@ -2753,19 +2754,19 @@ fun LocalItemRow(title: String, localItems: List<LocalItem>, playerConnection: P
 
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Section header with underline
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground,
             )
             Box(
                 modifier = Modifier
-                    .width(120.dp)
+                    .width(80.dp)
                     .height(3.dp)
                     .background(
                         brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
