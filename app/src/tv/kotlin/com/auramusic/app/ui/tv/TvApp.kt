@@ -820,6 +820,7 @@ fun TvTopBar(
                                 )
                             }
                         }
+                    }
 
                         // Separate play/pause button
                         val playButtonScale by animateFloatAsState(
