@@ -816,6 +816,9 @@ data class FocusedItemInfo(
     val description: String = "",
     val thumbnailUrl: String? = null,
     val type: String = "", // "Song", "Artist", "Album", "Playlist"
+    val artistId: String? = null,
+    val subscriberCountText: String? = null,
+    val monthlyListenerCount: String? = null,
 )
 
 @Composable
@@ -832,84 +835,150 @@ fun TvFocusedDetailPanel(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .height(320.dp),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-        tonalElevation = 4.dp,
+            .height(340.dp),
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.74f),
+        tonalElevation = 8.dp,
     ) {
         if (focusedItem != null) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(32.dp),
-                horizontalArrangement = Arrangement.spacedBy(32.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // Left side: info
-                Column(
+            Box(modifier = Modifier.fillMaxSize()) {
+                AsyncImage(
+                    model = focusedItem.thumbnailUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
                     modifier = Modifier
-                        .weight(1f)
-                        .graphicsLayer { alpha = animatedAlpha },
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    // Type badge
-                    Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                    ) {
-                        Text(
-                            text = focusedItem.type,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        )
-                    }
-
-                    Text(
-                        text = focusedItem.title,
-                        style = MaterialTheme.typography.headlineLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-
-                    if (focusedItem.subtitle.isNotBlank()) {
-                        Text(
-                            text = focusedItem.subtitle,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-
-                    if (focusedItem.description.isNotBlank()) {
-                        Text(
-                            text = focusedItem.description,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                            maxLines = 3,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-
-                // Right side: artwork
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            alpha = 0.32f
+                            scaleX = 1.08f
+                            scaleY = 1.08f
+                        },
+                )
                 Box(
                     modifier = Modifier
-                        .size(260.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surface),
-                    contentAlignment = Alignment.Center,
+                        .fillMaxSize()
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.82f),
+                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.36f),
+                                )
+                            )
+                        )
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Black.copy(alpha = 0.18f),
+                                    Color.Transparent,
+                                    Color.Black.copy(alpha = 0.34f),
+                                )
+                            )
+                        )
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 36.dp, vertical = 30.dp),
+                    horizontalArrangement = Arrangement.spacedBy(36.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    AsyncImage(
-                        model = focusedItem.thumbnailUrl,
-                        contentDescription = focusedItem.title,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
-                    )
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .graphicsLayer { alpha = animatedAlpha },
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                        ) {
+                            Text(
+                                text = focusedItem.type.ifBlank { "Music" },
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                            )
+                        }
+
+                        Text(
+                            text = focusedItem.title,
+                            style = MaterialTheme.typography.headlineLarge,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+
+                        if (focusedItem.subtitle.isNotBlank()) {
+                            Text(
+                                text = focusedItem.subtitle,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+
+                        val stats = listOfNotNull(
+                            focusedItem.monthlyListenerCount?.takeIf { it.isNotBlank() },
+                            focusedItem.subscriberCountText?.takeIf { it.isNotBlank() },
+                        )
+                        if (stats.isNotEmpty()) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                stats.forEach { stat ->
+                                    Surface(
+                                        shape = RoundedCornerShape(50),
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.09f),
+                                    ) {
+                                        Text(
+                                            text = stat,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        if (focusedItem.description.isNotBlank()) {
+                            Text(
+                                text = focusedItem.description,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.88f),
+                                maxLines = if (focusedItem.type == "Artist") 4 else 3,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .size(230.dp)
+                            .clip(if (focusedItem.type == "Artist") CircleShape else RoundedCornerShape(24.dp))
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.4f))
+                            .border(
+                                width = 2.dp,
+                                color = Color.White.copy(alpha = 0.20f),
+                                shape = if (focusedItem.type == "Artist") CircleShape else RoundedCornerShape(24.dp),
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        AsyncImage(
+                            model = focusedItem.thumbnailUrl,
+                            contentDescription = focusedItem.title,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
                 }
             }
         } else {
@@ -972,6 +1041,36 @@ fun TvHomeScreen(
     // Spotify-style focused detail panel state
     var focusedItem by remember { mutableStateOf<FocusedItemInfo?>(null) }
 
+    val firstHomeFocusIndex = when {
+        pinnedSpeedDialItems.isNotEmpty() -> 1
+        !quickPicks.isNullOrEmpty() -> 2
+        !forgottenFavorites.isNullOrEmpty() -> 3
+        !keepListening.isNullOrEmpty() -> 4
+        !similarRecommendations.isNullOrEmpty() -> 5
+        !accountPlaylists.isNullOrEmpty() -> 5 + (similarRecommendations?.size ?: 0)
+        homePage?.sections?.any { it.items.isNotEmpty() } == true -> 6 + (similarRecommendations?.size ?: 0)
+        !communityPlaylists.isNullOrEmpty() -> 7 + (similarRecommendations?.size ?: 0) + homePage?.sections.orEmpty().count { it.items.isNotEmpty() }
+        else -> -1
+    }
+
+    LaunchedEffect(focusedItem?.artistId) {
+        val artist = focusedItem?.takeIf { it.type == "Artist" && !it.artistId.isNullOrBlank() }
+        val artistId = artist?.artistId ?: return@LaunchedEffect
+        YouTube.artist(artistId).onSuccess { page ->
+            if (focusedItem?.artistId == artistId) {
+                focusedItem = focusedItem?.copy(
+                    subtitle = page.monthlyListenerCount ?: focusedItem?.subtitle.orEmpty(),
+                    description = page.description
+                        ?: page.descriptionRuns?.joinToString("") { it.text }
+                        ?: focusedItem?.description.orEmpty(),
+                    subscriberCountText = page.subscriberCountText ?: focusedItem?.subscriberCountText,
+                    monthlyListenerCount = page.monthlyListenerCount ?: focusedItem?.monthlyListenerCount,
+                    thumbnailUrl = page.artist.thumbnail ?: focusedItem?.thumbnailUrl,
+                )
+            }
+        }
+    }
+
     LaunchedEffect(homeListState, homePage?.continuation) {
         snapshotFlow {
             val lastVisibleIndex = homeListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
@@ -987,27 +1086,27 @@ fun TvHomeScreen(
             }
     }
 
-    LazyColumn(
-        state = homeListState,
-        modifier = Modifier
-            .fillMaxSize()
-            .focusRequester(focusRequester ?: remember { FocusRequester() })
-            .onPreviewKeyEvent { event ->
-                if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionUp) {
-                    // Only navigate to top bar if focus is on the first item (hero carousel, index 0)
-                    if (focusedItemIndex == 0) {
-                        onNavigateUp?.invoke()
-                        true
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            state = homeListState,
+            modifier = Modifier
+                .fillMaxSize()
+                .focusRequester(focusRequester ?: remember { FocusRequester() })
+                .onPreviewKeyEvent { event ->
+                    if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionUp) {
+                        if (focusedItemIndex == firstHomeFocusIndex) {
+                            onNavigateUp?.invoke()
+                            true
+                        } else {
+                            false // Let LazyColumn handle normal focus movement
+                        }
                     } else {
-                        false // Let LazyColumn handle normal focus movement
+                        false
                     }
-                } else {
-                    false
-                }
-            },
-        contentPadding = PaddingValues(horizontal = 48.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp),
-    ) {
+                },
+            contentPadding = PaddingValues(start = 48.dp, top = 380.dp, end = 48.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+        ) {
          // Refresh indicator
          if (isRefreshing) {
              item {
@@ -1017,16 +1116,6 @@ fun TvHomeScreen(
                     color = MaterialTheme.colorScheme.primary,
                 )
             }
-        }
-
-        // Focused detail panel (Spotify-style)
-        item(key = "detail_panel") {
-            TvFocusedDetailPanel(
-                focusedItem = focusedItem,
-                modifier = Modifier.onFocusChanged { state ->
-                    if (state.hasFocus) focusedItemIndex = 0
-                },
-            )
         }
 
         // Speed Dial Section
@@ -1284,6 +1373,14 @@ fun TvHomeScreen(
             }
         }
     }
+
+        TvFocusedDetailPanel(
+            focusedItem = focusedItem,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(horizontal = 48.dp, vertical = 16.dp),
+        )
+    }
 }
 
 @Composable
@@ -1295,7 +1392,10 @@ fun YouTubeSectionRow(
     modifier: Modifier = Modifier,
     onItemFocused: ((FocusedItemInfo?) -> Unit)? = null,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(24.dp),
+    ) {
         // Section header with underline
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
@@ -1402,6 +1502,7 @@ fun YouTubeMediaCard(
                 description = metadata ?: "",
                 thumbnailUrl = item.thumbnail,
                 type = type,
+                artistId = (item as? ArtistItem)?.id,
             ))
         } else if (!isFocusedState.value && onFocusChanged != null) {
             // Don't clear if another item might have focus
@@ -2454,6 +2555,10 @@ fun MediaCard(
     onClick: () -> Unit,
     isRound: Boolean = false,
     onFocusChanged: ((FocusedItemInfo?) -> Unit)? = null,
+    artistId: String? = null,
+    description: String = "",
+    subscriberCountText: String? = null,
+    monthlyListenerCount: String? = null,
 ) {
     val isFocusedState = remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -2475,8 +2580,12 @@ fun MediaCard(
                 onFocusChanged(FocusedItemInfo(
                     title = title,
                     subtitle = subtitle,
+                    description = description,
                     thumbnailUrl = thumbnailUrl,
                     type = if (isRound) "Artist" else "Song",
+                    artistId = artistId,
+                    subscriberCountText = subscriberCountText,
+                    monthlyListenerCount = monthlyListenerCount,
                 ))
             }
         }
@@ -2639,6 +2748,8 @@ fun LocalItemRow(title: String, localItems: List<LocalItem>, playerConnection: P
                         onClick = { navigator.navigate(TvDestination.Artist(item.id)) },
                         isRound = true,
                         onFocusChanged = onItemFocused,
+                        artistId = item.id.takeIf { item.artist.isYouTubeArtist },
+                        subscriberCountText = item.artist.subscriberCountText,
                     )
                     is Album -> MediaCard(
                         title = item.album.title,
