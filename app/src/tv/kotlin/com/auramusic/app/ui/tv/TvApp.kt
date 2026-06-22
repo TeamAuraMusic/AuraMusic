@@ -1110,6 +1110,9 @@ fun TvHomeScreen(
     // See More overlay state
     var seeMoreItems by remember { mutableStateOf<List<YTItem>?>(null) }
     var seeMoreTitle by remember { mutableStateOf("") }
+    var seeMoreContinuation by remember { mutableStateOf<String?>(null) }
+    var seeMoreFocusedIndex by remember { mutableStateOf(-1) }
+    var homeFocusedIndexBeforeSeeMore by remember { mutableStateOf(-1) }
 
     val firstHomeFocusIndex = when {
         pinnedSpeedDialItems.isNotEmpty() -> 1
@@ -1290,10 +1293,6 @@ fun TvHomeScreen(
                             items = recommendation.items,
                             playerConnection = playerConnection,
                             onItemFocused = { focusedItem = it },
-                            onSeeMore = {
-                                seeMoreItems = recommendation.items
-                                seeMoreTitle = "Similar to $titleName"
-                            },
                             onYTItemClick = { item: YTItem ->
                                 when (item) {
                                     is SongItem -> {
@@ -1376,8 +1375,10 @@ fun TvHomeScreen(
                         playerConnection = playerConnection,
                         onItemFocused = { focusedItem = it },
                         onSeeMore = {
+                            homeFocusedIndexBeforeSeeMore = focusedItemIndex
                             seeMoreItems = section.items
                             seeMoreTitle = sectionTitle
+                            seeMoreContinuation = homePage?.continuation
                         },
                         onYTItemClick = { item: YTItem ->
                             when (item) {
@@ -1463,7 +1464,20 @@ fun TvHomeScreen(
 
     // See More full-screen overlay
     if (seeMoreItems != null) {
-        BackHandler { seeMoreItems = null }
+        val dismissSeeMore = {
+            val restoredIndex = homeFocusedIndexBeforeSeeMore
+            seeMoreItems = null
+            seeMoreContinuation = null
+            seeMoreFocusedIndex = -1
+            // Restore focus after overlay dismisses
+            if (restoredIndex >= 0) {
+                kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
+                    kotlinx.coroutines.delay(100)
+                    focusedItemIndex = restoredIndex
+                }
+            }
+        }
+        BackHandler { dismissSeeMore() }
         val seeMoreBackFocus = remember { FocusRequester() }
 
         LaunchedEffect(Unit) {
@@ -1493,7 +1507,7 @@ fun TvHomeScreen(
                 ) {
                     var backFocused by remember { mutableStateOf(false) }
                     IconButton(
-                        onClick = { seeMoreItems = null },
+                        onClick = { dismissSeeMore() },
                         modifier = Modifier
                             .size(56.dp)
                             .focusRequester(seeMoreBackFocus)
@@ -1520,9 +1534,24 @@ fun TvHomeScreen(
                     )
                 }
 
-                // Grid of items
+                // Grid of items with scroll-to-load
                 val distinctItems = seeMoreItems?.distinctBy { it.id }.orEmpty()
                 val seeMoreGridState = rememberLazyGridState()
+
+                // Load more when near the bottom
+                LaunchedEffect(seeMoreGridState) {
+                    snapshotFlow {
+                        val lastVisible = seeMoreGridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                        val totalItems = seeMoreGridState.layoutInfo.totalItemsCount
+                        lastVisible >= totalItems - 3
+                    }.distinctUntilChanged().collect { nearBottom ->
+                        if (nearBottom && seeMoreContinuation != null) {
+                            viewModel.loadMoreYouTubeItems(seeMoreContinuation!!)
+                            seeMoreContinuation = homePage?.continuation
+                        }
+                    }
+                }
+
                 LazyVerticalGrid(
                     state = seeMoreGridState,
                     columns = GridCells.Fixed(5),
@@ -1545,7 +1574,7 @@ fun TvHomeScreen(
                         YouTubeMediaCard(
                             item = item,
                             onClick = {
-                                seeMoreItems = null
+                                dismissSeeMore()
                                 when (item) {
                                     is SongItem -> playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id)))
                                     is AlbumItem -> {

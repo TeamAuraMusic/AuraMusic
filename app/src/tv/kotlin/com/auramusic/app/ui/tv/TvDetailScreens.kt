@@ -478,7 +478,12 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(MaterialTheme.colorScheme.surface)
-                        .padding(horizontal = 24.dp, vertical = 12.dp),
+                        .padding(horizontal = 24.dp, vertical = 12.dp)
+                        .onPreviewKeyEvent { event ->
+                            if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionDown) {
+                                true
+                            } else false
+                        },
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     var backBtnFocused by remember { mutableStateOf(false) }
