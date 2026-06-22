@@ -24,6 +24,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -201,6 +203,10 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
     // Structure content similar to mobile app
     var backButtonFocused by remember { mutableStateOf(false) }
     val backButtonFocus = focusRequester ?: remember { FocusRequester() }
+
+    // See More overlay state
+    var seeMoreItems by remember { mutableStateOf<List<YTItem>?>(null) }
+    var seeMoreTitle by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
         runCatching { backButtonFocus.requestFocus() }
@@ -407,6 +413,10 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
                     items = ytSongs.take(20),
                     playerConnection = playerConnection,
                     onYTItemClick = onYTClick,
+                    onSeeMore = {
+                        seeMoreItems = ytSongs.take(20)
+                        seeMoreTitle = "Top Songs"
+                    },
                 )
             }
         }
@@ -419,11 +429,16 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
             }
             nonSongSections.forEachIndexed { sectionIndex, section ->
                 item(key = "artist_section_$sectionIndex") {
+                    val sectionTitle = section.title.ifBlank { "More" }
                     YouTubeSectionRow(
-                        title = section.title.ifBlank { "More" },
+                        title = sectionTitle,
                         items = section.items,
                         playerConnection = playerConnection,
                         onYTItemClick = onYTClick,
+                        onSeeMore = {
+                            seeMoreItems = section.items
+                            seeMoreTitle = sectionTitle
+                        },
                     )
                 }
             }
@@ -436,6 +451,70 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+        }
+    }
+
+    // See More full-screen overlay
+    if (seeMoreItems != null) {
+        BackHandler { seeMoreItems = null }
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background,
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surface)
+                        .padding(horizontal = 24.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    var backBtnFocused by remember { mutableStateOf(false) }
+                    IconButton(
+                        onClick = { seeMoreItems = null },
+                        modifier = Modifier
+                            .size(56.dp)
+                            .onFocusChanged { backBtnFocused = it.isFocused }
+                            .border(
+                                width = if (backBtnFocused) 3.dp else 0.dp,
+                                color = if (backBtnFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                shape = CircleShape,
+                            ),
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.size(32.dp),
+                        )
+                    }
+                    Spacer(Modifier.size(16.dp))
+                    Text(
+                        text = seeMoreTitle,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
+                }
+                val distinctItems = seeMoreItems?.distinctBy { it.id }.orEmpty()
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(5),
+                    contentPadding = PaddingValues(horizontal = 48.dp, vertical = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp),
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    items(distinctItems, key = { it.id }) { item ->
+                        YouTubeMediaCard(
+                            item = item,
+                            onClick = {
+                                seeMoreItems = null
+                                onYTClick(item)
+                            },
+                        )
+                    }
+                }
             }
         }
     }
