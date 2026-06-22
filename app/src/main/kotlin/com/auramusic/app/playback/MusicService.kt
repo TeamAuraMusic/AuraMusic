@@ -1890,17 +1890,29 @@ class MusicService :
             
             // Auto-enable video mode for new video songs
             if (newMediaId != null) {
+                // Immediately show loading state while we check and fetch
+                // video for the new song — prevents black screen gap
+                if (isVideoMode) {
+                    _isVideoSwitching.value = true
+                }
                 scope.launch {
                     try {
-                        val isVideoAvailable = checkVideoAvailability(newMediaId)
                         val isVideoSong = mediaItem.metadata?.isVideoSong == true
-                        val videoModeEnabledPref = dataStore.get(VideoModeEnabledKey, true)
-                        
-                        if (videoModeEnabledPref && isVideoSong && isVideoAvailable) {
-                            // Only trigger setVideoMode if we're not already in video mode
-                            // or if the media ID changed (new song)
-                            if (!isVideoMode || currentVideoSourceMediaId != newMediaId) {
-                                Timber.d("onMediaItemTransition: Auto-enabling video mode for new video song: $newMediaId")
+
+                        if (isVideoSong && isVideoMode) {
+                            // Already in video mode and next song is also a video song.
+                            // Always re-enable video mode regardless of checkVideoAvailability
+                            // to avoid black screen on auto-transition.
+                            if (currentVideoSourceMediaId != newMediaId) {
+                                Timber.d("onMediaItemTransition: Re-enabling video mode for next video song: $newMediaId")
+                                setVideoMode(true)
+                            }
+                        } else if (isVideoSong) {
+                            // Not yet in video mode, check availability first
+                            val isVideoAvailable = checkVideoAvailability(newMediaId)
+                            val videoModeEnabledPref = dataStore.get(VideoModeEnabledKey, true)
+
+                            if (videoModeEnabledPref && isVideoAvailable) {
                                 setVideoMode(true)
                             }
                         } else if (isVideoMode) {
