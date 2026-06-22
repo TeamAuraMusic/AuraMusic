@@ -211,6 +211,8 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
     // See More overlay state
     var seeMoreItems by remember { mutableStateOf<List<YTItem>?>(null) }
     var seeMoreTitle by remember { mutableStateOf("") }
+    var artistLastFocusedIndex by remember { mutableStateOf(-1) }
+    var artistSavedFocusIndex by remember { mutableStateOf(-1) }
 
     // Click handler shared across all YouTube items
     val onYTClick: (com.auramusic.innertube.models.YTItem) -> Unit = { item ->
@@ -417,7 +419,9 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
                     items = ytSongs.take(20),
                     playerConnection = playerConnection,
                     onYTItemClick = onYTClick,
+                    onItemFocused = { artistLastFocusedIndex = 40 },
                     onSeeMore = {
+                        artistSavedFocusIndex = artistLastFocusedIndex
                         seeMoreItems = ytSongs.take(20)
                         seeMoreTitle = "Top Songs"
                     },
@@ -440,6 +444,7 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
                         playerConnection = playerConnection,
                         onYTItemClick = onYTClick,
                         onSeeMore = {
+                            artistSavedFocusIndex = artistLastFocusedIndex
                             seeMoreItems = section.items
                             seeMoreTitle = sectionTitle
                         },
@@ -459,9 +464,24 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
         }
     }
 
+    // Restore focus after See More overlay closes
+    LaunchedEffect(seeMoreItems) {
+        if (seeMoreItems == null && artistSavedFocusIndex >= 0) {
+            kotlinx.coroutines.delay(100)
+            runCatching { backButtonFocus.requestFocus() }
+            artistSavedFocusIndex = -1
+        }
+    }
+
     // See More full-screen overlay
     if (seeMoreItems != null) {
-        BackHandler { seeMoreItems = null }
+        val savedIndex = artistSavedFocusIndex
+        BackHandler {
+            seeMoreItems = null
+            if (savedIndex >= 0) {
+                artistLastFocusedIndex = savedIndex
+            }
+        }
         val seeMoreBackFocus = remember { FocusRequester() }
 
         LaunchedEffect(Unit) {
@@ -488,7 +508,12 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
                 ) {
                     var backBtnFocused by remember { mutableStateOf(false) }
                     IconButton(
-                        onClick = { seeMoreItems = null },
+                        onClick = {
+                            seeMoreItems = null
+                            if (savedIndex >= 0) {
+                                artistLastFocusedIndex = savedIndex
+                            }
+                        },
                         modifier = Modifier
                             .size(56.dp)
                             .focusRequester(seeMoreBackFocus)

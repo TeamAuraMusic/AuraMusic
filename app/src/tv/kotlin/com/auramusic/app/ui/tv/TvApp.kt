@@ -1555,7 +1555,7 @@ fun TvHomeScreen(
                 LazyVerticalGrid(
                     state = seeMoreGridState,
                     columns = GridCells.Fixed(5),
-                    contentPadding = PaddingValues(start = 48.dp, top = 24.dp, end = 48.dp, bottom = 48.dp),
+                    contentPadding = PaddingValues(start = 48.dp, top = 32.dp, end = 48.dp, bottom = 48.dp),
                     horizontalArrangement = Arrangement.spacedBy(24.dp),
                     verticalArrangement = Arrangement.spacedBy(24.dp),
                     modifier = Modifier
