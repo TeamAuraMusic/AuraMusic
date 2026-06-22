@@ -29,6 +29,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.relocation.BringIntoViewRequester
@@ -1103,6 +1105,10 @@ fun TvHomeScreen(
     // Spotify-style focused detail panel state
     var focusedItem by remember { mutableStateOf<FocusedItemInfo?>(null) }
 
+    // See More overlay state
+    var seeMoreItems by remember { mutableStateOf<List<YTItem>?>(null) }
+    var seeMoreTitle by remember { mutableStateOf("") }
+
     val firstHomeFocusIndex = when {
         pinnedSpeedDialItems.isNotEmpty() -> 1
         !quickPicks.isNullOrEmpty() -> 2
@@ -1194,6 +1200,10 @@ fun TvHomeScreen(
                     items = speedDialItems.take(6).map { it.toYTItem() },
                     playerConnection = playerConnection,
                     onItemFocused = { focusedItem = it },
+                    onSeeMore = {
+                        seeMoreItems = speedDialItems.take(6).map { it.toYTItem() }
+                        seeMoreTitle = "Speed Dial"
+                    },
                     onYTItemClick = { item: YTItem ->
                        when (item) {
                            is SongItem -> playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id)))
@@ -1278,6 +1288,10 @@ fun TvHomeScreen(
                             items = recommendation.items,
                             playerConnection = playerConnection,
                             onItemFocused = { focusedItem = it },
+                            onSeeMore = {
+                                seeMoreItems = recommendation.items
+                                seeMoreTitle = "Similar to $titleName"
+                            },
                             onYTItemClick = { item: YTItem ->
                                 when (item) {
                                     is SongItem -> {
@@ -1328,6 +1342,10 @@ fun TvHomeScreen(
                     items = playlists.take(10),
                     playerConnection = playerConnection,
                     onItemFocused = { focusedItem = it },
+                    onSeeMore = {
+                        seeMoreItems = playlists.take(10)
+                        seeMoreTitle = "Your YouTube Playlists"
+                    },
                     onYTItemClick = { item: YTItem ->
                         when (item) {
                             is PlaylistItem -> {
@@ -1349,11 +1367,16 @@ fun TvHomeScreen(
         sections.forEachIndexed { sectionIndex, section ->
             if (section.items.isNotEmpty()) {
                 item(key = "yt_section_$sectionIndex") {
+                    val sectionTitle = section.title
                     YouTubeSectionRow(
-                        title = section.title,
+                        title = sectionTitle,
                         items = section.items,
                         playerConnection = playerConnection,
                         onItemFocused = { focusedItem = it },
+                        onSeeMore = {
+                            seeMoreItems = section.items
+                            seeMoreTitle = sectionTitle
+                        },
                         onYTItemClick = { item: YTItem ->
                             when (item) {
                                 is SongItem -> playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id)))
@@ -1389,6 +1412,10 @@ fun TvHomeScreen(
                     items = communityPlaylists.map { it.playlist },
                     playerConnection = playerConnection,
                     onItemFocused = { focusedItem = it },
+                    onSeeMore = {
+                        seeMoreItems = communityPlaylists.map { it.playlist }
+                        seeMoreTitle = "Community Playlists"
+                    },
                     onYTItemClick = { item: YTItem ->
                         when (item) {
                             is PlaylistItem -> navigator.navigate(TvDestination.Playlist(item.id))
@@ -1431,6 +1458,88 @@ fun TvHomeScreen(
         }
     }
     }
+
+    // See More full-screen overlay
+    if (seeMoreItems != null) {
+        BackHandler { seeMoreItems = null }
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background,
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                // Header with back button
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surface)
+                        .padding(horizontal = 24.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    var backFocused by remember { mutableStateOf(false) }
+                    IconButton(
+                        onClick = { seeMoreItems = null },
+                        modifier = Modifier
+                            .size(56.dp)
+                            .onFocusChanged { backFocused = it.isFocused }
+                            .border(
+                                width = if (backFocused) 3.dp else 0.dp,
+                                color = if (backFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                shape = CircleShape,
+                            ),
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.size(32.dp),
+                        )
+                    }
+                    Spacer(Modifier.size(16.dp))
+                    Text(
+                        text = seeMoreTitle,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
+                }
+
+                // Grid of items
+                val distinctItems = seeMoreItems?.distinctBy { it.id }.orEmpty()
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(5),
+                    contentPadding = PaddingValues(horizontal = 48.dp, vertical = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp),
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    items(distinctItems, key = { it.id }) { item ->
+                        YouTubeMediaCard(
+                            item = item,
+                            onClick = {
+                                seeMoreItems = null
+                                when (item) {
+                                    is SongItem -> playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id)))
+                                    is AlbumItem -> {
+                                        val browseId = item.browseId
+                                        if (browseId != null) navigator.navigate(TvDestination.Album(browseId))
+                                        else playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(playlistId = item.playlistId)))
+                                    }
+                                    is ArtistItem -> item.id?.let { navigator.navigate(TvDestination.Artist(it)) }
+                                    is PlaylistItem -> navigator.navigate(TvDestination.Playlist(item.id))
+                                    is EpisodeItem -> playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id)))
+                                    is PodcastItem -> item.id?.let { navigator.navigate(TvDestination.Playlist(it)) }
+                                    else -> {}
+                                }
+                            },
+                            onFocusChanged = { focusedItem = it },
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -1441,6 +1550,7 @@ fun YouTubeSectionRow(
     onYTItemClick: (YTItem) -> Unit,
     modifier: Modifier = Modifier,
     onItemFocused: ((FocusedItemInfo?) -> Unit)? = null,
+    onSeeMore: (() -> Unit)? = null,
 ) {
     Column(
         modifier = modifier,
@@ -1448,12 +1558,41 @@ fun YouTubeSectionRow(
     ) {
         // Section header with underline
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+                if (items.size > 5) {
+                    var seeMoreFocused by remember { mutableStateOf(false) }
+                    Surface(
+                        onClick = { onSeeMore?.invoke() },
+                        modifier = Modifier
+                            .onFocusChanged { seeMoreFocused = it.isFocused }
+                            .border(
+                                width = if (seeMoreFocused) 2.dp else 0.dp,
+                                color = if (seeMoreFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                shape = RoundedCornerShape(8.dp),
+                            ),
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (seeMoreFocused) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent,
+                    ) {
+                        Text(
+                            text = "See more \u2192",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        )
+                    }
+                }
+            }
             Box(
                 modifier = Modifier
                     .width(80.dp)
