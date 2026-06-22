@@ -909,7 +909,7 @@ fun TvFocusedDetailPanel(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .height(310.dp),
+            .height(360.dp),
         shape = RoundedCornerShape(20.dp),
         color = Color.Transparent,
         tonalElevation = 0.dp,
