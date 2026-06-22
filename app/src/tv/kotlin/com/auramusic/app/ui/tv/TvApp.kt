@@ -1245,7 +1245,7 @@ fun TvHomeScreen(
                         }
                     )
                }
-           }
+            }
 
            if (!keepListening.isNullOrEmpty()) {
                item(key = "keep_listening") {
@@ -1261,7 +1261,8 @@ fun TvHomeScreen(
                }
            }
 
-            // Similar recommendations
+
+             // Similar recommendations
             similarRecommendations?.takeIf { it.isNotEmpty() }?.let { recommendations ->
                 recommendations.forEachIndexed { recIndex, recommendation ->
                     val titleName = when (recommendation.title) {
@@ -1395,18 +1396,6 @@ fun TvHomeScreen(
                             else -> {}
                         }
                     },
-                )
-            }
-        }
-
-        // Recently played from local library
-        val recentSongs = keepListening?.filterIsInstance<com.auramusic.app.db.entities.Song>()?.take(5)
-        if (!recentSongs.isNullOrEmpty()) {
-            item(key = "recently_played") {
-                SongRow(
-                    title = "Recently Played",
-                    songs = recentSongs,
-                    onSongClick = { song -> playerConnection?.playQueue(YouTubeQueue.radio(song.toMediaMetadata())) },
                 )
             }
         }
@@ -1830,7 +1819,7 @@ fun TvLibraryScreen(
                     false
                 }
             },
-        contentPadding = PaddingValues(horizontal = 48.dp, vertical = 16.dp),
+        contentPadding = PaddingValues(start = 48.dp, top = 95.dp, end = 48.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
         item(key = "header") {
@@ -1954,7 +1943,7 @@ fun TvSearchScreen(
                     false
                 }
             },
-        contentPadding = PaddingValues(horizontal = 48.dp, vertical = 16.dp),
+        contentPadding = PaddingValues(start = 48.dp, top = 95.dp, end = 48.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
         item(key = "search_bar") {
@@ -3193,7 +3182,7 @@ fun TvSettingsScreen(
                     false
                 }
             },
-        contentPadding = PaddingValues(horizontal = 64.dp, vertical = 24.dp),
+        contentPadding = PaddingValues(start = 64.dp, top = 95.dp, end = 64.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item(key = "settings_header") {
@@ -3357,7 +3346,7 @@ fun TvSettingsScreen(
                     false
                 }
             },
-        contentPadding = PaddingValues(horizontal = 64.dp, vertical = 24.dp),
+        contentPadding = PaddingValues(start = 64.dp, top = 95.dp, end = 64.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {

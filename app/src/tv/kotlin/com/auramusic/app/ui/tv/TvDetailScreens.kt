@@ -221,7 +221,7 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
                     false
                 }
             },
-        contentPadding = PaddingValues(horizontal = 48.dp, vertical = 16.dp),
+        contentPadding = PaddingValues(start = 48.dp, top = 95.dp, end = 48.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(32.dp),
     ) {
         // Header section
@@ -534,7 +534,7 @@ private fun TvDetailLayout(
                     false
                 }
             },
-        contentPadding = PaddingValues(horizontal = 48.dp, vertical = 16.dp),
+        contentPadding = PaddingValues(start = 48.dp, top = 95.dp, end = 48.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item(key = "header") {

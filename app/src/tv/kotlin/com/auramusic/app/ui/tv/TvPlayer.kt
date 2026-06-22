@@ -448,7 +448,7 @@ fun TvPlayerScreen(
                     ) {
                         val isVideoBuffering = videoModeEnabled && playbackState == androidx.media3.common.Player.STATE_BUFFERING
 
-                        if (videoModeEnabled && (isVideoAvailable || isVideoSwitching)) {
+                        if (videoModeEnabled) {
                             if (isVideoSwitching) {
                                 // Show loading while video source is being fetched
                                 Box(
