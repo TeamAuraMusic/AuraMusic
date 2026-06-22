@@ -144,7 +144,7 @@ import kotlinx.coroutines.launch
             AndroidView(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(top = 72.dp)
+                    .padding(top = 95.dp)
                     .focusRequester(remember { FocusRequester() })
                     .onFocusChanged { state ->
                         webViewFocused = state.isFocused
@@ -167,16 +167,15 @@ import kotlinx.coroutines.launch
                                         wv.evaluateJavascript("""
                                             (function() {
                                                 var focused = document.activeElement;
-                                                if (focused && (focused.tagName === 'INPUT' || focused.tagName === 'BUTTON')) {
-                                                    var elements = Array.from(document.querySelectorAll('input[type="email"], input[type="password"], input[type="text"], button, [role="button"]'));
-                                                    var idx = elements.indexOf(focused);
-                                                    if (idx >= 0) {
-                                                        var nextIdx = '$direction' === 'next' ? idx + 1 : idx - 1;
-                                                        if (nextIdx >= 0 && nextIdx < elements.length) {
-                                                            elements[nextIdx].focus();
-                                                            elements[nextIdx].scrollIntoView({behavior: 'smooth', block: 'center'});
-                                                        }
-                                                    }
+                                                var elements = Array.from(document.querySelectorAll('input:not([type="hidden"]), button, [role="button"], a, [tabindex]:not([tabindex="-1"])'));
+                                                elements = elements.filter(function(e) { return e.offsetParent !== null; });
+                                                if (elements.length === 0) return;
+                                                var idx = elements.indexOf(focused);
+                                                if (idx < 0) { elements[0].focus(); return; }
+                                                var nextIdx = '$direction' === 'next' ? idx + 1 : idx - 1;
+                                                if (nextIdx >= 0 && nextIdx < elements.length) {
+                                                    elements[nextIdx].focus();
+                                                    elements[nextIdx].scrollIntoView({behavior: 'smooth', block: 'center'});
                                                 }
                                             })();
                                         """, null)
@@ -185,16 +184,17 @@ import kotlinx.coroutines.launch
                                 }
                                 Key.DirectionCenter, Key.Enter -> {
                                     webView?.let { wv ->
-                                        // Click the currently focused element
                                         wv.evaluateJavascript("""
                                             (function() {
                                                 var focused = document.activeElement;
-                                                if (focused && (focused.tagName === 'BUTTON' || focused.getAttribute('role') === 'button')) {
+                                                if (!focused) return;
+                                                if (focused.tagName === 'BUTTON' || focused.getAttribute('role') === 'button') {
                                                     focused.click();
-                                                } else if (focused && focused.tagName === 'INPUT') {
-                                                    // For input fields, try to find and click the "Next" button
-                                                    var nextBtn = document.querySelector('button[type="submit"], #identifierNext button, #passwordNext button, [data-idom-class]');
-                                                    if (nextBtn) nextBtn.click();
+                                                } else if (focused.tagName === 'INPUT') {
+                                                    var nextBtn = document.querySelector('#identifierNext button, #passwordNext button, button[type="submit"]');
+                                                    if (nextBtn) { nextBtn.click(); } else { focused.form?.submit(); }
+                                                } else if (focused.tagName === 'A') {
+                                                    focused.click();
                                                 }
                                             })();
                                         """, null)
@@ -227,16 +227,13 @@ import kotlinx.coroutines.launch
                                 // Inject D-pad navigation helper script
                                 view.evaluateJavascript("""
                                     (function() {
-                                        // Make form elements focusable via D-pad
                                         var style = document.createElement('style');
                                         style.textContent = '*:focus { outline: 3px solid #1a73e8 !important; outline-offset: 2px; }';
                                         document.head.appendChild(style);
-
-                                        // Auto-focus first input field after page load
                                         setTimeout(function() {
-                                            var firstInput = document.querySelector('input[type="email"], input[type="text"]');
-                                            if (firstInput) firstInput.focus();
-                                        }, 1000);
+                                            var input = document.querySelector('input[type="email"], input[type="text"], input[type="tel"], input[type="password"]');
+                                            if (input) { input.focus(); input.scrollIntoView({behavior:'smooth',block:'center'}); }
+                                        }, 1500);
                                     })();
                                 """, null)
 
