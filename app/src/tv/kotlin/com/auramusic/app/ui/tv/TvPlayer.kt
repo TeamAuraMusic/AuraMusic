@@ -474,11 +474,7 @@ fun TvPlayerScreen(
                                 }
                             } else {
                                 // Video is ready - show PlayerView
-                                // Key on mediaMetadata id so PlayerView is recreated
-                                // when the video song changes, ensuring the video surface
-                                // properly initializes for the new video source.
                                 AndroidView(
-                                    key = mediaMetadata?.id,
                                     factory = { ctx ->
                                         PlayerView(ctx).apply {
                                             player = pc?.player
