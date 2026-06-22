@@ -1510,7 +1510,7 @@ fun TvHomeScreen(
                 val distinctItems = seeMoreItems?.distinctBy { it.id }.orEmpty()
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(5),
-                    contentPadding = PaddingValues(horizontal = 48.dp, vertical = 24.dp),
+                    contentPadding = PaddingValues(start = 48.dp, top = 24.dp, end = 48.dp, bottom = 48.dp),
                     horizontalArrangement = Arrangement.spacedBy(24.dp),
                     verticalArrangement = Arrangement.spacedBy(24.dp),
                     modifier = Modifier.fillMaxSize(),
