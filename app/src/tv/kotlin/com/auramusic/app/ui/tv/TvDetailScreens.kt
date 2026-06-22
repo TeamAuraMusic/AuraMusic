@@ -208,12 +208,6 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
     var backButtonFocused by remember { mutableStateOf(false) }
     val backButtonFocus = focusRequester ?: remember { FocusRequester() }
 
-    // See More overlay state
-    var seeMoreItems by remember { mutableStateOf<List<YTItem>?>(null) }
-    var seeMoreTitle by remember { mutableStateOf("") }
-    var artistLastFocusedIndex by remember { mutableStateOf(-1) }
-    var artistSavedFocusIndex by remember { mutableStateOf(-1) }
-
     // Click handler shared across all YouTube items
     val onYTClick: (com.auramusic.innertube.models.YTItem) -> Unit = { item ->
         when (item) {
@@ -419,12 +413,6 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
                     items = ytSongs.take(20),
                     playerConnection = playerConnection,
                     onYTItemClick = onYTClick,
-                    onItemFocused = { artistLastFocusedIndex = 40 },
-                    onSeeMore = {
-                        artistSavedFocusIndex = artistLastFocusedIndex
-                        seeMoreItems = ytSongs.take(20)
-                        seeMoreTitle = "Top Songs"
-                    },
                 )
             }
         }
@@ -443,11 +431,6 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
                         items = section.items,
                         playerConnection = playerConnection,
                         onYTItemClick = onYTClick,
-                        onSeeMore = {
-                            artistSavedFocusIndex = artistLastFocusedIndex
-                            seeMoreItems = section.items
-                            seeMoreTitle = sectionTitle
-                        },
                     )
                 }
             }
@@ -460,115 +443,6 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            }
-        }
-    }
-
-    // Restore focus after See More overlay closes
-    LaunchedEffect(seeMoreItems) {
-        if (seeMoreItems == null && artistSavedFocusIndex >= 0) {
-            kotlinx.coroutines.delay(100)
-            runCatching { backButtonFocus.requestFocus() }
-            artistSavedFocusIndex = -1
-        }
-    }
-
-    // See More full-screen overlay
-    if (seeMoreItems != null) {
-        val savedIndex = artistSavedFocusIndex
-        BackHandler {
-            seeMoreItems = null
-            if (savedIndex >= 0) {
-                artistLastFocusedIndex = savedIndex
-            }
-        }
-        val seeMoreBackFocus = remember { FocusRequester() }
-
-        LaunchedEffect(Unit) {
-            kotlinx.coroutines.delay(100)
-            runCatching { seeMoreBackFocus.requestFocus() }
-        }
-
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background,
-        ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surface)
-                        .padding(horizontal = 24.dp, vertical = 12.dp)
-                        .onPreviewKeyEvent { event ->
-                            if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionDown) {
-                                true
-                            } else false
-                        },
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    var backBtnFocused by remember { mutableStateOf(false) }
-                    IconButton(
-                        onClick = {
-                            seeMoreItems = null
-                            if (savedIndex >= 0) {
-                                artistLastFocusedIndex = savedIndex
-                            }
-                        },
-                        modifier = Modifier
-                            .size(56.dp)
-                            .focusRequester(seeMoreBackFocus)
-                            .onFocusChanged { backBtnFocused = it.isFocused }
-                            .border(
-                                width = if (backBtnFocused) 3.dp else 0.dp,
-                                color = if (backBtnFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
-                                shape = CircleShape,
-                            ),
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.size(32.dp),
-                        )
-                    }
-                    Spacer(Modifier.size(16.dp))
-                    Text(
-                        text = seeMoreTitle,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground,
-                    )
-                }
-                val distinctItems = seeMoreItems?.distinctBy { it.id }.orEmpty()
-                val seeMoreGridState = rememberLazyGridState()
-                LazyVerticalGrid(
-                    state = seeMoreGridState,
-                    columns = GridCells.Fixed(5),
-                    contentPadding = PaddingValues(start = 48.dp, top = 24.dp, end = 48.dp, bottom = 48.dp),
-                    horizontalArrangement = Arrangement.spacedBy(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(24.dp),
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .onPreviewKeyEvent { event ->
-                            if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionUp) {
-                                if (seeMoreGridState.firstVisibleItemIndex == 0 &&
-                                    seeMoreGridState.firstVisibleItemScrollOffset == 0) {
-                                    runCatching { seeMoreBackFocus.requestFocus() }
-                                    true
-                                } else false
-                            } else false
-                        },
-                ) {
-                    items(distinctItems, key = { it.id }) { item ->
-                        YouTubeMediaCard(
-                            item = item,
-                            onClick = {
-                                seeMoreItems = null
-                                onYTClick(item)
-                            },
-                        )
-                    }
-                }
             }
         }
     }

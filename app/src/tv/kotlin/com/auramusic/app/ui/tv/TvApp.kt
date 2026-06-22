@@ -1107,13 +1107,6 @@ fun TvHomeScreen(
     // Spotify-style focused detail panel state
     var focusedItem by remember { mutableStateOf<FocusedItemInfo?>(null) }
 
-    // See More overlay state
-    var seeMoreItems by remember { mutableStateOf<List<YTItem>?>(null) }
-    var seeMoreTitle by remember { mutableStateOf("") }
-    var seeMoreContinuation by remember { mutableStateOf<String?>(null) }
-    var seeMoreFocusedIndex by remember { mutableStateOf(-1) }
-    var homeFocusedIndexBeforeSeeMore by remember { mutableStateOf(-1) }
-
     val firstHomeFocusIndex = when {
         pinnedSpeedDialItems.isNotEmpty() -> 1
         !quickPicks.isNullOrEmpty() -> 2
@@ -1205,10 +1198,6 @@ fun TvHomeScreen(
                     items = speedDialItems.take(6).map { it.toYTItem() },
                     playerConnection = playerConnection,
                     onItemFocused = { focusedItem = it },
-                    onSeeMore = {
-                        seeMoreItems = speedDialItems.take(6).map { it.toYTItem() }
-                        seeMoreTitle = "Speed Dial"
-                    },
                     onYTItemClick = { item: YTItem ->
                        when (item) {
                            is SongItem -> playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id)))
@@ -1343,10 +1332,6 @@ fun TvHomeScreen(
                     items = playlists.take(10),
                     playerConnection = playerConnection,
                     onItemFocused = { focusedItem = it },
-                    onSeeMore = {
-                        seeMoreItems = playlists.take(10)
-                        seeMoreTitle = "Your YouTube Playlists"
-                    },
                     onYTItemClick = { item: YTItem ->
                         when (item) {
                             is PlaylistItem -> {
@@ -1374,12 +1359,6 @@ fun TvHomeScreen(
                         items = section.items,
                         playerConnection = playerConnection,
                         onItemFocused = { focusedItem = it },
-                        onSeeMore = {
-                            homeFocusedIndexBeforeSeeMore = focusedItemIndex
-                            seeMoreItems = section.items
-                            seeMoreTitle = sectionTitle
-                            seeMoreContinuation = homePage?.continuation
-                        },
                         onYTItemClick = { item: YTItem ->
                             when (item) {
                                 is SongItem -> playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id)))
@@ -1415,10 +1394,6 @@ fun TvHomeScreen(
                     items = communityPlaylists.map { it.playlist },
                     playerConnection = playerConnection,
                     onItemFocused = { focusedItem = it },
-                    onSeeMore = {
-                        seeMoreItems = communityPlaylists.map { it.playlist }
-                        seeMoreTitle = "Community Playlists"
-                    },
                     onYTItemClick = { item: YTItem ->
                         when (item) {
                             is PlaylistItem -> navigator.navigate(TvDestination.Playlist(item.id))
@@ -1461,141 +1436,6 @@ fun TvHomeScreen(
         }
     }
     }
-
-    // See More full-screen overlay
-    if (seeMoreItems != null) {
-        val dismissSeeMore = {
-            val restoredIndex = homeFocusedIndexBeforeSeeMore
-            seeMoreItems = null
-            seeMoreContinuation = null
-            seeMoreFocusedIndex = -1
-            // Restore focus after overlay dismisses
-            if (restoredIndex >= 0) {
-                kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
-                    kotlinx.coroutines.delay(100)
-                    focusedItemIndex = restoredIndex
-                }
-            }
-        }
-        BackHandler { dismissSeeMore() }
-        val seeMoreBackFocus = remember { FocusRequester() }
-
-        LaunchedEffect(Unit) {
-            kotlinx.coroutines.delay(100)
-            runCatching { seeMoreBackFocus.requestFocus() }
-        }
-
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background,
-        ) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                // Header with back button
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surface)
-                        .padding(horizontal = 24.dp, vertical = 12.dp)
-                        .onPreviewKeyEvent { event ->
-                            if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionDown) {
-                                true
-                            } else false
-                        },
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    var backFocused by remember { mutableStateOf(false) }
-                    IconButton(
-                        onClick = { dismissSeeMore() },
-                        modifier = Modifier
-                            .size(56.dp)
-                            .focusRequester(seeMoreBackFocus)
-                            .onFocusChanged { backFocused = it.isFocused }
-                            .border(
-                                width = if (backFocused) 3.dp else 0.dp,
-                                color = if (backFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
-                                shape = CircleShape,
-                            ),
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.size(32.dp),
-                        )
-                    }
-                    Spacer(Modifier.size(16.dp))
-                    Text(
-                        text = seeMoreTitle,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground,
-                    )
-                }
-
-                // Grid of items with scroll-to-load
-                val distinctItems = seeMoreItems?.distinctBy { it.id }.orEmpty()
-                val seeMoreGridState = rememberLazyGridState()
-
-                // Load more when near the bottom
-                LaunchedEffect(seeMoreGridState) {
-                    snapshotFlow {
-                        val lastVisible = seeMoreGridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-                        val totalItems = seeMoreGridState.layoutInfo.totalItemsCount
-                        lastVisible >= totalItems - 3
-                    }.distinctUntilChanged().collect { nearBottom ->
-                        if (nearBottom && seeMoreContinuation != null) {
-                            viewModel.loadMoreYouTubeItems(seeMoreContinuation!!)
-                            seeMoreContinuation = homePage?.continuation
-                        }
-                    }
-                }
-
-                LazyVerticalGrid(
-                    state = seeMoreGridState,
-                    columns = GridCells.Fixed(5),
-                    contentPadding = PaddingValues(start = 48.dp, top = 32.dp, end = 48.dp, bottom = 48.dp),
-                    horizontalArrangement = Arrangement.spacedBy(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(24.dp),
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .onPreviewKeyEvent { event ->
-                            if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionUp) {
-                                if (seeMoreGridState.firstVisibleItemIndex == 0 &&
-                                    seeMoreGridState.firstVisibleItemScrollOffset == 0) {
-                                    runCatching { seeMoreBackFocus.requestFocus() }
-                                    true
-                                } else false
-                            } else false
-                        },
-                ) {
-                    items(distinctItems, key = { it.id }) { item ->
-                        YouTubeMediaCard(
-                            item = item,
-                            onClick = {
-                                dismissSeeMore()
-                                when (item) {
-                                    is SongItem -> playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id)))
-                                    is AlbumItem -> {
-                                        val browseId = item.browseId
-                                        if (browseId != null) navigator.navigate(TvDestination.Album(browseId))
-                                        else playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(playlistId = item.playlistId)))
-                                    }
-                                    is ArtistItem -> item.id?.let { navigator.navigate(TvDestination.Artist(it)) }
-                                    is PlaylistItem -> navigator.navigate(TvDestination.Playlist(item.id))
-                                    is EpisodeItem -> playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id)))
-                                    is PodcastItem -> item.id?.let { navigator.navigate(TvDestination.Playlist(it)) }
-                                    else -> {}
-                                }
-                            },
-                            onFocusChanged = { focusedItem = it },
-                        )
-                    }
-                }
-            }
-        }
-    }
 }
 
 @Composable
@@ -1606,7 +1446,6 @@ fun YouTubeSectionRow(
     onYTItemClick: (YTItem) -> Unit,
     modifier: Modifier = Modifier,
     onItemFocused: ((FocusedItemInfo?) -> Unit)? = null,
-    onSeeMore: (() -> Unit)? = null,
 ) {
     Column(
         modifier = modifier,
@@ -1614,41 +1453,12 @@ fun YouTubeSectionRow(
     ) {
         // Section header with underline
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground,
-                )
-                if (items.size > 5) {
-                    var seeMoreFocused by remember { mutableStateOf(false) }
-                    Surface(
-                        onClick = { onSeeMore?.invoke() },
-                        modifier = Modifier
-                            .onFocusChanged { seeMoreFocused = it.isFocused }
-                            .border(
-                                width = if (seeMoreFocused) 2.dp else 0.dp,
-                                color = if (seeMoreFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
-                                shape = RoundedCornerShape(8.dp),
-                            ),
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (seeMoreFocused) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent,
-                    ) {
-                        Text(
-                            text = "See more \u2192",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        )
-                    }
-                }
-            }
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
             Box(
                 modifier = Modifier
                     .width(80.dp)
