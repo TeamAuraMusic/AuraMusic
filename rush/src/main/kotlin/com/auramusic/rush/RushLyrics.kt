@@ -6,12 +6,18 @@ import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.client.request.parameter
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.json.Json
 import com.auramusic.rush.TTMLParser
+import org.jsoup.Jsoup
+import org.jsoup.nodes.Element
 
 object RushLyrics {
     private val client by lazy {
@@ -35,10 +41,55 @@ object RushLyrics {
         }
     }
 
-    private val servers = listOf<String>()
+    private val servers = listOf(
+        "https://lyricsplus.atomix.one",
+        "https://lyricsplus-seven.vercel.app",
+        "https://lyricsplus.prjktla.workers.dev",
+        "https://lyrics-plus-backend.vercel.app",
+        "https://youlyplus.binimum.org",
+    )
+
+    private const val GENIUS_API_TOKEN =
+        "qLSDtgIqHgzGNjOFUmdOxJKGJOg5RIAPzOKTfrs7rNxqYXwfdSh9HTHMJUs2X27Y"
+
+    private val dumbGeniusMirrors = listOf(
+        "dumb.ducks.party/",
+        "dumb.lunar.icu/",
+        "dumb.bloat.cat/",
+        "dumb.jeikobu.net/",
+    )
+
+    private val geniusBoilerplatePatterns = listOf(
+        Regex("^\\d+Contributors.*"),
+        Regex("^\\d+ Contributor.*"),
+        Regex("(?i)^Translations.*"),
+        Regex("(?i)^Read More.*"),
+        Regex("(?i)^.*Lyrics$"),
+        Regex("(?i)^Embed$"),
+    )
 
     @Serializable
     private data class TTMLResponse(val ttml: String)
+
+    @Serializable
+    private data class GeniusSearchResponse(val response: GeniusResponse)
+
+    @Serializable
+    private data class GeniusResponse(val hits: List<GeniusHit> = emptyList())
+
+    @Serializable
+    private data class GeniusHit(
+        val type: String,
+        val result: GeniusResult,
+    )
+
+    @Serializable
+    private data class GeniusResult(
+        val id: Long,
+        val title: String,
+        val url: String,
+        @SerialName("artist_names") val artistNames: String,
+    )
 
     @Serializable
     private data class SearchResponse(
@@ -64,12 +115,13 @@ object RushLyrics {
     ): String? = runCatching {
         for (server in servers) {
             try {
-                val response = client.get("$server/getLyrics") {
-                    parameter("s", title)
-                    parameter("a", artist)
-                }
-                if (response.status == HttpStatusCode.OK) {
-                    return@runCatching response.body<TTMLResponse>().ttml
+                val ttml = client.get("$server/v1/ttml/get") {
+                    parameter("title", title)
+                    parameter("artist", artist)
+                }.body<TTMLResponse>().ttml
+
+                if (TTMLParser.parseTTML(ttml).isNotEmpty()) {
+                    return@runCatching ttml
                 }
             } catch (e: Exception) {
                 continue
@@ -85,22 +137,10 @@ object RushLyrics {
         title: String,
         artist: String,
     ): String? = runCatching {
-        for (server in servers) {
-            try {
-                val response = client.get("$server/getLyrics") {
-                    parameter("s", title)
-                    parameter("a", artist)
-                }
-                if (response.status == HttpStatusCode.OK) {
-                    val ttml = response.body<TTMLResponse>().ttml
-                    val parsed = TTMLParser.parseTTML(ttml)
-                    if (parsed.isNotEmpty()) {
-                        return@runCatching TTMLParser.toLRC(parsed)
-                    }
-                }
-            } catch (e: Exception) {
-                continue
-            }
+        val ttml = fetchTTML(title, artist) ?: return@runCatching null
+        val parsed = TTMLParser.parseTTML(ttml)
+        if (parsed.isNotEmpty()) {
+            return@runCatching TTMLParser.toLRC(parsed)
         }
         null
     }.getOrNull()
@@ -112,29 +152,94 @@ object RushLyrics {
         title: String,
         artist: String,
     ): List<SearchResult> = runCatching {
-        for (server in servers) {
-            try {
-                val response = client.get("$server/getLyrics") {
-                    parameter("s", title)
-                    parameter("a", artist)
-                }
-                if (response.status == HttpStatusCode.OK) {
-                    val ttml = response.body<TTMLResponse>().ttml
-                    return@runCatching listOf(
-                        SearchResult(
-                            id = "$title-$artist",
-                            title = title,
-                            artist = artist,
-                            provider = "RushLyrics"
-                        )
-                    )
-                }
-            } catch (e: Exception) {
-                continue
-            }
+        if (fetchTTML(title, artist) != null || fetchGeniusLyrics(title, artist) != null) {
+            return@runCatching listOf(
+                SearchResult(
+                    id = "$title-$artist",
+                    title = title,
+                    artist = artist,
+                    provider = "RushLyrics"
+                )
+            )
         }
         emptyList()
     }.getOrDefault(emptyList())
+
+    private suspend fun fetchGeniusLyrics(title: String, artist: String): String? {
+        val geniusUrl = searchGenius(title, artist)?.url ?: return null
+        return scrapeGenius(geniusUrl)
+    }
+
+    private suspend fun searchGenius(title: String, artist: String): GeniusResult? = runCatching {
+        val response = client.get("https://api.genius.com/search") {
+            header(HttpHeaders.Authorization, "Bearer $GENIUS_API_TOKEN")
+            parameter("q", listOf(title, artist).filter { it.isNotBlank() }.joinToString(" "))
+        }
+        if (response.status != HttpStatusCode.OK) return@runCatching null
+
+        val results = response.body<GeniusSearchResponse>().response.hits
+            .filter { it.type == "song" }
+            .map { it.result }
+
+        results.maxByOrNull { result ->
+            val requestedTitle = normalizeForMatch(title)
+            val requestedArtist = normalizeForMatch(artist)
+            val resultTitle = normalizeForMatch(result.title)
+            val resultArtist = normalizeForMatch(result.artistNames)
+            var score = 0
+            if (resultTitle == requestedTitle) score += 4
+            else if (resultTitle.contains(requestedTitle) || requestedTitle.contains(resultTitle)) score += 2
+            if (resultArtist == requestedArtist) score += 4
+            else if (resultArtist.contains(requestedArtist) || requestedArtist.contains(resultArtist)) score += 2
+            score
+        }
+    }.getOrNull()
+
+    private suspend fun scrapeGenius(url: String): String? {
+        scrapeGeniusUrl(url, "div[data-lyrics-container=true]")?.let { return it }
+
+        dumbGeniusMirrors.forEach { mirror ->
+            val mirrorUrl = url.replace("genius.com/", mirror)
+            scrapeGeniusUrl(mirrorUrl, "#lyrics")?.let { return it }
+        }
+
+        return null
+    }
+
+    private suspend fun scrapeGeniusUrl(url: String, selector: String): String? = runCatching {
+        val response = client.get(url)
+        if (response.status != HttpStatusCode.OK) return@runCatching null
+
+        val document = Jsoup.parse(response.bodyAsText())
+        val elements = document.select(selector)
+        if (elements.isEmpty()) return@runCatching null
+
+        elements.joinToString("\n") { element ->
+            extractLyricsText(element)
+        }.takeIf { it.isNotBlank() }
+    }.getOrNull()
+
+    private fun extractLyricsText(element: Element): String {
+        element.select("br").append("\n")
+        return element.wholeText()
+            .lines()
+            .map { it.trim() }
+            .filter { line ->
+                line.isNotBlank() &&
+                    line != "(" &&
+                    line != ")" &&
+                    geniusBoilerplatePatterns.none { it.matches(line) }
+            }
+            .joinToString("\n")
+            .trim()
+    }
+
+    private fun normalizeForMatch(value: String): String =
+        value.lowercase()
+            .replace(Regex("\\([^)]*\\)|\\[[^]]*]"), " ")
+            .replace(Regex("\\b(feat\\.?|ft\\.?|with|lyrics?|official|video|audio|remaster(ed)?|live)\\b"), " ")
+            .replace(Regex("[^a-z0-9]+"), " ")
+            .trim()
 
     /**
      * Get lyrics - fetches TTML and converts to LRC
@@ -152,7 +257,8 @@ object RushLyrics {
         }
 
         val ttml = fetchTTML(title, artist)
-            ?: throw IllegalStateException("Lyrics unavailable")
+            ?: return@runCatching fetchGeniusLyrics(title, artist)
+                ?: throw IllegalStateException("Lyrics unavailable")
         
         val parsedLines = TTMLParser.parseTTML(ttml)
         if (parsedLines.isEmpty()) {
@@ -332,7 +438,17 @@ object RushLyrics {
         }
 
         val ttml = fetchTTML(title, artist)
-            ?: throw IllegalStateException("Lyrics unavailable")
+            ?: return@runCatching LyricsResult(
+                lrc = fetchGeniusLyrics(title, artist)
+                    ?: throw IllegalStateException("Lyrics unavailable"),
+                hasWordSync = false,
+                quality = TTMLParser.LyricsQuality(
+                    hasLineSync = false,
+                    hasWordSync = false,
+                    totalLines = 0,
+                    linesWithWords = 0
+                )
+            )
         
         val parsedLines = TTMLParser.parseTTML(ttml)
         if (parsedLines.isEmpty()) {
