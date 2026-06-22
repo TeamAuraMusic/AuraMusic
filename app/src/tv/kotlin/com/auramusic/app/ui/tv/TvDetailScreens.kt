@@ -31,6 +31,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -85,6 +86,7 @@ import com.auramusic.innertube.models.EpisodeItem
 import com.auramusic.innertube.models.PlaylistItem
 import com.auramusic.innertube.models.PodcastItem
 import com.auramusic.innertube.models.SongItem
+import com.auramusic.innertube.models.YTItem
 import com.auramusic.innertube.pages.ArtistPage
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -208,6 +210,40 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
     // See More overlay state
     var seeMoreItems by remember { mutableStateOf<List<YTItem>?>(null) }
     var seeMoreTitle by remember { mutableStateOf("") }
+
+    // Click handler shared across all YouTube items
+    val onYTClick: (com.auramusic.innertube.models.YTItem) -> Unit = { item ->
+        when (item) {
+            is SongItem -> {
+                playerConnection?.playQueue(
+                    com.auramusic.app.playback.queues.YouTubeQueue(
+                        com.auramusic.innertube.models.WatchEndpoint(videoId = item.id)
+                    )
+                )
+            }
+            is AlbumItem -> {
+                val browseId = item.browseId
+                if (browseId != null) {
+                    navigator.navigate(TvDestination.Album(browseId))
+                } else {
+                    playerConnection?.playQueue(
+                        com.auramusic.app.playback.queues.YouTubeQueue(
+                            com.auramusic.innertube.models.WatchEndpoint(playlistId = item.playlistId)
+                        )
+                    )
+                }
+            }
+            is ArtistItem -> item.id?.let { navigator.navigate(TvDestination.Artist(it)) }
+            is PlaylistItem -> navigator.navigate(TvDestination.Playlist(item.id))
+            is EpisodeItem -> playerConnection?.playQueue(
+                com.auramusic.app.playback.queues.YouTubeQueue(
+                    com.auramusic.innertube.models.WatchEndpoint(videoId = item.id)
+                )
+            )
+            is PodcastItem -> item.id?.let { navigator.navigate(TvDestination.Playlist(it)) }
+            else -> {}
+        }
+    }
 
     LaunchedEffect(Unit) {
         runCatching { backButtonFocus.requestFocus() }
@@ -369,40 +405,6 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
                     displaySong = DisplaySong.LocalSong(song),
                     onClick = { playerConnection?.playSong(song) },
                 )
-            }
-        }
-
-        // Click handler shared across all YouTube items in artist sections
-        val onYTClick: (com.auramusic.innertube.models.YTItem) -> Unit = { item ->
-            when (item) {
-                is SongItem -> {
-                    playerConnection?.playQueue(
-                        com.auramusic.app.playback.queues.YouTubeQueue(
-                            com.auramusic.innertube.models.WatchEndpoint(videoId = item.id)
-                        )
-                    )
-                }
-                is AlbumItem -> {
-                    val browseId = item.browseId
-                    if (browseId != null) {
-                        navigator.navigate(TvDestination.Album(browseId))
-                    } else {
-                        playerConnection?.playQueue(
-                            com.auramusic.app.playback.queues.YouTubeQueue(
-                                com.auramusic.innertube.models.WatchEndpoint(playlistId = item.playlistId)
-                            )
-                        )
-                    }
-                }
-                is ArtistItem -> item.id?.let { navigator.navigate(TvDestination.Artist(it)) }
-                is PlaylistItem -> navigator.navigate(TvDestination.Playlist(item.id))
-                is EpisodeItem -> playerConnection?.playQueue(
-                    com.auramusic.app.playback.queues.YouTubeQueue(
-                        com.auramusic.innertube.models.WatchEndpoint(videoId = item.id)
-                    )
-                )
-                is PodcastItem -> item.id?.let { navigator.navigate(TvDestination.Playlist(it)) }
-                else -> {}
             }
         }
 
