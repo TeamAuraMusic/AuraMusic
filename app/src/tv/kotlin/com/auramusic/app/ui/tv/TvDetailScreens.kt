@@ -27,6 +27,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -461,6 +462,13 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
     // See More full-screen overlay
     if (seeMoreItems != null) {
         BackHandler { seeMoreItems = null }
+        val seeMoreBackFocus = remember { FocusRequester() }
+
+        LaunchedEffect(Unit) {
+            kotlinx.coroutines.delay(100)
+            runCatching { seeMoreBackFocus.requestFocus() }
+        }
+
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background,
@@ -478,6 +486,7 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
                         onClick = { seeMoreItems = null },
                         modifier = Modifier
                             .size(56.dp)
+                            .focusRequester(seeMoreBackFocus)
                             .onFocusChanged { backBtnFocused = it.isFocused }
                             .border(
                                 width = if (backBtnFocused) 3.dp else 0.dp,
@@ -501,12 +510,24 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
                     )
                 }
                 val distinctItems = seeMoreItems?.distinctBy { it.id }.orEmpty()
+                val seeMoreGridState = rememberLazyGridState()
                 LazyVerticalGrid(
+                    state = seeMoreGridState,
                     columns = GridCells.Fixed(5),
                     contentPadding = PaddingValues(start = 48.dp, top = 24.dp, end = 48.dp, bottom = 48.dp),
                     horizontalArrangement = Arrangement.spacedBy(24.dp),
                     verticalArrangement = Arrangement.spacedBy(24.dp),
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .onPreviewKeyEvent { event ->
+                            if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionUp) {
+                                if (seeMoreGridState.firstVisibleItemIndex == 0 &&
+                                    seeMoreGridState.firstVisibleItemScrollOffset == 0) {
+                                    runCatching { seeMoreBackFocus.requestFocus() }
+                                    true
+                                } else false
+                            } else false
+                        },
                 ) {
                     items(distinctItems, key = { it.id }) { item ->
                         YouTubeMediaCard(
