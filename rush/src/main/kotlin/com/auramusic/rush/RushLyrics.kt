@@ -18,6 +18,7 @@ import kotlinx.serialization.json.Json
 import com.auramusic.rush.TTMLParser
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
+import kotlin.math.abs
 
 object RushLyrics {
     private val client by lazy {
@@ -70,6 +71,15 @@ object RushLyrics {
 
     @Serializable
     private data class TTMLResponse(val ttml: String)
+
+    @Serializable
+    private data class LrcLibTrack(
+        val trackName: String = "",
+        val artistName: String = "",
+        val duration: Double = 0.0,
+        val plainLyrics: String? = null,
+        val syncedLyrics: String? = null,
+    )
 
     @Serializable
     private data class GeniusSearchResponse(val response: GeniusResponse)
@@ -145,6 +155,88 @@ object RushLyrics {
         null
     }.getOrNull()
 
+    private suspend fun fetchLrcLibLyrics(
+        title: String,
+        artist: String,
+        duration: Int = -1,
+        album: String? = null,
+    ): String? = runCatching {
+        val tracks = queryLrcLib(title, artist, album)
+        val best = chooseBestLrcLibTrack(tracks, title, artist, duration) ?: return@runCatching null
+        best.syncedLyrics?.takeIf { it.isNotBlank() }
+            ?: best.plainLyrics?.takeIf { it.isNotBlank() }
+    }.getOrNull()
+
+    private suspend fun queryLrcLib(
+        title: String,
+        artist: String,
+        album: String? = null,
+    ): List<LrcLibTrack> {
+        val cleanedTitle = cleanTitle(title)
+        val cleanedArtist = cleanArtist(artist)
+        val queries = listOf(
+            LrcLibQuery(trackName = cleanedTitle, artistName = cleanedArtist, albumName = album),
+            LrcLibQuery(trackName = cleanedTitle, artistName = cleanedArtist),
+            LrcLibQuery(query = "$cleanedArtist $cleanedTitle"),
+            LrcLibQuery(query = cleanedTitle),
+        )
+
+        for (query in queries) {
+            val results = runCatching {
+                val response = client.get("https://lrclib.net/api/search") {
+                    query.trackName?.let { parameter("track_name", it) }
+                    query.artistName?.let { parameter("artist_name", it) }
+                    query.albumName?.let { parameter("album_name", it) }
+                    query.query?.let { parameter("q", it) }
+                }
+                if (response.status != HttpStatusCode.OK) emptyList() else response.body<List<LrcLibTrack>>()
+            }.getOrDefault(emptyList())
+                .filter { !it.syncedLyrics.isNullOrBlank() || !it.plainLyrics.isNullOrBlank() }
+
+            if (results.isNotEmpty()) return results
+        }
+
+        return emptyList()
+    }
+
+    private data class LrcLibQuery(
+        val trackName: String? = null,
+        val artistName: String? = null,
+        val albumName: String? = null,
+        val query: String? = null,
+    )
+
+    private fun chooseBestLrcLibTrack(
+        tracks: List<LrcLibTrack>,
+        title: String,
+        artist: String,
+        duration: Int,
+    ): LrcLibTrack? {
+        if (tracks.isEmpty()) return null
+        val cleanedTitle = normalizeForMatch(cleanTitle(title))
+        val cleanedArtist = normalizeForMatch(cleanArtist(artist))
+
+        return tracks.maxByOrNull { track ->
+            var score = similarity(cleanedTitle, normalizeForMatch(track.trackName)) * 4
+            score += similarity(cleanedArtist, normalizeForMatch(track.artistName)) * 4
+            if (!track.syncedLyrics.isNullOrBlank()) score += 1.0
+            if (duration > 0) {
+                val delta = abs(track.duration.toInt() - duration)
+                score += when {
+                    delta <= 2 -> 2.0
+                    delta <= 5 -> 1.0
+                    delta <= 10 -> 0.25
+                    else -> -2.0
+                }
+            }
+            score
+        }?.takeIf { track ->
+            val titleScore = similarity(cleanedTitle, normalizeForMatch(track.trackName))
+            val artistScore = similarity(cleanedArtist, normalizeForMatch(track.artistName))
+            duration <= 0 || abs(track.duration.toInt() - duration) <= 10 || (titleScore + artistScore) / 2 >= 0.75
+        }
+    }
+
     /**
      * Search for lyrics
      */
@@ -152,7 +244,7 @@ object RushLyrics {
         title: String,
         artist: String,
     ): List<SearchResult> = runCatching {
-        if (fetchTTML(title, artist) != null || fetchGeniusLyrics(title, artist) != null) {
+        if (fetchTTML(title, artist) != null || fetchLrcLibLyrics(title, artist) != null || fetchGeniusLyrics(title, artist) != null) {
             return@runCatching listOf(
                 SearchResult(
                     id = "$title-$artist",
@@ -241,6 +333,46 @@ object RushLyrics {
             .replace(Regex("[^a-z0-9]+"), " ")
             .trim()
 
+    private fun cleanTitle(title: String): String = title.trim()
+        .replace(Regex("""\s*\([^)]*(official|video|audio|lyrics|lyric|visualizer|remaster|remix|live|acoustic|version|edit|extended|radio|clean|explicit)[^)]*\)""", RegexOption.IGNORE_CASE), "")
+        .replace(Regex("""\s*\[[^]]*(official|video|audio|lyrics|lyric|visualizer|remaster|remix|live|acoustic|version|edit|extended|radio|clean|explicit)[^]]*]""", RegexOption.IGNORE_CASE), "")
+        .replace(Regex("""\s*\|.*$"""), "")
+        .trim()
+
+    private fun cleanArtist(artist: String): String {
+        val separators = listOf(" & ", " and ", ", ", " x ", " feat. ", " feat ", " ft. ", " ft ", " featuring ", " with ")
+        var cleaned = artist.trim()
+        for (separator in separators) {
+            if (cleaned.contains(separator, ignoreCase = true)) {
+                cleaned = cleaned.split(separator, ignoreCase = true, limit = 2)[0]
+                break
+            }
+        }
+        return cleaned.trim()
+    }
+
+    private fun similarity(left: String, right: String): Double {
+        if (left == right) return 1.0
+        if (left.isBlank() || right.isBlank()) return 0.0
+        val containsScore = if (left.contains(right) || right.contains(left)) 0.8 else 0.0
+        val maxLength = maxOf(left.length, right.length)
+        val distanceScore = 1.0 - (levenshteinDistance(left, right).toDouble() / maxLength)
+        return maxOf(containsScore, distanceScore)
+    }
+
+    private fun levenshteinDistance(left: String, right: String): Int {
+        val matrix = Array(left.length + 1) { IntArray(right.length + 1) }
+        for (i in 0..left.length) matrix[i][0] = i
+        for (j in 0..right.length) matrix[0][j] = j
+        for (i in 1..left.length) {
+            for (j in 1..right.length) {
+                val cost = if (left[i - 1] == right[j - 1]) 0 else 1
+                matrix[i][j] = minOf(matrix[i - 1][j] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j - 1] + cost)
+            }
+        }
+        return matrix[left.length][right.length]
+    }
+
     /**
      * Get lyrics - fetches TTML and converts to LRC
      */
@@ -250,15 +382,12 @@ object RushLyrics {
         duration: Int = -1,
         album: String? = null,
     ) = runCatching {
-        val lrc = fetchLRC(title, artist)
-        if (lrc != null && lrc.isNotBlank()) {
-            val fixedLrc = fixMalformedLrc(lrc, duration)
-            return@runCatching fixedLrc
-        }
-
         val ttml = fetchTTML(title, artist)
-            ?: return@runCatching fetchGeniusLyrics(title, artist)
+        if (ttml == null) {
+            return@runCatching fetchLrcLibLyrics(title, artist, duration, album)
+                ?: fetchGeniusLyrics(title, artist)
                 ?: throw IllegalStateException("Lyrics unavailable")
+        }
         
         val parsedLines = TTMLParser.parseTTML(ttml)
         if (parsedLines.isEmpty()) {
@@ -421,25 +550,10 @@ object RushLyrics {
         duration: Int = -1,
         album: String? = null,
     ) = runCatching {
-        val lrc = fetchLRC(title, artist)
-        if (lrc != null && lrc.isNotBlank()) {
-            val fixedLrc = fixMalformedLrc(lrc, duration)
-            val lines = fixedLrc.lines().filter { it.startsWith("[") && it.contains("]") }
-            return@runCatching LyricsResult(
-                lrc = fixedLrc,
-                hasWordSync = fixedLrc.contains(Regex("<.*>")),
-                quality = TTMLParser.LyricsQuality(
-                    hasLineSync = lines.isNotEmpty(),
-                    hasWordSync = fixedLrc.contains(Regex("<.*>")),
-                    totalLines = lines.size,
-                    linesWithWords = 0
-                )
-            )
-        }
-
         val ttml = fetchTTML(title, artist)
             ?: return@runCatching LyricsResult(
-                lrc = fetchGeniusLyrics(title, artist)
+                lrc = fetchLrcLibLyrics(title, artist, duration, album)
+                    ?: fetchGeniusLyrics(title, artist)
                     ?: throw IllegalStateException("Lyrics unavailable"),
                 hasWordSync = false,
                 quality = TTMLParser.LyricsQuality(
