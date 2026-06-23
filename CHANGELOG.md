@@ -1,3 +1,11 @@
+# AuraMusic v2.8.0 (Build 25) Changelog
+
+# AuraMusic v2.8.0 (Build 25) Release Notes
+
+## What's New
+
+**Full Changelog**: https://github.com/TeamAuraMusic/AuraMusic/compare/...298cc65adce05d66a541fa6a774d996d34b02acd
+
 # AuraMusic v2.7.0 (Build 24) Changelog
 
 <!-- Release notes generated using configuration in .github/release.yml at 3a8e42ba4419a8e2451e5e440e63e85894a05e23 -->
