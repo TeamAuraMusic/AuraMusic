@@ -419,7 +419,7 @@
     <string name="remote_history">A. 偏远历史</string>
     <string name="most_played_songs">大部分人歌唱</string>
     <string name="most_played_artists">大部分艺术家</string>
-    <string name="most_played_albums">大部分人都曾担任过书记</string>
+    <string name="most_played_albums">播放最多专辑</string>
     <string name="search_yt_music">搜索音乐</string>
     <string name="search_library">搜索图书馆</string>
     <string name="filter_library">图书馆</string>
@@ -940,4 +940,5 @@
     <string name="clear_song_cache">清晰的歌曲</string>
     <string name="ko_fi">Ko-fi</string>
     <string name="ko_fi_desc">开发商一次性咖啡</string>
+    <string name="resume_playback">恢复播放</string>
 </resources>
