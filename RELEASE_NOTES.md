@@ -1,8 +1,68 @@
 # AuraMusic v2.8.0 (Build 25) Release Notes
 
-# AuraMusic v2.8.0 (Build 25) Release Notes
+> [!NOTE]
+> This release brings a complete Android TV redesign with Spotify-style focused detail panel, major video playback stability fixes, improved lyrics fallbacks with LyricsPlus and Genius support, and streamlined CI/CD pipeline.
 
 ## What's New
+
+### Android TV Redesign — Spotify-Style Focused Detail Panel
+Implemented by @chila254
+
+- feat(tv): replace hero carousel with Spotify-style focused detail panel
+- feat(tv): add Continue Listening row on Google TV home screen
+- Modernize TV home focused detail panel with transparent top bar overlay
+- Restructure home screen layout so focused panel joins top bar and metadata shows below
+- Remove Recently Played row from TV home screen
+- Increase focused panel height to fully cover previous row content when scrolling
+- Reduce section headers (Quick Picks, Keep Listening, Similar To) for cleaner layout
+
+The TV home screen now features a focused detail panel inspired by Spotify TV. When you navigate through content rows, the panel shows rich metadata about the focused item with the thumbnail art visible through the transparent top navigation bar.
+
+### Android TV Navigation & Focus Improvements
+Implemented by @chila254
+
+- Separate mini player into two distinct focusable areas: song info (opens player) and play/pause button
+- Fix mini player single-press activation using Surface(onClick) instead of separate focusable+clickable
+- Add proper D-pad navigation throughout all TV screens
+- Push focused panel content below the nav bar with proper top padding on all screens (Library, Search, Settings, Artist, Album, Playlist, sub-settings)
+- Improve login screen D-pad navigation to handle all focusable elements
+
+### Android TV Video Playback Fixes
+Implemented by @chila254
+
+- Show loading indicator during video switching instead of black screen
+- Fix video black screen on auto-advance between video songs by always re-enabling video mode
+- Fix playback freeze, crash on navigate, and audio stutter during video transitions
+- Fix video black screen and progress bar stuck issues
+- Immediately show loading state when transitioning between video songs
+
+### Lyrics Provider Improvements
+Implemented by @chila254
+
+- Fix Rush lyrics fetching with LyricsPlus and Genius fallback
+- Fix Rush and Better Lyrics fetching fallbacks for more reliable lyrics loading
+- Fix Rush lyrics fallback and TV queue video transitions
+
+### Android 14 Compatibility
+Implemented by @chila254
+
+- Fix Android 14 crash in TvRecommendationService by calling startForeground() immediately
+- Create notification channel before posting notification
+- Remove Picture-in-Picture from TV player (TVs don't support PiP mode)
+
+### Build & CI/CD Improvements
+Implemented by @chila254
+
+- Add ProGuard rules for Kuromoji jar dictionary files
+- Use repository owner username for git commits instead of github-actions bot
+- Reformat release notes with categorized sections matching v2.6.0 style
+- Rename APK artifacts: AuraMusic.apk, AuraMusic-with-Google-Cast.apk, AuraMusic-Tv.apk
+
+## Translation Contributors
+
+No new translation contributions in this release.
+
+**Full Changelog**: https://github.com/TeamAuraMusic/AuraMusic/compare/v2.7.0...v2.8.0
 
 **Full Changelog**: https://github.com/TeamAuraMusic/AuraMusic/compare/...298cc65adce05d66a541fa6a774d996d34b02acd
 

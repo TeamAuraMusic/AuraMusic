@@ -1,10 +1,54 @@
 # AuraMusic v2.8.0 (Build 25) Changelog
 
-# AuraMusic v2.8.0 (Build 25) Release Notes
+> [!NOTE]
+> This release brings a complete Android TV redesign with Spotify-style focused detail panel, major video playback stability fixes, improved lyrics fallbacks with LyricsPlus and Genius support, and streamlined CI/CD pipeline.
 
-## What's New
+## Major Features
 
-**Full Changelog**: https://github.com/TeamAuraMusic/AuraMusic/compare/...298cc65adce05d66a541fa6a774d996d34b02acd
+### Android TV — Spotify-Style Focused Detail Panel
+- feat(tv): replace hero carousel with Spotify-style focused detail panel
+- feat(tv): add Continue Listening row on Google TV home screen
+- Modernize TV home focused detail panel with transparent top bar overlay
+- Restructure home screen layout so focused panel joins top bar and metadata shows below
+- Remove Recently Played row from TV home screen
+- Increase focused panel height to fully cover previous row content when scrolling
+- Reduce section headers for cleaner layout
+
+### Android TV Navigation & Focus
+- Separate mini player into two distinct focusable areas: song info and play/pause button
+- Fix mini player single-press activation using Surface(onClick)
+- Add proper D-pad navigation throughout all TV screens
+- Push focused panel content below the nav bar with proper top padding on all screens
+- Improve login screen D-pad navigation to handle all focusable elements
+
+## Bug Fixes
+
+### Video Playback Stability
+- Show loading indicator during video switching instead of black screen
+- Fix video black screen on auto-advance between video songs
+- Fix playback freeze, crash on navigate, and audio stutter during video transitions
+- Fix video black screen and progress bar stuck issues
+
+### Lyrics Providers
+- Fix Rush lyrics fetching with LyricsPlus and Genius fallback
+- Fix Rush and Better Lyrics fetching fallbacks for more reliable lyrics loading
+- Fix Rush lyrics fallback and TV queue video transitions
+
+### Android TV Fixes
+- Fix Android 14 crash in TvRecommendationService by calling startForeground() immediately
+- Create notification channel before posting notification
+- Remove Picture-in-Picture from TV player (TVs don't support PiP)
+- Fix video black screen on auto-advance between video songs
+- Fix mini player click requiring two presses
+- Fix video playback when skipping to next song
+
+## Build & CI/CD
+- Add ProGuard rules for Kuromoji jar dictionary files
+- Use repository owner username for git commits instead of github-actions bot
+- Reformat release notes with categorized sections matching v2.6.0 style
+- Rename APK artifacts: AuraMusic.apk, AuraMusic-with-Google-Cast.apk, AuraMusic-Tv.apk
+
+**Full Changelog**: https://github.com/TeamAuraMusic/AuraMusic/compare/v2.7.0...v2.8.0
 
 # AuraMusic v2.7.0 (Build 24) Changelog
 
