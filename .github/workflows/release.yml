@@ -123,10 +123,12 @@ jobs:
           VERSION_NAME: ${{ steps.metadata.outputs.version_name }}
           VERSION_CODE: ${{ steps.metadata.outputs.version_code }}
           REPO_OWNER: ${{ github.repository_owner }}
+          TARGET_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          target_sha="$(git rev-parse "${GITHUB_SHA}^{commit}")"
+          target_sha="$(git rev-parse "${TARGET_SHA}^{commit}")"
           compare_url="https://github.com/${GITHUB_REPOSITORY}/compare/${PREVIOUS_TAG}...${target_sha}"
+          export target_sha compare_url
 
           python3 - <<'PY' > release-notes-body.md
           import os, subprocess, re
