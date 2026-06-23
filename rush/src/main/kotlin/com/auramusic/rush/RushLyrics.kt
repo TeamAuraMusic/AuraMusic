@@ -70,7 +70,7 @@ object RushLyrics {
     )
 
     @Serializable
-    private data class TTMLResponse(val ttml: String)
+    private data class TTMLResponse(val ttml: String? = null)
 
     @Serializable
     private data class LrcLibTrack(
@@ -122,13 +122,17 @@ object RushLyrics {
     private suspend fun fetchTTML(
         title: String,
         artist: String,
+        duration: Int = -1,
+        album: String? = null,
     ): String? = runCatching {
+        fetchBetterLyricsTTML(title, artist, duration, album)?.let { return@runCatching it }
+
         for (server in servers) {
             try {
                 val ttml = client.get("$server/v1/ttml/get") {
                     parameter("title", title)
                     parameter("artist", artist)
-                }.body<TTMLResponse>().ttml
+                }.body<TTMLResponse>().ttml?.trim().orEmpty()
 
                 if (TTMLParser.parseTTML(ttml).isNotEmpty()) {
                     return@runCatching ttml
@@ -138,6 +142,25 @@ object RushLyrics {
             }
         }
         null
+    }.getOrNull()
+
+    private suspend fun fetchBetterLyricsTTML(
+        title: String,
+        artist: String,
+        duration: Int = -1,
+        album: String? = null,
+    ): String? = runCatching {
+        val response = client.get("https://lyrics-api.boidu.dev/getLyrics") {
+            parameter("s", title)
+            parameter("a", artist)
+            if (duration > 0) parameter("d", duration)
+            if (!album.isNullOrBlank()) parameter("al", album)
+        }
+        if (response.status != HttpStatusCode.OK) return@runCatching null
+
+        response.body<TTMLResponse>().ttml
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() && TTMLParser.parseTTML(it).isNotEmpty() }
     }.getOrNull()
 
     /**
@@ -244,7 +267,7 @@ object RushLyrics {
         title: String,
         artist: String,
     ): List<SearchResult> = runCatching {
-        if (fetchTTML(title, artist) != null || fetchLrcLibLyrics(title, artist) != null || fetchGeniusLyrics(title, artist) != null) {
+        if (fetchLrcLibLyrics(title, artist) != null || fetchTTML(title, artist) != null || fetchGeniusLyrics(title, artist) != null) {
             return@runCatching listOf(
                 SearchResult(
                     id = "$title-$artist",
@@ -382,10 +405,11 @@ object RushLyrics {
         duration: Int = -1,
         album: String? = null,
     ) = runCatching {
-        val ttml = fetchTTML(title, artist)
+        fetchLrcLibLyrics(title, artist, duration, album)?.let { return@runCatching it }
+
+        val ttml = fetchTTML(title, artist, duration, album)
         if (ttml == null) {
-            return@runCatching fetchLrcLibLyrics(title, artist, duration, album)
-                ?: fetchGeniusLyrics(title, artist)
+            return@runCatching fetchGeniusLyrics(title, artist)
                 ?: throw IllegalStateException("Lyrics unavailable")
         }
         
@@ -550,10 +574,23 @@ object RushLyrics {
         duration: Int = -1,
         album: String? = null,
     ) = runCatching {
-        val ttml = fetchTTML(title, artist)
+        fetchLrcLibLyrics(title, artist, duration, album)?.let { lrc ->
+            val lines = lrc.lines().filter { it.startsWith("[") && it.contains("]") }
+            return@runCatching LyricsResult(
+                lrc = lrc,
+                hasWordSync = false,
+                quality = TTMLParser.LyricsQuality(
+                    hasLineSync = lines.isNotEmpty(),
+                    hasWordSync = false,
+                    totalLines = lines.size,
+                    linesWithWords = 0
+                )
+            )
+        }
+
+        val ttml = fetchTTML(title, artist, duration, album)
             ?: return@runCatching LyricsResult(
-                lrc = fetchLrcLibLyrics(title, artist, duration, album)
-                    ?: fetchGeniusLyrics(title, artist)
+                lrc = fetchGeniusLyrics(title, artist)
                     ?: throw IllegalStateException("Lyrics unavailable"),
                 hasWordSync = false,
                 quality = TTMLParser.LyricsQuality(

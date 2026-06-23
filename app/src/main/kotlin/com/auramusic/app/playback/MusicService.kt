@@ -1856,6 +1856,12 @@ class MusicService :
         mediaItem: MediaItem?,
         reason: Int,
     ) {
+        // Update immediately for queue transitions. Waiting for the later
+        // batched onEvents update can leave TV video mode resolving streams
+        // against the previous item while the next item's audio is already
+        // playing, which shows a black video surface.
+        currentMediaMetadata.value = mediaItem?.metadata
+
         // Load SponsorBlock segments for the new video
         if (sponsorBlockManager.enabled.value && mediaItem?.mediaId != null) {
             val mediaId = mediaItem.mediaId
