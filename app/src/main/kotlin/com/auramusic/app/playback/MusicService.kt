@@ -135,6 +135,14 @@ import com.auramusic.app.constants.ShuffleModeKey
 import com.auramusic.app.constants.ShufflePlaylistFirstKey
 import com.auramusic.app.constants.SimilarContent
 import com.auramusic.app.constants.SponsorBlockEnabledKey
+import com.auramusic.app.constants.SponsorBlockSkipFillerKey
+import com.auramusic.app.constants.SponsorBlockSkipInteractionKey
+import com.auramusic.app.constants.SponsorBlockSkipIntroKey
+import com.auramusic.app.constants.SponsorBlockSkipMusicOffTopicKey
+import com.auramusic.app.constants.SponsorBlockSkipOutroKey
+import com.auramusic.app.constants.SponsorBlockSkipPreviewKey
+import com.auramusic.app.constants.SponsorBlockSkipSelfPromoKey
+import com.auramusic.app.constants.SponsorBlockSkipSponsorKey
 import com.auramusic.app.constants.SkipSilenceInstantKey
 import com.auramusic.app.constants.SkipSilenceKey
 import com.auramusic.app.db.MusicDatabase
@@ -226,6 +234,18 @@ import kotlin.time.Duration.Companion.seconds
 
 private const val INSTANT_SILENCE_SKIP_STEP_MS = 15_000L
 private const val INSTANT_SILENCE_SKIP_SETTLE_MS = 350L
+
+private data class SponsorBlockPreferences(
+    val enabled: Boolean,
+    val skipSponsor: Boolean,
+    val skipSelfPromo: Boolean,
+    val skipInteraction: Boolean,
+    val skipIntro: Boolean,
+    val skipOutro: Boolean,
+    val skipPreview: Boolean,
+    val skipMusicOffTopic: Boolean,
+    val skipFiller: Boolean,
+)
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @androidx.annotation.OptIn(UnstableApi::class)
@@ -820,15 +840,25 @@ class MusicService :
             }
 
         dataStore.data
-            .map { it[SponsorBlockEnabledKey] ?: false }
+            .map { prefs ->
+                SponsorBlockPreferences(
+                    enabled = prefs[SponsorBlockEnabledKey] ?: false,
+                    skipSponsor = prefs[SponsorBlockSkipSponsorKey] != false,
+                    skipSelfPromo = prefs[SponsorBlockSkipSelfPromoKey] != false,
+                    skipInteraction = prefs[SponsorBlockSkipInteractionKey] != false,
+                    skipIntro = prefs[SponsorBlockSkipIntroKey] != false,
+                    skipOutro = prefs[SponsorBlockSkipOutroKey] != false,
+                    skipPreview = prefs[SponsorBlockSkipPreviewKey] != false,
+                    skipMusicOffTopic = prefs[SponsorBlockSkipMusicOffTopicKey] != false,
+                    skipFiller = prefs[SponsorBlockSkipFillerKey] != false,
+                )
+            }
             .distinctUntilChanged()
-            .collect(scope) { enabled ->
-                sponsorBlockManager.updateEnabled(enabled)
-                if (enabled) {
-                    val videoId = currentVideoId.value ?: player.currentMediaItem?.mediaId
-                    if (videoId != null) {
-                        val durationMs = if (player.duration > 0) player.duration else 0L
-                        sponsorBlockManager.forceReload(videoId, durationMs)
+            .collect(scope) { sponsorBlockPrefs ->
+                sponsorBlockManager.updateEnabled(sponsorBlockPrefs.enabled)
+                if (sponsorBlockPrefs.enabled) {
+                    currentSponsorBlockVideoId()?.let { videoId ->
+                        sponsorBlockManager.forceReload(videoId, currentPlaybackDurationMs())
                     }
                 }
             }
@@ -1862,12 +1892,13 @@ class MusicService :
         // playing, which shows a black video surface.
         currentMediaMetadata.value = mediaItem?.metadata
 
-        // Load SponsorBlock segments for the new video
-        if (sponsorBlockManager.enabled.value && mediaItem?.mediaId != null) {
+        // Load SponsorBlock for audio-only playback here. In video mode the
+        // actual YouTube video id is resolved later by setVideoMode(), so using
+        // mediaItem.mediaId during transitions can query the wrong SponsorBlock id.
+        if (sponsorBlockManager.enabled.value && !isVideoMode && !_isVideoSwitching.value && mediaItem?.mediaId != null) {
             val mediaId = mediaItem.mediaId
             scope.launch {
-                val durationMs = if (player.duration > 0) player.duration else 0L
-                sponsorBlockManager.loadSegments(mediaId, durationMs)
+                sponsorBlockManager.loadSegments(mediaId, currentPlaybackDurationMs())
             }
         }
 
@@ -1883,6 +1914,7 @@ class MusicService :
             if (isVideoMode) {
                 videoSwitchJob?.cancel()
                 _isVideoSwitching.value = false
+                sponsorBlockManager.reset()
                 currentVideoUrl = null
                 currentVideoSourceMediaId = null
                 _currentVideoId.value = null
@@ -3337,6 +3369,16 @@ class MusicService :
     val currentPositionFlow: StateFlow<Long> = _currentPositionFlow.asStateFlow()
 
 
+    private fun currentPlaybackDurationMs(): Long = if (player.duration > 0) player.duration else 0L
+
+    private fun currentSponsorBlockVideoId(): String? {
+        if (_isVideoSwitching.value) return null
+        currentVideoId.value?.let { return it }
+        if (isVideoMode) return null
+        return player.currentMediaItem?.mediaId
+    }
+
+
 
     fun selectSubtitle(index: Int) {
         _selectedSubtitleIndex.value = index
@@ -3629,8 +3671,7 @@ class MusicService :
                                 currentVideoSourceMediaId = mediaId
                                 _currentVideoId.value = videoId
                                 if (sponsorBlockManager.enabled.value) {
-                                    val durMs = if (player.duration > 0) player.duration else 0L
-                                    sponsorBlockManager.forceReload(videoId, durMs)
+                                    sponsorBlockManager.forceReload(videoId, currentPlaybackDurationMs())
                                 }
                                 Timber.d("setVideoMode: SUCCESS - Video stream prepared with mimeType: $primaryMimeType, player state: ${player.playbackState}, playWhenReady: true")
                                 android.util.Log.d("MusicService", ">>> SUCCESS - Video mode enabled for: ${videoData.title}")

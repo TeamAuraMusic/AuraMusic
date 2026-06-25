@@ -40,6 +40,7 @@ class SponsorBlockManager(
     val seekBarSegments = _seekBarSegments.asStateFlow()
 
     private var currentVideoId: String? = null
+    private var loadGeneration = 0
 
     suspend fun loadPreferences() {
         val prefs = context.dataStore.data.first()
@@ -49,6 +50,7 @@ class SponsorBlockManager(
     fun updateEnabled(value: Boolean) {
         _enabled.value = value
         if (!value) {
+            loadGeneration++
             _segments.value = emptyList()
             _seekBarSegments.value = emptyList()
             _currentSegment.value = null
@@ -78,6 +80,7 @@ class SponsorBlockManager(
 
     suspend fun loadSegments(videoId: String, durationMs: Long = 0) {
         if (!_enabled.value) {
+            loadGeneration++
             _segments.value = emptyList()
             _seekBarSegments.value = emptyList()
             return
@@ -85,15 +88,19 @@ class SponsorBlockManager(
         // Always reload if videoId changed or segments are empty
         if (videoId == currentVideoId && _segments.value.isNotEmpty()) return
 
+        val generation = ++loadGeneration
         currentVideoId = videoId
         val categories = getActiveCategories()
         val fetched = SponsorBlockApi.getSegments(videoId, categories)
+        if (generation != loadGeneration || currentVideoId != videoId || !_enabled.value) return
+
         _segments.value = fetched
         _seekBarSegments.value = SponsorBlockApi.toSeekBarSegments(fetched, durationMs)
     }
 
     fun forceReload(videoId: String, durationMs: Long = 0) {
         currentVideoId = null
+        loadGeneration++
         scope.launch {
             loadSegments(videoId, durationMs)
         }
@@ -107,10 +114,11 @@ class SponsorBlockManager(
 
     fun findSkipTarget(positionMs: Long, speed: Float = 1f): Long? {
         if (!_enabled.value || _segments.value.isEmpty()) return null
-        // 2-second window scaled by playback speed (matches SmartTube behavior)
-        val windowMs = (2000L * speed).toLong()
+        // Skip when playback is anywhere inside a segment. This also covers
+        // segments that finish loading after playback has already entered them.
+        val endToleranceMs = (250L * speed).toLong()
         val segment = _segments.value.find { seg ->
-            positionMs >= seg.startMs && positionMs <= minOf(seg.startMs + windowMs, seg.endMs)
+            positionMs >= seg.startMs && positionMs < seg.endMs - endToleranceMs
         }
         return if (segment != null) {
             _currentSegment.value = segment
@@ -122,6 +130,7 @@ class SponsorBlockManager(
     }
 
     fun reset() {
+        loadGeneration++
         _segments.value = emptyList()
         _seekBarSegments.value = emptyList()
         _currentSegment.value = null

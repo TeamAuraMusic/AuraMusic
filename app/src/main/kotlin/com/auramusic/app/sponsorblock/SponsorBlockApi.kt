@@ -12,7 +12,9 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
+import io.ktor.client.request.parameter
 import io.ktor.client.statement.bodyAsText
+import timber.log.Timber
 
 @Serializable
 data class SponsorBlockSegment(
@@ -69,7 +71,6 @@ object SponsorBlockColors {
 
 object SponsorBlockApi {
     private const val BASE_URL = "https://sponsor.ajay.app/api"
-    private const val MIN_SEGMENT_DURATION_MS = 5000L
     private val json = Json { ignoreUnknownKeys = true }
     private val client = HttpClient()
 
@@ -89,17 +90,29 @@ object SponsorBlockApi {
         categories: Set<String> = defaultSkippableCategories,
     ): List<SponsorBlockSegment> = withContext(Dispatchers.IO) {
         try {
-            val categoriesParam = categories.joinToString(",") { "\"$it\"" }
-            val url = "$BASE_URL/skipSegments?videoID=$videoId&categories=[$categoriesParam]"
-            val response = client.get(url)
+            val response = client.get("$BASE_URL/skipSegments") {
+                parameter("videoID", videoId)
+                categories.forEach { category ->
+                    parameter("category", category)
+                }
+                parameter("actionType", "skip")
+            }
             val body = response.bodyAsText()
-            if (response.status.value == 200) {
-                val raw = json.decodeFromString<List<SponsorBlockSegment>>(body)
-                raw.filter { (it.endMs - it.startMs) >= MIN_SEGMENT_DURATION_MS }
-            } else {
-                emptyList()
+            when (response.status.value) {
+                200 -> {
+                    val raw = json.decodeFromString<List<SponsorBlockSegment>>(body)
+                    raw.filter { it.endMs > it.startMs }
+                }
+                404 -> emptyList()
+                else -> {
+                    Timber.w(
+                        "SponsorBlock failed with HTTP ${response.status.value} for videoId=$videoId, categories=$categories: $body"
+                    )
+                    emptyList()
+                }
             }
         } catch (e: Exception) {
+            Timber.w(e, "SponsorBlock lookup failed for videoId=$videoId, categories=$categories")
             emptyList()
         }
     }
