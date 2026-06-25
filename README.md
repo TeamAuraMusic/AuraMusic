@@ -20,6 +20,7 @@
 [![Latest release](https://img.shields.io/github/v/release/TeamAuraMusic/AuraMusic?style=for-the-badge)](https://github.com/TeamAuraMusic/AuraMusic/releases)
 [![GitHub license](https://img.shields.io/github/license/TeamAuraMusic/AuraMusic?style=for-the-badge)](https://github.com/TeamAuraMusic/AuraMusic/blob/main/LICENSE)
 [![Downloads](https://img.shields.io/github/downloads/TeamAuraMusic/AuraMusic/total?style=for-the-badge)](https://github.com/TeamAuraMusic/AuraMusic/releases)
+[![Trendshift](https://img.shields.io/badge/Trendshift-AuraMusic-blue?style=for-the-badge)](https://trendshift.io/repositories/26041)
 
 <br/>
 
