@@ -19,7 +19,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -75,27 +78,22 @@ fun AppNavigationRail(
             
             val isSearchItem = screen == Screens.Search && onSearchLongClick != null
             val interactionSource = remember { MutableInteractionSource() }
+            var suppressNextClick by remember { mutableStateOf(false) }
             
             // Long press detection using InteractionSource
             if (isSearchItem) {
                 LaunchedEffect(interactionSource) {
-                    var isLongClick = false
                     interactionSource.interactions.collectLatest { interaction ->
                         when (interaction) {
                             is PressInteraction.Press -> {
-                                isLongClick = false
                                 delay(viewConfiguration.longPressTimeoutMillis)
-                                isLongClick = true
+                                suppressNextClick = true
                                 haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onSearchLongClick.invoke()
+                                onSearchLongClick?.invoke()
                             }
-                            is PressInteraction.Release -> {
-                                if (!isLongClick) {
-                                    onItemClick(screen, isSelected)
-                                }
-                            }
+                            is PressInteraction.Release -> Unit
                             is PressInteraction.Cancel -> {
-                                isLongClick = false
+                                suppressNextClick = false
                             }
                         }
                     }
@@ -105,10 +103,11 @@ fun AppNavigationRail(
             NavigationRailItem(
                 selected = isSelected,
                 onClick = { 
-                    if (!isSearchItem) {
+                    if (isSearchItem && suppressNextClick) {
+                        suppressNextClick = false
+                    } else {
                         onItemClick(screen, isSelected)
                     }
-                    // For search item, click is handled via InteractionSource
                 },
                 interactionSource = interactionSource,
                 icon = {
@@ -154,27 +153,22 @@ fun AppNavigationBar(
             
             val isSearchItem = screen == Screens.Search && onSearchLongClick != null
             val interactionSource = remember { MutableInteractionSource() }
+            var suppressNextClick by remember { mutableStateOf(false) }
             
             // Long press detection using InteractionSource
             if (isSearchItem) {
                 LaunchedEffect(interactionSource) {
-                    var isLongClick = false
                     interactionSource.interactions.collectLatest { interaction ->
                         when (interaction) {
                             is PressInteraction.Press -> {
-                                isLongClick = false
                                 delay(viewConfiguration.longPressTimeoutMillis)
-                                isLongClick = true
+                                suppressNextClick = true
                                 haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onSearchLongClick.invoke()
+                                onSearchLongClick?.invoke()
                             }
-                            is PressInteraction.Release -> {
-                                if (!isLongClick) {
-                                    onItemClick(screen, isSelected)
-                                }
-                            }
+                            is PressInteraction.Release -> Unit
                             is PressInteraction.Cancel -> {
-                                isLongClick = false
+                                suppressNextClick = false
                             }
                         }
                     }
@@ -184,10 +178,11 @@ fun AppNavigationBar(
             NavigationBarItem(
                 selected = isSelected,
                 onClick = { 
-                    if (!isSearchItem) {
+                    if (isSearchItem && suppressNextClick) {
+                        suppressNextClick = false
+                    } else {
                         onItemClick(screen, isSelected)
                     }
-                    // For search item, click is handled via InteractionSource
                 },
                 interactionSource = interactionSource,
                 icon = {

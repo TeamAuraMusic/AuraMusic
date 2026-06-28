@@ -2064,6 +2064,9 @@ class MusicService :
             retryCount = 0
             waitingForNetworkConnection.value = false
             retryJob?.cancel()
+            if (::sponsorBlockManager.isInitialized) {
+                sponsorBlockManager.updateDuration(currentPlaybackDurationMs())
+            }
             
             // Reset retry count for current song on successful playback
             player.currentMediaItem?.mediaId?.let { mediaId ->
@@ -2386,17 +2389,17 @@ class MusicService :
         val mediaId = player.currentMediaItem?.mediaId
         Timber.tag(TAG).w(error, "Player error occurred for $mediaId: errorCode=${error.errorCode}, message=${error.message}, isVideoMode=$isVideoMode")
         
-        // If in video mode and error occurs, try to switch back to audio instead of skipping
-        // BUT first check if this is a video stream error - if so, don't auto-reset, let user toggle manually
         if (isVideoMode && mediaId != null) {
-            Timber.tag(TAG).d("Video mode error - checking if should auto-recover")
-            
-            // Don't auto-switch - let the user see the error and manually toggle
-            // This prevents the black screen flicker issue
-            _videoModeMessage.value = "Video playback failed - tap to switch to audio"
-            
-            // Just report the error but don't reset video mode automatically
-            // The user will manually toggle back to audio if needed
+            Timber.tag(TAG).d("Video mode error - switching back to audio")
+            currentVideoSourceMediaId?.let { videoSearchCache.remove(it) }
+            _videoModeMessage.value = if (error.message?.contains("inappropriate", ignoreCase = true) == true) {
+                "Video is restricted, playing audio instead"
+            } else {
+                "Video failed, playing audio instead"
+            }
+            scope.launch {
+                switchToAudioMode()
+            }
             return
         }
         
@@ -3413,7 +3416,10 @@ class MusicService :
             val original = originalAudioMediaItem
             if (original != null) {
                 player.replaceMediaItem(index, original)
-                player.seekTo(index, position)
+                player.prepare()
+                if (position > 0) {
+                    player.seekTo(index, position)
+                }
                 player.playWhenReady = wasPlaying
                 Timber.d("switchToAudioMode: Successfully switched back to audio")
             } else {
@@ -3499,24 +3505,25 @@ class MusicService :
                         android.util.Log.d("MusicService", ">>> Found video via search: ${videoData?.videoId}")
                         
                         if (videoData != null) {
-                            val videoId = videoData.videoId
+                            var videoId = videoData.videoId
                             val ccEnabled = dataStore.get(com.auramusic.app.constants.SubtitlesEnabledKey, true)
                             
                             // Run stream URL fetch and caption fetching in PARALLEL
                             val subtitleConfigs = mutableListOf<MediaItem.SubtitleConfiguration>()
                             val subtitleInfos = mutableListOf<SubtitleInfo>()
+                            val subtitleVideoId = videoId
                             
                             // Launch subtitle fetching in parallel with stream URL
                             val subtitleJob = if (ccEnabled) {
                                 scope.launch {
                                     try {
                                         val captionResult = withContext(Dispatchers.IO) {
-                                            YouTube.getCaptionTracksWithDuration(videoId).getOrNull()
+                                            YouTube.getCaptionTracksWithDuration(subtitleVideoId).getOrNull()
                                         }
                                         val captionTracks = captionResult?.first
                                         val videoDurationMs = captionResult?.second
                                         if (!captionTracks.isNullOrEmpty()) {
-                                            Timber.d("setVideoMode: Found ${captionTracks.size} caption tracks for videoId=$videoId")
+                                            Timber.d("setVideoMode: Found ${captionTracks.size} caption tracks for videoId=$subtitleVideoId")
                                             for (track in captionTracks) {
                                                 try {
                                                     val subtitleText = withContext(Dispatchers.IO) {
@@ -3524,8 +3531,11 @@ class MusicService :
                                                     }
                                                     if (!subtitleText.isNullOrBlank()) {
                                                         val vttText = YouTube.convertTimedTextToVttWithDuration(subtitleText, videoDurationMs)
-                                                        val tempFile = File(cacheDir, "subtitle_${track.vssId}.vtt")
-                                                        tempFile.writeText(vttText)
+                                                        val tempFile = withContext(Dispatchers.IO) {
+                                                            File(cacheDir, "subtitle_${track.vssId}.vtt").apply {
+                                                                writeText(vttText)
+                                                            }
+                                                        }
                                                         val uri = android.net.Uri.fromFile(tempFile)
                                                         val subConfig = MediaItem.SubtitleConfiguration.Builder(uri)
                                                             .setMimeType(MimeTypes.TEXT_VTT)
@@ -3566,12 +3576,28 @@ class MusicService :
                             // The Merged variant is returned when the preferred quality
                             // exceeds 720p, since YouTube only ships separate video-only
                             // and audio-only streams above that resolution.
-                            val sourceResult = withContext(Dispatchers.IO) {
+                            var sourceResult = withContext(Dispatchers.IO) {
                                 FlowPlayerUtils.getVideoStreamSource(videoId)
                             }
 
-                            // Wait for subtitles to complete if they were started
-                            subtitleJob?.join()
+                            if (sourceResult.isFailure && isVideoSong && videoId == mediaId) {
+                                subtitleJob?.cancel()
+                                val fallbackVideo = withContext(Dispatchers.IO) {
+                                    FlowPlayerUtils.getVideoStreamUrlWithFallback(
+                                        songTitle,
+                                        artistName,
+                                        mediaId,
+                                        isVideoSong = false
+                                    ).getOrNull()
+                                }
+                                if (fallbackVideo != null && fallbackVideo.videoId != videoId) {
+                                    Timber.d("setVideoMode: Direct video failed, trying fallback videoId=${fallbackVideo.videoId}")
+                                    videoId = fallbackVideo.videoId
+                                    sourceResult = withContext(Dispatchers.IO) {
+                                        FlowPlayerUtils.getVideoStreamSource(videoId)
+                                    }
+                                }
+                            }
 
                             if (sourceResult.isSuccess) {
                                 val streamSource = sourceResult.getOrNull()
@@ -3601,14 +3627,18 @@ class MusicService :
                                 val currentItem = player.getMediaItemAt(index)
                                 Timber.d("setVideoMode: Current media item URI: ${currentItem.localConfiguration?.uri}")
 
+                                val readySubtitleConfigs = synchronized(subtitleConfigs) {
+                                    subtitleConfigs.toList()
+                                }
+
                                 val videoMediaItemBuilder = currentItem.buildUpon()
                                     .setUri(primaryVideoUrl)
                                     .setMimeType(primaryMimeType)
                                     .setCustomCacheKey(mediaId + "_video")
 
-                                if (ccEnabled && subtitleConfigs.isNotEmpty()) {
-                                    videoMediaItemBuilder.setSubtitleConfigurations(subtitleConfigs)
-                                    Timber.d("setVideoMode: Added ${subtitleConfigs.size} subtitle tracks to media item")
+                                if (ccEnabled && readySubtitleConfigs.isNotEmpty()) {
+                                    videoMediaItemBuilder.setSubtitleConfigurations(readySubtitleConfigs)
+                                    Timber.d("setVideoMode: Added ${readySubtitleConfigs.size} subtitle tracks to media item")
                                 }
 
                                 val videoMediaItem = videoMediaItemBuilder.build()

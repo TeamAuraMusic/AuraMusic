@@ -91,6 +91,13 @@ class SponsorBlockManager(
         val generation = ++loadGeneration
         currentVideoId = videoId
         val categories = getActiveCategories()
+        if (categories.isEmpty()) {
+            _segments.value = emptyList()
+            _seekBarSegments.value = emptyList()
+            _currentSegment.value = null
+            return
+        }
+
         val fetched = SponsorBlockApi.getSegments(videoId, categories)
         if (generation != loadGeneration || currentVideoId != videoId || !_enabled.value) return
 

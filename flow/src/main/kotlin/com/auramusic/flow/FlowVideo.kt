@@ -261,18 +261,15 @@ object FlowVideo {
      */
     suspend fun getVideoStreamUrlWithFallback(songTitle: String, artistName: String, videoId: String, isVideoSong: Boolean = true): Result<VideoSearchResult> = runCatching {
         if (isVideoSong) {
-            // For video songs, try direct video lookup first since they have real video content
-            val directResult = runCatching { getVideoStreamUrl(videoId).getOrNull() }
-
-            if (directResult.isSuccess && directResult.getOrNull() != null) {
-                val details = getVideoDetails(videoId).getOrNull()
-                return@runCatching VideoSearchResult(
-                    videoId = videoId,
-                    title = details?.title ?: songTitle,
-                    channelName = details?.channelName ?: artistName,
-                    thumbnailUrl = details?.thumbnailUrl ?: ""
-                )
-            }
+            // For video songs, keep the original video id and let the caller do
+            // the single authoritative stream resolution. Probing here causes a
+            // duplicate NewPipe extraction before video mode can show anything.
+            return@runCatching VideoSearchResult(
+                videoId = videoId,
+                title = songTitle,
+                channelName = artistName,
+                thumbnailUrl = ""
+            )
         } else {
             Log.d(TAG, "Skipping direct lookup for regular (non-video) song, searching for music video instead")
         }
@@ -301,18 +298,9 @@ object FlowVideo {
      * - Removes problematic codec parameters that cause parsing issues
      */
     private fun sanitizeMimeTypeForExoPlayer(mimeType: String?): String {
-        if (mimeType == null) return "video/mp4"
-        
-        // Extract base type
-        val baseType = mimeType.split(";").first().trim()
-        
-        // Force MP4 format for problematic streams
-        if (baseType.startsWith("video/webm") || baseType.startsWith("video/3gpp")) {
-            return "video/mp4"
-        }
-        
-        // Remove problematic codec parameters that cause NAL parsing errors
-        return baseType
+        // Keep the real container type. Lying about WebM/3GPP as MP4 can make
+        // ExoPlayer select the wrong extractor and produce a black/no-show video.
+        return sanitizeMimeType(mimeType)
     }
 
     /**
@@ -350,36 +338,31 @@ object FlowVideo {
      */
     suspend fun getVideoStreamSource(videoId: String): Result<VideoStreamSource> = runCatching {
         val streamInfo = NewPipeExtractor.getStreamInfo(videoId)
-            ?: throw Exception("Failed to extract stream info")
 
-        val muxedVideoStreams = streamInfo.videoStreams
-        val videoOnlyStreams = streamInfo.videoOnlyStreams
-        val audioStreams = streamInfo.audioStreams
+        if (streamInfo != null) {
+            val muxedVideoStreams = streamInfo.videoStreams
+            val videoOnlyStreams = streamInfo.videoOnlyStreams
+            val audioStreams = streamInfo.audioStreams
 
-        Log.d(
-            TAG,
-            "getVideoStreamSource: ${muxedVideoStreams.size} muxed, " +
-                    "${videoOnlyStreams.size} video-only, ${audioStreams.size} audio-only " +
-                    "(preferred=${currentPreferredQuality.label})"
-        )
+            Log.d(
+                TAG,
+                "getVideoStreamSource: ${muxedVideoStreams.size} muxed, " +
+                        "${videoOnlyStreams.size} video-only, ${audioStreams.size} audio-only " +
+                        "(preferred=${currentPreferredQuality.label})"
+            )
 
-        // When the user asks for above 720p, prefer the video-only + audio-only
-        // merged path because muxed streams cap out below that.
-        val preferMerged = currentPreferredQuality.height > 720
-
-        if (preferMerged) {
-            val videoOnly = findBestStream(videoOnlyStreams, requireAudio = false)
-            val audioOnly = pickBestAudioStream(audioStreams)
-            if (videoOnly != null && audioOnly != null) {
-                val videoUrl = videoOnly.content ?: videoOnly.url
-                val audioUrl = audioOnly.content ?: audioOnly.url
-                if (!videoUrl.isNullOrBlank() && !audioUrl.isNullOrBlank()) {
+            fun mergedSource(): VideoStreamSource.Merged? {
+                val videoOnly = findBestStream(videoOnlyStreams, requireAudio = false)
+                val audioOnly = pickBestAudioStream(audioStreams)
+                val videoUrl = videoOnly?.content ?: videoOnly?.url
+                val audioUrl = audioOnly?.content ?: audioOnly?.url
+                if (videoOnly != null && audioOnly != null && !videoUrl.isNullOrBlank() && !audioUrl.isNullOrBlank()) {
                     Log.d(
                         TAG,
                         "getVideoStreamSource: Using MERGED video-only ${videoOnly.resolution} " +
                                 "+ audio ${audioOnly.averageBitrate}bps"
                     )
-                    return@runCatching VideoStreamSource.Merged(
+                    return VideoStreamSource.Merged(
                         videoUrl = videoUrl,
                         videoMimeType = sanitizeMimeTypeForExoPlayer(videoOnly.format?.mimeType),
                         audioUrl = audioUrl,
@@ -387,11 +370,44 @@ object FlowVideo {
                         height = videoOnly.height,
                     )
                 }
+                return null
             }
-            Log.d(TAG, "getVideoStreamSource: Merged path unavailable, falling back to muxed/single")
+
+            fun singleSource(): VideoStreamSource.Single? {
+                val streamGroups = listOf(
+                    muxedVideoStreams.filter { isMp4Format(it.format?.mimeType) },
+                    muxedVideoStreams,
+                )
+                for (streams in streamGroups) {
+                    val stream = findBestStream(streams, requireAudio = true)
+                    val url = stream?.content ?: stream?.url
+                    if (stream != null && !url.isNullOrBlank()) {
+                        Log.d(TAG, "getVideoStreamSource: Using SINGLE muxed stream ${stream.resolution}")
+                        return VideoStreamSource.Single(
+                            url = url,
+                            mimeType = sanitizeMimeTypeForExoPlayer(stream.format?.mimeType),
+                        )
+                    }
+                }
+                return null
+            }
+
+            // When the user asks for above 720p, prefer the video-only + audio-only
+            // merged path because muxed streams cap out below that.
+            if (currentPreferredQuality.height > 720) {
+                mergedSource()?.let { return@runCatching it }
+                Log.d(TAG, "getVideoStreamSource: Merged path unavailable, falling back to muxed/single")
+            }
+
+            singleSource()?.let { return@runCatching it }
+
+            // Some videos only expose separate streams. Merge them even for
+            // <=720p rather than handing ExoPlayer a silent video-only URL.
+            mergedSource()?.let { return@runCatching it }
         }
 
-        // Fall back to a single muxed (or last-resort video-only) URL.
+        // Fall back to the older resolver, which includes the YouTube player API
+        // fallback if NewPipe cannot extract stream info at all.
         val singleResult = runCatching { getVideoStreamUrl(videoId).getOrThrow() }
             .getOrNull()
             ?: throw Exception("No playable video stream found")
