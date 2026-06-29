@@ -146,10 +146,12 @@ import com.auramusic.app.constants.SponsorBlockSkipSponsorKey
 import com.auramusic.app.constants.SkipSilenceInstantKey
 import com.auramusic.app.constants.SkipSilenceKey
 import com.auramusic.app.db.MusicDatabase
+import com.auramusic.app.db.entities.ArtistEntity
 import com.auramusic.app.db.entities.Event
 import com.auramusic.app.db.entities.FormatEntity
 import com.auramusic.app.db.entities.LyricsEntity
 import com.auramusic.app.db.entities.RelatedSongMap
+import com.auramusic.app.db.entities.Song
 import com.auramusic.app.di.DownloadCache
 import com.auramusic.app.di.PlayerCache
 import com.auramusic.app.eq.EqualizerService
@@ -169,6 +171,7 @@ import com.auramusic.app.extensions.toMediaItem
 import com.auramusic.app.extensions.toPersistQueue
 import com.auramusic.app.extensions.toQueue
 import com.auramusic.app.lyrics.LyricsHelper
+import com.auramusic.app.models.MediaMetadata
 import com.auramusic.app.models.PersistPlayerState
 import com.auramusic.app.models.PersistQueue
 import com.auramusic.app.models.toMediaMetadata
@@ -338,6 +341,28 @@ class MusicService :
             database.format(mediaMetadata?.id)
         }
 
+    private fun MediaMetadata.toDiscordSong() =
+        Song(
+            song = toSongEntity(),
+            artists = artists.map { artist ->
+                ArtistEntity(
+                    id = artist.id ?: "discord:${artist.name}",
+                    name = artist.name,
+                )
+            },
+            album = null,
+        )
+
+    private suspend fun updateDiscordPresence(useDetails: Boolean = dataStore.get(DiscordUseDetailsKey, false)) {
+        val song = currentSong.value ?: currentMediaMetadata.value?.toDiscordSong() ?: return
+        discordRpc?.updateSong(
+            song,
+            player.currentPosition,
+            player.playbackParameters.speed,
+            useDetails,
+        )
+    }
+
     lateinit var playerVolume: MutableStateFlow<Float>
     val isMuted = MutableStateFlow(false)
 
@@ -431,9 +456,7 @@ class MusicService :
                 Intent.ACTION_SCREEN_ON -> {
                     if (player.isPlaying) {
                         scope.launch {
-                            currentSong.value?.let { song ->
-                                discordRpc?.updateSong(song, player.currentPosition, player.playbackParameters.speed, dataStore.get(DiscordUseDetailsKey, false))
-                            }
+                            updateDiscordPresence()
                         }
                     }
                 }
@@ -638,12 +661,7 @@ class MusicService :
                 }
                 // Update Discord RPC when network becomes available
                 if (isConnected && discordRpc != null && player.isPlaying) {
-                    val mediaId = player.currentMetadata?.id
-                    if (mediaId != null) {
-                        database.song(mediaId).first()?.let { song ->
-                            discordRpc?.updateSong(song, player.currentPosition, player.playbackParameters.speed, dataStore.get(DiscordUseDetailsKey, false))
-                        }
-                    }
+                    updateDiscordPresence()
                 }
             }
         }
@@ -744,12 +762,11 @@ class MusicService :
                     discordRpc?.closeRPC()
                 }
                 discordRpc = null
-                if (key != null && enabled) {
-                    discordRpc = DiscordRPC(this, key)
+                val token = key?.takeIf { it.isNotBlank() }
+                if (token != null && enabled) {
+                    discordRpc = DiscordRPC(this, token)
                     if (player.playbackState == Player.STATE_READY && player.playWhenReady) {
-                        currentSong.value?.let {
-                            discordRpc?.updateSong(it, player.currentPosition, player.playbackParameters.speed, dataStore.get(DiscordUseDetailsKey, false))
-                        }
+                        updateDiscordPresence()
                     }
                 }
             }
@@ -768,12 +785,10 @@ class MusicService :
             .distinctUntilChanged()
             .collect(scope) { useDetails ->
                 if (player.playbackState == Player.STATE_READY && player.playWhenReady) {
-                    currentSong.value?.let { song ->
-                        discordUpdateJob?.cancel()
-                        discordUpdateJob = scope.launch {
-                            delay(1000)
-                            discordRpc?.updateSong(song, player.currentPosition, player.playbackParameters.speed, useDetails)
-                        }
+                    discordUpdateJob?.cancel()
+                    discordUpdateJob = scope.launch {
+                        delay(1000)
+                        updateDiscordPresence(useDetails)
                     }
                 }
             }
@@ -2159,14 +2174,8 @@ class MusicService :
 
         // Update Discord RPC when media item changes or playback starts
         if (events.containsAny(Player.EVENT_MEDIA_ITEM_TRANSITION, Player.EVENT_IS_PLAYING_CHANGED) && player.isPlaying) {
-            val mediaId = player.currentMetadata?.id
-            if (mediaId != null) {
-                scope.launch {
-                    // Fetch song from database to get full info
-                    database.song(mediaId).first()?.let { song ->
-                        discordRpc?.updateSong(song, player.currentPosition, player.playbackParameters.speed, dataStore.get(DiscordUseDetailsKey, false))
-                    }
-                }
+            scope.launch {
+                updateDiscordPresence()
             }
         }
 
@@ -2274,9 +2283,7 @@ class MusicService :
             discordUpdateJob = scope.launch {
                 delay(1000)
                 if (player.playWhenReady && player.playbackState == Player.STATE_READY) {
-                    currentSong.value?.let { song ->
-                        discordRpc?.updateSong(song, player.currentPosition, playbackParameters.speed, dataStore.get(DiscordUseDetailsKey, false))
-                    }
+                    updateDiscordPresence()
                 }
             }
         }

@@ -13,6 +13,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -420,12 +421,26 @@ fun TvPlayerScreen(
                 }
             }
 
-            // Main content: Two-column layout
+            // Main content: Two-column layout. Some TVs expose less usable
+            // height because of overscan/scaling, so compact the left player
+            // column to keep playback controls visible on every TV.
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                val compactHeight = maxHeight < 720.dp
+                val contentPadding = if (compactHeight) 16.dp else 24.dp
+                val contentSpacing = if (compactHeight) 20.dp else 32.dp
+                val playerVerticalSpacing = if (compactHeight) 12.dp else 24.dp
+                val topSpacerHeight = if (compactHeight) 16.dp else 48.dp
+                val artworkSize = if (compactHeight) 220.dp else 280.dp
+                val controlSpacing = if (compactHeight) 8.dp else 16.dp
+                val secondaryTopPadding = if (compactHeight) 8.dp else 16.dp
+                val sideControlSize = if (compactHeight) 56.dp else 72.dp
+                val playControlSize = if (compactHeight) 68.dp else 80.dp
+
             Row(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(24.dp),
-                horizontalArrangement = Arrangement.spacedBy(32.dp),
+                    .padding(contentPadding),
+                horizontalArrangement = Arrangement.spacedBy(contentSpacing),
                 verticalAlignment = Alignment.Top,
             ) {
                 // LEFT SIDE: Player controls (40% width)
@@ -434,14 +449,14 @@ fun TvPlayerScreen(
                         .weight(0.4f)
                         .fillMaxHeight(),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(playerVerticalSpacing),
                 ) {
-                    Spacer(modifier = Modifier.height(48.dp)) // Space for back button
+                    Spacer(modifier = Modifier.height(topSpacerHeight)) // Space for back button
 
                     // Album art / Lyrics / Video container
                     Box(
                         modifier = Modifier
-                            .size(280.dp)
+                            .size(artworkSize)
                             .clip(RoundedCornerShape(16.dp))
                             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.1f)),
                         contentAlignment = Alignment.Center,
@@ -649,13 +664,14 @@ fun TvPlayerScreen(
 
                     // Playback controls
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(controlSpacing),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         TvPlayerControlButton(
                             onClick = { pc?.seekToPrevious() },
                             icon = Icons.Filled.SkipPrevious,
                             contentDescription = "Previous song",
+                            size = sideControlSize,
                         )
 
                         TvPlayerControlButton(
@@ -665,13 +681,14 @@ fun TvPlayerScreen(
                             },
                             icon = Icons.Filled.FastRewind,
                             contentDescription = "Rewind 10 seconds",
+                            size = sideControlSize,
                         )
 
                         TvPlayerControlButton(
                             onClick = { pc?.togglePlayPause() },
                             icon = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                             contentDescription = if (isPlaying) "Pause" else "Play",
-                            size = 80.dp,
+                            size = playControlSize,
                             focusRequester = playButtonFocus,
                         )
 
@@ -683,20 +700,22 @@ fun TvPlayerScreen(
                             },
                             icon = Icons.Filled.FastForward,
                             contentDescription = "Fast forward 10 seconds",
+                            size = sideControlSize,
                         )
 
                         TvPlayerControlButton(
                             onClick = { pc?.seekToNext() },
                             icon = Icons.Filled.SkipNext,
                             contentDescription = "Next song",
+                            size = sideControlSize,
                         )
                     }
 
                     // Secondary controls
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(controlSpacing),
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(top = 16.dp)
+                        modifier = Modifier.padding(top = secondaryTopPadding)
                     ) {
                         TvPlayerControlButton(
                             onClick = { pc?.toggleShuffle() },
@@ -704,6 +723,7 @@ fun TvPlayerScreen(
                             contentDescription = "Shuffle",
                             tint = if (pc?.shuffleModeEnabled?.value == true)
                                 MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f),
+                            size = sideControlSize,
                         )
 
                         TvPlayerControlButton(
@@ -725,6 +745,7 @@ fun TvPlayerScreen(
                             contentDescription = "Repeat",
                             tint = if (pc?.repeatMode?.value != androidx.media3.common.Player.REPEAT_MODE_OFF)
                                 MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f),
+                            size = sideControlSize,
                         )
 
                         TvPlayerControlButton(
@@ -753,6 +774,7 @@ fun TvPlayerScreen(
                             painter = painterResource(R.drawable.bedtime),
                             contentDescription = if (sleepTimerActive) "Cancel sleep timer" else "Set sleep timer",
                             tint = if (sleepTimerActive) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f),
+                            size = sideControlSize,
                         )
 
                         TvPlayerControlButton(
@@ -760,9 +782,8 @@ fun TvPlayerScreen(
                             icon = Icons.Filled.Lyrics,
                             contentDescription = if (showLyrics) "Hide lyrics" else "Show lyrics",
                             tint = if (showLyrics) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f),
+                            size = sideControlSize,
                         )
-
-
                     }
                 }
 
@@ -824,6 +845,7 @@ fun TvPlayerScreen(
                         }
                     }
                 }
+            }
             }
 
             // Back button (top-left)

@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -754,8 +755,8 @@ fun TvTopBar(
                     )
                     Row(
                         modifier = Modifier
-                            .height(56.dp)
-                            .weight(2f, fill = false)
+                            .height(64.dp)
+                            .widthIn(min = 360.dp, max = 520.dp)
                             .padding(horizontal = 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -797,12 +798,21 @@ fun TvTopBar(
                                     .background(MaterialTheme.colorScheme.surface),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                AsyncImage(
-                                    model = miniThumbnail,
-                                    contentDescription = miniTitle,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize(),
-                                )
+                                if (miniThumbnail.isNullOrBlank()) {
+                                    Icon(
+                                        imageVector = Icons.Filled.MusicNote,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(24.dp),
+                                    )
+                                } else {
+                                    AsyncImage(
+                                        model = miniThumbnail,
+                                        contentDescription = miniTitle,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize(),
+                                    )
+                                }
                             }
 
                             // Song info

@@ -1154,8 +1154,11 @@ fun BottomSheetPlayer(
                             }
                         }
 
-                        // Video mode toggle button - only show for video songs (not regular songs)
-                        if (videoModeToggleEnabled && mediaMetadata.isVideoSong == true) {
+                        // Video mode toggle button. Regular songs can still resolve
+                        // a music video through the fallback search path, so do not
+                        // hide the toggle just because the item is not pre-marked as
+                        // a video song.
+                        if (videoModeToggleEnabled) {
                             Box(
                                 contentAlignment = Alignment.Center,
                                 modifier = Modifier.size(42.dp)
@@ -1366,10 +1369,10 @@ fun BottomSheetPlayer(
                     Spacer(modifier = Modifier.size(12.dp))
 
                     AnimatedContent(
-                        targetState = isVideoAvailable,
+                        targetState = videoModeToggleEnabled,
                         label = "VideoToggle"
-                    ) { available ->
-                        if (available && mediaMetadata.isVideoSong == true) {
+                    ) { enabled ->
+                        if (enabled) {
                             Box(
                                 modifier = Modifier
                                     .size(40.dp)
