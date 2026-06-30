@@ -35,6 +35,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
@@ -64,6 +65,7 @@ open class DiscordWebSocket(
     private var resumeGatewayUrl: String? = null
     private var heartbeatJob: Job? = null
     private var connected = false
+    private var ready = false
     private var client: HttpClient = HttpClient {
         install(WebSockets)
     }
@@ -83,6 +85,7 @@ open class DiscordWebSocket(
             logger.info("Gateway already connected.")
             return
         }
+        ready = false
         reconnectionJob?.cancel()
         reconnectionJob = launch {
             try {
@@ -123,6 +126,7 @@ open class DiscordWebSocket(
         }
         heartbeatJob?.cancel()
         connected = false
+        ready = false
         reconnectionJob = launch {
             delay(currentReconnectDelay)
             logger.info("Attempting to reconnect...")
@@ -135,6 +139,7 @@ open class DiscordWebSocket(
     private suspend fun handleClose() {
         heartbeatJob?.cancel()
         connected = false
+        ready = false
         val close = websocket?.closeReason?.await()
         logger.warning("Gateway closed with code: ${close?.code}, reason: ${close?.message}, can_reconnect: ${close?.code?.toInt() == 4000}")
         if (close?.code?.toInt() == 4000) {
@@ -167,10 +172,13 @@ open class DiscordWebSocket(
                 resumeGatewayUrl = ready.resumeGatewayUrl + "/?v=9&encoding=json"
                 logger.info("Gateway READY: resume_gateway_url updated to $resumeGatewayUrl, session_id updated to $sessionId")
                 connected = true
+                this@DiscordWebSocket.ready = true
                 return
             }
 
             "RESUMED" -> {
+                connected = true
+                ready = true
                 logger.info("Gateway: Session Resumed")
             }
 
@@ -179,6 +187,7 @@ open class DiscordWebSocket(
     }
 
     private suspend inline fun handleInvalidSession() {
+        ready = false
         logger.warning("Gateway: Handling Invalid Session. Sending Identify after 150ms")
         delay(150)
         sendIdentify()
@@ -247,7 +256,7 @@ open class DiscordWebSocket(
     }
 
     private fun isSocketConnectedToAccount(): Boolean {
-        return connected && websocket?.isActive == true
+        return ready && websocket?.isActive == true
     }
 
     @OptIn(DelicateCoroutinesApi::class)
@@ -280,6 +289,7 @@ open class DiscordWebSocket(
         resumeGatewayUrl = null
         sessionId = null
         connected = false
+        ready = false
         runBlocking {
             websocket?.close()
             logger.severe("Gateway: Connection to gateway closed")
@@ -287,9 +297,15 @@ open class DiscordWebSocket(
     }
 
     suspend fun sendActivity(presence: Presence) {
-        // TODO : Figure out a better way to wait for socket to be connected to account
-        while (!isSocketConnectedToAccount()) {
-            delay(10.milliseconds)
+        val becameReady = withTimeoutOrNull(15.seconds) {
+            while (!isSocketConnectedToAccount()) {
+                delay(10.milliseconds)
+            }
+            true
+        } == true
+        if (!becameReady) {
+            logger.warning("Gateway: Timed out waiting for READY before sending presence")
+            return
         }
         logger.info("Gateway: Sending $PRESENCE_UPDATE")
         send(

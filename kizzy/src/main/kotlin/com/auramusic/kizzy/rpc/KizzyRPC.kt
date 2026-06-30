@@ -84,7 +84,15 @@ open class KizzyRPC(
         val images = listOfNotNull(largeImage, smallImage)
         val externalImages = images.filterIsInstance<RpcImage.ExternalImage>()
         val imageUrls = externalImages.map { it.image }
-        val resolvedImages = kizzyRepository.getImages(imageUrls)?.results?.associate { it.originalUrl to it.id } ?: emptyMap()
+        val resolvedImages = if (imageUrls.isEmpty()) {
+            emptyMap()
+        } else {
+            runCatching {
+                kizzyRepository.getImages(imageUrls)?.results?.associate { it.originalUrl to it.id } ?: emptyMap()
+            }.getOrElse {
+                emptyMap()
+            }
+        }
 
         val presence = Presence(
             activities = listOf(
@@ -119,7 +127,7 @@ open class KizzyRPC(
                     url = streamUrl
                 )
             ),
-            afk = true,
+            afk = false,
             since = since,
             status = status ?: "online"
         )
@@ -147,19 +155,30 @@ open class KizzyRPC(
             superPropertiesBase64: String? = null
         ): Result<UserInfo> = runCatching {
             val client = HttpClient()
-            val response = client.get("https://discord.com/api/v9/users/@me") {
-                header("Authorization", token)
-                header("User-Agent", userAgent)
-                if (superPropertiesBase64 != null) {
-                    header("X-Super-Properties", superPropertiesBase64)
+            try {
+                val response = client.get("https://discord.com/api/v9/users/@me") {
+                    header("Authorization", token)
+                    header("User-Agent", userAgent)
+                    if (superPropertiesBase64 != null) {
+                        header("X-Super-Properties", superPropertiesBase64)
+                    }
+                }.bodyAsText()
+                val json = JSONObject(response)
+                val id = json.getString("id")
+                val username = json.getString("username")
+                val name = json.optString("global_name")
+                    .takeIf { it.isNotBlank() && it != "null" }
+                    ?: username
+                val avatarHash = json.optString("avatar")
+                    .takeIf { it.isNotBlank() && it != "null" }
+                val avatarUrl = avatarHash?.let { hash ->
+                    "https://cdn.discordapp.com/avatars/$id/$hash.png?size=128"
                 }
-            }.bodyAsText()
-            val json = JSONObject(response)
-            val username = json.getString("username")
-            val name = json.optString("global_name", username)
-            client.close()
 
-            UserInfo(username, name)
+                UserInfo(username = username, name = name, avatarUrl = avatarUrl)
+            } finally {
+                client.close()
+            }
         }
     }
 }

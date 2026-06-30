@@ -64,6 +64,7 @@ import coil3.compose.AsyncImage
 import com.auramusic.app.LocalPlayerAwareWindowInsets
 import com.auramusic.app.LocalPlayerConnection
 import com.auramusic.app.R
+import com.auramusic.app.constants.DiscordAvatarUrlKey
 import com.auramusic.app.constants.DiscordInfoDismissedKey
 import com.auramusic.app.constants.DiscordNameKey
 import com.auramusic.app.constants.DiscordTokenKey
@@ -86,6 +87,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -106,29 +109,30 @@ fun DiscordSettings(
     var discordToken by rememberPreference(DiscordTokenKey, "")
     var discordUsername by rememberPreference(DiscordUsernameKey, "")
     var discordName by rememberPreference(DiscordNameKey, "")
+    var discordAvatarUrl by rememberPreference(DiscordAvatarUrlKey, "")
     var infoDismissed by rememberPreference(DiscordInfoDismissedKey, false)
 
     LaunchedEffect(discordToken) {
-        val token = discordToken
+        val token = discordToken.trim()
         if (token.isEmpty()) {
             discordUsername = ""
             discordName = ""
+            discordAvatarUrl = ""
             return@LaunchedEffect
         }
-        // Fetch user info when token changes
-        launch(Dispatchers.IO) {
+        val result = withContext(Dispatchers.IO) {
             KizzyRPC.getUserInfo(
                 token, 
                 SuperProperties.userAgent, 
                 SuperProperties.superPropertiesBase64
-            ).onSuccess {
-                discordUsername = it.username
-                discordName = it.name
-            }.onFailure {
-                // Clear user info on failure
-                discordUsername = ""
-                discordName = ""
-            }
+            )
+        }
+        result.onSuccess {
+            discordUsername = it.username
+            discordName = it.name
+            discordAvatarUrl = it.avatarUrl.orEmpty()
+        }.onFailure {
+            Timber.w(it, "Failed to fetch Discord user info")
         }
     }
 
@@ -155,6 +159,13 @@ fun DiscordSettings(
         remember(discordToken) {
             discordToken != ""
         }
+
+    val accountTitle = when {
+        !isLoggedIn -> stringResource(R.string.not_logged_in)
+        discordName.isNotBlank() -> discordName
+        discordUsername.isNotBlank() -> discordUsername
+        else -> stringResource(R.string.discord_integration)
+    }
 
     var showTokenDialog by rememberSaveable { mutableStateOf(false) }
 
@@ -233,7 +244,7 @@ fun DiscordSettings(
         PreferenceEntry(
             title = {
                 Text(
-                    text = if (isLoggedIn) discordName else stringResource(R.string.not_logged_in),
+                    text = accountTitle,
                     modifier = Modifier.alpha(if (isLoggedIn) 1f else 0.5f),
                 )
             },
@@ -243,13 +254,26 @@ fun DiscordSettings(
             } else {
                 null
             },
-            icon = { Icon(painterResource(R.drawable.discord), null) },
+            icon = {
+                if (isLoggedIn && discordAvatarUrl.isNotBlank()) {
+                    AsyncImage(
+                        model = discordAvatarUrl,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape),
+                    )
+                } else {
+                    Icon(painterResource(R.drawable.discord), null)
+                }
+            },
             trailingContent = {
                 if (isLoggedIn) {
                     OutlinedButton(onClick = {
                         discordName = ""
                         discordToken = ""
                         discordUsername = ""
+                        discordAvatarUrl = ""
                     }) {
                         Text(stringResource(R.string.action_logout))
                     }

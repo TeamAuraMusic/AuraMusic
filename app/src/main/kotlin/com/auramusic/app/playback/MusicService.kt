@@ -354,13 +354,19 @@ class MusicService :
         )
 
     private suspend fun updateDiscordPresence(useDetails: Boolean = dataStore.get(DiscordUseDetailsKey, false)) {
-        val song = currentSong.value ?: currentMediaMetadata.value?.toDiscordSong() ?: return
+        val metadata = currentMediaMetadata.value
+        val song = currentSong.value
+            ?.takeIf { it.song.id == metadata?.id }
+            ?: metadata?.toDiscordSong()
+            ?: return
         discordRpc?.updateSong(
             song,
             player.currentPosition,
             player.playbackParameters.speed,
             useDetails,
-        )
+        )?.onFailure {
+            Timber.tag(TAG).w(it, "Failed to update Discord presence")
+        }
     }
 
     lateinit var playerVolume: MutableStateFlow<Float>

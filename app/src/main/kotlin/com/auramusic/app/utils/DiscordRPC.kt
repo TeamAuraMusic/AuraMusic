@@ -25,17 +25,22 @@ class DiscordRPC(
     suspend fun updateSong(song: Song, currentPlaybackTimeMillis: Long, playbackSpeed: Float = 1.0f, useDetails: Boolean = false) = runCatching {
         val currentTime = System.currentTimeMillis()
 
-        val adjustedPlaybackTime = (currentPlaybackTimeMillis / playbackSpeed).toLong()
+        val safeSpeed = playbackSpeed.takeIf { it > 0f } ?: 1.0f
+        val adjustedPlaybackTime = (currentPlaybackTimeMillis / safeSpeed).toLong()
         val calculatedStartTime = currentTime - adjustedPlaybackTime
 
-        val songTitleWithRate = if (playbackSpeed != 1.0f) {
-            "${song.song.title} [${String.format("%.2fx", playbackSpeed)}]"
+        val songTitleWithRate = if (safeSpeed != 1.0f) {
+            "${song.song.title} [${String.format("%.2fx", safeSpeed)}]"
         } else {
             song.song.title
         }
 
-        val remainingDuration = song.song.duration * 1000L - currentPlaybackTimeMillis
-        val adjustedRemainingDuration = (remainingDuration / playbackSpeed).toLong()
+        val endTime = song.song.duration
+            .takeIf { it > 0 }
+            ?.times(1000L)
+            ?.let { durationMillis -> durationMillis - currentPlaybackTimeMillis }
+            ?.takeIf { it > 0 }
+            ?.let { remainingDuration -> currentTime + (remainingDuration / safeSpeed).toLong() }
 
         setActivity(
             name = context.getString(R.string.app_name).removeSuffix(" Debug"),
@@ -52,9 +57,8 @@ class DiscordRPC(
             ),
             type = Type.LISTENING,
             statusDisplayType = if (useDetails) StatusDisplayType.DETAILS else StatusDisplayType.STATE,
-            since = currentTime,
             startTime = calculatedStartTime,
-            endTime = currentTime + adjustedRemainingDuration,
+            endTime = endTime,
             applicationId = APPLICATION_ID
         )
     }
