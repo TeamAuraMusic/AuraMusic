@@ -52,13 +52,18 @@ class SleepTimer(
         triggerTime = -1L
     }
 
+    fun notifySongTransition() {
+        if (pauseWhenSongEnd) {
+            completeTimerAndPause()
+        }
+    }
+
     override fun onMediaItemTransition(
         mediaItem: MediaItem?,
         reason: Int,
     ) {
         if (pauseWhenSongEnd) {
-            pauseWhenSongEnd = false
-            player.pause()
+            completeTimerAndPause()
         }
     }
 
@@ -66,8 +71,15 @@ class SleepTimer(
         @Player.State playbackState: Int,
     ) {
         if (playbackState == Player.STATE_ENDED && pauseWhenSongEnd) {
-            pauseWhenSongEnd = false
-            player.pause()
+            completeTimerAndPause()
         }
+    }
+
+    private fun completeTimerAndPause() {
+        sleepTimerJob?.cancel()
+        sleepTimerJob = null
+        pauseWhenSongEnd = false
+        triggerTime = -1L
+        player.pause()
     }
 }

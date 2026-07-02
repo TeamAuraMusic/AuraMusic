@@ -3915,6 +3915,16 @@ class MusicService :
     }
     
     private fun performCrossfadeSwap() {
+        if (sleepTimer.pauseWhenSongEnd) {
+            sleepTimer.notifySongTransition()
+            secondaryPlayer?.removeListener(secondaryPlayerListener)
+            secondaryPlayer?.stop()
+            secondaryPlayer?.clearMediaItems()
+            secondaryPlayer?.release()
+            secondaryPlayer = null
+            return
+        }
+
         isCrossfading = true
         val nextPlayer = secondaryPlayer ?: return
         val currentPlayer = player
@@ -3925,6 +3935,7 @@ class MusicService :
         secondaryPlayer = null
         
         fadingPlayer?.removeListener(this)
+        fadingPlayer?.removeListener(sleepTimer)
         
         // Add listener to sync play/pause state
         player.addListener(object : Player.Listener {
@@ -3943,6 +3954,7 @@ class MusicService :
 
         nextPlayer.removeListener(secondaryPlayerListener)
         nextPlayer.addListener(this)
+        nextPlayer.addListener(sleepTimer)
         // Add PlaybackStatsListener to the new player for history tracking
         nextPlayer.addAnalyticsListener(PlaybackStatsListener(false, this@MusicService))
         

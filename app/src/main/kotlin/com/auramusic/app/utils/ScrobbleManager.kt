@@ -59,11 +59,16 @@ class ScrobbleManager(
 
     private fun startScrobbleTimer(metadata: MediaMetadata, duration: Long? = null) {
         scrobbleJob?.cancel()
-        val duration = duration?.toInt()?.div(1000) ?: metadata.duration
+        val durationSeconds = duration
+            ?.takeIf { it > 0 }
+            ?.div(1000)
+            ?.toInt()
+            ?.takeIf { it > 0 }
+            ?: metadata.duration
 
-        if (duration <= minSongDuration) return
+        if (durationSeconds <= minSongDuration) return
 
-        val threshold = duration * 1000L * scrobbleDelayPercent
+        val threshold = durationSeconds * 1000L * scrobbleDelayPercent
         scrobbleRemainingMillis = min(threshold.toLong(), scrobbleDelaySeconds * 1000L)
 
         if (scrobbleRemainingMillis <= 0) {

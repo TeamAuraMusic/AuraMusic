@@ -634,6 +634,22 @@ fun BottomSheetPlayer(
                         steps = (120 - 5) / 5 - 1,
                     )
 
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        listOf(15, 30, 45, 60).forEach { minutes ->
+                            TextButton(
+                                onClick = {
+                                    showSleepTimerDialog = false
+                                    playerConnection.service.sleepTimer.start(minutes)
+                                },
+                            ) {
+                                Text("${minutes}m")
+                            }
+                        }
+                    }
+
                     OutlinedIconButton(
                         onClick = {
                             showSleepTimerDialog = false

@@ -37,7 +37,7 @@ open class KizzyRPC(
     superPropertiesBase64: String? = null
 ) {
     private val kizzyRepository = KizzyRepository(userAgent, superPropertiesBase64)
-    private val discordWebSocket = DiscordWebSocket(token, os, browser, device)
+    private val discordWebSocket = DiscordWebSocket(token.toGatewayAuthorization(), os, browser, device)
 
     fun closeRPC() {
         discordWebSocket.close()
@@ -110,7 +110,7 @@ open class KizzyRPC(
                     ),
                     buttons = buttons?.map { it.first },
                     metadata = Metadata(buttonUrls = buttons?.map { it.second }),
-                    applicationId = applicationId.takeIf { !buttons.isNullOrEmpty() },
+                    applicationId = null,
                     url = streamUrl
                 )
             ),
@@ -164,29 +164,62 @@ open class KizzyRPC(
         ): Result<UserInfo> = runCatching {
             val client = HttpClient()
             try {
-                val response = client.get("https://discord.com/api/v10/users/@me") {
-                    header("Authorization", token)
-                    header("User-Agent", userAgent)
-                    if (superPropertiesBase64 != null) {
-                        header("X-Super-Properties", superPropertiesBase64)
-                    }
-                }.bodyAsText()
-                val json = JSONObject(response)
-                val id = json.getString("id")
-                val username = json.getString("username")
-                val name = json.optString("global_name")
-                    .takeIf { it.isNotBlank() && it != "null" }
-                    ?: username
-                val avatarHash = json.optString("avatar")
-                    .takeIf { it.isNotBlank() && it != "null" }
-                val avatarUrl = avatarHash?.let { hash ->
-                    "https://cdn.discordapp.com/avatars/$id/$hash.png?size=128"
-                }
+                var lastFailure: Throwable? = null
+                token.authorizationCandidates().forEach { authorization ->
+                    val userInfo = runCatching {
+                        val response = client.get("https://discord.com/api/v10/users/@me") {
+                            header("Authorization", authorization)
+                            header("User-Agent", userAgent)
+                            if (superPropertiesBase64 != null) {
+                                header("X-Super-Properties", superPropertiesBase64)
+                            }
+                        }.bodyAsText()
+                        val json = JSONObject(response)
+                        val id = json.getString("id")
+                        val username = json.getString("username")
+                        val name = json.optString("global_name")
+                            .takeIf { it.isNotBlank() && it != "null" }
+                            ?: json.optString("display_name")
+                                .takeIf { it.isNotBlank() && it != "null" }
+                            ?: username
+                        val avatarHash = json.optString("avatar")
+                            .takeIf { it.isNotBlank() && it != "null" }
+                        val avatarUrl = avatarHash?.let { hash ->
+                            val extension = if (hash.startsWith("a_")) "gif" else "png"
+                            "https://cdn.discordapp.com/avatars/$id/$hash.$extension?size=128"
+                        }
 
-                UserInfo(username = username, name = name, avatarUrl = avatarUrl)
+                        UserInfo(username = username, name = name, avatarUrl = avatarUrl)
+                    }
+                    userInfo.onSuccess { return@runCatching it }
+                    lastFailure = userInfo.exceptionOrNull()
+                }
+                throw lastFailure ?: IllegalStateException("Unable to fetch Discord user info")
             } finally {
                 client.close()
             }
         }
+    }
+}
+
+private fun String.cleanDiscordToken(): String =
+    trim().trim('"').trim('\'')
+
+private fun String.toGatewayAuthorization(): String {
+    val token = cleanDiscordToken()
+    if (token.startsWith("Bearer ", ignoreCase = true)) return token
+    if (token.startsWith("Bot ", ignoreCase = true)) return token
+    return if (token.contains('.')) token else "Bearer $token"
+}
+
+private fun String.authorizationCandidates(): List<String> {
+    val token = cleanDiscordToken()
+    if (token.startsWith("Bearer ", ignoreCase = true) || token.startsWith("Bot ", ignoreCase = true)) {
+        return listOf(token)
+    }
+    return if (token.contains('.')) {
+        listOf(token, "Bearer $token")
+    } else {
+        listOf("Bearer $token", token)
     }
 }
