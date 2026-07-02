@@ -65,6 +65,7 @@ import com.auramusic.innertube.pages.SearchResult
 import com.auramusic.innertube.pages.SearchSuggestionPage
 import com.auramusic.innertube.pages.SearchSummary
 import com.auramusic.innertube.pages.SearchSummaryPage
+import com.auramusic.innertube.YouTubeConstants
 import io.ktor.client.call.body
 import io.ktor.client.statement.bodyAsText
 import kotlinx.coroutines.runBlocking
@@ -139,80 +140,147 @@ object YouTube {
 
     suspend fun searchSummary(query: String): Result<SearchSummaryPage> = runCatching {
         val response = innerTube.search(WEB_REMIX, query).body<SearchResponse>()
-        SearchSummaryPage(
-            summaries = response.contents?.tabbedSearchResultsRenderer?.tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents?.mapNotNull { it ->
-                when {
-                    it.musicCardShelfRenderer != null -> {
-                        val shelf = it.musicCardShelfRenderer
-                        SearchSummary(
-                            title = shelf.header?.musicCardShelfHeaderBasicRenderer?.title?.runs?.firstOrNull()?.text ?: YouTubeConstants.DEFAULT_TOP_RESULT,
-                            items = listOfNotNull(SearchSummaryPage.fromMusicCardShelfRenderer(shelf))
-                                .plus(
-                                    shelf.contents
-                                        ?.mapNotNull { it.musicResponsiveListItemRenderer }
-                                        ?.mapNotNull(SearchSummaryPage.Companion::fromMusicResponsiveListItemRenderer)
-                                        .orEmpty()
-                                )
-                                .distinctBy { it.id }
-                                .ifEmpty { null } ?: return@mapNotNull null
+        val allSummaries = mutableListOf<SearchSummary>()
+
+        response.contents?.tabbedSearchResultsRenderer?.tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents?.forEach { it ->
+            when {
+                it.musicCardShelfRenderer != null -> {
+                    val shelf = it.musicCardShelfRenderer
+                    val items = listOfNotNull(SearchSummaryPage.fromMusicCardShelfRenderer(shelf))
+                        .plus(
+                            shelf.contents
+                                ?.mapNotNull { it.musicResponsiveListItemRenderer }
+                                ?.mapNotNull(SearchSummaryPage.Companion::fromMusicResponsiveListItemRenderer)
+                                .orEmpty(),
                         )
-                    }
-                    it.musicCarouselShelfRenderer != null -> {
-                        val carousel = it.musicCarouselShelfRenderer
+                        .distinctBy { it.id }
+                        .ifEmpty { null } ?: return@forEach
+
+                    allSummaries.add(
                         SearchSummary(
-                            title = carousel.header?.musicCarouselShelfBasicHeaderRenderer?.title?.runs?.firstOrNull()?.text ?: YouTubeConstants.DEFAULT_OTHER_RESULTS,
-                            items = carousel.contents.mapNotNull { content ->
-                                content.musicResponsiveListItemRenderer?.let {
-                                    SearchSummaryPage.fromMusicResponsiveListItemRenderer(it)
-                                } ?: content.musicTwoRowItemRenderer?.let {
-                                    SearchSummaryPage.fromMusicTwoRowItemRenderer(it)
-                                }
-                            }
-                                .distinctBy { it.id }
-                                .ifEmpty { null } ?: return@mapNotNull null
-                        )
+                            title = shelf.header?.musicCardShelfHeaderBasicRenderer?.title?.runs?.firstOrNull()?.text
+                                ?: YouTubeConstants.DEFAULT_TOP_RESULT,
+                            items = items,
+                        ),
+                    )
+                }
+
+                it.musicCarouselShelfRenderer != null -> {
+                    val carousel = it.musicCarouselShelfRenderer
+                    val items = carousel.contents.mapNotNull { content ->
+                        content.musicResponsiveListItemRenderer?.let {
+                            SearchSummaryPage.fromMusicResponsiveListItemRenderer(it)
+                        } ?: content.musicTwoRowItemRenderer?.let {
+                            SearchSummaryPage.fromMusicTwoRowItemRenderer(it)
+                        }
                     }
-                    it.musicShelfRenderer != null -> {
+                        .distinctBy { it.id }
+                        .ifEmpty { null } ?: return@forEach
+
+                    allSummaries.add(
                         SearchSummary(
-                            title = it.musicShelfRenderer.title?.runs?.firstOrNull()?.text ?: YouTubeConstants.DEFAULT_OTHER_RESULTS,
-                            items = it.musicShelfRenderer.contents?.getItems()
-                                ?.mapNotNull {
-                                    SearchSummaryPage.fromMusicResponsiveListItemRenderer(it)
-                                }
-                                ?.distinctBy { it.id }
-                                ?.ifEmpty { null } ?: return@mapNotNull null
-                        )
+                            title = carousel.header?.musicCarouselShelfBasicHeaderRenderer?.title?.runs?.firstOrNull()?.text
+                                ?: YouTubeConstants.DEFAULT_OTHER_RESULTS,
+                            items = items,
+                        ),
+                    )
+                }
+
+                it.musicShelfRenderer != null -> {
+                    val items =
+                        it.musicShelfRenderer.contents?.getItems()
+                            ?.mapNotNull { SearchSummaryPage.fromMusicResponsiveListItemRenderer(it) }
+                            ?.distinctBy { it.id }
+                            ?: emptyList()
+
+                    if (items.isEmpty()) return@forEach
+
+                    val apiTitle = it.musicShelfRenderer.title?.runs?.firstOrNull()?.text
+
+                    if (apiTitle != null) {
+                        allSummaries.add(SearchSummary(title = apiTitle, items = items))
+                    } else {
+                        allSummaries.addAll(SearchSummaryPage.groupItemsByType(items))
                     }
-                    it.musicPlaylistShelfRenderer != null -> {
-                        val shelf = it.musicPlaylistShelfRenderer
+                }
+
+                it.musicPlaylistShelfRenderer != null -> {
+                    val shelf = it.musicPlaylistShelfRenderer
+                    val items = shelf.contents.mapNotNull { content ->
+                        content.musicResponsiveListItemRenderer?.let {
+                            SearchSummaryPage.fromMusicResponsiveListItemRenderer(it)
+                        }
+                    }
+                        .distinctBy { it.id }
+                        .ifEmpty { null } ?: return@forEach
+
+                    allSummaries.add(
                         SearchSummary(
                             title = YouTubeConstants.DEFAULT_OTHER_RESULTS,
-                            items = shelf.contents.mapNotNull { content ->
-                                content.musicResponsiveListItemRenderer?.let {
-                                    SearchSummaryPage.fromMusicResponsiveListItemRenderer(it)
-                                }
-                            }
-                                .distinctBy { it.id }
-                                .ifEmpty { null } ?: return@mapNotNull null
-                        )
-                    }
-                    it.gridRenderer != null -> {
-                        val grid = it.gridRenderer
-                        SearchSummary(
-                            title = grid.header?.gridHeaderRenderer?.title?.runs?.firstOrNull()?.text ?: YouTubeConstants.DEFAULT_OTHER_RESULTS,
-                            items = grid.items.mapNotNull { content ->
-                                content.musicTwoRowItemRenderer?.let {
-                                    SearchSummaryPage.fromMusicTwoRowItemRenderer(it)
-                                }
-                            }
-                                .distinctBy { it.id }
-                                .ifEmpty { null } ?: return@mapNotNull null
-                        )
-                    }
-                    else -> null
+                            items = items,
+                        ),
+                    )
                 }
-            }!!
-        )
+
+                it.gridRenderer != null -> {
+                    val grid = it.gridRenderer
+                    val items = grid.items.mapNotNull { content ->
+                        content.musicTwoRowItemRenderer?.let {
+                            SearchSummaryPage.fromMusicTwoRowItemRenderer(it)
+                        }
+                    }
+                        .distinctBy { it.id }
+                        .ifEmpty { null } ?: return@forEach
+
+                    allSummaries.add(
+                        SearchSummary(
+                            title = grid.header?.gridHeaderRenderer?.title?.runs?.firstOrNull()?.text
+                                ?: YouTubeConstants.DEFAULT_OTHER_RESULTS,
+                            items = items,
+                        ),
+                    )
+                }
+
+                it.itemSectionRenderer != null -> {
+                    val items =
+                        it.itemSectionRenderer.contents
+                            ?.mapNotNull { it.musicResponsiveListItemRenderer }
+                            ?.mapNotNull { SearchSummaryPage.fromMusicResponsiveListItemRenderer(it) }
+                            ?.distinctBy { it.id }
+                            ?: emptyList()
+
+                    if (items.isNotEmpty()) {
+                        allSummaries.addAll(SearchSummaryPage.groupItemsByType(items))
+                    }
+                }
+            }
+        }
+
+        val mergedSummaries =
+            allSummaries
+                .groupBy { it.title }
+                .map { (title, sections) ->
+                    SearchSummary(
+                        title = title,
+                        items = sections.flatMap { it.items }.distinctBy { it.id },
+                    )
+                }
+                .sortedBy { summary ->
+                    when (summary.title) {
+                        YouTubeConstants.DEFAULT_TOP_RESULT -> 0
+                        YouTubeConstants.SECTION_SONGS -> 1
+                        YouTubeConstants.SECTION_VIDEOS -> 2
+                        YouTubeConstants.SECTION_ALBUMS -> 3
+                        YouTubeConstants.SECTION_ARTISTS -> 4
+                        YouTubeConstants.SECTION_PLAYLISTS -> 5
+                        YouTubeConstants.SECTION_PODCASTS -> 6
+                        YouTubeConstants.SECTION_EPISODES -> 7
+                        YouTubeConstants.SECTION_PROFILES -> 8
+                        else -> 9
+                    }
+                }
+
+        SearchSummaryPage(summaries = mergedSummaries)
     }
 
     suspend fun search(query: String, filter: SearchFilter): Result<SearchResult> = runCatching {

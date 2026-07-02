@@ -7,10 +7,12 @@ import com.auramusic.innertube.models.ArtistItem
 import com.auramusic.innertube.models.BrowseEndpoint.BrowseEndpointContextSupportedConfigs.BrowseEndpointContextMusicConfig.Companion.MUSIC_PAGE_TYPE_ALBUM
 import com.auramusic.innertube.models.BrowseEndpoint.BrowseEndpointContextSupportedConfigs.BrowseEndpointContextMusicConfig.Companion.MUSIC_PAGE_TYPE_ARTIST
 import com.auramusic.innertube.models.BrowseEndpoint.BrowseEndpointContextSupportedConfigs.BrowseEndpointContextMusicConfig.Companion.MUSIC_PAGE_TYPE_USER_CHANNEL
+import com.auramusic.innertube.models.EpisodeItem
 import com.auramusic.innertube.models.MusicCardShelfRenderer
 import com.auramusic.innertube.models.MusicResponsiveListItemRenderer
 import com.auramusic.innertube.models.MusicTwoRowItemRenderer
 import com.auramusic.innertube.models.PlaylistItem
+import com.auramusic.innertube.models.PodcastItem
 import com.auramusic.innertube.models.SongItem
 import com.auramusic.innertube.models.WatchEndpoint
 import com.auramusic.innertube.models.YTItem
@@ -20,6 +22,7 @@ import com.auramusic.innertube.models.filterVideoSongs
 import com.auramusic.innertube.models.oddElements
 import com.auramusic.innertube.models.splitBySeparator
 import com.auramusic.innertube.utils.parseTime
+import com.auramusic.innertube.YouTubeConstants
 
 data class SearchSummary(
     val title: String,
@@ -214,7 +217,6 @@ data class SearchSummaryPage(
             val listRun = (secondaryLine + thirdLine).clean()
             return when {
                 renderer.isSong -> {
-                    // Extract library tokens using the new method that properly handles multiple toggle items
                     val libraryTokens = PageHelper.extractLibraryTokensFromMenuItems(renderer.menu?.menuRenderer?.items)
                     val watchEndpoint = PageHelper.watchEndpoint(renderer)
 
@@ -384,6 +386,62 @@ data class SearchSummaryPage(
                     )
                 }
 
+                renderer.isEpisode -> {
+                    val libraryTokens = PageHelper.extractLibraryTokensFromMenuItems(renderer.menu?.menuRenderer?.items)
+
+                    val firstSubtitle = secondaryLine.getOrNull(0)?.firstOrNull()?.text
+                    val isUnfilteredSearch = firstSubtitle == "Episode"
+                    val podcastIndex = if (isUnfilteredSearch) 2 else 1
+
+                    EpisodeItem(
+                        id = renderer.playlistItemData?.videoId
+                            ?: renderer.navigationEndpoint?.watchEndpoint?.videoId
+                            ?: return null,
+                        title =
+                            renderer.flexColumns
+                                .firstOrNull()
+                                ?.musicResponsiveListItemFlexColumnRenderer
+                                ?.text
+                                ?.runs
+                                ?.firstOrNull()
+                                ?.text ?: return null,
+                        author = null,
+                        podcast =
+                            secondaryLine.getOrNull(podcastIndex)?.firstOrNull()?.takeIf {
+                                it.navigationEndpoint?.browseEndpoint != null
+                            }?.let {
+                                Album(
+                                    name = it.text,
+                                    id = it.navigationEndpoint?.browseEndpoint?.browseId!!,
+                                )
+                            },
+                        duration =
+                            secondaryLine
+                                .lastOrNull()
+                                ?.firstOrNull()
+                                ?.text
+                                ?.parseTime(),
+                        publishDateText =
+                            secondaryLine
+                                .getOrNull(if (isUnfilteredSearch) 1 else 0)
+                                ?.firstOrNull()
+                                ?.text,
+                        thumbnail = renderer.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
+                        explicit =
+                            renderer.badges?.find {
+                                it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
+                            } != null,
+                        endpoint = renderer.overlay
+                            ?.musicItemThumbnailOverlayRenderer
+                            ?.content
+                            ?.musicPlayButtonRenderer
+                            ?.playNavigationEndpoint
+                            ?.watchEndpoint,
+                        libraryAddToken = libraryTokens.addToken,
+                        libraryRemoveToken = libraryTokens.removeToken,
+                    )
+                }
+
                 else -> null
             }
         }
@@ -478,24 +536,37 @@ data class SearchSummaryPage(
                     )
                 }
 
-                renderer.isArtist -> {
-                    ArtistItem(
-                        id = renderer.navigationEndpoint.browseEndpoint?.browseId ?: return null,
-                        title = renderer.title.runs?.firstOrNull()?.text ?: return null,
-                        thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getThumbnailUrl()
-                            ?: return null,
-                        shuffleEndpoint = renderer.menu?.menuRenderer?.items?.find {
-                            it.menuNavigationItemRenderer?.icon?.iconType == "MUSIC_SHUFFLE"
-                        }?.menuNavigationItemRenderer?.navigationEndpoint?.watchPlaylistEndpoint
-                            ?: return null,
-                        radioEndpoint = renderer.menu?.menuRenderer?.items?.find {
-                            it.menuNavigationItemRenderer?.icon?.iconType == "MIX"
-                        }?.menuNavigationItemRenderer?.navigationEndpoint?.watchPlaylistEndpoint
-                            ?: return null,
-                    )
+                else -> null
+            }
+        }
+
+        fun groupItemsByType(items: List<YTItem>): List<SearchSummary> {
+            val grouped =
+                items.groupBy { item ->
+                    when (item) {
+                        is EpisodeItem -> YouTubeConstants.SECTION_EPISODES
+                        is PodcastItem -> YouTubeConstants.SECTION_PODCASTS
+                        is AlbumItem -> YouTubeConstants.SECTION_ALBUMS
+                        is ArtistItem -> if (item.isProfile) YouTubeConstants.SECTION_PROFILES else YouTubeConstants.SECTION_ARTISTS
+                        is PlaylistItem -> YouTubeConstants.SECTION_PLAYLISTS
+                        is SongItem -> when {
+                            item.isEpisode -> YouTubeConstants.SECTION_EPISODES
+                            item.isVideoSong -> YouTubeConstants.SECTION_VIDEOS
+                            else -> YouTubeConstants.SECTION_SONGS
+                        }
+                    }
                 }
 
-                else -> null
+            val sectionOrder =
+                listOf(
+                    YouTubeConstants.SECTION_SONGS, YouTubeConstants.SECTION_VIDEOS, YouTubeConstants.SECTION_ALBUMS, YouTubeConstants.SECTION_ARTISTS, YouTubeConstants.SECTION_PLAYLISTS,
+                    YouTubeConstants.SECTION_PODCASTS, YouTubeConstants.SECTION_EPISODES, YouTubeConstants.SECTION_PROFILES, YouTubeConstants.DEFAULT_OTHER_RESULTS,
+                )
+
+            return sectionOrder.mapNotNull { sectionName ->
+                grouped[sectionName]?.takeIf { it.isNotEmpty() }?.let { groupItems ->
+                    SearchSummary(title = sectionName, items = groupItems)
+                }
             }
         }
     }
