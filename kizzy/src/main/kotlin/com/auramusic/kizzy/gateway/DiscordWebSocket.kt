@@ -80,13 +80,14 @@ open class DiscordWebSocket(
     override val coroutineContext: CoroutineContext
         get() = SupervisorJob() + Dispatchers.Default
 
-    fun connect() {
-        if (connected) {
-            logger.info("Gateway already connected.")
-            return
+    suspend fun connect(): Boolean {
+        if (connected && ready) {
+            logger.info("Gateway already connected and ready.")
+            return true
         }
         ready = false
         reconnectionJob?.cancel()
+        var success = false
         reconnectionJob = launch {
             try {
                 val url = resumeGatewayUrl ?: gatewayUrl
@@ -100,6 +101,7 @@ open class DiscordWebSocket(
                 connected = true
                 logger.info("Successfully connected to Discord Gateway.")
                 currentReconnectDelay = INITIAL_RECONNECT_DELAY
+                success = true
                 // start receiving messages
                 websocket!!.incoming.receiveAsFlow()
                     .collect {
@@ -118,6 +120,7 @@ open class DiscordWebSocket(
                 scheduleReconnection()
             }
         }
+        return success
     }
 
     private fun scheduleReconnection() {

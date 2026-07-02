@@ -48,13 +48,7 @@ open class KizzyRPC(
     }
 
     open suspend fun close() {
-        if (!isRpcRunning()) {
-            discordWebSocket.connect()
-        }
-        val presence = Presence(
-            activities = emptyList()
-        )
-        discordWebSocket.sendActivity(presence)
+        discordWebSocket.close()
     }
 
     suspend fun setActivity(
@@ -209,7 +203,7 @@ private fun String.toGatewayAuthorization(): String {
     val token = cleanDiscordToken()
     if (token.startsWith("Bearer ", ignoreCase = true)) return token
     if (token.startsWith("Bot ", ignoreCase = true)) return token
-    return if (token.contains('.')) token else "Bearer $token"
+    return token
 }
 
 private fun String.authorizationCandidates(): List<String> {
