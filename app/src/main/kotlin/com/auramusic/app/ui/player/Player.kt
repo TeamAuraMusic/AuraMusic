@@ -328,28 +328,35 @@ fun BottomSheetPlayer(
         }
     }
 
-    // Check video availability when song changes and auto-enable for video songs
+    // Check video availability only for actual video songs. Regular audio
+    // tracks should not show the video toggle or resolve video streams.
     LaunchedEffect(mediaMetadata?.id, mediaMetadata?.isVideoSong) {
-        mediaMetadata?.id?.let { videoId ->
-            timber.log.Timber.d("VideoToggle: Checking availability for videoId: $videoId")
-            try {
-                val available = playerConnection.service.checkVideoAvailability(videoId)
-                timber.log.Timber.d("VideoToggle: Video available = $available, isVideoSong = ${mediaMetadata?.isVideoSong}")
+        val videoId = mediaMetadata?.id
+        val isVideoSong = mediaMetadata?.isVideoSong == true
 
-                // Auto-enable video mode for video songs if video is available and user has video mode enabled
-                if (videoModeToggleEnabled && mediaMetadata?.isVideoSong == true && available && !videoModeEnabled) {
-                    timber.log.Timber.d("VideoToggle: Auto-enabling video mode for video song")
-                    playerConnection.enableVideoMode(true)
-                }
-                // Disable video mode when switching to regular (non-video) songs
-                else if (videoModeEnabled && mediaMetadata?.isVideoSong != true) {
-                    timber.log.Timber.d("VideoToggle: Disabling video mode for regular song")
-                    playerConnection.enableVideoMode(false)
-                }
-            } catch (e: Exception) {
-                timber.log.Timber.e(e, "VideoToggle: Error checking video availability")
-                // Error is already handled in checkVideoAvailability
+        if (videoId == null) return@LaunchedEffect
+
+        if (!isVideoSong) {
+            if (videoModeEnabled) {
+                timber.log.Timber.d("VideoToggle: Disabling video mode for regular song")
+                playerConnection.enableVideoMode(false)
             }
+            return@LaunchedEffect
+        }
+
+        timber.log.Timber.d("VideoToggle: Checking availability for videoId: $videoId")
+        try {
+            val available = playerConnection.service.checkVideoAvailability(videoId)
+            timber.log.Timber.d("VideoToggle: Video available = $available, isVideoSong = true")
+
+            // Auto-enable video mode for video songs if video is available and user has video mode enabled
+            if (videoModeToggleEnabled && available && !videoModeEnabled) {
+                timber.log.Timber.d("VideoToggle: Auto-enabling video mode for video song")
+                playerConnection.enableVideoMode(true)
+            }
+        } catch (e: Exception) {
+            timber.log.Timber.e(e, "VideoToggle: Error checking video availability")
+            // Error is already handled in checkVideoAvailability
         }
     }
     
@@ -944,7 +951,7 @@ fun BottomSheetPlayer(
                 ) {
                     // Video indicator
                     val isVideoSong = mediaMetadata.isVideoSong
-                    if (isVideoSong || videoModeEnabled) {
+                    if (isVideoSong) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(bottom = 4.dp)
@@ -1154,11 +1161,9 @@ fun BottomSheetPlayer(
                             }
                         }
 
-                        // Video mode toggle button. Regular songs can still resolve
-                        // a music video through the fallback search path, so do not
-                        // hide the toggle just because the item is not pre-marked as
-                        // a video song.
-                        if (videoModeToggleEnabled) {
+                        // Video mode toggle button. Only show this for actual
+                        // video songs; regular songs should remain audio-only.
+                        if (videoModeToggleEnabled && mediaMetadata?.isVideoSong == true) {
                             Box(
                                 contentAlignment = Alignment.Center,
                                 modifier = Modifier.size(42.dp)
@@ -1369,7 +1374,7 @@ fun BottomSheetPlayer(
                     Spacer(modifier = Modifier.size(12.dp))
 
                     AnimatedContent(
-                        targetState = videoModeToggleEnabled,
+                        targetState = videoModeToggleEnabled && mediaMetadata?.isVideoSong == true,
                         label = "VideoToggle"
                     ) { enabled ->
                         if (enabled) {

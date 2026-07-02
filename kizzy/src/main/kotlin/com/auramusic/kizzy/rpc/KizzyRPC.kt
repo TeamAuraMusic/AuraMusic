@@ -80,21 +80,8 @@ open class KizzyRPC(
         if (!isRpcRunning()) {
             discordWebSocket.connect()
         }
-        
-        val images = listOfNotNull(largeImage, smallImage)
-        val externalImages = images.filterIsInstance<RpcImage.ExternalImage>()
-        val imageUrls = externalImages.map { it.image }
-        val resolvedImages = if (imageUrls.isEmpty()) {
-            emptyMap()
-        } else {
-            runCatching {
-                kizzyRepository.getImages(imageUrls)?.results?.associate { it.originalUrl to it.id } ?: emptyMap()
-            }.getOrElse {
-                emptyMap()
-            }
-        }
 
-        val presence = Presence(
+        fun presenceWithImages(resolvedImages: Map<String, String> = emptyMap()) = Presence(
             activities = listOf(
                 Activity(
                     name = name,
@@ -131,7 +118,28 @@ open class KizzyRPC(
             since = since,
             status = status ?: "online"
         )
-        discordWebSocket.sendActivity(presence)
+
+        val images = listOfNotNull(largeImage, smallImage)
+        val externalImages = images.filterIsInstance<RpcImage.ExternalImage>()
+        val imageUrls = externalImages.map { it.image }
+
+        if (imageUrls.isNotEmpty()) {
+            discordWebSocket.sendActivity(presenceWithImages())
+        }
+
+        val resolvedImages = if (imageUrls.isEmpty()) {
+            emptyMap()
+        } else {
+            runCatching {
+                kizzyRepository.getImages(imageUrls)?.results?.associate { it.originalUrl to it.id } ?: emptyMap()
+            }.getOrElse {
+                emptyMap()
+            }
+        }
+
+        if (imageUrls.isEmpty() || resolvedImages.isNotEmpty()) {
+            discordWebSocket.sendActivity(presenceWithImages(resolvedImages))
+        }
     }
 
     enum class Type(val value: Int) {
@@ -156,7 +164,7 @@ open class KizzyRPC(
         ): Result<UserInfo> = runCatching {
             val client = HttpClient()
             try {
-                val response = client.get("https://discord.com/api/v9/users/@me") {
+                val response = client.get("https://discord.com/api/v10/users/@me") {
                     header("Authorization", token)
                     header("User-Agent", userAgent)
                     if (superPropertiesBase64 != null) {
