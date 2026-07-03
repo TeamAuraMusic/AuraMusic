@@ -10,6 +10,7 @@ import io.ktor.http.contentType
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.builtins.ListSerializer
 import java.util.logging.Logger
 import java.util.concurrent.ConcurrentHashMap
 
@@ -39,9 +40,9 @@ object DiscordExternalAssets {
         if (urls.isEmpty()) return emptyMap()
 
         // Check cache first
-        val uncached = urls.filter { it !in cache }
+        val uncached = urls.filter { url -> cache.containsKey(url).not() }
         if (uncached.isEmpty()) {
-            return urls.associateWith { cache[it]!! }
+            return urls.associateWith { url -> cache[url] ?: url }
         }
 
         return try {
@@ -55,18 +56,20 @@ object DiscordExternalAssets {
                 setBody(json.encodeToString(ExternalAssetRequest.serializer(), ExternalAssetRequest(urls = uncached)))
             }.bodyAsText()
 
-            val result = json.decodeFromString(ListSerializer(ExternalAssetResult.serializer()), response)
-            val resolved = result.associate { it.url to "mp:${it.externalAssetPath}" }
+            val resultList: List<ExternalAssetResult> = json.decodeFromString(ListSerializer(ExternalAssetResult.serializer()), response)
+            val resolved = resultList.associate { result -> result.url to "mp:${result.externalAssetPath}" }
 
             // Cache results
-            resolved.forEach { (url, ref) -> cache[url] = ref }
+            for ((url, ref) in resolved) {
+                cache[url] = ref
+            }
 
             // Return all resolved (cached + newly resolved)
-            urls.associateWith { cache[it] ?: it }
+            urls.associateWith { url -> cache[url] ?: url }
         } catch (e: Exception) {
             logger.warning("Failed to resolve external assets: ${e.message}")
             // Return original URLs as fallback
-            urls.associateWith { it }
+            urls.associateWith { url -> url }
         }
     }
 

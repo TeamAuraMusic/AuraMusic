@@ -134,8 +134,8 @@ open class KizzyRPC(
                     urls = imageUrls,
                     appId = appId,
                     token = bearerToken,
-                    userAgent = kizzyRepository.userAgent,
-                    superProperties = kizzyRepository.superPropertiesBase64
+                    userAgent = userAgent,
+                    superProperties = superPropertiesBase64
                 )
                 if (result.isNotEmpty() && result.values.firstOrNull() != imageUrls.firstOrNull()) {
                     result
