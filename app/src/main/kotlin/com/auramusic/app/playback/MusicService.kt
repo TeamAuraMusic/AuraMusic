@@ -804,6 +804,18 @@ class MusicService :
                 }
             }
 
+        // Periodic Discord presence refresh — ensures presence stays visible
+        // even if the initial send fails or the connection drops briefly.
+        scope.launch {
+            while (true) {
+                delay(5000)
+                if (discordRpc != null && player.isPlaying &&
+                    player.playbackState == Player.STATE_READY) {
+                    updateDiscordPresence()
+                }
+            }
+        }
+
         dataStore.data
             .map { it[EnableLastFMScrobblingKey] ?: false }
             .debounce(300)

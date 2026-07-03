@@ -87,9 +87,10 @@ open class DiscordWebSocket(
 
     suspend fun connect(): Boolean {
         if (connected && ready) {
-            logger.info("Gateway already connected and ready.")
+            android.util.Log.d("DiscordWebSocket", "Gateway already connected and ready.")
             return true
         }
+        android.util.Log.d("DiscordWebSocket", "Starting connection... connected=$connected, ready=$ready")
         ready = false
         reconnectionJob?.cancel()
         var success = false
@@ -228,6 +229,7 @@ open class DiscordWebSocket(
                 val ready = json.decodeFromJsonElement<Ready>(this.d!!)
                 sessionId = ready.sessionId
                 resumeGatewayUrl = ready.resumeGatewayUrl + "/?v=10&encoding=json"
+                android.util.Log.d("DiscordWebSocket", "Gateway READY received! session=$sessionId, url=$resumeGatewayUrl")
                 logger.info("Gateway READY: resume_gateway_url updated to $resumeGatewayUrl, session_id updated to $sessionId")
                 connected = true
                 this@DiscordWebSocket.ready = true
@@ -367,6 +369,7 @@ open class DiscordWebSocket(
     }
 
     suspend fun sendActivity(presence: Presence) {
+        android.util.Log.d("DiscordWebSocket", "sendActivity called, connected=$connected, ready=$ready, isActive=${websocket?.isActive}")
         val becameReady = withTimeoutOrNull(15.seconds) {
             while (!isSocketConnectedToAccount()) {
                 delay(10.milliseconds)
@@ -374,14 +377,16 @@ open class DiscordWebSocket(
             true
         } == true
         if (!becameReady) {
-            logger.warning("Gateway: Timed out waiting for READY before sending presence")
+            android.util.Log.w("DiscordWebSocket", "Timed out waiting for READY. connected=$connected, ready=$ready, isActive=${websocket?.isActive}")
             return
         }
+        android.util.Log.d("DiscordWebSocket", "Sending PRESENCE_UPDATE")
         logger.info("Gateway: Sending $PRESENCE_UPDATE")
         send(
             op = PRESENCE_UPDATE,
             d = presence
         )
+        android.util.Log.d("DiscordWebSocket", "PRESENCE_UPDATE sent successfully")
     }
     companion object {
         private val INITIAL_RECONNECT_DELAY = 1.seconds
