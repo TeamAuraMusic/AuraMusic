@@ -29,12 +29,12 @@ import org.json.JSONObject
  * Modified by Zion Huang
  */
 open class KizzyRPC(
-    token: String,
+    private val token: String,
     os: String = "Android",
     browser: String = "Discord Android",
     device: String = "Generic Android Device",
-    userAgent: String = "Discord-Android/314013;RNA",
-    superPropertiesBase64: String? = null
+    private val userAgent: String = "Discord-Android/314013;RNA",
+    private val superPropertiesBase64: String? = null
 ) {
     private val kizzyRepository = KizzyRepository(userAgent, superPropertiesBase64)
     private val discordWebSocket = DiscordWebSocket(token.toGatewayAuthorization(), os, browser, device)
@@ -127,8 +127,24 @@ open class KizzyRPC(
             emptyMap()
         } else {
             runCatching {
-                kizzyRepository.getImages(imageUrls)?.results?.associate { it.originalUrl to it.id } ?: emptyMap()
+                // Try Discord's External Assets API first
+                val appId = applicationId ?: "1411019391843172514"
+                val bearerToken = if (token.startsWith("Bearer ", ignoreCase = true)) token else "Bearer $token"
+                val result = com.auramusic.kizzy.remote.DiscordExternalAssets.resolve(
+                    urls = imageUrls,
+                    appId = appId,
+                    token = bearerToken,
+                    userAgent = kizzyRepository.userAgent,
+                    superProperties = kizzyRepository.superPropertiesBase64
+                )
+                if (result.isNotEmpty() && result.values.firstOrNull() != imageUrls.firstOrNull()) {
+                    result
+                } else {
+                    // Fallback to third-party proxy
+                    kizzyRepository.getImages(imageUrls)?.results?.associate { it.originalUrl to it.id } ?: emptyMap()
+                }
             }.getOrElse {
+                android.util.Log.w("KizzyRPC", "Image resolution failed: ${it.message}")
                 emptyMap()
             }
         }

@@ -281,12 +281,13 @@ open class DiscordWebSocket(
 
     private suspend fun sendIdentify() {
         logger.info("Gateway: Sending $IDENTIFY")
+        val bearerToken = if (token.startsWith("Bearer ", ignoreCase = true)) token else "Bearer $token"
         send(
             op = IDENTIFY,
-            d = token.toIdentifyPayload(
-                os = os,
-                browser = browser,
-                device = device
+            d = bearerToken.toIdentifyPayload(
+                os = "android",
+                browser = "Discord Android",
+                device = "1411019391843172514"
             )
         )
     }
