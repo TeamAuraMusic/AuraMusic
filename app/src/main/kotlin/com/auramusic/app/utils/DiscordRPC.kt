@@ -22,15 +22,24 @@ class DiscordRPC(
     userAgent = SuperProperties.userAgent,
     superPropertiesBase64 = SuperProperties.superPropertiesBase64
 ) {
+    private var lastSentSongId: String? = null
+    private var lastSentIsPlaying: Boolean = false
+    private var lastSentTimestamp: Long = 0L
+
     suspend fun updateSong(song: Song, currentPlaybackTimeMillis: Long, playbackSpeed: Float = 1.0f, useDetails: Boolean = false) = runCatching {
         val currentTime = System.currentTimeMillis()
+
+        // Deduplicate: skip if same song and same playing state within 2 seconds
+        if (song.song.id == lastSentSongId && lastSentIsPlaying && (currentTime - lastSentTimestamp) < 2000L) {
+            return@runCatching
+        }
 
         val safeSpeed = playbackSpeed.takeIf { it > 0f } ?: 1.0f
         val adjustedPlaybackTime = (currentPlaybackTimeMillis / safeSpeed).toLong()
         val calculatedStartTime = currentTime - adjustedPlaybackTime
 
         val songTitleWithRate = if (safeSpeed != 1.0f) {
-            "${song.song.title} [${String.format("%.2fx", safeSpeed)}]"
+            "${song.song.title} [${String.format(java.util.Locale.US, "%.2fx", safeSpeed)}]"
         } else {
             song.song.title
         }
@@ -61,9 +70,20 @@ class DiscordRPC(
             endTime = endTime,
             applicationId = APPLICATION_ID
         )
+
+        lastSentSongId = song.song.id
+        lastSentIsPlaying = true
+        lastSentTimestamp = currentTime
+    }
+
+    fun markNotPlaying() {
+        lastSentIsPlaying = false
     }
 
     override suspend fun close() {
+        lastSentSongId = null
+        lastSentIsPlaying = false
+        lastSentTimestamp = 0L
         super.close()
     }
     companion object {

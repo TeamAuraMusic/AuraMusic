@@ -76,6 +76,10 @@ open class DiscordWebSocket(
 
     private var reconnectionJob: Job? = null
     private var currentReconnectDelay = INITIAL_RECONNECT_DELAY
+    @Volatile
+    private var lastHeartbeatSentTime = 0L
+    @Volatile
+    private var lastHeartbeatAckTime = 0L
 
     override val coroutineContext: CoroutineContext
         get() = SupervisorJob() + Dispatchers.Default
@@ -144,12 +148,59 @@ open class DiscordWebSocket(
         connected = false
         ready = false
         val close = websocket?.closeReason?.await()
-        logger.warning("Gateway closed with code: ${close?.code}, reason: ${close?.message}, can_reconnect: ${close?.code?.toInt() == 4000}")
-        if (close?.code?.toInt() == 4000) {
-            delay(200.milliseconds)
-            connect()
-        } else
-            scheduleReconnection()
+        val code = close?.code?.toInt() ?: 1000
+        logger.warning("Gateway closed with code: $code, reason: ${close?.message}")
+
+        when (code) {
+            4000 -> {
+                // Unknown error — try resume if we have session data
+                if (!sessionId.isNullOrBlank() && sequence > 0) {
+                    delay(200.milliseconds)
+                    connect()
+                } else {
+                    scheduleReconnection()
+                }
+            }
+            4001, 4003, 4005, 4007, 4009 -> {
+                // Auth/session issues — re-identify
+                sessionId = null
+                sequence = 0
+                resumeGatewayUrl = null
+                currentReconnectDelay = INITIAL_RECONNECT_DELAY
+                delay(1000.milliseconds)
+                connect()
+            }
+            4004 -> {
+                // Invalid authentication — token may be expired, reconnect with fresh identify
+                logger.warning("Gateway: Authentication failed (4004). Token may be expired.")
+                sessionId = null
+                sequence = 0
+                resumeGatewayUrl = null
+                currentReconnectDelay = INITIAL_RECONNECT_DELAY
+                scheduleReconnection()
+            }
+            4014 -> {
+                // Disallowed intents — fatal, do not reconnect
+                logger.severe("Gateway: Disallowed intents (4014). Cannot reconnect.")
+            }
+            429 -> {
+                // Rate limited
+                logger.warning("Gateway: Rate limited (429). Waiting 60 seconds.")
+                currentReconnectDelay = MAX_RECONNECT_DELAY
+                scheduleReconnection()
+            }
+            1000 -> {
+                // Clean close — reset session
+                sessionId = null
+                sequence = 0
+                resumeGatewayUrl = null
+                currentReconnectDelay = INITIAL_RECONNECT_DELAY
+                logger.info("Gateway: Clean close (1000). Session reset.")
+            }
+            else -> {
+                scheduleReconnection()
+            }
+        }
     }
 
     private suspend fun onMessage(payload: Payload) {
@@ -160,6 +211,9 @@ open class DiscordWebSocket(
         when (payload.op) {
             DISPATCH -> payload.handleDispatch()
             HEARTBEAT -> sendHeartBeat()
+            HEARTBEAT_ACK -> {
+                lastHeartbeatAckTime = System.currentTimeMillis()
+            }
             RECONNECT -> reconnectWebSocket()
             INVALID_SESSION -> handleInvalidSession()
             HELLO -> payload.handleHello()
@@ -252,8 +306,14 @@ open class DiscordWebSocket(
         heartbeatJob?.cancel()
         heartbeatJob = launch {
             while (isActive) {
+                lastHeartbeatSentTime = System.currentTimeMillis()
                 sendHeartBeat()
+                // Wait for ACK — if not received before next heartbeat, connection is dead
                 delay(interval)
+                if (isActive && lastHeartbeatAckTime < lastHeartbeatSentTime) {
+                    logger.warning("Gateway: Heartbeat ACK timeout. Connection may be dead.")
+                    websocket?.close(CloseReason(4000, "Heartbeat ACK timeout"))
+                }
             }
         }
     }
@@ -286,17 +346,22 @@ open class DiscordWebSocket(
 
     fun close() {
         reconnectionJob?.cancel()
+        reconnectionJob = null
         heartbeatJob?.cancel()
         heartbeatJob = null
-        this.cancel()
-        resumeGatewayUrl = null
-        sessionId = null
         connected = false
         ready = false
-        runBlocking {
-            websocket?.close()
-            logger.severe("Gateway: Connection to gateway closed")
-        }
+        currentReconnectDelay = INITIAL_RECONNECT_DELAY
+        resumeGatewayUrl = null
+        sessionId = null
+        sequence = 0
+        try {
+            runBlocking {
+                websocket?.close()
+            }
+        } catch (_: Exception) {}
+        websocket = null
+        logger.info("Gateway: Connection closed (scope preserved for reconnection)")
     }
 
     suspend fun sendActivity(presence: Presence) {
