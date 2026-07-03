@@ -283,13 +283,16 @@ open class DiscordWebSocket(
 
     private suspend fun sendIdentify() {
         logger.info("Gateway: Sending $IDENTIFY")
-        val bearerToken = if (token.startsWith("Bearer ", ignoreCase = true)) token else "Bearer $token"
+        // A user-account token (scraped from localStorage.token) must be sent RAW in the
+        // gateway IDENTIFY payload. The "Bearer " prefix is only valid for OAuth2 access
+        // tokens; using it here causes the gateway to reject auth with close code 4004,
+        // so READY never arrives and presence is never shown.
         send(
             op = IDENTIFY,
-            d = bearerToken.toIdentifyPayload(
-                os = "android",
-                browser = "Discord Android",
-                device = "1411019391843172514"
+            d = token.toIdentifyPayload(
+                os = os,
+                browser = browser,
+                device = device
             )
         )
     }

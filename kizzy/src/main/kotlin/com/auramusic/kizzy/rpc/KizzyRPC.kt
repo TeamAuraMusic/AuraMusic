@@ -127,13 +127,15 @@ open class KizzyRPC(
             emptyMap()
         } else {
             runCatching {
-                // Try Discord's External Assets API first
+                // Try Discord's External Assets API first.
+                // A user-account token must be sent RAW to the REST API (same as the
+                // gateway); a "Bearer " prefix would make this call 401 and fall back
+                // to the third-party proxy unnecessarily.
                 val appId = applicationId ?: "1411019391843172514"
-                val bearerToken = if (token.startsWith("Bearer ", ignoreCase = true)) token else "Bearer $token"
                 val result = com.auramusic.kizzy.remote.DiscordExternalAssets.resolve(
                     urls = imageUrls,
                     appId = appId,
-                    token = bearerToken,
+                    token = token,
                     userAgent = userAgent,
                     superProperties = superPropertiesBase64
                 )
