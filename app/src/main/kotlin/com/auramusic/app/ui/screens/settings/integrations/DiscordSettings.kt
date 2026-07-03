@@ -111,6 +111,8 @@ fun DiscordSettings(
     var discordName by rememberPreference(DiscordNameKey, "")
     var discordAvatarUrl by rememberPreference(DiscordAvatarUrlKey, "")
     var infoDismissed by rememberPreference(DiscordInfoDismissedKey, false)
+    var isFetchingUserInfo by remember { mutableStateOf(false) }
+    var userInfoError by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(discordToken) {
         val token = discordToken.trim()
@@ -118,8 +120,11 @@ fun DiscordSettings(
             discordUsername = ""
             discordName = ""
             discordAvatarUrl = ""
+            userInfoError = null
             return@LaunchedEffect
         }
+        isFetchingUserInfo = true
+        userInfoError = null
         val result = withContext(Dispatchers.IO) {
             KizzyRPC.getUserInfo(
                 token, 
@@ -131,9 +136,12 @@ fun DiscordSettings(
             discordUsername = it.username
             discordName = it.name
             discordAvatarUrl = it.avatarUrl.orEmpty()
+            userInfoError = null
         }.onFailure {
             Timber.w(it, "Failed to fetch Discord user info")
+            userInfoError = it.message ?: "Failed to fetch user info"
         }
+        isFetchingUserInfo = false
     }
 
     LaunchedEffect(playbackState) {
@@ -162,6 +170,8 @@ fun DiscordSettings(
 
     val accountTitle = when {
         !isLoggedIn -> stringResource(R.string.not_logged_in)
+        isFetchingUserInfo -> "Fetching account info..."
+        userInfoError != null && discordName.isBlank() -> "Login failed — tap to retry"
         discordName.isNotBlank() -> discordName
         discordUsername.isNotBlank() -> discordUsername
         else -> stringResource(R.string.discord_integration)
@@ -251,6 +261,8 @@ fun DiscordSettings(
             description =
             if (discordUsername.isNotEmpty()) {
                 "@$discordUsername"
+            } else if (userInfoError != null) {
+                userInfoError
             } else {
                 null
             },
@@ -285,6 +297,30 @@ fun DiscordSettings(
                     }
                 }
             },
+            onClick = if (isLoggedIn && userInfoError != null && discordName.isBlank()) {
+                {
+                    // Retry fetching user info
+                    val token = discordToken.trim()
+                    if (token.isNotEmpty()) {
+                        coroutineScope.launch {
+                            isFetchingUserInfo = true
+                            userInfoError = null
+                            val result = withContext(Dispatchers.IO) {
+                                KizzyRPC.getUserInfo(token, SuperProperties.userAgent, SuperProperties.superPropertiesBase64)
+                            }
+                            result.onSuccess {
+                                discordUsername = it.username
+                                discordName = it.name
+                                discordAvatarUrl = it.avatarUrl.orEmpty()
+                                userInfoError = null
+                            }.onFailure {
+                                userInfoError = it.message ?: "Failed to fetch user info"
+                            }
+                            isFetchingUserInfo = false
+                        }
+                    }
+                }
+            } else null,
         )
         if (!isLoggedIn) {
             PreferenceEntry(

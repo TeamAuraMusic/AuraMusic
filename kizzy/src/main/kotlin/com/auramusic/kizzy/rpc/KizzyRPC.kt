@@ -156,7 +156,11 @@ open class KizzyRPC(
             userAgent: String = "Discord-Android/314013;RNA",
             superPropertiesBase64: String? = null
         ): Result<UserInfo> = runCatching {
-            val client = HttpClient()
+            val client = HttpClient {
+                install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
+                    json(kotlinx.serialization.json.Json { ignoreUnknownKeys = true; encodeDefaults = true })
+                }
+            }
             try {
                 var lastFailure: Throwable? = null
                 token.authorizationCandidates().forEach { authorization ->
@@ -164,11 +168,15 @@ open class KizzyRPC(
                         val response = client.get("https://discord.com/api/v10/users/@me") {
                             header("Authorization", authorization)
                             header("User-Agent", userAgent)
+                            header("Accept", "application/json")
                             if (superPropertiesBase64 != null) {
                                 header("X-Super-Properties", superPropertiesBase64)
                             }
                         }.bodyAsText()
                         val json = JSONObject(response)
+                        if (json.has("message") && json.getString("message") == "401: Unauthorized") {
+                            throw SecurityException("Invalid Discord token")
+                        }
                         val id = json.getString("id")
                         val username = json.getString("username")
                         val name = json.optString("global_name")

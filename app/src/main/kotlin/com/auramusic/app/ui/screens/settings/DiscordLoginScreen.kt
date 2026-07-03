@@ -80,12 +80,23 @@ fun DiscordLoginScreen(navController: NavController) {
                         view: WebView,
                         url: String,
                     ): Boolean {
-                        if (url.endsWith("/app")) {
+                        // Discord redirects to various URLs after login.
+                        // Check for the app dashboard or any authenticated Discord URL.
+                        if (url.contains("/app") || url.contains("discord.com/app") || url.endsWith("/channels/@me")) {
                             view.stopLoading()
                             view.loadUrl(JS_SNIPPET)
                             view.visibility = View.GONE
                         }
                         return false
+                    }
+
+                    override fun onPageFinished(view: WebView, url: String?) {
+                        super.onPageFinished(view, url)
+                        // If we're already on an authenticated page, try to extract the token
+                        if (url != null && (url.contains("/app") || url.endsWith("/channels/@me"))) {
+                            view.loadUrl(JS_SNIPPET)
+                            view.visibility = View.GONE
+                        }
                     }
                 }
 
