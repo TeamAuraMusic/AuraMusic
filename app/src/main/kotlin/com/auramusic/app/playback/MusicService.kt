@@ -359,14 +359,15 @@ class MusicService :
             ?.takeIf { it.song.id == metadata?.id }
             ?: metadata?.toDiscordSong()
             ?: return
+        Timber.tag(TAG).d("Discord: updateDiscordPresence called, rpc=${discordRpc != null}, song=${song.song.title}")
         discordRpc?.updateSong(
             song,
             player.currentPosition,
             player.playbackParameters.speed,
             useDetails,
         )?.onFailure {
-            Timber.tag(TAG).w(it, "Failed to update Discord presence")
-        }
+            Timber.tag(TAG).w(it, "Discord: Failed to update presence")
+        } ?: Timber.tag(TAG).w("Discord: discordRpc is null, cannot update presence")
     }
 
     lateinit var playerVolume: MutableStateFlow<Float>
@@ -770,10 +771,14 @@ class MusicService :
                 discordRpc = null
                 val token = key?.takeIf { it.isNotBlank() }
                 if (token != null && enabled) {
+                    Timber.tag(TAG).d("Discord: Creating new RPC instance, token length=${token.length}")
                     discordRpc = DiscordRPC(this, token)
                     if (player.playbackState == Player.STATE_READY && player.playWhenReady) {
+                        Timber.tag(TAG).d("Discord: Player already playing, sending initial presence")
                         updateDiscordPresence()
                     }
+                } else {
+                    Timber.tag(TAG).d("Discord: token=$token, enabled=$enabled — not creating RPC")
                 }
             }
 

@@ -29,8 +29,8 @@ class DiscordRPC(
     suspend fun updateSong(song: Song, currentPlaybackTimeMillis: Long, playbackSpeed: Float = 1.0f, useDetails: Boolean = false) = runCatching {
         val currentTime = System.currentTimeMillis()
 
-        // Deduplicate: skip if same song and same playing state within 2 seconds
         if (song.song.id == lastSentSongId && lastSentIsPlaying && (currentTime - lastSentTimestamp) < 2000L) {
+            android.util.Log.d("DiscordRPC", "Skipping duplicate presence for ${song.song.title}")
             return@runCatching
         }
 
@@ -50,6 +50,8 @@ class DiscordRPC(
             ?.let { durationMillis -> durationMillis - currentPlaybackTimeMillis }
             ?.takeIf { it > 0 }
             ?.let { remainingDuration -> currentTime + (remainingDuration / safeSpeed).toLong() }
+
+        android.util.Log.d("DiscordRPC", "Sending presence: title=$songTitleWithRate, artist=${song.artists.joinToString()}, rpcRunning=${isRpcRunning()}")
 
         setActivity(
             name = context.getString(R.string.app_name).removeSuffix(" Debug"),
@@ -71,6 +73,7 @@ class DiscordRPC(
             applicationId = APPLICATION_ID
         )
 
+        android.util.Log.d("DiscordRPC", "Presence sent successfully for ${song.song.title}")
         lastSentSongId = song.song.id
         lastSentIsPlaying = true
         lastSentTimestamp = currentTime

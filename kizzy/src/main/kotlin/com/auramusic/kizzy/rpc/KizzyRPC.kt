@@ -71,7 +71,9 @@ open class KizzyRPC(
         status: String? = "online",
         since: Long? = null,
     ) {
-        if (!isRpcRunning()) {
+        val rpcRunning = isRpcRunning()
+        android.util.Log.d("KizzyRPC", "setActivity: rpcRunning=$rpcRunning, connecting...")
+        if (!rpcRunning) {
             discordWebSocket.connect()
         }
 
