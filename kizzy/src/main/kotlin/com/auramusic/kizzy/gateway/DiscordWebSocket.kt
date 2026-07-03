@@ -8,6 +8,7 @@ import com.auramusic.kizzy.gateway.entities.Resume
 import com.auramusic.kizzy.gateway.entities.op.OpCode
 import com.auramusic.kizzy.gateway.entities.op.OpCode.DISPATCH
 import com.auramusic.kizzy.gateway.entities.op.OpCode.HEARTBEAT
+import com.auramusic.kizzy.gateway.entities.op.OpCode.HEARTBEAT_ACK
 import com.auramusic.kizzy.gateway.entities.op.OpCode.HELLO
 import com.auramusic.kizzy.gateway.entities.op.OpCode.IDENTIFY
 import com.auramusic.kizzy.gateway.entities.op.OpCode.INVALID_SESSION
