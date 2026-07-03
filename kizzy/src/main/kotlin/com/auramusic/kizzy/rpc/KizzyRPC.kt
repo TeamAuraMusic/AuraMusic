@@ -156,11 +156,7 @@ open class KizzyRPC(
             userAgent: String = "Discord-Android/314013;RNA",
             superPropertiesBase64: String? = null
         ): Result<UserInfo> = runCatching {
-            val client = HttpClient {
-                install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
-                    json(kotlinx.serialization.json.Json { ignoreUnknownKeys = true; encodeDefaults = true })
-                }
-            }
+            val client = HttpClient()
             try {
                 var lastFailure: Throwable? = null
                 token.authorizationCandidates().forEach { authorization ->
