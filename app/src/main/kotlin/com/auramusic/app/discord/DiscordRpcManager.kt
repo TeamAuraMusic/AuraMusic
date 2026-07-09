@@ -7,12 +7,16 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.isActive
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONObject
 import timber.log.Timber
 import java.net.HttpURLConnection
@@ -206,7 +210,20 @@ object DiscordRpcManager {
                         gateway.connect()
                         gateway.identify("Bearer ${result.accessToken}")
                     }
-                    completeWith(true)
+                    // Wait for the READY event before reporting success
+                    val connected = withTimeoutOrNull(10_000L) {
+                        _connectionStatus.first { it == Status.Connected }
+                    }
+                    if (connected != null) {
+                        completeWith(true)
+                    } else {
+                        Timber.tag(TAG).w("authorize: gateway did not become ready within timeout")
+                        _lastError.value = "discord_error_loopback_timeout"
+                        _connectionStatus.value = Status.Disconnected
+                        _ready = false
+                        _authorized = false
+                        completeWith(false)
+                    }
                 } catch (e: Throwable) {
                     Timber.tag(TAG).e(e, "authorize: gateway connect/identify failed")
                     _lastError.value = "discord_error_loopback_timeout"
@@ -519,6 +536,11 @@ object DiscordRpcManager {
                     runCatching { gateway.close(4000, "reconnecting") }
                     gateway.connect()
                     gateway.identify("Bearer ${accessToken ?: token}")
+
+                    // Wait for the READY event before considering reconnection successful
+                    withTimeoutOrNull(10_000L) {
+                        _connectionStatus.first { it == Status.Connected }
+                    } ?: Timber.tag(TAG).w("reconnectWithToken: gateway did not become ready within timeout")
                 } catch (e: Throwable) {
                     Timber.tag(TAG).e(e, "reconnectWithToken: connect/identify failed")
                     _lastError.value = "discord_error_loopback_timeout"
