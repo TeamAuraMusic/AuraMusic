@@ -107,9 +107,13 @@ import com.auramusic.app.constants.VideoQualityKey
 import com.auramusic.app.constants.CrossfadeEnabledKey
 import com.auramusic.app.constants.CrossfadeGaplessKey
 import com.auramusic.app.constants.DisableLoadMoreWhenRepeatAllKey
-import com.auramusic.app.constants.DiscordTokenKey
 import com.auramusic.app.constants.DiscordUseDetailsKey
 import com.auramusic.app.constants.EnableDiscordRPCKey
+import com.auramusic.app.discord.DiscordActivity
+import com.auramusic.app.discord.DiscordActivityBuilder
+import com.auramusic.app.discord.DiscordDefaults
+import com.auramusic.app.discord.DiscordRpcManager
+import com.auramusic.app.discord.PresenceStatus
 import com.auramusic.app.constants.EnableLastFMScrobblingKey
 import com.auramusic.app.constants.HideExplicitKey
 import com.auramusic.app.constants.HideVideoSongsKey
@@ -184,7 +188,6 @@ import com.auramusic.app.playback.queues.filterExplicit
 import com.auramusic.app.playback.queues.filterVideoSongs
 import com.auramusic.app.subtitles.SubtitleInfo
 import com.auramusic.app.utils.CoilBitmapLoader
-import com.auramusic.app.utils.DiscordRPC
 import com.auramusic.app.utils.FlowPlayerUtils
 import com.auramusic.app.utils.NetworkConnectivityObserver
 import com.auramusic.app.utils.AUDIOBOOK_MIN_DURATION_SECONDS
@@ -353,21 +356,60 @@ class MusicService :
             album = null,
         )
 
-    private suspend fun updateDiscordPresence(useDetails: Boolean = dataStore.get(DiscordUseDetailsKey, false)) {
-        val metadata = currentMediaMetadata.value
-        val song = currentSong.value
-            ?.takeIf { it.song.id == metadata?.id }
-            ?: metadata?.toDiscordSong()
-            ?: return
-        Timber.tag(TAG).d("Discord: updateDiscordPresence called, rpc=${discordRpc != null}, song=${song.song.title}")
-        discordRpc?.updateSong(
-            song,
-            player.currentPosition,
-            player.playbackParameters.speed,
-            useDetails,
-        )?.onFailure {
-            Timber.tag(TAG).w(it, "Discord: Failed to update presence")
-        } ?: Timber.tag(TAG).w("Discord: discordRpc is null, cannot update presence")
+    private fun syncDiscordState() {
+        if (!discordRpcEnabled) return
+        scope.launch {
+            val metadata = currentMediaMetadata.value
+            val song = currentSong.value
+                ?.takeIf { it.song.id == metadata?.id }
+                ?: metadata?.toDiscordSong()
+            if (song == null) {
+                if (DiscordRpcManager.isReady()) DiscordRpcManager.clear()
+                return@launch
+            }
+            if (!DiscordRpcManager.isReady()) {
+                val token = DiscordRpcManager.getAccessToken()
+                if (token != null) {
+                    if (!DiscordRpcManager.isInitialized()) DiscordRpcManager.init(this@MusicService)
+                    DiscordRpcManager.reconnectWithToken(token)
+                }
+                return@launch
+            }
+            updateDiscordRPC(song, player.isPlaying)
+        }
+    }
+
+    private fun updateDiscordRPC(song: Song, isPlaying: Boolean) {
+        if (!DiscordRpcManager.isReady() || !discordRpcEnabled) return
+        val useDetails = dataStore.get(DiscordUseDetailsKey, false)
+        val position = player.currentPosition
+        val speed = player.playbackParameters.speed.takeIf { it > 0f } ?: 1f
+        val now = System.currentTimeMillis()
+        val startTimestamp = now - (position / speed).toLong()
+        val durationMs = song.song.duration.takeIf { it > 0 }?.times(1000L)
+        val endTimestamp = durationMs?.let { d ->
+            val remaining = d - position
+            if (remaining > 0) now + (remaining / speed).toLong() else null
+        }
+        val artistName = song.artists.joinToString { it.name }.ifEmpty { DiscordDefaults.UNKNOWN_ARTIST }
+        val activity = DiscordActivityBuilder.build(
+            song = song,
+            artistName = artistName,
+            albumName = song.album?.title,
+            artistThumbnail = song.artists.firstOrNull()?.thumbnailUrl,
+            songTitle = song.song.title,
+            startTimestamp = startTimestamp,
+            endTimestamp = endTimestamp,
+            advancedMode = false,
+            activityType = DiscordActivity.TYPE_LISTENING,
+        )
+        DiscordRpcManager.setActivity(
+            activity = activity,
+            songId = song.song.id,
+            isPlaying = isPlaying,
+            status = PresenceStatus.Online,
+            statusDisplayType = if (useDetails) 2 else 1,
+        )
     }
 
     lateinit var playerVolume: MutableStateFlow<Float>
@@ -418,7 +460,7 @@ class MusicService :
     private var isAudioEffectSessionOpened = false
     private var loudnessEnhancer: LoudnessEnhancer? = null
 
-    private var discordRpc: DiscordRPC? = null
+    @Volatile private var discordRpcEnabled = false
     private var lastPlaybackSpeed = 1.0f
     private var discordUpdateJob: kotlinx.coroutines.Job? = null
 
@@ -454,17 +496,13 @@ class MusicService :
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
                 Intent.ACTION_SCREEN_OFF -> {
-                    if (!player.isPlaying) {
-                        scope.launch(Dispatchers.IO) {
-                            discordRpc?.closeRPC()
-                        }
+                    if (!player.isPlaying && DiscordRpcManager.isReady()) {
+                        DiscordRpcManager.disconnect()
                     }
                 }
                 Intent.ACTION_SCREEN_ON -> {
                     if (player.isPlaying) {
-                        scope.launch {
-                            updateDiscordPresence()
-                        }
+                        syncDiscordState()
                     }
                 }
             }
@@ -667,8 +705,8 @@ class MusicService :
                     triggerRetry()
                 }
                 // Update Discord RPC when network becomes available
-                if (isConnected && discordRpc != null && player.isPlaying) {
-                    updateDiscordPresence()
+                if (isConnected && discordRpcEnabled && player.isPlaying) {
+                    syncDiscordState()
                 }
             }
         }
@@ -760,27 +798,56 @@ class MusicService :
              secondaryPlayer?.setOffloadEnabled(useOffload)
         }
 
+        // Discord Rich Presence via OAuth2. The manager owns the token (persisted,
+        // encrypted) and the gateway connection; here we only react to the enable
+        // toggle and drive presence updates from playback state.
+        if (!DiscordRpcManager.isInitialized()) {
+            DiscordRpcManager.init(this@MusicService)
+        }
+
         dataStore.data
-            .map { it[DiscordTokenKey] to (it[EnableDiscordRPCKey] ?: true) }
-            .debounce(300)
+            .map { it[EnableDiscordRPCKey] ?: true }
             .distinctUntilChanged()
-            .collect(scope) { (key, enabled) ->
-                if (discordRpc?.isRpcRunning() == true) {
-                    discordRpc?.closeRPC()
-                }
-                discordRpc = null
-                val token = key?.takeIf { it.isNotBlank() }
-                if (token != null && enabled) {
-                    Timber.tag(TAG).d("Discord: Creating new RPC instance, token length=${token.length}")
-                    discordRpc = DiscordRPC(this, token)
-                    if (player.playbackState == Player.STATE_READY && player.playWhenReady) {
-                        Timber.tag(TAG).d("Discord: Player already playing, sending initial presence")
-                        updateDiscordPresence()
+            .collect(scope) { enabled ->
+                discordRpcEnabled = enabled
+                if (enabled) {
+                    if (DiscordRpcManager.isReady()) {
+                        syncDiscordState()
+                    } else {
+                        val token = DiscordRpcManager.getAccessToken()
+                        if (token != null) {
+                            if (!DiscordRpcManager.isInitialized()) DiscordRpcManager.init(this@MusicService)
+                            DiscordRpcManager.reconnectWithToken(token)
+                        }
                     }
-                } else {
-                    Timber.tag(TAG).d("Discord: token=$token, enabled=$enabled — not creating RPC")
+                } else if (DiscordRpcManager.isReady()) {
+                    DiscordRpcManager.disconnect()
                 }
             }
+
+        DiscordRpcManager.accessTokenFlow.collect(scope) { token ->
+            if (token.isNullOrEmpty()) {
+                if (DiscordRpcManager.isReady()) DiscordRpcManager.disconnect()
+                return@collect
+            }
+            if (!discordRpcEnabled) return@collect
+            if (!DiscordRpcManager.isInitialized()) DiscordRpcManager.init(this@MusicService)
+            if (!DiscordRpcManager.isAuthorized()) {
+                DiscordRpcManager.reconnectWithToken(token)
+            }
+        }
+
+        DiscordRpcManager.connectionStatus.collect(scope) { status ->
+            if (status == DiscordRpcManager.Status.Connected && discordRpcEnabled) {
+                syncDiscordState()
+            }
+        }
+
+        DiscordRpcManager.settingsChanged.collect(scope) {
+            if (discordRpcEnabled && DiscordRpcManager.isReady()) {
+                syncDiscordState()
+            }
+        }
 
         dataStore.data
             .map { it[LateNightModeKey] ?: false }
@@ -789,29 +856,23 @@ class MusicService :
                 dynamicRangeCompressionProcessor?.enabled = enabled
             }
 
-        // details key stuff
+        // Re-sync presence when the "use details" preference changes.
         dataStore.data
             .map { it[DiscordUseDetailsKey] ?: false }
             .debounce(1000)
             .distinctUntilChanged()
-            .collect(scope) { useDetails ->
-                if (player.playbackState == Player.STATE_READY && player.playWhenReady) {
-                    discordUpdateJob?.cancel()
-                    discordUpdateJob = scope.launch {
-                        delay(1000)
-                        updateDiscordPresence(useDetails)
-                    }
-                }
+            .collect(scope) {
+                DiscordRpcManager.notifySettingsChanged()
             }
 
-        // Periodic Discord presence refresh — ensures presence stays visible
-        // even if the initial send fails or the connection drops briefly.
+        // Periodic Discord presence refresh — keeps the progress bar accurate and
+        // ensures presence stays visible even if a send fails or the connection blips.
         scope.launch {
             while (true) {
                 delay(5000)
-                if (discordRpc != null && player.isPlaying &&
+                if (discordRpcEnabled && player.isPlaying &&
                     player.playbackState == Player.STATE_READY) {
-                    updateDiscordPresence()
+                    syncDiscordState()
                 }
             }
         }
@@ -2189,18 +2250,13 @@ class MusicService :
                 stopWidgetUpdates()
             }
             if (!player.isPlaying && !events.containsAny(Player.EVENT_POSITION_DISCONTINUITY, Player.EVENT_MEDIA_ITEM_TRANSITION)) {
-                scope.launch {
-                    discordRpc?.markNotPlaying()
-                    discordRpc?.close()
-                }
+                if (DiscordRpcManager.isReady()) DiscordRpcManager.clear()
             }
         }
 
         // Update Discord RPC when media item changes or playback starts
         if (events.containsAny(Player.EVENT_MEDIA_ITEM_TRANSITION, Player.EVENT_IS_PLAYING_CHANGED) && player.isPlaying) {
-            scope.launch {
-                updateDiscordPresence()
-            }
+            syncDiscordState()
         }
 
         // Scrobbling
@@ -2303,11 +2359,12 @@ class MusicService :
             lastPlaybackSpeed = playbackParameters.speed
             discordUpdateJob?.cancel()
 
-            // update scheduling thingy
+            // Playback speed changes the presence timestamps; re-sync after it settles.
+            DiscordRpcManager.notifySettingsChanged()
             discordUpdateJob = scope.launch {
                 delay(1000)
                 if (player.playWhenReady && player.playbackState == Player.STATE_READY) {
-                    updateDiscordPresence()
+                    syncDiscordState()
                 }
             }
         }
@@ -3181,10 +3238,10 @@ class MusicService :
         if (dataStore.get(PersistentQueueKey, true)) {
             saveQueueToDisk()
         }
-        if (discordRpc?.isRpcRunning() == true) {
-            discordRpc?.closeRPC()
+        if (DiscordRpcManager.isReady()) {
+            DiscordRpcManager.disconnect()
         }
-        discordRpc = null
+        DiscordRpcManager.destroy()
         connectivityObserver.unregister()
         abandonAudioFocus()
         releaseLoudnessEnhancer()

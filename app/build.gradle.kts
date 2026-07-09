@@ -41,6 +41,9 @@ android {
         // BetterLyrics API key from GitHub Secrets
         val betterLyricsKey = localProperties.getProperty("BETTERLYRICS_API_KEY") ?: System.getenv("BETTERLYRICS_API_KEY") ?: ""
         buildConfigField("String", "BETTERLYRICS_API_KEY", "\"$betterLyricsKey\"")
+
+        // Discord application ID used for OAuth2 login and Rich Presence
+        buildConfigField("Long", "DISCORD_APP_ID", "1450052823617372160L")
         
         // NDK configuration for vibra_fp library
         ndk {
@@ -354,6 +357,7 @@ dependencies {
     ksp(libs.hilt.compiler)
 
     // Ktor for networking
+    implementation(libs.browser)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)
     implementation(libs.ktor.client.okhttp)
@@ -367,7 +371,6 @@ dependencies {
     implementation(project(":flow"))
     implementation(project(":kugou"))
     implementation(project(":lrclib"))
-    implementation(project(":kizzy"))
     implementation(project(":lastfm"))
     implementation(project(":betterlyrics"))
     implementation(project(":simpmusic"))

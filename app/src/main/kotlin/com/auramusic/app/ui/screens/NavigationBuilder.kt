@@ -44,7 +44,6 @@ import com.auramusic.app.ui.screens.settings.AppearanceSettings
 import com.auramusic.app.ui.screens.settings.BackupAndRestore
 import com.auramusic.app.ui.screens.settings.ContentSettings
 import com.auramusic.app.ui.screens.settings.DarkMode
-import com.auramusic.app.ui.screens.settings.DiscordLoginScreen
 import com.auramusic.app.ui.screens.settings.PlayerSettings
 import com.auramusic.app.ui.screens.settings.AlarmSettingsScreen
 import com.auramusic.app.ui.screens.settings.PrivacySettings
@@ -384,9 +383,6 @@ fun NavGraphBuilder.navigationBuilder(
         ListenTogetherSettings(navController, scrollBehavior)
     }
 
-    composable("settings/discord/login") {
-        DiscordLoginScreen(navController)
-    }
 
     composable("settings/updater") {
         UpdaterScreen(navController, scrollBehavior)

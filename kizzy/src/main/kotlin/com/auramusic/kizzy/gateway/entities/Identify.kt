@@ -3,24 +3,20 @@ package com.auramusic.kizzy.gateway.entities
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-import com.auramusic.kizzy.gateway.entities.presence.Presence
-
+// IDENTIFY payload intentionally kept minimal to match the proven-working upstream
+// Kizzy client. Extra fields (shard, client_state, presence-in-identify) are omitted:
+// "shard" in particular is a bot-only field that Discord validates and can reject on a
+// user account. Presence is sent separately via PRESENCE_UPDATE (op 3) after READY.
 @Serializable
 data class Identify(
     @SerialName("capabilities")
     val capabilities: Int,
     @SerialName("compress")
     val compress: Boolean,
-    @SerialName("largeThreshold")
+    @SerialName("large_threshold")
     val largeThreshold: Int,
     @SerialName("properties")
     val properties: Properties,
-    @SerialName("client_state")
-    val clientState: ClientState = ClientState(),
-    @SerialName("presence")
-    val presence: Presence? = null,
-    @SerialName("shard")
-    val shard: List<Int> = listOf(0, 1),
     @SerialName("token")
     val token: String,
 ) {
@@ -30,7 +26,7 @@ data class Identify(
             browser: String = "Discord Android",
             device: String = "Generic Android Device"
         ) = Identify(
-            capabilities = 16381,
+            capabilities = 65,
             compress = false,
             largeThreshold = 100,
             properties = Properties(
@@ -38,34 +34,10 @@ data class Identify(
                 browser = browser,
                 device = device
             ),
-            presence = Presence(
-                status = "online",
-                since = 0,
-                activities = emptyList(),
-                afk = false
-            ),
             token = this
         )
     }
 }
-
-@Serializable
-data class ClientState(
-    @SerialName("guild_versions")
-    val guildVersions: Map<String, String> = emptyMap(),
-    @SerialName("highest_last_message_id")
-    val highestLastMessageId: String = "0",
-    @SerialName("read_state_version")
-    val readStateVersion: Int = 0,
-    @SerialName("user_guild_settings_version")
-    val userGuildSettingsVersion: Int = -1,
-    @SerialName("user_settings_version")
-    val userSettingsVersion: Int = -1,
-    @SerialName("private_channels_version")
-    val privateChannelsVersion: String = "0",
-    @SerialName("api_code_version")
-    val apiCodeVersion: Int = 0,
-)
 
 @Serializable
 data class Properties(

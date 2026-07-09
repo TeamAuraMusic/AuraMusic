@@ -5,6 +5,7 @@
 
 package com.auramusic.app.ui.screens.settings.integrations
 
+import android.app.Activity
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.border
@@ -40,9 +41,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -64,31 +62,20 @@ import coil3.compose.AsyncImage
 import com.auramusic.app.LocalPlayerAwareWindowInsets
 import com.auramusic.app.LocalPlayerConnection
 import com.auramusic.app.R
-import com.auramusic.app.constants.DiscordAvatarUrlKey
 import com.auramusic.app.constants.DiscordInfoDismissedKey
-import com.auramusic.app.constants.DiscordNameKey
-import com.auramusic.app.constants.DiscordTokenKey
 import com.auramusic.app.constants.DiscordUseDetailsKey
-import com.auramusic.app.constants.DiscordUsernameKey
 import com.auramusic.app.constants.EnableDiscordRPCKey
 import com.auramusic.app.db.entities.Song
+import com.auramusic.app.discord.DiscordRpcManager
 import com.auramusic.app.ui.component.IconButton
-import com.auramusic.app.ui.component.InfoLabel
 import com.auramusic.app.ui.component.PreferenceEntry
 import com.auramusic.app.ui.component.PreferenceGroupTitle
 import com.auramusic.app.ui.component.SwitchPreference
-import com.auramusic.app.ui.component.TextFieldDialog
 import com.auramusic.app.ui.utils.backToMain
-import com.auramusic.app.utils.SuperProperties
 import com.auramusic.app.utils.makeTimeString
 import com.auramusic.app.utils.rememberPreference
-import com.auramusic.kizzy.rpc.KizzyRPC
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -104,45 +91,19 @@ fun DiscordSettings(
         mutableLongStateOf(playerConnection.player.currentPosition)
     }
 
-    val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
 
-    var discordToken by rememberPreference(DiscordTokenKey, "")
-    var discordUsername by rememberPreference(DiscordUsernameKey, "")
-    var discordName by rememberPreference(DiscordNameKey, "")
-    var discordAvatarUrl by rememberPreference(DiscordAvatarUrlKey, "")
     var infoDismissed by rememberPreference(DiscordInfoDismissedKey, false)
-    var isFetchingUserInfo by remember { mutableStateOf(false) }
-    var userInfoError by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(discordToken) {
-        val token = discordToken.trim()
-        if (token.isEmpty()) {
-            discordUsername = ""
-            discordName = ""
-            discordAvatarUrl = ""
-            userInfoError = null
-            return@LaunchedEffect
-        }
-        isFetchingUserInfo = true
-        userInfoError = null
-        val result = withContext(Dispatchers.IO) {
-            KizzyRPC.getUserInfo(
-                token, 
-                SuperProperties.userAgent, 
-                SuperProperties.superPropertiesBase64
-            )
-        }
-        result.onSuccess {
-            discordUsername = it.username
-            discordName = it.name
-            discordAvatarUrl = it.avatarUrl.orEmpty()
-            userInfoError = null
-        }.onFailure {
-            Timber.w(it, "Failed to fetch Discord user info")
-            userInfoError = it.message ?: "Failed to fetch user info"
-        }
-        isFetchingUserInfo = false
+    // Ensure the Discord manager is initialized so a persisted session is
+    // rehydrated and account info becomes available on this screen.
+    LaunchedEffect(Unit) {
+        DiscordRpcManager.init(context)
     }
+
+    val discordUser by DiscordRpcManager.currentUser.collectAsState()
+    val accessToken by DiscordRpcManager.accessTokenFlow.collectAsState()
+    val connectionStatus by DiscordRpcManager.connectionStatus.collectAsState()
 
     LaunchedEffect(playbackState) {
         if (playbackState == STATE_READY) {
@@ -163,36 +124,15 @@ fun DiscordSettings(
         defaultValue = false
     )
 
-    val isLoggedIn =
-        remember(discordToken) {
-            discordToken != ""
-        }
+    val isLoggedIn = accessToken != null
+    val isAuthorizing = connectionStatus == DiscordRpcManager.Status.Authorizing
 
     val accountTitle = when {
+        isAuthorizing && !isLoggedIn -> "Connecting…"
         !isLoggedIn -> stringResource(R.string.not_logged_in)
-        isFetchingUserInfo -> "Fetching account info..."
-        userInfoError != null && discordName.isBlank() -> "Login failed — tap to retry"
-        discordName.isNotBlank() -> discordName
-        discordUsername.isNotBlank() -> discordUsername
+        discordUser?.name?.isNotBlank() == true -> discordUser!!.name
+        discordUser?.username?.isNotBlank() == true -> discordUser!!.username
         else -> stringResource(R.string.discord_integration)
-    }
-
-    var showTokenDialog by rememberSaveable { mutableStateOf(false) }
-
-    if (showTokenDialog) {
-        TextFieldDialog(
-            onDismiss = { showTokenDialog = false },
-            icon = { Icon(painterResource(R.drawable.token), null) },
-            onDone = {
-                discordToken = it
-                showTokenDialog = false
-            },
-            singleLine = true,
-            isInputValid = { it.isNotEmpty() },
-            extraContent = {
-                InfoLabel(text = stringResource(R.string.token_adv_login_description))
-            }
-        )
     }
 
     Column(
@@ -259,17 +199,16 @@ fun DiscordSettings(
                 )
             },
             description =
-            if (discordUsername.isNotEmpty()) {
-                "@$discordUsername"
-            } else if (userInfoError != null) {
-                userInfoError
+            if (discordUser?.username?.isNotBlank() == true) {
+                "@${discordUser!!.username}"
             } else {
                 null
             },
             icon = {
-                if (isLoggedIn && discordAvatarUrl.isNotBlank()) {
+                val avatar = discordUser?.avatar
+                if (isLoggedIn && !avatar.isNullOrBlank()) {
                     AsyncImage(
-                        model = discordAvatarUrl,
+                        model = avatar,
                         contentDescription = null,
                         modifier = Modifier
                             .size(40.dp)
@@ -282,57 +221,24 @@ fun DiscordSettings(
             trailingContent = {
                 if (isLoggedIn) {
                     OutlinedButton(onClick = {
-                        discordName = ""
-                        discordToken = ""
-                        discordUsername = ""
-                        discordAvatarUrl = ""
+                        DiscordRpcManager.logout()
                     }) {
                         Text(stringResource(R.string.action_logout))
                     }
                 } else {
-                    OutlinedButton(onClick = {
-                        navController.navigate("settings/discord/login")
-                    }) {
+                    OutlinedButton(
+                        enabled = !isAuthorizing,
+                        onClick = {
+                            (context as? Activity)?.let { activity ->
+                                DiscordRpcManager.authorize(activity) { }
+                            }
+                        },
+                    ) {
                         Text(stringResource(R.string.action_login))
                     }
                 }
             },
-            onClick = if (isLoggedIn && userInfoError != null && discordName.isBlank()) {
-                {
-                    // Retry fetching user info
-                    val token = discordToken.trim()
-                    if (token.isNotEmpty()) {
-                        coroutineScope.launch {
-                            isFetchingUserInfo = true
-                            userInfoError = null
-                            val result = withContext(Dispatchers.IO) {
-                                KizzyRPC.getUserInfo(token, SuperProperties.userAgent, SuperProperties.superPropertiesBase64)
-                            }
-                            result.onSuccess {
-                                discordUsername = it.username
-                                discordName = it.name
-                                discordAvatarUrl = it.avatarUrl.orEmpty()
-                                userInfoError = null
-                            }.onFailure {
-                                userInfoError = it.message ?: "Failed to fetch user info"
-                            }
-                            isFetchingUserInfo = false
-                        }
-                    }
-                }
-            } else null,
         )
-        if (!isLoggedIn) {
-            PreferenceEntry(
-                title = {
-                    Text(stringResource(R.string.advanced_login))
-                },
-                icon = { Icon(painterResource(R.drawable.token), null) },
-                onClick = {
-                    showTokenDialog = true
-                }
-            )
-        }
 
         PreferenceGroupTitle(
             title = stringResource(R.string.options),

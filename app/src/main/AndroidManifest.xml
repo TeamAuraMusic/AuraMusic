@@ -231,6 +231,21 @@
             android:exported="false"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
+        <activity
+            android:name=".discord.DiscordOAuthActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="auramusicdiscord" />
+                <data android:host="oauth2" />
+            </intent-filter>
+        </activity>
+
         <service
             android:name=".playback.MusicService"
             android:exported="true"
