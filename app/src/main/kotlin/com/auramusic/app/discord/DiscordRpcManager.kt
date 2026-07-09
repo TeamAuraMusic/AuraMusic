@@ -2,12 +2,15 @@ package com.auramusic.app.discord
 
 import android.app.Activity
 import android.content.Context
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
@@ -47,6 +50,10 @@ object DiscordRpcManager {
 
     @Volatile
     private var authorizeInProgress: Boolean = false
+
+    /** Completed when the gateway READY event arrives. Reset before each connect attempt. */
+    @Volatile
+    private var readyDeferred = CompletableDeferred<Unit>()
 
     @Volatile
     private var lastActivitySentAtMs: Long = 0L
@@ -130,9 +137,23 @@ object DiscordRpcManager {
             externalScope = scope,
         )
 
+    // Shared events bus: all gateway instances emit events here so the
+    // single collector always sees them regardless of gateway replacement.
+    private val gatewayEventsBus = MutableSharedFlow<GatewayEvent>(
+        extraBufferCapacity = 64,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
+
     private fun startEventCollection() {
         scope.launch {
-            gateway.events.collect { event -> handleGatewayEvent(event) }
+            gatewayEventsBus.collect { event -> handleGatewayEvent(event) }
+        }
+    }
+
+    /** Wire a gateway's events into the shared bus. Called after every gateway creation. */
+    private fun wireGatewayEvents() {
+        scope.launch {
+            gateway.events.collect { event -> gatewayEventsBus.emit(event) }
         }
     }
 
@@ -146,6 +167,7 @@ object DiscordRpcManager {
             Timber.tag(TAG).i("init: recreating scope after previous destroy")
             scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
             gateway = createGateway(scope)
+            wireGatewayEvents()
         }
         initialized = true
         _connectionStatus.value = Status.Disconnected
@@ -206,14 +228,13 @@ object DiscordRpcManager {
 
                 try {
                     reconnectMutex.withLock {
+                        readyDeferred = CompletableDeferred()
                         runCatching { gateway.close(4000, "re-authorizing") }
                         gateway.connect()
                         gateway.identify("Bearer ${result.accessToken}")
                     }
                     // Wait for the READY event before reporting success
-                    val connected = withTimeoutOrNull(10_000L) {
-                        _connectionStatus.first { it == Status.Connected }
-                    }
+                    val connected = withTimeoutOrNull(15_000L) { readyDeferred.await() }
                     if (connected != null) {
                         completeWith(true)
                     } else {
@@ -533,14 +554,14 @@ object DiscordRpcManager {
                         }
                     }
 
+                    readyDeferred = CompletableDeferred()
                     runCatching { gateway.close(4000, "reconnecting") }
                     gateway.connect()
                     gateway.identify("Bearer ${accessToken ?: token}")
 
                     // Wait for the READY event before considering reconnection successful
-                    withTimeoutOrNull(10_000L) {
-                        _connectionStatus.first { it == Status.Connected }
-                    } ?: Timber.tag(TAG).w("reconnectWithToken: gateway did not become ready within timeout")
+                    withTimeoutOrNull(15_000L) { readyDeferred.await() }
+                        ?: Timber.tag(TAG).w("reconnectWithToken: gateway did not become ready within timeout")
                 } catch (e: Throwable) {
                     Timber.tag(TAG).e(e, "reconnectWithToken: connect/identify failed")
                     _lastError.value = "discord_error_loopback_timeout"
@@ -636,6 +657,7 @@ object DiscordRpcManager {
                 _authorized = true
                 _connectionStatus.value = Status.Connected
                 _lastError.value = null
+                readyDeferred.complete(Unit)
                 val token = accessToken ?: return
                 scope.launch {
                     val user = fetchCurrentUser(token)
