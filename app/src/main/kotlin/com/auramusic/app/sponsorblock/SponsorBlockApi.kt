@@ -11,6 +11,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import io.ktor.client.HttpClient
+import io.ktor.client.engine.okhttp.OkHttp
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.statement.bodyAsText
@@ -72,7 +74,13 @@ object SponsorBlockColors {
 object SponsorBlockApi {
     private const val BASE_URL = "https://sponsor.ajay.app/api"
     private val json = Json { ignoreUnknownKeys = true }
-    private val client = HttpClient()
+    private val client = HttpClient(OkHttp) {
+        install(HttpTimeout) {
+            requestTimeoutMillis = 15_000
+            connectTimeoutMillis = 10_000
+            socketTimeoutMillis = 15_000
+        }
+    }
 
     val defaultSkippableCategories = setOf(
         "sponsor",

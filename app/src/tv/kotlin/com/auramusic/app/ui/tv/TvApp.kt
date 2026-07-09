@@ -104,6 +104,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
  import coil3.compose.AsyncImage
@@ -753,10 +755,18 @@ fun TvTopBar(
                         targetValue = if (miniInfoFocused) 1.03f else 1f,
                         label = "miniInfoScale",
                     )
+                    val miniArtSize = with(LocalDensity.current) {
+                        val screenWidthDp = LocalWindowInfo.current.containerSize.width / density
+                        if (screenWidthDp > 960f) 56.dp else 40.dp
+                    }
+                    val miniHeight = with(LocalDensity.current) {
+                        val screenWidthDp = LocalWindowInfo.current.containerSize.width / density
+                        if (screenWidthDp > 960f) 80.dp else 64.dp
+                    }
                     Row(
                         modifier = Modifier
-                            .height(64.dp)
-                            .widthIn(min = 360.dp, max = 520.dp)
+                            .height(miniHeight)
+                            .widthIn(min = 360.dp, max = 640.dp)
                             .padding(horizontal = 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -793,7 +803,7 @@ fun TvTopBar(
                             // Album art
                             Box(
                                 modifier = Modifier
-                                    .size(40.dp)
+                                    .size(miniArtSize)
                                     .clip(RoundedCornerShape(6.dp))
                                     .background(MaterialTheme.colorScheme.surface),
                                 contentAlignment = Alignment.Center,

@@ -426,15 +426,16 @@ fun TvPlayerScreen(
             // column to keep playback controls visible on every TV.
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                 val compactHeight = maxHeight < 720.dp
-                val contentPadding = if (compactHeight) 16.dp else 24.dp
-                val contentSpacing = if (compactHeight) 20.dp else 32.dp
-                val playerVerticalSpacing = if (compactHeight) 12.dp else 24.dp
-                val topSpacerHeight = if (compactHeight) 16.dp else 48.dp
-                val artworkSize = if (compactHeight) 220.dp else 280.dp
-                val controlSpacing = if (compactHeight) 8.dp else 16.dp
-                val secondaryTopPadding = if (compactHeight) 8.dp else 16.dp
-                val sideControlSize = if (compactHeight) 56.dp else 72.dp
-                val playControlSize = if (compactHeight) 68.dp else 80.dp
+                val veryCompact = maxHeight < 540.dp
+                val contentPadding = if (veryCompact) 8.dp else if (compactHeight) 16.dp else 24.dp
+                val contentSpacing = if (veryCompact) 8.dp else if (compactHeight) 20.dp else 32.dp
+                val playerVerticalSpacing = if (veryCompact) 4.dp else if (compactHeight) 12.dp else 24.dp
+                val topSpacerHeight = if (veryCompact) 4.dp else if (compactHeight) 16.dp else 48.dp
+                val artworkSize = if (veryCompact) 120.dp else if (compactHeight) 200.dp else 280.dp
+                val controlSpacing = if (veryCompact) 4.dp else if (compactHeight) 8.dp else 16.dp
+                val secondaryTopPadding = if (veryCompact) 2.dp else if (compactHeight) 8.dp else 16.dp
+                val sideControlSize = if (veryCompact) 44.dp else if (compactHeight) 56.dp else 72.dp
+                val playControlSize = if (veryCompact) 52.dp else if (compactHeight) 68.dp else 80.dp
 
             Row(
                 modifier = Modifier
@@ -443,10 +444,10 @@ fun TvPlayerScreen(
                 horizontalArrangement = Arrangement.spacedBy(contentSpacing),
                 verticalAlignment = Alignment.Top,
             ) {
-                // LEFT SIDE: Player controls (40% width)
+                // LEFT SIDE: Player controls (40% width, or 55% on very compact)
                 Column(
                     modifier = Modifier
-                        .weight(0.4f)
+                        .weight(if (veryCompact) 0.55f else 0.4f)
                         .fillMaxHeight(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(playerVerticalSpacing),
