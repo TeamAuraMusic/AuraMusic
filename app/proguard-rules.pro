@@ -50,6 +50,11 @@
 -keep class com.alphacephei.** { *; }
 -dontwarn org.vosk.**
 
+# JNA (used by Vosk for native library access)
+-keep class com.sun.jna.** { *; }
+-keep class java.lang.reflect.Field { *; }
+-dontwarn com.sun.jna.**
+
 # Ktor
 -keep class io.ktor.** { *; }
 -dontwarn io.ktor.**

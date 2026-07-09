@@ -81,8 +81,20 @@ class VoskWakeWordDetector @Inject constructor(
                 android.util.Log.d("VoskWakeWordDetector", "Loading model from: $modelPath")
                 
                 validateModelDirectory(File(modelPath))
+
+                try {
+                    model = Model(modelPath)
+                } catch (e: UnsatisfiedLinkError) {
+                    android.util.Log.e("VoskWakeWordDetector",
+                        "Failed to load Vosk native library (JNA incompatible with this device/OS). " +
+                        "Wake word detection is unavailable.", e)
+                    withContext(Dispatchers.Main) {
+                        showToast("Wake word not supported on this device")
+                    }
+                    isRunning.set(false)
+                    return@launch
+                }
                 
-                model = Model(modelPath)
                 recognizer = Recognizer(model, SAMPLE_RATE.toFloat(), WAKE_WORD_GRAMMAR)
                 android.util.Log.d("VoskWakeWordDetector", "Model loaded with grammar, starting audio")
                 

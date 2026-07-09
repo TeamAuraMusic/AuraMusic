@@ -365,7 +365,12 @@ dependencies {
     implementation(libs.ktor.serialization.json)
 
     // VOSK offline speech recognition (wake word detection)
-    implementation("com.alphacephei:vosk-android:0.3.75")
+    implementation("com.alphacephei:vosk-android:0.3.75") {
+        exclude(group = "net.java.dev.jna")
+    }
+    // Force latest JNA to fix Android 16 (SDK 36) UnsatisfiedLinkError
+    // in com.sun.jna.Pointer peer field resolution
+    implementation("net.java.dev.jna:jna:5.19.1@aar")
 
     implementation(project(":innertube"))
     implementation(project(":flow"))
