@@ -168,11 +168,11 @@ object DiscordRpcManager {
             Timber.tag(TAG).i("init: recreating scope after previous destroy")
             scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
             gateway = createGateway(scope)
-            wireGatewayEvents()
         }
         initialized = true
         _connectionStatus.value = Status.Disconnected
         startEventCollection()
+        wireGatewayEvents()
         Timber.tag(TAG).i("init: token store initialized, scheduling auto-rehydrate")
 
         scope.launch {
@@ -217,7 +217,9 @@ object DiscordRpcManager {
 
         scope.launch {
             try {
+                Timber.tag(TAG).i("authorize: launching Chrome Custom Tab for OAuth")
                 val result = auth.authorize(activity)
+                Timber.tag(TAG).i("authorize: token exchange succeeded (token length=%d)", result.accessToken.length)
                 DiscordTokenStore.storeFull(
                     result.accessToken,
                     result.refreshToken,
@@ -231,15 +233,19 @@ object DiscordRpcManager {
                     reconnectMutex.withLock {
                         readyDeferred = CompletableDeferred()
                         runCatching { gateway.close(4000, "re-authorizing") }
+                        Timber.tag(TAG).i("authorize: connecting gateway")
                         gateway.connect()
+                        Timber.tag(TAG).i("authorize: sending IDENTIFY")
                         gateway.identify("Bearer ${result.accessToken}")
                     }
                     // Wait for the READY event before reporting success
+                    Timber.tag(TAG).i("authorize: waiting for READY event (15s timeout)")
                     val connected = withTimeoutOrNull(15_000L) { readyDeferred.await() }
                     if (connected != null) {
+                        Timber.tag(TAG).i("authorize: READY received, login successful")
                         completeWith(true)
                     } else {
-                        Timber.tag(TAG).w("authorize: gateway did not become ready within timeout")
+                        Timber.tag(TAG).w("authorize: gateway did not become ready within timeout, lastError=%s", _lastError.value)
                         _lastError.value = "discord_error_loopback_timeout"
                         _connectionStatus.value = Status.Disconnected
                         _ready = false
@@ -651,9 +657,10 @@ object DiscordRpcManager {
     }
 
     private suspend fun handleGatewayEvent(event: GatewayEvent) {
+        Timber.tag(TAG).d("handleGatewayEvent: %s", event::class.simpleName)
         when (event) {
             is GatewayEvent.Ready -> {
-                Timber.tag(TAG).i("gateway: READY (sessionId prefix=%s)", event.sessionId.take(8))
+                Timber.tag(TAG).i("gateway: READY (sessionId prefix=%s), completing readyDeferred", event.sessionId.take(8))
                 _ready = true
                 _authorized = true
                 _connectionStatus.value = Status.Connected
