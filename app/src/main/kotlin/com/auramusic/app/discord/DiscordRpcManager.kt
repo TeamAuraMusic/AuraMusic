@@ -2,6 +2,9 @@ package com.auramusic.app.discord
 
 import android.app.Activity
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
+import android.widget.Toast
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -131,6 +134,24 @@ object DiscordRpcManager {
 
     private var gateway: DiscordGateway = createGateway(scope)
 
+    private val mainHandler = Handler(Looper.getMainLooper())
+
+    @Volatile
+    private var appContext: Context? = null
+
+    private fun showToast(message: String, long: Boolean = false) {
+        val ctx = appContext ?: return
+        mainHandler.post {
+            try {
+                Toast.makeText(
+                    ctx,
+                    message,
+                    if (long) Toast.LENGTH_LONG else Toast.LENGTH_SHORT,
+                ).show()
+            } catch (_: Exception) { }
+        }
+    }
+
     private fun createGateway(scope: CoroutineScope): DiscordGateway =
         DiscordGateway(
             appId = appId,
@@ -159,6 +180,7 @@ object DiscordRpcManager {
     }
 
     fun init(context: Context) {
+        appContext = context.applicationContext
         DiscordTokenStore.init(context.applicationContext)
         if (initialized && scope.isActive) {
             Timber.tag(TAG).i("init: already initialized and active, skipping")
@@ -222,8 +244,10 @@ object DiscordRpcManager {
         scope.launch {
             try {
                 Timber.tag(TAG).i("authorize: launching Chrome Custom Tab for OAuth")
+                showToast("Discord: Opening login page...")
                 val result = auth.authorize(activity)
                 Timber.tag(TAG).i("authorize: token exchange succeeded (token length=%d, refresh present=%s, expiresIn=%d)", result.accessToken.length, result.refreshToken.isNotEmpty(), result.expiresInSec)
+                showToast("Discord: Token received! Connecting...")
                 DiscordTokenStore.storeFull(
                     result.accessToken,
                     result.refreshToken,
@@ -249,9 +273,11 @@ object DiscordRpcManager {
                     val connected = withTimeoutOrNull(15_000L) { myReadyDeferred.await() }
                     if (connected != null) {
                         Timber.tag(TAG).i("authorize: READY received, login successful")
+                        showToast("Discord: Login successful!")
                         completeWith(true)
                     } else {
                         Timber.tag(TAG).w("authorize: gateway did not become ready within timeout, lastError=%s", _lastError.value)
+                        showToast("Discord: Gateway timeout — but token is valid. Rich Presence may not work.", true)
                         // Token exchange succeeded — keep authorized so the UI shows
                         // the logged-in state. Fetch user info even without gateway READY.
                         _connectionStatus.value = Status.Connected
@@ -269,6 +295,7 @@ object DiscordRpcManager {
                     }
                 } catch (e: Throwable) {
                     Timber.tag(TAG).e(e, "authorize: gateway connect/identify failed")
+                    showToast("Discord: Gateway connection failed", true)
                     _lastError.value = "discord_error_loopback_timeout"
                     _connectionStatus.value = Status.Disconnected
                     _ready = false
@@ -289,21 +316,25 @@ object DiscordRpcManager {
                 completeWith(false)
             } catch (e: DiscordAuthException.NetworkFailure) {
                 Timber.tag(TAG).e(e, "authorize: network failure — THIS IS LIKELY YOUR ERROR. Check HTTP status and body above.")
+                showToast("Discord: Network error — ${e.message}", true)
                 _lastError.value = "discord_error_loopback_timeout"
                 _connectionStatus.value = Status.Disconnected
                 completeWith(false)
             } catch (e: DiscordAuthException.NoBrowser) {
                 Timber.tag(TAG).w(e, "authorize: no browser available")
+                showToast("Discord: No browser found", true)
                 _lastError.value = "discord_error_no_browser"
                 _connectionStatus.value = Status.Disconnected
                 completeWith(false)
             } catch (e: DiscordAuthException.InvalidGrant) {
                 Timber.tag(TAG).w(e, "authorize: invalid grant — token exchange rejected by Discord")
+                showToast("Discord: Auth rejected — ${e.message}", true)
                 _lastError.value = "discord_error_token_refresh_failed"
                 _connectionStatus.value = Status.Disconnected
                 completeWith(false)
             } catch (e: Throwable) {
                 Timber.tag(TAG).e(e, "authorize: unexpected failure: %s", e.message)
+                showToast("Discord: Unexpected error — ${e.message}", true)
                 _lastError.value = "discord_error_loopback_timeout"
                 _connectionStatus.value = Status.Disconnected
                 completeWith(false)
