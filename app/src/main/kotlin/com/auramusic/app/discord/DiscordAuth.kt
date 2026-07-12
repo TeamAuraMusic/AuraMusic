@@ -62,7 +62,8 @@ class DiscordAuth(
                 challenge = pkce.challenge,
             )
 
-            Timber.tag(TAG).i("authorize: launching URL (clientId prefix=%s)", BuildConfig.DISCORD_APP_ID.toString().take(8))
+            Timber.tag(TAG).i("authorize: launching URL (clientId=%s)", BuildConfig.DISCORD_APP_ID.toString())
+            Timber.tag(TAG).i("authorize: full auth URL: %s", authUrl)
 
             val intent = CustomTabsIntent.Builder().build().intent
             intent.data = authUrl.toUri()
@@ -160,10 +161,11 @@ class DiscordAuth(
             val expiresIn = json.optLong("expires_in", 0L)
             val scope = json.optString("scope", DISCORD_SCOPES)
             Timber.tag(TAG).i(
-                "token exchange: success (accessToken length=%d, refreshToken present=%s, expiresIn=%d)",
+                "token exchange: success (accessToken length=%d, refreshToken present=%s, expiresIn=%d, scope=%s)",
                 accessToken.length,
                 refreshToken.isNotEmpty(),
                 expiresIn,
+                scope,
             )
             return DiscordAuthResult(
                 accessToken = accessToken,
@@ -175,6 +177,16 @@ class DiscordAuth(
 
         val errorCode = runCatching { JSONObject(body).optString("error", "") }
             .getOrDefault("")
+        val errorDesc = runCatching { JSONObject(body).optString("error_description", "") }
+            .getOrDefault("")
+        Timber.tag(TAG).w(
+            "token exchange: FAILED HTTP %d (grantType=%s, error=%s, desc=%s, body=%s)",
+            status.value,
+            grantType,
+            errorCode,
+            errorDesc,
+            body.take(500),
+        )
         if (status == HttpStatusCode.BadRequest && errorCode == "invalid_grant") {
             Timber.tag(TAG).w("token exchange: invalid_grant on %s", grantType)
             throw DiscordAuthException.InvalidGrant()
