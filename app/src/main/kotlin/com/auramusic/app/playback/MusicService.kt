@@ -3527,14 +3527,6 @@ class MusicService :
         Timber.d("setVideoMode: Called with enabled = $enabled, current isVideoMode = $isVideoMode")
         android.util.Log.d("MusicService", ">>> setVideoMode called: enabled=$enabled, current isVideoMode=$isVideoMode")
 
-        // Guard: don't start a new video switch while one is already in progress.
-        // This prevents race conditions from multiple callers (service transition +
-        // UI LaunchedEffect) trying to enable video mode simultaneously.
-        if (enabled && _isVideoSwitching.value) {
-            Timber.d("setVideoMode: Video switch already in progress, skipping")
-            return
-        }
-
         val mediaId = currentMediaMetadata.value?.id
             ?: player.currentMediaItem?.mediaId
             ?: run {
