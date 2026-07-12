@@ -49,13 +49,18 @@ class DiscordOAuthActivity : Activity() {
     }
 
     private fun handleIntent(intent: Intent?) {
-        Timber.tag(TAG).i("OAuthActivity: handleIntent action=%s", intent?.action)
+        Timber.tag(TAG).i("OAuthActivity: handleIntent action=%s deferred=%s", intent?.action, deferred != null)
 
         val uri = intent?.data ?: run {
             Timber.tag(TAG).w("OAuthActivity: no URI in intent")
+            deferred?.completeExceptionally(
+                DiscordAuthException.InvalidGrant("No URI in callback intent")
+            )
             finish()
             return
         }
+
+        Timber.tag(TAG).i("OAuthActivity: callback URI=%s", uri)
 
         val code = uri.getQueryParameter("code")
         val state = uri.getQueryParameter("state")
@@ -71,7 +76,7 @@ class DiscordOAuthActivity : Activity() {
         }
 
         if (code == null) {
-            Timber.tag(TAG).w("OAuthActivity: missing code")
+            Timber.tag(TAG).w("OAuthActivity: missing code in URI=%s", uri)
             deferred?.completeExceptionally(
                 DiscordAuthException.InvalidGrant("Missing authorization code")
             )
@@ -79,8 +84,12 @@ class DiscordOAuthActivity : Activity() {
             return
         }
 
-        Timber.tag(TAG).i("OAuthActivity: received code (length=%d)", code.length)
+        Timber.tag(TAG).i("OAuthActivity: received code (length=%d) state=%s", code.length, state?.take(8) ?: "null")
+        if (deferred == null) {
+            Timber.tag(TAG).e("OAuthActivity: deferred is NULL — auth flow may not be running!")
+        }
         deferred?.complete(AuthCodeResult(code = code, state = state ?: ""))
+            ?: Timber.tag(TAG).e("OAuthActivity: deferred?.complete returned false")
         finish()
     }
 }

@@ -223,7 +223,7 @@ object DiscordRpcManager {
             try {
                 Timber.tag(TAG).i("authorize: launching Chrome Custom Tab for OAuth")
                 val result = auth.authorize(activity)
-                Timber.tag(TAG).i("authorize: token exchange succeeded (token length=%d)", result.accessToken.length)
+                Timber.tag(TAG).i("authorize: token exchange succeeded (token length=%d, refresh present=%s, expiresIn=%d)", result.accessToken.length, result.refreshToken.isNotEmpty(), result.expiresInSec)
                 DiscordTokenStore.storeFull(
                     result.accessToken,
                     result.refreshToken,
@@ -232,6 +232,7 @@ object DiscordRpcManager {
                 accessToken = result.accessToken
                 _accessTokenFlow.value = result.accessToken
                 _authorized = true
+                Timber.tag(TAG).i("authorize: token stored, accessToken set (flow value=%s)", _accessTokenFlow.value?.take(10))
 
                 val myReadyDeferred = CompletableDeferred<Unit>()
                 try {
@@ -277,7 +278,7 @@ object DiscordRpcManager {
                     completeWith(false)
                 }
             } catch (e: DiscordAuthException.UserCancelled) {
-                Timber.tag(TAG).i("authorize: user cancelled")
+                Timber.tag(TAG).i("authorize: user cancelled (exception message: %s)", e.message)
                 _lastError.value = "discord_error_loopback_timeout"
                 _connectionStatus.value = Status.Disconnected
                 completeWith(false)
@@ -287,7 +288,7 @@ object DiscordRpcManager {
                 _connectionStatus.value = Status.Disconnected
                 completeWith(false)
             } catch (e: DiscordAuthException.NetworkFailure) {
-                Timber.tag(TAG).e(e, "authorize: network failure")
+                Timber.tag(TAG).e(e, "authorize: network failure — THIS IS LIKELY YOUR ERROR. Check HTTP status and body above.")
                 _lastError.value = "discord_error_loopback_timeout"
                 _connectionStatus.value = Status.Disconnected
                 completeWith(false)
@@ -297,12 +298,12 @@ object DiscordRpcManager {
                 _connectionStatus.value = Status.Disconnected
                 completeWith(false)
             } catch (e: DiscordAuthException.InvalidGrant) {
-                Timber.tag(TAG).w(e, "authorize: invalid grant")
+                Timber.tag(TAG).w(e, "authorize: invalid grant — token exchange rejected by Discord")
                 _lastError.value = "discord_error_token_refresh_failed"
                 _connectionStatus.value = Status.Disconnected
                 completeWith(false)
             } catch (e: Throwable) {
-                Timber.tag(TAG).e(e, "authorize: unexpected failure")
+                Timber.tag(TAG).e(e, "authorize: unexpected failure: %s", e.message)
                 _lastError.value = "discord_error_loopback_timeout"
                 _connectionStatus.value = Status.Disconnected
                 completeWith(false)
