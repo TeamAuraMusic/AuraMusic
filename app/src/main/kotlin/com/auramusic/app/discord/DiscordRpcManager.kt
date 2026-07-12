@@ -179,6 +179,10 @@ object DiscordRpcManager {
             val saved = DiscordTokenStore.retrieveSuspend()
             if (!saved.isNullOrEmpty()) {
                 Timber.tag(TAG).i("init: found persisted token, reconnecting")
+                // Set token immediately so UI shows logged-in state while reconnecting
+                accessToken = saved
+                _accessTokenFlow.value = saved
+                _authorized = true
                 reconnectWithToken(saved)
             } else {
                 Timber.tag(TAG).i("init: no persisted token, waiting for explicit authorize")
@@ -229,9 +233,10 @@ object DiscordRpcManager {
                 _accessTokenFlow.value = result.accessToken
                 _authorized = true
 
+                val myReadyDeferred = CompletableDeferred<Unit>()
                 try {
                     reconnectMutex.withLock {
-                        readyDeferred = CompletableDeferred()
+                        readyDeferred = myReadyDeferred
                         runCatching { gateway.close(4000, "re-authorizing") }
                         Timber.tag(TAG).i("authorize: connecting gateway")
                         gateway.connect()
@@ -240,17 +245,26 @@ object DiscordRpcManager {
                     }
                     // Wait for the READY event before reporting success
                     Timber.tag(TAG).i("authorize: waiting for READY event (15s timeout)")
-                    val connected = withTimeoutOrNull(15_000L) { readyDeferred.await() }
+                    val connected = withTimeoutOrNull(15_000L) { myReadyDeferred.await() }
                     if (connected != null) {
                         Timber.tag(TAG).i("authorize: READY received, login successful")
                         completeWith(true)
                     } else {
                         Timber.tag(TAG).w("authorize: gateway did not become ready within timeout, lastError=%s", _lastError.value)
-                        _lastError.value = "discord_error_loopback_timeout"
-                        _connectionStatus.value = Status.Disconnected
+                        // Token exchange succeeded — keep authorized so the UI shows
+                        // the logged-in state. Fetch user info even without gateway READY.
+                        _connectionStatus.value = Status.Connected
                         _ready = false
-                        _authorized = false
-                        completeWith(false)
+                        _authorized = true
+                        completeWith(true)
+                        val token = accessToken ?: return@launch
+                        scope.launch {
+                            val user = fetchCurrentUser(token)
+                            _currentUser.value = user
+                            if (user != null) {
+                                Timber.tag(TAG).i("authorize: fetched user %s (fallback path)", user.username)
+                            }
+                        }
                     }
                 } catch (e: Throwable) {
                     Timber.tag(TAG).e(e, "authorize: gateway connect/identify failed")
@@ -258,6 +272,8 @@ object DiscordRpcManager {
                     _connectionStatus.value = Status.Disconnected
                     _ready = false
                     _authorized = false
+                    accessToken = null
+                    _accessTokenFlow.value = null
                     completeWith(false)
                 }
             } catch (e: DiscordAuthException.UserCancelled) {
@@ -561,14 +577,30 @@ object DiscordRpcManager {
                         }
                     }
 
-                    readyDeferred = CompletableDeferred()
+                    val myReadyDeferred = CompletableDeferred<Unit>()
+                    readyDeferred = myReadyDeferred
                     runCatching { gateway.close(4000, "reconnecting") }
                     gateway.connect()
                     gateway.identify("Bearer ${accessToken ?: token}")
 
                     // Wait for the READY event before considering reconnection successful
-                    withTimeoutOrNull(15_000L) { readyDeferred.await() }
-                        ?: Timber.tag(TAG).w("reconnectWithToken: gateway did not become ready within timeout")
+                    val connected = withTimeoutOrNull(15_000L) { myReadyDeferred.await() }
+                    if (connected != null) {
+                        Timber.tag(TAG).i("reconnectWithToken: gateway READY received")
+                    } else {
+                        Timber.tag(TAG).w("reconnectWithToken: gateway did not become ready within timeout")
+                        // Token is valid but gateway didn't become ready — keep authorized
+                        // so the UI shows the logged-in state. The user can see their account
+                        // details even if Rich Presence isn't working.
+                        val currentToken = accessToken ?: return@withLock
+                        scope.launch {
+                            val user = fetchCurrentUser(currentToken)
+                            _currentUser.value = user
+                            if (user != null) {
+                                Timber.tag(TAG).i("reconnectWithToken: fetched user %s", user.username)
+                            }
+                        }
+                    }
                 } catch (e: Throwable) {
                     Timber.tag(TAG).e(e, "reconnectWithToken: connect/identify failed")
                     _lastError.value = "discord_error_loopback_timeout"

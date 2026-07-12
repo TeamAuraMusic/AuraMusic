@@ -40,7 +40,16 @@ class DiscordOAuthActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Timber.tag(TAG).i("OAuthActivity: onCreate with intent=%s", intent?.action)
+        handleIntent(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        Timber.tag(TAG).i("OAuthActivity: handleIntent action=%s", intent?.action)
 
         val uri = intent?.data ?: run {
             Timber.tag(TAG).w("OAuthActivity: no URI in intent")
