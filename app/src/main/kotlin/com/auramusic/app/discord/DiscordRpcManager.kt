@@ -9,6 +9,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -294,8 +295,8 @@ object DiscordRpcManager {
         auth.cancel()
     }
 
-    fun fetchCurrentUser(token: String): DiscordUser? {
-        return try {
+    suspend fun fetchCurrentUser(token: String): DiscordUser? = withContext(Dispatchers.IO) {
+        try {
             val url = URL("https://discord.com/api/v10/users/@me")
             val conn = url.openConnection() as HttpURLConnection
             conn.connectTimeout = 10_000
@@ -314,7 +315,7 @@ object DiscordRpcManager {
 
             if (responseCode !in 200..299) {
                 Timber.tag(TAG).w("fetchCurrentUser: HTTP $responseCode body=$responseBody")
-                return null
+                return@withContext null
             }
 
             val json = JSONObject(responseBody)

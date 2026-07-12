@@ -347,6 +347,15 @@ fun BottomSheetPlayer(
         timber.log.Timber.d("VideoToggle: Checking availability for videoId: $videoId")
         try {
             val available = playerConnection.service.checkVideoAvailability(videoId)
+
+            // Staleness check: the song may have changed while the network call
+            // was in flight. Only enable video mode if we're still on the same song.
+            val currentId = playerConnection.mediaMetadata.value?.id
+            if (currentId != videoId) {
+                timber.log.Timber.d("VideoToggle: Song changed during check ($videoId -> $currentId), skipping enable")
+                return@LaunchedEffect
+            }
+
             timber.log.Timber.d("VideoToggle: Video available = $available, isVideoSong = true")
 
             // Auto-enable video mode for video songs if video is available and user has video mode enabled

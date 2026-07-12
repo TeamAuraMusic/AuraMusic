@@ -336,6 +336,10 @@ fun TvPlayerScreen(
         val playerConnection = pc ?: return@LaunchedEffect
         val available = playerConnection.service.checkVideoAvailability(videoId)
 
+        // Staleness check: song may have changed during network call
+        val currentId = playerConnection.mediaMetadata.value?.id
+        if (currentId != videoId) return@LaunchedEffect
+
         if (videoModeToggleEnabled && mediaMetadata.isVideoSong && available && !videoModeEnabled) {
             playerConnection.enableVideoMode(true)
         } else if (videoModeEnabled && !mediaMetadata.isVideoSong) {
