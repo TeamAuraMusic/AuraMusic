@@ -30,5 +30,5 @@ object DiscordDefaults {
     const val DISCORD_OAUTH_AUTHORIZE = "https://discord.com/oauth2/authorize"
     const val DISCORD_OAUTH_TOKEN = "https://discord.com/api/v10/oauth2/token"
 
-    const val DISCORD_SCOPES = "identify sdk.social_layer_presence"
+    const val DISCORD_SCOPES = "openid sdk.social_layer_presence"
 }
