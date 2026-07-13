@@ -1,5 +1,13 @@
 # AuraMusic v2.9.0 (Build 26) Release Notes
 
+# AuraMusic v2.9.0 (Build 26) Release Notes
+
+## What's New
+
+**Full Changelog**: https://github.com/TeamAuraMusic/AuraMusic/compare/...03d919efb4fcc2840fa7d5a20972b886229a66c2
+
+# AuraMusic v2.9.0 (Build 26) Release Notes
+
 > [!NOTE]
 > This release delivers a complete rewrite of the Discord integration using an OAuth2 PKCE flow, alongside major video playback stability fixes, SponsorBlock improvements, grouped search results, a fix for the Vosk voice crash on Android 16, and YouTube Music history sync.
 
