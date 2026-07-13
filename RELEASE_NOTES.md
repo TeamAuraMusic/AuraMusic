@@ -1,3 +1,90 @@
+# AuraMusic v2.9.0 (Build 26) Release Notes
+
+> [!NOTE]
+> This release delivers a complete rewrite of the Discord integration using an OAuth2 PKCE flow, alongside major video playback stability fixes, SponsorBlock improvements, grouped search results, a fix for the Vosk voice crash on Android 16, and YouTube Music history sync.
+
+> [!WARNING]
+> The Discord integration is still a work in progress and has **not** been fully finished. The new OAuth2 login and rich presence are functional, but the feature remains under active development and may still experience intermittent issues (e.g. login race conditions, scope errors, or presence timeouts). We are continuing to stabilize it in upcoming releases.
+
+## What's New
+
+### Discord Integration — OAuth2 PKCE Rewrite
+Implemented by @chila254
+
+- feat(discord): complete rewrite of Discord integration with OAuth2 PKCE flow
+- fix(discord): fix RPC connection lifecycle, applicationId, and presence deduplication
+- fix(discord): send raw user token in gateway IDENTIFY so presence shows
+- fix(discord): add periodic presence refresh and connection logging
+- fix(discord): fix IDENTIFY token format, device ID, and image resolution
+- fix(discord): fix login not reflecting authenticated state (handle onNewIntent for singleTask OAuth activity, use local readyDeferred to prevent race conditions)
+- fix(discord): revert scopes to match working Metrolist implementation
+- fix(discord): fix scope mismatch (openid → identify) and add detailed token exchange logging
+- fix(discord): change openid scope to identify — openid causes invalid_scope error
+- fix(discord): improve login display, HTTP client config, and error handling
+- fix(discord): use OkHttp engine for getUserInfo to fix SSL certificate error
+- fix(discord): remove ContentNegotiation plugin that caused compile error
+- fix(discord): wire gateway events bus on first init — login was silently broken
+- fix(discord): fix login never completing — events lost on gateway replacement
+- fix(discord): add missing HEARTBEAT_ACK import
+- fix(discord): fix compile errors in ExternalAssets API and KizzyRPC
+- fix(discord): fix RPC connection and token handling issues
+- debug(discord): add verbose logging to diagnose OAuth token exchange failure
+- debug(discord): add Toast popup messages to diagnose OAuth failure without laptop
+- debug(discord): add logging to trace RPC presence flow
+
+The Discord integration has been rebuilt from the ground up around an OAuth2 PKCE login flow with a Discord gateway connection for rich presence. While the core flow works, it remains under active development — see the warning above.
+
+### Video Playback & Stability Fixes
+Implemented by @chila254
+
+- Stop blocking video startup on subtitle loading
+- Avoid duplicate video stream extraction
+- Preserve real video MIME types to reduce black-screen playback
+- Fall back to audio when restricted video playback fails
+- fix(video): remove guard that blocked video display
+- Fix mobile video mode and Discord presence reliability
+- Fix Tv player controls, TV mini player, and Discord presence
+- fix(discord,video,anr): stop video autoloading, reduce ANR risk
+
+### SponsorBlock Improvements
+Implemented by @chila254
+
+- Fix SponsorBlock video segment loading
+- Update SponsorBlock duration handling and empty category behavior
+- fix(tv,sponsorblock): fix miniplayer size, player controls, and SponsorBlock
+
+### Search, Library & Scrobbling
+Implemented by @chila254
+
+- feat: add grouped search results by item type
+- Fix YouTube Music history sync for mobile playback
+- fix(youtube-music): fix history sync and Discord OAuth2 login
+- Fix Discord presence, sleep timer, and Last.fm scrobbling
+- Fix Discord profile info and rich presence reliability
+- Fix tablet search navigation clicks being swallowed
+
+### Voice Recognition (Vosk) Fix
+Implemented by @chila254
+
+- fix(voice): fix Vosk crash on Android 16 by upgrading JNA to 5.19.1
+
+### Docs & README
+Implemented by @chila254
+
+- Add Trendshift badge and logo to README
+- Improve Trendshift logo visibility in README (light/dark mode)
+- docs: update RELEASE_NOTES.md and CHANGELOG.md for v2.8.0 in v2.6.0 format
+- docs: add interview presentation guide for GiveDirectly application (later removed)
+- Delete INTERVIEW_PREP.md
+
+## Translation Contributors
+
+- @Franklin Chilango contributed Hindi translations via Weblate
+- Turkish translation added via Weblate
+- Chinese (Simplified Han script) translation updated via Weblate
+
+**Full Changelog**: https://github.com/TeamAuraMusic/AuraMusic/compare/v2.8.0...v2.9.0
+
 # AuraMusic v2.8.0 (Build 25) Release Notes
 
 > [!NOTE]

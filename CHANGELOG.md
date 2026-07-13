@@ -1,3 +1,121 @@
+# AuraMusic v2.9.0 (Build 26) Changelog
+
+> [!NOTE]
+> This release delivers a complete rewrite of the Discord integration using an OAuth2 PKCE flow, alongside major video playback stability fixes, SponsorBlock improvements, grouped search results, a fix for the Vosk voice crash on Android 16, and YouTube Music history sync.
+
+> [!WARNING]
+> The Discord integration is still a work in progress and has **not** been fully finished. The new OAuth2 login and rich presence are functional but remain under active development and may still experience intermittent issues (login race conditions, scope errors, presence timeouts).
+
+## Major Features
+
+### Discord Integration — OAuth2 PKCE Rewrite
+- feat(discord): complete rewrite of Discord integration with OAuth2 PKCE flow
+- fix(discord): fix RPC connection lifecycle, applicationId, and presence deduplication
+- fix(discord): send raw user token in gateway IDENTIFY so presence shows
+- fix(discord): add periodic presence refresh and connection logging
+- fix(discord): fix IDENTIFY token format, device ID, and image resolution
+- fix(discord): fix login not reflecting authenticated state (handle onNewIntent for singleTask OAuth activity, use local readyDeferred to prevent race conditions)
+- fix(discord): revert scopes to match working Metrolist implementation
+- fix(discord): fix scope mismatch (openid → identify) and add detailed token exchange logging
+- fix(discord): change openid scope to identify — openid causes invalid_scope error
+- fix(discord): improve login display, HTTP client config, and error handling
+- fix(discord): use OkHttp engine for getUserInfo to fix SSL certificate error
+- fix(discord): remove ContentNegotiation plugin that caused compile error
+- fix(discord): wire gateway events bus on first init — login was silently broken
+- fix(discord): fix login never completing — events lost on gateway replacement
+- fix(discord): add missing HEARTBEAT_ACK import
+- fix(discord): fix compile errors in ExternalAssets API and KizzyRPC
+- fix(discord): fix RPC connection and token handling issues
+- debug(discord): add verbose logging to diagnose OAuth token exchange failure
+- debug(discord): add Toast popup messages to diagnose OAuth failure without laptop
+- debug(discord): add logging to trace RPC presence flow
+
+### Search & Library
+- feat: add grouped search results by item type
+- Fix YouTube Music history sync for mobile playback
+- fix(youtube-music): fix history sync and Discord OAuth2 login
+- Fix Discord profile info and rich presence reliability
+- Fix tablet search navigation clicks being swallowed
+
+### Voice Recognition (Vosk)
+- fix(voice): fix Vosk crash on Android 16 by upgrading JNA to 5.19.1
+
+## Bug Fixes
+
+### Video Playback Stability
+- Stop blocking video startup on subtitle loading
+- Avoid duplicate video stream extraction
+- Preserve real video MIME types to reduce black-screen playback
+- Fall back to audio when restricted video playback fails
+- fix(video): remove guard that blocked video display
+- Fix mobile video mode and Discord presence reliability
+- Fix Tv player controls, TV mini player, and Discord presence
+- fix(discord,video,anr): stop video autoloading, reduce ANR risk
+
+### SponsorBlock
+- Fix SponsorBlock video segment loading
+- Update SponsorBlock duration handling and empty category behavior
+- fix(tv,sponsorblock): fix miniplayer size, player controls, and SponsorBlock
+
+### Discord Presence & Scrobbling
+- Fix Discord presence, sleep timer, and Last.fm scrobbling
+
+## Docs & README
+- Add Trendshift badge and logo to README
+- Improve Trendshift logo visibility in README (light/dark mode)
+- docs: update RELEASE_NOTES.md and CHANGELOG.md for v2.8.0 in v2.6.0 format
+- docs: add interview presentation guide for GiveDirectly application (later removed)
+- Delete INTERVIEW_PREP.md
+
+## Full Changelog (Commits since last release)
+
+- docs: update RELEASE_NOTES.md and CHANGELOG.md for v2.8.0 in v2.6.0 format ([6af9942](https://github.com/TeamAuraMusic/AuraMusic/commit/6af9942)) — chila254
+- Fix SponsorBlock video segment loading ([0a8db82](https://github.com/TeamAuraMusic/AuraMusic/commit/0a8db82)) — chila254
+- Add Trendshift badge to README ([4b5dbbe](https://github.com/TeamAuraMusic/AuraMusic/commit/4b5dbbe)) — chila254
+- Add Trendshift logo to README ([d5941c0](https://github.com/TeamAuraMusic/AuraMusic/commit/d5941c0)) — chila254
+- Improve Trendshift logo visibility in README ([7f5eb53](https://github.com/TeamAuraMusic/AuraMusic/commit/7f5eb53)) — chila254
+- Fix Trendshift Logo visibility in README dark mode ([0fea8bf](https://github.com/TeamAuraMusic/AuraMusic/commit/0fea8bf)) — chila254
+- Stop blocking video startup on subtitle loading, avoid duplicate video stream extraction, preserve real video MIME types, fall back to audio on restricted video, fix tablet search navigation ([ca847fb](https://github.com/TeamAuraMusic/AuraMusic/commit/ca847fb)) — chila254
+- Fix Tv player controls, TV mini player, and Discord presence ([de5d328](https://github.com/TeamAuraMusic/AuraMusic/commit/de5d328)) — chila254
+- Fix Discord profile info and rich presence reliability ([048fab6](https://github.com/TeamAuraMusic/AuraMusic/commit/048fab6)) — chila254
+- Fix mobile video mode and Discord presence reliability ([245663b](https://github.com/TeamAuraMusic/AuraMusic/commit/245663b)) — chila254
+- Fix YouTube Music history sync for mobile playback ([c4ca041](https://github.com/TeamAuraMusic/AuraMusic/commit/c4ca041)) — chila254
+- Fix Discord presence, sleep timer, and Last.fm scrobbling ([9c8ed84](https://github.com/TeamAuraMusic/AuraMusic/commit/9c8ed84)) — chila254
+- feat: add grouped search results by item type ([66d3420](https://github.com/TeamAuraMusic/AuraMusic/commit/66d3420)) — chila254
+- fix: discord rpc connection and token handling issues ([0c73839](https://github.com/TeamAuraMusic/AuraMusic/commit/0c73839)) — chila254
+- fix(discord): fix RPC connection lifecycle, applicationId, and presence deduplication ([83f5558](https://github.com/TeamAuraMusic/AuraMusic/commit/83f5558)) — chila254
+- fix(discord): add missing HEARTBEAT_ACK import ([b38a9f8](https://github.com/TeamAuraMusic/AuraMusic/commit/b38a9f8)) — chila254
+- docs: add interview presentation guide for GiveDirectly application ([c9f0b73](https://github.com/TeamAuraMusic/AuraMusic/commit/c9f0b73)) — chila254
+- Delete INTERVIEW_PREP.md ([6748336](https://github.com/TeamAuraMusic/AuraMusic/commit/6748336)) — Franklin Chilango
+- fix(discord): improve login display, HTTP client config, and error handling ([69415c0](https://github.com/TeamAuraMusic/AuraMusic/commit/69415c0)) — chila254
+- fix(discord): remove ContentNegotiation plugin that caused compile error ([8a11436](https://github.com/TeamAuraMusic/AuraMusic/commit/8a11436)) — chila254
+- fix(discord): use OkHttp engine for getUserInfo to fix SSL certificate error ([246de84](https://github.com/TeamAuraMusic/AuraMusic/commit/246de84)) — chila254
+- debug(discord): add logging to trace RPC presence flow ([269564b](https://github.com/TeamAuraMusic/AuraMusic/commit/269564b)) — chila254
+- fix(discord): fix IDENTIFY token format, device ID, and image resolution ([4033000](https://github.com/TeamAuraMusic/AuraMusic/commit/4033000)) — chila254
+- fix(discord): fix compile errors in ExternalAssets API and KizzyRPC ([a304ce1](https://github.com/TeamAuraMusic/AuraMusic/commit/a304ce1)) — chila254
+- fix(discord): add periodic presence refresh and connection logging ([1acf0db](https://github.com/TeamAuraMusic/AuraMusic/commit/1acf0db)) — chila254
+- fix(discord): send raw user token in gateway IDENTIFY so presence shows ([aa7d579](https://github.com/TeamAuraMusic/AuraMusic/commit/aa7d579)) — chila254
+- Added translation using Weblate (Hindi) ([c3c9eb2](https://github.com/TeamAuraMusic/AuraMusic/commit/c3c9eb2)) — Franklin Chilango
+- feat(discord): complete rewrite of Discord integration with OAuth2 PKCE flow ([b136d94](https://github.com/TeamAuraMusic/AuraMusic/commit/b136d94)) — chila254
+- fix(voice): fix Vosk crash on Android 16 by upgrading JNA to 5.19.1 ([e42e03e](https://github.com/TeamAuraMusic/AuraMusic/commit/e42e03e)) — chila254
+- fix(youtube-music): fix history sync and Discord OAuth2 login ([7903e0b](https://github.com/TeamAuraMusic/AuraMusic/commit/7903e0b)) — chila254
+- fix(tv,sponsorblock): fix miniplayer size, player controls, and SponsorBlock ([a78eb8d](https://github.com/TeamAuraMusic/AuraMusic/commit/a78eb8d)) — chila254
+- fix(discord): fix login never completing - events lost on gateway replacement ([5ba382b](https://github.com/TeamAuraMusic/AuraMusic/commit/5ba382b)) — chila254
+- Translated using Weblate (Hindi) ([123b865](https://github.com/TeamAuraMusic/AuraMusic/commit/123b865)) — chila254
+- fix(discord,video,anr): fix login, stop video autoloading, reduce ANR risk ([09bf8d1](https://github.com/TeamAuraMusic/AuraMusic/commit/09bf8d1)) — chila254
+- fix(discord): wire gateway events bus on first init - login was silently broken ([1aadcbc](https://github.com/TeamAuraMusic/AuraMusic/commit/1aadcbc)) — chila254
+- fix(video): remove guard that blocked video display ([8846fa4](https://github.com/TeamAuraMusic/AuraMusic/commit/8846fa4)) — chila254
+- fix(discord): fix login not reflecting authenticated state - handle onNewIntent for singleTask OAuth activity, use local readyDeferred to prevent race conditions, show logged-in state when token exchange succeeds even if gateway READY times out, fetch user info on rehydration ([d85400c](https://github.com/TeamAuraMusic/AuraMusic/commit/d85400c)) — chila254
+- fix(discord): fix scope mismatch - change openid to identify scope to match Discord Developer Portal config, add detailed token exchange logging for debugging ([ebc8d4c](https://github.com/TeamAuraMusic/AuraMusic/commit/ebc8d4c)) — chila254
+- fix(discord): revert scopes to match working Metrolist implementation - use openid not identify ([974eeaa](https://github.com/TeamAuraMusic/AuraMusic/commit/974eeaa)) — chila254
+- debug(discord): add verbose logging to diagnose OAuth token exchange failure ([d0ea881](https://github.com/TeamAuraMusic/AuraMusic/commit/d0ea881)) — chila254
+- debug(discord): add Toast popup messages to diagnose OAuth failure without laptop ([dbaa76b](https://github.com/TeamAuraMusic/AuraMusic/commit/dbaa76b)) — chila254
+- Added translation using Weblate (Turkish) ([8b4e5b6](https://github.com/TeamAuraMusic/AuraMusic/commit/8b4e5b6)) — Weblate
+- Translated using Weblate (Chinese (Simplified Han script)) ([f4d8a13](https://github.com/TeamAuraMusic/AuraMusic/commit/f4d8a13)) — Weblate
+- fix(discord): change openid scope to identify - openid causes invalid_scope error ([2578c64](https://github.com/TeamAuraMusic/AuraMusic/commit/2578c64)) — chila254
+
+**Full diff:** https://github.com/TeamAuraMusic/AuraMusic/compare/v2.8.0...v2.9.0
+
 # AuraMusic v2.8.0 (Build 25) Changelog
 
 > [!NOTE]
