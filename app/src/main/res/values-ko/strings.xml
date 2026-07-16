@@ -1,3 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="app_name">아우라 뮤직</string>
+    <string name="app_name_tv">TV용 아우라 뮤직</string>
+    <string name="update_channel_desc">앱 업데이트 알림</string>
+    <string name="update_channel_name">가능한 업데이트</string>
 </resources>
