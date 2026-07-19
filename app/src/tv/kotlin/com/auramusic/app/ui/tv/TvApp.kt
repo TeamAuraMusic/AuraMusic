@@ -554,6 +554,9 @@ enum class TvSection(val label: String) {
                      showMiniPlayer = showMiniPlayer && currentDestination !is TvDestination.Player,
                      playerConnection = playerConnection,
                      onMiniPlayerClick = { navigator.navigate(TvDestination.Player) },
+                     onBackClick = if (currentDestination is TvDestination.Player) {
+                         { navigator.popBack() }
+                     } else null,
                      onNavigateDown = {
                          when {
                              // In player — don't fight the player's own focus
@@ -681,6 +684,7 @@ fun TvTopBar(
     showMiniPlayer: Boolean = false,
     playerConnection: PlayerConnection?,
     onMiniPlayerClick: () -> Unit,
+    onBackClick: (() -> Unit)? = null,
     onNavigateDown: (() -> Unit)? = null,
     onNavigateUp: (() -> Unit)? = null,
     onSectionSelect: ((TvSection) -> Unit)? = null,
@@ -744,6 +748,29 @@ fun TvTopBar(
              horizontalArrangement = Arrangement.spacedBy(16.dp),
              verticalAlignment = Alignment.CenterVertically,
          ) {
+             // Back button (shown in player mode)
+             if (onBackClick != null) {
+                 var backBtnFocused by remember { mutableStateOf(false) }
+                 IconButton(
+                     onClick = onBackClick,
+                     modifier = Modifier
+                         .size(40.dp)
+                         .onFocusChanged { backBtnFocused = it.isFocused }
+                         .border(
+                             width = if (backBtnFocused) 3.dp else 0.dp,
+                             color = if (backBtnFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                             shape = CircleShape,
+                         ),
+                 ) {
+                     Icon(
+                         Icons.AutoMirrored.Filled.ArrowBack,
+                         contentDescription = "Back",
+                         tint = Color.White,
+                         modifier = Modifier.size(24.dp),
+                     )
+                 }
+             }
+
              // App logo/icon
              Box(
                  modifier = Modifier
