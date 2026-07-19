@@ -852,13 +852,8 @@ fun TvPlayerScreen(
                     }
                 }
             }
-            }
 
             // Back button removed from here — now in the top bar
-        }
-    }
-}
-            }
         }
     }
 }

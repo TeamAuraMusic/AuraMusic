@@ -251,14 +251,7 @@ enum class TvSection(val label: String) {
           val nav = navigator
           if (nav.current is TvDestination.Player) {
               nav.popBack()
-              // Return focus to the content area after leaving player
-              kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
-                  kotlinx.coroutines.delay(150)
-                  when {
-                      sectionState.value == TvSection.HOME -> runCatching { homeFocusRequester.requestFocus() }
-                      else -> runCatching { detailFocusRequester.requestFocus() }
-                  }
-              }
+              // LaunchedEffect below handles focus when destination changes
           } else if (nav.current != TvDestination.Home) {
               nav.popBack()
           } else if (sectionState.value != TvSection.HOME) {
