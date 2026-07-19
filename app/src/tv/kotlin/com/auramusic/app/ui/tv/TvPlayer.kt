@@ -456,7 +456,7 @@ fun TvPlayerScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(playerVerticalSpacing),
                 ) {
-                    Spacer(modifier = Modifier.height(topSpacerHeight)) // Space for back button
+                    Spacer(modifier = Modifier.height(topSpacerHeight + 56.dp)) // Space for top bar + back button
 
                     // Album art / Lyrics / Video container
                     Box(
@@ -858,26 +858,26 @@ fun TvPlayerScreen(
             }
             }
 
-            // Back button (top-left)
+            // Back button (top-left) — positioned below the top bar
             var backButtonFocused by remember { mutableStateOf(false) }
             IconButton(
                 onClick = onBackClick,
                 modifier = Modifier
-                    .padding(24.dp)
-                    .size(64.dp)
+                    .padding(start = 24.dp, top = 80.dp)
+                    .size(56.dp)
                     .align(Alignment.TopStart)
                     .onFocusChanged { backButtonFocused = it.isFocused }
                     .border(
                         width = if (backButtonFocused) 3.dp else 0.dp,
                         color = if (backButtonFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
-                        shape = CircleShape
+                        shape = CircleShape,
                     ),
             ) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
                     tint = Color.White,
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(28.dp)
                 )
             }
         }

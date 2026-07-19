@@ -539,7 +539,7 @@ enum class TvSection(val label: String) {
                      isPlaying = isPlayingState.value,
                      currentSong = currentSong,
                      currentMediaMetadata = currentMediaMetadata,
-                     showMiniPlayer = showMiniPlayer,
+                     showMiniPlayer = showMiniPlayer && currentDestination !is TvDestination.Player,
                      playerConnection = playerConnection,
                      onMiniPlayerClick = { navigator.navigate(TvDestination.Player) },
                      onNavigateDown = {
@@ -551,6 +551,13 @@ enum class TvSection(val label: String) {
                      },
                      onNavigateUp = {
                          runCatching { topBarFocusRequester.requestFocus() }
+                     },
+                     onSectionSelect = { section ->
+                         // If we're in the player, pop it first so the section screen shows
+                         if (currentDestination is TvDestination.Player) {
+                             navigator.popBack()
+                         }
+                         sectionState.value = section
                      },
                      topBarFocusRequester = topBarFocusRequester,
                  )
@@ -663,6 +670,7 @@ fun TvTopBar(
     onMiniPlayerClick: () -> Unit,
     onNavigateDown: (() -> Unit)? = null,
     onNavigateUp: (() -> Unit)? = null,
+    onSectionSelect: ((TvSection) -> Unit)? = null,
     topBarFocusRequester: FocusRequester? = null,
 ) {
     val focusRequesters = remember {
@@ -919,7 +927,7 @@ fun TvTopBar(
                     label = section.label,
                     isSelected = isSelected,
                     focusRequester = buttonFocusRequester,
-                    onClick = { sectionState.value = section },
+                    onClick = { onSectionSelect?.invoke(section) ?: run { sectionState.value = section } },
                 )
             }
          }
@@ -953,7 +961,7 @@ fun TvFocusedDetailPanel(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .height(360.dp),
+            .height(300.dp),
         shape = RoundedCornerShape(20.dp),
         color = Color.Transparent,
         tonalElevation = 0.dp,
@@ -989,7 +997,7 @@ fun TvFocusedDetailPanel(
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(start = 28.dp, end = 28.dp, top = 95.dp, bottom = 20.dp),
+                        .padding(start = 28.dp, end = 28.dp, top = 60.dp, bottom = 20.dp),
                     horizontalArrangement = Arrangement.spacedBy(24.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -997,7 +1005,7 @@ fun TvFocusedDetailPanel(
                         modifier = Modifier
                             .weight(1f)
                             .graphicsLayer { alpha = animatedAlpha },
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         Surface(
                             shape = RoundedCornerShape(50),
