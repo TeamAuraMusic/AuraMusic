@@ -470,8 +470,30 @@ fun TvPlayerScreen(
                             playbackState == androidx.media3.common.Player.STATE_BUFFERING
 
                         if (videoModeEnabled) {
+                            // Always show PlayerView when video mode is active
+                            AndroidView(
+                                factory = { ctx ->
+                                    PlayerView(ctx).apply {
+                                        player = pc?.player
+                                        useController = false
+                                        resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                                        setBackgroundColor(android.graphics.Color.BLACK)
+                                        setShutterBackgroundColor(android.graphics.Color.BLACK)
+                                        keepScreenOn = true
+                                    }
+                                },
+                                modifier = Modifier.fillMaxSize(),
+                                update = { playerView ->
+                                    if (playerView.player !== pc?.player) {
+                                        playerView.player = pc?.player
+                                    }
+                                    playerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                                    playerView.invalidate()
+                                },
+                            )
+
+                            // Overlay loading indicator only during actual switching
                             if (isVideoSwitching) {
-                                // Show loading while video source is being fetched
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize()
@@ -493,42 +515,18 @@ fun TvPlayerScreen(
                                         )
                                     }
                                 }
-                            } else {
-                                // Video is ready - show PlayerView
-                                AndroidView(
-                                    factory = { ctx ->
-                                        PlayerView(ctx).apply {
-                                            player = pc?.player
-                                            useController = false
-                                            resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                                            setBackgroundColor(android.graphics.Color.BLACK)
-                                            setShutterBackgroundColor(android.graphics.Color.BLACK)
-                                            keepScreenOn = true
-                                        }
-                                    },
-                                    modifier = Modifier.fillMaxSize(),
-                                    update = { playerView ->
-                                        if (playerView.player !== pc?.player) {
-                                            playerView.player = pc?.player
-                                        }
-                                        playerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                                        playerView.invalidate()
-                                    },
-                                )
-
-                                // Show buffering indicator on top of video when buffering
-                                if (isVideoBuffering) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .background(Color.Black.copy(alpha = 0.5f)),
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        CircularProgressIndicator(
-                                            color = Color.White,
-                                            modifier = Modifier.size(48.dp),
-                                        )
-                                    }
+                            } else if (isVideoBuffering) {
+                                // Lighter overlay for brief buffering mid-playback
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(Color.Black.copy(alpha = 0.5f)),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    CircularProgressIndicator(
+                                        color = Color.White,
+                                        modifier = Modifier.size(48.dp),
+                                    )
                                 }
                             }
                         } else if (showLyrics) {
