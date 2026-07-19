@@ -3743,6 +3743,9 @@ class MusicService :
                                         .build()
                                 }
 
+                                // Pause before replacing so we don't briefly play from position 0
+                                player.playWhenReady = false
+
                                 when (streamSource) {
                                     is com.auramusic.flow.FlowVideo.VideoStreamSource.Single -> {
                                         Timber.d("setVideoMode: Replacing media item at index $index (single source)")
@@ -3778,12 +3781,13 @@ class MusicService :
                                 }
                                 player.prepare()
                                 Timber.d("setVideoMode: Called prepare(), player state: ${player.playbackState}")
-                                
+
+                                // Seek BEFORE restoring playWhenReady to avoid playing from 0
                                 if (position > 0) {
                                     player.seekTo(index, position)
                                     Timber.d("setVideoMode: Seeked to position $position")
                                 }
-                                player.playWhenReady = true
+                                player.playWhenReady = wasPlaying
                                 isVideoMode = true
                                 _videoModeEnabled.value = true
                                 currentVideoSourceMediaId = mediaId

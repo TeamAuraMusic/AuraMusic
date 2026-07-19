@@ -466,10 +466,13 @@ fun TvPlayerScreen(
                             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.1f)),
                         contentAlignment = Alignment.Center,
                     ) {
-                        val isVideoBuffering = videoModeEnabled && playbackState == androidx.media3.common.Player.STATE_BUFFERING
+                        val isVideoBuffering = videoModeEnabled && (
+                            playbackState == androidx.media3.common.Player.STATE_BUFFERING ||
+                            playbackState == androidx.media3.common.Player.STATE_IDLE
+                        )
 
                         if (videoModeEnabled) {
-                            if (isVideoSwitching) {
+                            if (isVideoSwitching || isVideoBuffering) {
                                 // Show loading while video source is being fetched
                                 Box(
                                     modifier = Modifier
@@ -507,9 +510,11 @@ fun TvPlayerScreen(
                                     },
                                     modifier = Modifier.fillMaxSize(),
                                     update = { playerView ->
-                                        playerView.player = pc?.player
+                                        if (playerView.player !== pc?.player) {
+                                            playerView.player = pc?.player
+                                        }
                                         playerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                                        playerView.requestLayout()
+                                        playerView.invalidate()
                                     },
                                 )
 
