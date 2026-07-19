@@ -550,6 +550,7 @@ enum class TvSection(val label: String) {
                      onBackClick = if (currentDestination is TvDestination.Player) {
                          { navigator.popBack() }
                      } else null,
+                     isPlayerMode = currentDestination is TvDestination.Player,
                      onNavigateDown = {
                          when {
                              // In player — don't fight the player's own focus
@@ -678,6 +679,7 @@ fun TvTopBar(
     playerConnection: PlayerConnection?,
     onMiniPlayerClick: () -> Unit,
     onBackClick: (() -> Unit)? = null,
+    isPlayerMode: Boolean = false,
     onNavigateDown: (() -> Unit)? = null,
     onNavigateUp: (() -> Unit)? = null,
     onSectionSelect: ((TvSection) -> Unit)? = null,
@@ -710,7 +712,8 @@ fun TvTopBar(
                      when (event.key) {
                          Key.DirectionDown -> {
                              onNavigateDown?.invoke()
-                             true
+                             // In player mode, let down key propagate to player controls
+                             !isPlayerMode
                          }
                          Key.DirectionUp -> {
                              onNavigateUp?.invoke()

@@ -484,11 +484,13 @@ fun TvPlayerScreen(
                                 },
                                 modifier = Modifier.fillMaxSize(),
                                 update = { playerView ->
+                                    // Always sync player reference and resume surface
                                     if (playerView.player !== pc?.player) {
                                         playerView.player = pc?.player
                                     }
                                     playerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                                    playerView.invalidate()
+                                    playerView.onResume()
+                                    playerView.requestLayout()
                                 },
                             )
 
