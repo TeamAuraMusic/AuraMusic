@@ -466,13 +466,11 @@ fun TvPlayerScreen(
                             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.1f)),
                         contentAlignment = Alignment.Center,
                     ) {
-                        val isVideoBuffering = videoModeEnabled && (
-                            playbackState == androidx.media3.common.Player.STATE_BUFFERING ||
-                            playbackState == androidx.media3.common.Player.STATE_IDLE
-                        )
+                        val isVideoBuffering = videoModeEnabled &&
+                            playbackState == androidx.media3.common.Player.STATE_BUFFERING
 
                         if (videoModeEnabled) {
-                            if (isVideoSwitching || isVideoBuffering) {
+                            if (isVideoSwitching) {
                                 // Show loading while video source is being fetched
                                 Box(
                                     modifier = Modifier
