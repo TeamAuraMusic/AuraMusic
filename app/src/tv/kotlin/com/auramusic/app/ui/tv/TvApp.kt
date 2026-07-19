@@ -961,7 +961,7 @@ fun TvFocusedDetailPanel(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .height(300.dp),
+            .height(360.dp),
         shape = RoundedCornerShape(20.dp),
         color = Color.Transparent,
         tonalElevation = 0.dp,
@@ -997,7 +997,7 @@ fun TvFocusedDetailPanel(
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(start = 28.dp, end = 28.dp, top = 60.dp, bottom = 20.dp),
+                        .padding(start = 28.dp, end = 28.dp, top = 95.dp, bottom = 20.dp),
                     horizontalArrangement = Arrangement.spacedBy(24.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -1005,7 +1005,7 @@ fun TvFocusedDetailPanel(
                         modifier = Modifier
                             .weight(1f)
                             .graphicsLayer { alpha = animatedAlpha },
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Surface(
                             shape = RoundedCornerShape(50),
