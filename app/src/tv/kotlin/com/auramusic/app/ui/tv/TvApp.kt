@@ -251,6 +251,14 @@ enum class TvSection(val label: String) {
           val nav = navigator
           if (nav.current is TvDestination.Player) {
               nav.popBack()
+              // Return focus to the content area after leaving player
+              kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
+                  kotlinx.coroutines.delay(150)
+                  when {
+                      sectionState.value == TvSection.HOME -> runCatching { homeFocusRequester.requestFocus() }
+                      else -> runCatching { detailFocusRequester.requestFocus() }
+                  }
+              }
           } else if (nav.current != TvDestination.Home) {
               nav.popBack()
           } else if (sectionState.value != TvSection.HOME) {
@@ -401,9 +409,13 @@ enum class TvSection(val label: String) {
 
                   // Set up focus for content screens - focus content when section changes
                    LaunchedEffect(sectionState.value, currentDestination) {
-                       kotlinx.coroutines.delay(50)
+                       kotlinx.coroutines.delay(100)
                        when {
+                           // Player takes its own focus — don't interfere
+                           currentDestination is TvDestination.Player -> { }
+                           // Detail/overlay screens get overlay focus
                            currentDestination != TvDestination.Home && currentDestination != TvDestination.Settings -> runCatching { overlayFocusRequester.requestFocus() }
+                           // Top-level sections get their section focus
                            sectionState.value == TvSection.HOME -> runCatching { homeFocusRequester.requestFocus() }
                            else -> runCatching { detailFocusRequester.requestFocus() }
                        }
@@ -544,6 +556,9 @@ enum class TvSection(val label: String) {
                      onMiniPlayerClick = { navigator.navigate(TvDestination.Player) },
                      onNavigateDown = {
                          when {
+                             // In player — don't fight the player's own focus
+                             currentDestination is TvDestination.Player -> { }
+                             // In overlay detail screens
                              currentDestination != TvDestination.Home && currentDestination != TvDestination.Settings -> runCatching { overlayFocusRequester.requestFocus() }
                              sectionState.value == TvSection.HOME -> runCatching { homeFocusRequester.requestFocus() }
                              else -> runCatching { detailFocusRequester.requestFocus() }
@@ -553,10 +568,8 @@ enum class TvSection(val label: String) {
                          runCatching { topBarFocusRequester.requestFocus() }
                      },
                      onSectionSelect = { section ->
-                         // If we're in the player, pop it first so the section screen shows
-                         if (currentDestination is TvDestination.Player) {
-                             navigator.popBack()
-                         }
+                         // Reset navigation stack to home, then switch section
+                         navigator.selectTopLevel(TvDestination.Home)
                          sectionState.value = section
                      },
                      topBarFocusRequester = topBarFocusRequester,
