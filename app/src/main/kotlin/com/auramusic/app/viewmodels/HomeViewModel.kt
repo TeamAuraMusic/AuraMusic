@@ -586,7 +586,6 @@ fun markWrappedAsSeen() {
                         .filterVideoSongs(hideVideoSongs)
                     if (filtered.isEmpty()) null else section.copy(items = filtered)
                 }
-                }
             )
             selectedChip.value = chip
         }
