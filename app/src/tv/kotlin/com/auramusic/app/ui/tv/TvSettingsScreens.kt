@@ -1392,6 +1392,7 @@ private val PreferredLyricsProvider.tvLabel: String
         PreferredLyricsProvider.BETTER_LYRICS -> "BetterLyrics"
         PreferredLyricsProvider.SIMPMUSIC -> "SimpMusic"
         PreferredLyricsProvider.RUSH_LYRICS -> "RushLyrics"
+        PreferredLyricsProvider.PAXSENIX -> "Paxsenix"
     }
 
 /**

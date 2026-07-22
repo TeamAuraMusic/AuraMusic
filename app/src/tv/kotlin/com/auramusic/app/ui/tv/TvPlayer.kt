@@ -265,6 +265,8 @@ fun TvPlayerScreen(
         com.auramusic.app.constants.ShowLyricsKey,
         false,
     )
+    // Lyrics expand/collapse state for TV
+    var lyricsExpanded by remember { mutableStateOf(false) }
 
     // Resolve player connection: prefer passed-in parameter, fall back to composition local.
     // We avoid early return to show loading UI when service not ready.
@@ -459,6 +461,41 @@ fun TvPlayerScreen(
                     Spacer(modifier = Modifier.height(topSpacerHeight)) // Space for top bar
 
                     // Album art / Lyrics / Video container
+                    if (lyricsExpanded && showLyrics) {
+                        // Expanded lyrics mode — lyrics fill the entire left column
+                        val positionProvider = { currentPosition }
+                        val lyrics = remember(currentLyrics) { currentLyrics?.lyrics?.trim() }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.1f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            when {
+                                lyrics == null -> {
+                                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(48.dp))
+                                }
+                                lyrics == com.auramusic.app.db.entities.LyricsEntity.LYRICS_NOT_FOUND -> {
+                                    Text("Lyrics not found", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.7f), textAlign = TextAlign.Center)
+                                }
+                                else -> {
+                                    androidx.compose.material3.ProvideTextStyle(
+                                        value = MaterialTheme.typography.bodyMedium.copy(fontSize = 20.sp, textAlign = TextAlign.Center, color = Color(0xFFFFFBFE).copy(alpha = 0.98f))
+                                    ) {
+                                        com.auramusic.app.ui.component.Lyrics(
+                                            sliderPositionProvider = positionProvider,
+                                            modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
+                                            showLyrics = true,
+                                            disableInteractiveFeatures = true
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                    // Normal mode: album art / lyrics in fixed-size box
                     Box(
                         modifier = Modifier
                             .size(artworkSize)
@@ -600,6 +637,7 @@ fun TvPlayerScreen(
                             }
                         }
                     }
+                    } // end else (normal mode)
 
                     // Song info
                     Column(
@@ -786,9 +824,15 @@ fun TvPlayerScreen(
                         )
 
                         TvPlayerControlButton(
-                            onClick = { onShowLyricsChange(!showLyrics) },
+                            onClick = {
+                                if (showLyrics) {
+                                    lyricsExpanded = !lyricsExpanded
+                                } else {
+                                    onShowLyricsChange(true)
+                                }
+                            },
                             icon = Icons.Filled.Lyrics,
-                            contentDescription = if (showLyrics) "Hide lyrics" else "Show lyrics",
+                            contentDescription = if (lyricsExpanded) "Collapse lyrics" else if (showLyrics) "Expand lyrics" else "Show lyrics",
                             tint = if (showLyrics) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f),
                             size = sideControlSize,
                         )
