@@ -230,23 +230,27 @@ constructor(
             when (preferredProvider) {
                 PreferredLyricsProvider.LRCLIB -> listOf(
                     LrcLibLyricsProvider, BetterLyricsProvider, RushLyricsProvider,
-                    SimpMusicLyricsProvider, KuGouLyricsProvider,
+                    PaxsenixLyricsProvider, SimpMusicLyricsProvider, KuGouLyricsProvider,
                 )
                 PreferredLyricsProvider.KUGOU -> listOf(
                     KuGouLyricsProvider, BetterLyricsProvider, RushLyricsProvider,
-                    SimpMusicLyricsProvider, LrcLibLyricsProvider,
+                    PaxsenixLyricsProvider, SimpMusicLyricsProvider, LrcLibLyricsProvider,
                 )
                 PreferredLyricsProvider.BETTER_LYRICS -> listOf(
-                    BetterLyricsProvider, RushLyricsProvider, SimpMusicLyricsProvider,
-                    LrcLibLyricsProvider, KuGouLyricsProvider,
+                    BetterLyricsProvider, RushLyricsProvider, PaxsenixLyricsProvider,
+                    SimpMusicLyricsProvider, LrcLibLyricsProvider, KuGouLyricsProvider,
                 )
                 PreferredLyricsProvider.SIMPMUSIC -> listOf(
                     SimpMusicLyricsProvider, BetterLyricsProvider, RushLyricsProvider,
-                    LrcLibLyricsProvider, KuGouLyricsProvider,
+                    PaxsenixLyricsProvider, LrcLibLyricsProvider, KuGouLyricsProvider,
                 )
                 PreferredLyricsProvider.RUSH_LYRICS -> listOf(
                     RushLyricsProvider, BetterLyricsProvider, SimpMusicLyricsProvider,
-                    LrcLibLyricsProvider, KuGouLyricsProvider,
+                    PaxsenixLyricsProvider, LrcLibLyricsProvider, KuGouLyricsProvider,
+                )
+                PreferredLyricsProvider.PAXSENIX -> listOf(
+                    PaxsenixLyricsProvider, BetterLyricsProvider, RushLyricsProvider,
+                    SimpMusicLyricsProvider, LrcLibLyricsProvider, KuGouLyricsProvider,
                 )
             }
         }
@@ -258,6 +262,7 @@ constructor(
         PreferredLyricsProvider.BETTER_LYRICS -> BetterLyricsProvider
         PreferredLyricsProvider.SIMPMUSIC -> SimpMusicLyricsProvider
         PreferredLyricsProvider.RUSH_LYRICS -> RushLyricsProvider
+        PreferredLyricsProvider.PAXSENIX -> PaxsenixLyricsProvider
     }
 
     companion object {

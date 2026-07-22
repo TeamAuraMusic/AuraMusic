@@ -381,6 +381,7 @@ dependencies {
     implementation(project(":simpmusic"))
     implementation(project(":shazamkit"))
     implementation(project(":rush"))
+    implementation(project(":paxsenix"))
 
     // Protobuf for message serialization (lite version for Android)
     implementation(libs.protobuf.javalite)
