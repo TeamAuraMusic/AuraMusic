@@ -303,6 +303,7 @@ class MusicService :
     private var crossfadeDuration = 5000f
     private var crossfadeGapless = true
     private var crossfadeTriggerJob: Job? = null
+    private var automixEnabled = false
     
     private val secondaryPlayerListener = object : Player.Listener {
         override fun onPlayerError(error: PlaybackException) {
@@ -936,6 +937,20 @@ class MusicService :
                 crossfadeEnabled = enabled
                 crossfadeDuration = duration * 1000f // Convert to ms
                 crossfadeGapless = gapless
+            }
+
+        // Automix: when enabled, force crossfade on with DJ-optimized settings
+        dataStore.data
+            .map { prefs -> prefs[AutomixEnabledKey] ?: false }
+            .distinctUntilChanged()
+            .collect(scope) { enabled ->
+                automixEnabled = enabled
+                if (enabled) {
+                    crossfadeEnabled = true
+                    crossfadeDuration = 4000f // 4 second DJ-style crossfade
+                    crossfadeGapless = false  // Always crossfade in automix mode
+                    Timber.tag(TAG).i("Automix enabled: crossfade=4s, gapless=false")
+                }
             }
 
         dataStore.data
@@ -3901,7 +3916,17 @@ class MusicService :
         if (crossfadeGapless && isNextItemGapless()) return
         if (!player.hasNextMediaItem()) return
         
-        val triggerTime = player.duration - crossfadeDuration.toLong()
+        // Automix: start crossfade earlier (at 80% of song) for DJ-style mixing
+        val triggerOffset = if (automixEnabled) {
+            (player.duration * 0.80f).toLong()
+        } else {
+            player.duration - crossfadeDuration.toLong()
+        }
+        val triggerTime = if (automixEnabled) {
+            maxOf(triggerOffset, player.duration - crossfadeDuration.toLong())
+        } else {
+            triggerOffset
+        }
         val delayMs = triggerTime - player.currentPosition
         if (delayMs <= 0) return
         
@@ -4059,8 +4084,17 @@ class MusicService :
                 }
                 
                 val progress = i / steps.toFloat()
-                val fadeIn = 1.0f - (1.0f - progress) * (1.0f - progress)
-                val fadeOut = (1.0f - progress) * (1.0f - progress)
+                val fadeIn: Float
+                val fadeOut: Float
+                if (automixEnabled) {
+                    // Linear crossfade for DJ-style mixing
+                    fadeIn = progress
+                    fadeOut = 1.0f - progress
+                } else {
+                    // Quadratic crossfade for smooth transitions
+                    fadeIn = 1.0f - (1.0f - progress) * (1.0f - progress)
+                    fadeOut = (1.0f - progress) * (1.0f - progress)
+                }
                 
                 try {
                     player.volume = startVolume * fadeIn

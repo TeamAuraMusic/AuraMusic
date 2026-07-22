@@ -50,6 +50,8 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -58,6 +60,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.res.painterResource
+import com.auramusic.app.R
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -1039,7 +1043,7 @@ fun TvLastFMSettingsScreen(
         item {
             TvSettingsRow(
                 title = if (isLoggedIn) lastfmUsername else "Not Logged In",
-                icon = { Icon(painterResource(R.drawable.discord), null, modifier = Modifier.size(24.dp)) },
+                icon = { Icon(Icons.Filled.MusicNote, null, modifier = Modifier.size(24.dp)) },
                 trailing = {
                     if (isLoggedIn) {
                         OutlinedButton(onClick = { lastfmSession = ""; lastfmUsername = ""; com.auramusic.lastfm.LastFM.sessionKey = null }) { Text("Logout") }

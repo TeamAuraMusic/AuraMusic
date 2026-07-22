@@ -30,6 +30,7 @@ import androidx.compose.runtime.remember
      data object UpdaterScreen : TvDestination()
      data object Login : TvDestination()
      data object Player : TvDestination()
+     data object LastFMSettings : TvDestination()
      data class Album(val id: String) : TvDestination()
      data class Artist(val id: String) : TvDestination()
      data class Playlist(val id: String) : TvDestination()
