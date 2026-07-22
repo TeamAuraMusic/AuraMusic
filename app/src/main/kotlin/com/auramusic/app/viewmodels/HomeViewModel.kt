@@ -17,6 +17,7 @@ import com.auramusic.innertube.models.SongItem
 import com.auramusic.innertube.models.WatchEndpoint
 import com.auramusic.innertube.models.YTItem
 import com.auramusic.innertube.models.filterExplicit
+import com.auramusic.innertube.models.filterOutNulls
 import com.auramusic.innertube.models.filterVideoSongs
 import com.auramusic.innertube.pages.ExplorePage
 import com.auramusic.innertube.pages.HomePage
@@ -401,8 +402,12 @@ fun markWrappedAsSeen() {
             launch {
                 YouTube.home().onSuccess { page ->
                     homePage.value = page.copy(
-                        sections = page.sections.map { section ->
-                            section.copy(items = section.items.filterExplicit(hideExplicit).filterVideoSongs(hideVideoSongs))
+                        sections = page.sections.mapNotNull { section ->
+                            val filtered = section.items
+                                .filterOutNulls()
+                                .filterExplicit(hideExplicit)
+                                .filterVideoSongs(hideVideoSongs)
+                            if (filtered.isEmpty()) null else section.copy(items = filtered)
                         }
                     )
                 }.onFailure {
@@ -543,8 +548,12 @@ fun markWrappedAsSeen() {
             val newSections = nextSections.sections.filter { it.title !in existingTitles }
             homePage.value = nextSections.copy(
                 chips = homePage.value?.chips,
-                sections = (homePage.value?.sections.orEmpty() + newSections).map { section ->
-                    section.copy(items = section.items.filterExplicit(hideExplicit).filterVideoSongs(hideVideoSongs))
+                sections = (homePage.value?.sections.orEmpty() + newSections).mapNotNull { section ->
+                    val filtered = section.items
+                        .filterOutNulls()
+                        .filterExplicit(hideExplicit)
+                        .filterVideoSongs(hideVideoSongs)
+                    if (filtered.isEmpty()) null else section.copy(items = filtered)
                 }
             )
             _isLoadingMore.value = false
@@ -570,8 +579,13 @@ fun markWrappedAsSeen() {
 
             homePage.value = nextSections.copy(
                 chips = homePage.value?.chips,
-                sections = nextSections.sections.map { section ->
-                    section.copy(items = section.items.filterExplicit(hideExplicit).filterVideoSongs(hideVideoSongs))
+                sections = nextSections.sections.mapNotNull { section ->
+                    val filtered = section.items
+                        .filterOutNulls()
+                        .filterExplicit(hideExplicit)
+                        .filterVideoSongs(hideVideoSongs)
+                    if (filtered.isEmpty()) null else section.copy(items = filtered)
+                }
                 }
             )
             selectedChip.value = chip

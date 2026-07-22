@@ -76,6 +76,9 @@ class App : Application(), SingletonImageLoader.Factory {
         
         Timber.plant(Timber.DebugTree())
 
+        // Initialize Paxsenix synchronously so lyrics can be fetched immediately
+        com.auramusic.paxsenix.Paxsenix.init(this)
+
         // تهيئة إعدادات التطبيق عند الإقلاع
         applicationScope.launch {
             initializeSettings()

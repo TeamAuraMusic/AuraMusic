@@ -168,3 +168,13 @@ fun <T : YTItem> List<T>.filterVideoSongs(disableVideos: Boolean = false) =
     } else {
         this
     }
+
+fun <T : YTItem> List<T>.filterOutNulls() =
+    filter { it.id.isNotBlank() && it.title.isNotBlank() }
+
+fun <T : YTItem> List<T>.filterYoutubeShorts(disable: Boolean = false) =
+    if (disable) {
+        filterNot { it.title.contains("Shorts", ignoreCase = true) || it.title.contains("#shorts", ignoreCase = true) }
+    } else {
+        this
+    }
