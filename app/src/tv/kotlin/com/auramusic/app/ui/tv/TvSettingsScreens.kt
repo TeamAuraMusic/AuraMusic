@@ -94,7 +94,12 @@ import com.auramusic.app.constants.AudioQualityKey
 import com.auramusic.app.constants.CrossfadeDurationKey
 import com.auramusic.app.constants.CrossfadeEnabledKey
 import com.auramusic.app.constants.DataSyncIdKey
+import com.auramusic.app.constants.EnableLastFMScrobblingKey
 import com.auramusic.app.constants.InnerTubeCookieKey
+import com.auramusic.app.constants.LastFMSessionKey
+import com.auramusic.app.constants.LastFMUseNowPlaying
+import com.auramusic.app.constants.LastFMUseSendLikes
+import com.auramusic.app.constants.LastFMUsernameKey
 import com.auramusic.app.constants.LateNightModeKey
 import com.auramusic.app.constants.PreferredLyricsProvider
 import com.auramusic.app.constants.SeekExtraSeconds
@@ -911,6 +916,205 @@ private fun TvUpdaterButton(
             color = if (primary) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 14.dp),
         )
+    }
+}
+
+/* -------------------------- Last.fm Settings -------------------------- */
+
+@Composable
+fun TvLastFMSettingsScreen(
+    onBackClick: () -> Unit,
+    focusRequester: FocusRequester? = null,
+    onNavigateUp: (() -> Unit)? = null,
+) {
+    BackHandler { onBackClick() }
+    val coroutineScope = rememberCoroutineScope()
+
+    var lastfmUsername by rememberPreference(LastFMUsernameKey, "")
+    var lastfmSession by rememberPreference(LastFMSessionKey, "")
+    val isLoggedIn = remember(lastfmSession) { lastfmSession != "" }
+
+    val (useNowPlaying, onUseNowPlayingChange) = rememberPreference(key = LastFMUseNowPlaying, defaultValue = false)
+    val (lastfmScrobbling, onLastfmScrobblingChange) = rememberPreference(key = EnableLastFMScrobblingKey, defaultValue = false)
+    val (useSendLikes, onUseSendLikes) = rememberPreference(key = LastFMUseSendLikes, defaultValue = false)
+
+    var showLoginDialog by remember { mutableStateOf(false) }
+    var isLoggingIn by remember { mutableStateOf(false) }
+    var loginError by remember { mutableStateOf<String?>(null) }
+    var tempUsername by remember { mutableStateOf("") }
+    var tempPassword by remember { mutableStateOf("") }
+
+    // Login dialog for TV
+    if (showLoginDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { if (!isLoggingIn) { showLoginDialog = false; loginError = null } },
+            title = { Text("Login to Last.fm") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(
+                        value = tempUsername,
+                        onValueChange = { tempUsername = it; loginError = null },
+                        label = { Text("Username") },
+                        singleLine = true,
+                        enabled = !isLoggingIn,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = tempPassword,
+                        onValueChange = { tempPassword = it; loginError = null },
+                        label = { Text("Password") },
+                        singleLine = true,
+                        enabled = !isLoggingIn,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    loginError?.let {
+                        Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    }
+                    if (isLoggingIn) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.size(8.dp))
+                            Text("Logging in...", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        if (tempUsername.isBlank() || tempPassword.isBlank()) { loginError = "Enter username and password"; return@TextButton }
+                        isLoggingIn = true; loginError = null
+                        coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                            try {
+                                com.auramusic.lastfm.LastFM.getMobileSession(tempUsername, tempPassword)
+                                    .onSuccess { auth ->
+                                        lastfmUsername = auth.session.name
+                                        lastfmSession = auth.session.key
+                                        com.auramusic.lastfm.LastFM.sessionKey = auth.session.key
+                                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) { isLoggingIn = false; showLoginDialog = false }
+                                    }
+                                    .onFailure {
+                                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) { isLoggingIn = false; loginError = "Login failed. Check credentials." }
+                                    }
+                            } catch (e: Exception) {
+                                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) { isLoggingIn = false; loginError = "Error: ${e.message}" }
+                            }
+                        }
+                    },
+                    enabled = !isLoggingIn
+                ) { Text("Login") }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { if (!isLoggingIn) { showLoginDialog = false; loginError = null } }) { Text("Cancel") }
+            },
+        )
+    }
+
+    var backButtonFocused by remember { mutableStateOf(false) }
+    val firstFocus = focusRequester ?: remember { FocusRequester() }
+    LaunchedEffect(Unit) { runCatching { firstFocus.requestFocus() } }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .onPreviewKeyEvent { event ->
+                if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionUp) {
+                    if (backButtonFocused) { onNavigateUp?.invoke(); true } else false
+                } else false
+            },
+        contentPadding = PaddingValues(start = 64.dp, top = 95.dp, end = 64.dp, bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp),
+    ) {
+        // Back button
+        item {
+            IconButton(onClick = onBackClick, modifier = Modifier.size(48.dp).onFocusChanged { backButtonFocused = it.isFocused }.border(width = if (backButtonFocused) 3.dp else 0.dp, color = if (backButtonFocused) MaterialTheme.colorScheme.primary else Color.Transparent, shape = CircleShape)) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", modifier = Modifier.size(32.dp))
+            }
+        }
+
+        // Title
+        item { Text("Last.fm Integration", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold) }
+
+        // Account
+        item {
+            TvSettingsRow(
+                title = if (isLoggedIn) lastfmUsername else "Not Logged In",
+                icon = { Icon(painterResource(R.drawable.discord), null, modifier = Modifier.size(24.dp)) },
+                trailing = {
+                    if (isLoggedIn) {
+                        OutlinedButton(onClick = { lastfmSession = ""; lastfmUsername = ""; com.auramusic.lastfm.LastFM.sessionKey = null }) { Text("Logout") }
+                    } else {
+                        OutlinedButton(onClick = { showLoginDialog = true }) { Text("Login") }
+                    }
+                },
+            )
+        }
+
+        // Scrobbling toggle
+        item {
+            TvSettingsToggle(
+                title = "Enable Scrobbling",
+                checked = lastfmScrobbling,
+                onCheckedChange = onLastfmScrobblingChange,
+                enabled = isLoggedIn,
+            )
+        }
+
+        // Now Playing toggle
+        item {
+            TvSettingsToggle(
+                title = "Send Now Playing",
+                checked = useNowPlaying,
+                onCheckedChange = onUseNowPlayingChange,
+                enabled = isLoggedIn && lastfmScrobbling,
+            )
+        }
+
+        // Sync likes toggle
+        item {
+            TvSettingsToggle(
+                title = "Sync Loved Songs",
+                checked = useSendLikes,
+                onCheckedChange = onUseSendLikes,
+                enabled = isLoggedIn && lastfmScrobbling,
+            )
+        }
+    }
+}
+
+@Composable
+private fun TvSettingsRow(title: String, icon: @Composable (() -> Unit)? = null, trailing: @Composable (() -> Unit)? = null) {
+    var focused by remember { mutableStateOf(false) }
+    Surface(
+        modifier = Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused }
+            .border(width = if (focused) 3.dp else 0.dp, color = if (focused) MaterialTheme.colorScheme.primary else Color.Transparent, shape = RoundedCornerShape(12.dp)),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        tonalElevation = 4.dp,
+    ) {
+        Row(Modifier.padding(horizontal = 24.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            icon?.invoke()
+            Text(title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+            trailing?.invoke()
+        }
+    }
+}
+
+@Composable
+private fun TvSettingsToggle(title: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit, enabled: Boolean = true) {
+    var focused by remember { mutableStateOf(false) }
+    Surface(
+        modifier = Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused }
+            .clickable(enabled = enabled) { onCheckedChange(!checked) }
+            .border(width = if (focused) 3.dp else 0.dp, color = if (focused) MaterialTheme.colorScheme.primary else Color.Transparent, shape = RoundedCornerShape(12.dp)),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        tonalElevation = 4.dp,
+    ) {
+        Row(Modifier.padding(horizontal = 24.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f), color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+            Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
+        }
     }
 }
 

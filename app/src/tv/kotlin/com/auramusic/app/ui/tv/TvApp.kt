@@ -448,6 +448,7 @@ enum class TvSection(val label: String) {
                                        onSystemClick = { navigator.navigate(TvDestination.SystemSettings) },
                                        onUpdaterClick = { navigator.navigate(TvDestination.UpdaterScreen) },
                                        onAboutClick = { navigator.navigate(TvDestination.AboutScreen) },
+                                       onLastFMClick = { navigator.navigate(TvDestination.LastFMSettings) },
                                        focusRequester = detailFocusRequester,
                                        onNavigateUp = { runCatching { topBarFocusRequester.requestFocus() } }
                                    )
@@ -515,6 +516,11 @@ enum class TvSection(val label: String) {
                                              onNavigateUp = onUp,
                                          )
                                          TvDestination.UpdaterScreen -> TvUpdaterScreen(
+                                             onBackClick = { navigator.popBack() },
+                                             focusRequester = overlayFocusRequester,
+                                             onNavigateUp = onUp,
+                                         )
+                                         TvDestination.LastFMSettings -> TvLastFMSettingsScreen(
                                              onBackClick = { navigator.popBack() },
                                              focusRequester = overlayFocusRequester,
                                              onNavigateUp = onUp,
@@ -3222,6 +3228,7 @@ fun TvSettingsScreen(
     onSystemClick: () -> Unit = {},
     onUpdaterClick: () -> Unit = {},
     onAboutClick: () -> Unit = {},
+    onLastFMClick: () -> Unit = {},
     focusRequester: FocusRequester? = null,
     onNavigateUp: (() -> Unit)? = null,
 ) {
@@ -3305,6 +3312,18 @@ fun TvSettingsScreen(
 
         item(key = "app_label") { TvSettingsSectionLabel("App") }
 
+        item(key = "lastfm_settings") {
+            TvSettingsCategoryItem(
+                title = "Last.fm",
+                subtitle = "Scrobbling and listening history",
+                onClick = onLastFMClick,
+                icon = Icons.Filled.MusicNote,
+                modifier = Modifier
+                    .onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 2 }
+                    .focusRequester(allFocusRequesters[2]),
+            )
+        }
+
         item(key = "appearance_settings") {
             TvSettingsCategoryItem(
                 title = "Appearance",
@@ -3312,8 +3331,8 @@ fun TvSettingsScreen(
                 onClick = onAppearanceClick,
                 icon = Icons.Filled.Palette,
                 modifier = Modifier
-                    .onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 2 }
-                    .focusRequester(allFocusRequesters[2]),
+                    .onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 3 }
+                    .focusRequester(allFocusRequesters[3]),
             )
         }
 
@@ -3324,8 +3343,8 @@ fun TvSettingsScreen(
                 onClick = onPlaybackClick,
                 icon = Icons.Filled.MusicNote,
                 modifier = Modifier
-                    .onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 3 }
-                    .focusRequester(allFocusRequesters[3]),
+                    .onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 4 }
+                    .focusRequester(allFocusRequesters[4]),
             )
         }
 
@@ -3336,8 +3355,8 @@ fun TvSettingsScreen(
                 onClick = onContentClick,
                 icon = Icons.Filled.Tune,
                 modifier = Modifier
-                    .onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 4 }
-                    .focusRequester(allFocusRequesters[4]),
+                    .onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 5 }
+                    .focusRequester(allFocusRequesters[5]),
             )
         }
 
@@ -3348,8 +3367,8 @@ fun TvSettingsScreen(
                 onClick = onStorageClick,
                 icon = Icons.Filled.Storage,
                 modifier = Modifier
-                    .onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 5 }
-                    .focusRequester(allFocusRequesters[5]),
+                    .onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 6 }
+                    .focusRequester(allFocusRequesters[6]),
             )
         }
 
@@ -3360,8 +3379,8 @@ fun TvSettingsScreen(
                 onClick = onSystemClick,
                 icon = Icons.Filled.Tune,
                 modifier = Modifier
-                    .onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 6 }
-                    .focusRequester(allFocusRequesters[6]),
+                    .onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 7 }
+                    .focusRequester(allFocusRequesters[7]),
             )
         }
 
