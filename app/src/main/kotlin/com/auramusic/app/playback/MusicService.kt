@@ -105,6 +105,7 @@ import com.auramusic.app.constants.VideoModeEnabledKey
 import com.auramusic.app.constants.VideoQuality
 import com.auramusic.app.constants.VideoQualityKey
 import com.auramusic.app.constants.CrossfadeEnabledKey
+import com.auramusic.app.constants.AutomixEnabledKey
 import com.auramusic.app.constants.CrossfadeGaplessKey
 import com.auramusic.app.constants.DisableLoadMoreWhenRepeatAllKey
 import com.auramusic.app.constants.DiscordUseDetailsKey
