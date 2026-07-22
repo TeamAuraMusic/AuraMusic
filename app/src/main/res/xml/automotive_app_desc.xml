@@ -1,6 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <automotiveApp>
-    <usesName>
-        <serviceName>android.media.MediaPlaybackService</serviceName>
-    </usesName>
+    <uses name="media" />
 </automotiveApp>
