@@ -935,9 +935,11 @@ class MusicService :
             }
             .distinctUntilChanged()
             .collect(scope) { (enabled, duration, gapless) ->
-                crossfadeEnabled = enabled
-                crossfadeDuration = duration * 1000f // Convert to ms
-                crossfadeGapless = gapless
+                if (!automixEnabled) {
+                    crossfadeEnabled = enabled
+                    crossfadeDuration = duration * 1000f // Convert to ms
+                    crossfadeGapless = gapless
+                }
             }
 
         // Automix: when enabled, force crossfade on with DJ-optimized settings
@@ -3913,7 +3915,19 @@ class MusicService :
     private fun scheduleCrossfade() {
         crossfadeTriggerJob?.cancel()
         crossfadeTriggerJob = null
-        if (!crossfadeEnabled || player.duration == C.TIME_UNSET || player.duration <= crossfadeDuration) return
+        if (!crossfadeEnabled) return
+        if (player.duration == C.TIME_UNSET || player.duration <= crossfadeDuration) {
+            // Duration not yet known — retry after a short delay
+            if (automixEnabled && player.duration == C.TIME_UNSET && player.isPlaying) {
+                crossfadeTriggerJob = scope.launch {
+                    delay(500)
+                    if (player.isPlaying && player.currentMediaItem != null) {
+                        scheduleCrossfade()
+                    }
+                }
+            }
+            return
+        }
         if (crossfadeGapless && isNextItemGapless()) return
         if (!player.hasNextMediaItem()) return
         
@@ -3924,7 +3938,8 @@ class MusicService :
             player.duration - crossfadeDuration.toLong()
         }
         val triggerTime = if (automixEnabled) {
-            maxOf(triggerOffset, player.duration - crossfadeDuration.toLong())
+            // Use the earlier of 80% or (end - crossfade) so it starts sooner
+            minOf(triggerOffset, player.duration - crossfadeDuration.toLong())
         } else {
             triggerOffset
         }
