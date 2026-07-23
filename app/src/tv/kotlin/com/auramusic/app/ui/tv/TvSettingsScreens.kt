@@ -1281,6 +1281,19 @@ fun TvPlaybackSettingsScreen(
             }
         }
 
+        // Automix toggle
+        item {
+            val (automixEnabled, onAutomixEnabledChange) = rememberPreference(
+                AutomixEnabledKey,
+                defaultValue = false,
+            )
+            TvSettingsToggle(
+                title = "Automix",
+                checked = automixEnabled,
+                onCheckedChange = onAutomixEnabledChange,
+            )
+        }
+
         item {
             Text(
                 text = "OTHER",

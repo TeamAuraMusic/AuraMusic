@@ -57,6 +57,7 @@ import com.auramusic.app.constants.AudioQualityKey
 import com.auramusic.app.constants.AutoDownloadOnLikeKey
 import com.auramusic.app.constants.CrossfadeDurationKey
 import com.auramusic.app.constants.CrossfadeEnabledKey
+import com.auramusic.app.constants.AutomixEnabledKey
 import com.auramusic.app.constants.CrossfadeGaplessKey
 import com.auramusic.app.constants.AutoLoadMoreKey
 import com.auramusic.app.constants.AutoSkipNextOnErrorKey
@@ -124,6 +125,10 @@ fun PlayerSettings(
     val (crossfadeGapless, onCrossfadeGaplessChange) = rememberPreference(
         CrossfadeGaplessKey,
         defaultValue = true
+    )
+    val (automixEnabled, onAutomixEnabledChange) = rememberPreference(
+        AutomixEnabledKey,
+        defaultValue = false
     )
     val (persistentQueue, onPersistentQueueChange) = rememberPreference(
         PersistentQueueKey,
@@ -423,6 +428,28 @@ fun PlayerSettings(
                         onClick = { onCrossfadeGaplessChange(!crossfadeGapless) }
                     ))
                 }
+                // Automix toggle
+                add(Material3SettingsItem(
+                    icon = painterResource(R.drawable.music_note),
+                    title = { Text("Automix") },
+                    description = { Text("DJ-style crossfade — automatically mixes songs with a smooth 4-second linear fade, starting earlier in each track") },
+                    trailingContent = {
+                        Switch(
+                            checked = automixEnabled,
+                            onCheckedChange = onAutomixEnabledChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (automixEnabled) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = { onAutomixEnabledChange(!automixEnabled) }
+                ))
                 add(Material3SettingsItem(
                     icon = painterResource(R.drawable.history),
                     title = { Text(stringResource(R.string.history_duration)) },
