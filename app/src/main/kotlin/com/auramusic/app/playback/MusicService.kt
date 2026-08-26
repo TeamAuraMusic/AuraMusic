@@ -2167,6 +2167,14 @@ class MusicService :
         mediaItem: MediaItem?,
         reason: Int,
     ) {
+        // Skip transitions triggered by our own MergingMediaSource injection.
+        // The merged source has MediaItem.EMPTY which would cause false "new
+        // song" detection and resetVideoMode(), destroying ongoing video switch
+        // state (originalAudioMediaItem, currentMediaMetadata, etc.)
+        if (isInjectingVideoSource) {
+            Timber.d("onMediaItemTransition: Skipping - video source injection in progress")
+            return
+        }
         // Update immediately for queue transitions. Waiting for the later
         // batched onEvents update can leave TV video mode resolving streams
         // against the previous item while the next item's audio is already
@@ -2452,7 +2460,9 @@ class MusicService :
             }
         }
         if (events.containsAny(EVENT_TIMELINE_CHANGED, EVENT_POSITION_DISCONTINUITY)) {
-            currentMediaMetadata.value = player.currentMetadata
+            if (!isInjectingVideoSource) {
+                currentMediaMetadata.value = player.currentMetadata
+            }
         }
 
         // Widget and Discord RPC updates
@@ -3794,6 +3804,8 @@ class MusicService :
     private var currentVideoSourceMediaId: String? = null
     private var originalAudioMediaItem: MediaItem? = null
     private var videoSwitchJob: Job? = null
+    private var isInjectingVideoSource = false
+    val isInjectingVideoSourcePublic: Boolean get() = isInjectingVideoSource
     // TV builds hold playback until the video's first frame is rendered so the
     // next song's audio never starts before its video is visible. Cleared by the
     // first-frame callback, its 8s safety timeout, or resetVideoMode().
@@ -4222,8 +4234,13 @@ class MusicService :
                                         // ExoPlayer auto-advance to the NEXT song, firing a real transition
                                         // that races this job and ends up playing the wrong song or crashing.
                                         val insertIndex = (index + 1).coerceAtMost(player.mediaItemCount)
-                                        player.addMediaSource(insertIndex, merged)
-                                        player.removeMediaItem(index)
+                                        isInjectingVideoSource = true
+                                        try {
+                                            player.addMediaSource(insertIndex, merged)
+                                            player.removeMediaItem(index)
+                                        } finally {
+                                            isInjectingVideoSource = false
+                                        }
                                     }
                                 }
                                 player.prepare()

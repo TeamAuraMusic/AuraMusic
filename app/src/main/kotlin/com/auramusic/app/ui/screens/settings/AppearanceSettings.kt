@@ -116,6 +116,8 @@ import com.auramusic.app.constants.SliderStyleKey
 import com.auramusic.app.constants.SlimNavBarKey
 import com.auramusic.app.constants.ListenTogetherAtTopKey
 import com.auramusic.app.constants.SelectedFontKey
+import com.auramusic.app.constants.FontScaleKey
+import com.auramusic.app.constants.FontBoldnessKey
 import com.auramusic.app.constants.SquigglySliderKey
 import com.auramusic.app.constants.SwipeSensitivityKey
 import com.auramusic.app.constants.SwipeThumbnailKey
@@ -169,6 +171,8 @@ fun AppearanceSettings(
         SelectedFontKey,
         defaultValue = AppFont.DEFAULT
     )
+    val (fontScale, onFontScaleChange) = rememberPreference(FontScaleKey, defaultValue = 1f)
+    val (fontBoldness, onFontBoldnessChange) = rememberPreference(FontBoldnessKey, defaultValue = 0f)
     // Check if user has selected a custom color (not the default/dynamic color)
     val isUsingCustomColor = selectedThemeColorInt != DefaultThemeColor.toArgb()
     val coroutineScope = rememberCoroutineScope()
@@ -669,6 +673,14 @@ fun AppearanceSettings(
         mutableStateOf(false)
     }
 
+    var showFontSizeDialog by rememberSaveable {
+        mutableStateOf(false)
+    }
+
+    var showFontBoldnessDialog by rememberSaveable {
+        mutableStateOf(false)
+    }
+
     if (showDefaultChipDialog) {
         EnumDialog(
             onDismiss = { showDefaultChipDialog = false },
@@ -711,6 +723,130 @@ fun AppearanceSettings(
                 }
             }
         )
+    }
+
+    if (showFontSizeDialog) {
+        var tempFontScale by remember { mutableFloatStateOf(fontScale) }
+
+        DefaultDialog(
+            onDismiss = {
+                tempFontScale = fontScale
+                showFontSizeDialog = false
+            },
+            buttons = {
+                TextButton(
+                    onClick = { tempFontScale = 1f }
+                ) {
+                    Text(stringResource(R.string.reset))
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                TextButton(
+                    onClick = {
+                        tempFontScale = fontScale
+                        showFontSizeDialog = false
+                    }
+                ) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+                TextButton(
+                    onClick = {
+                        onFontScaleChange(tempFontScale)
+                        showFontSizeDialog = false
+                    }
+                ) {
+                    Text(stringResource(android.R.string.ok))
+                }
+            }
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.font_size),
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                Text(
+                    text = "${(tempFontScale * 100).toInt()}%",
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                Slider(
+                    value = tempFontScale,
+                    onValueChange = { tempFontScale = it },
+                    valueRange = 0.8f..1.5f,
+                    steps = 6,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+    }
+
+    if (showFontBoldnessDialog) {
+        var tempFontBoldness by remember { mutableFloatStateOf(fontBoldness) }
+
+        DefaultDialog(
+            onDismiss = {
+                tempFontBoldness = fontBoldness
+                showFontBoldnessDialog = false
+            },
+            buttons = {
+                TextButton(
+                    onClick = { tempFontBoldness = 0f }
+                ) {
+                    Text(stringResource(R.string.reset))
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                TextButton(
+                    onClick = {
+                        tempFontBoldness = fontBoldness
+                        showFontBoldnessDialog = false
+                    }
+                ) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+                TextButton(
+                    onClick = {
+                        onFontBoldnessChange(tempFontBoldness)
+                        showFontBoldnessDialog = false
+                    }
+                ) {
+                    Text(stringResource(android.R.string.ok))
+                }
+            }
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.font_boldness),
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                Text(
+                    text = "${(tempFontBoldness * 100).toInt()}%",
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                Slider(
+                    value = tempFontBoldness,
+                    onValueChange = { tempFontBoldness = it },
+                    valueRange = 0f..1f,
+                    steps = 9,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
     }
 
     var showGridSizeDialog by rememberSaveable {
@@ -2237,6 +2373,18 @@ fun AppearanceSettings(
                         )
                     },
                     onClick = { showFontSelectionDialog = true }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.ic_font),
+                    title = { Text(stringResource(R.string.font_size)) },
+                    description = { Text("${(fontScale * 100).toInt()}%") },
+                    onClick = { showFontSizeDialog = true }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.ic_font),
+                    title = { Text(stringResource(R.string.font_boldness)) },
+                    description = { Text("${(fontBoldness * 100).toInt()}%") },
+                    onClick = { showFontBoldnessDialog = true }
                 )
             )
         )

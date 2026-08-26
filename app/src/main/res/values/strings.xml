@@ -348,6 +348,8 @@
     <string name="fonts">Fonts</string>
     <string name="font_selection">Font Selection</string>
     <string name="app_font">App Font</string>
+    <string name="font_size">Font Size</string>
+    <string name="font_boldness">Font Boldness</string>
     <string name="default_font">System Default</string>
     <string name="theme">Theme</string>
     <string name="theme_desc">Customize your app theme</string>

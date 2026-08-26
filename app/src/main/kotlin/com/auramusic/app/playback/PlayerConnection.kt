@@ -501,6 +501,7 @@ import timber.log.Timber
         mediaItem: MediaItem?,
         reason: Int,
     ) {
+        if (service.isInjectingVideoSourcePublic) return
         mediaMetadata.value = mediaItem?.metadata
         currentMediaItemIndex.value = player.currentMediaItemIndex
         currentWindowIndex.value = player.getCurrentQueueIndex()

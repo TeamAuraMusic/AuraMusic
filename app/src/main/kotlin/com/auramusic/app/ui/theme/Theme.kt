@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.palette.graphics.Palette
 import com.materialkolor.PaletteStyle
@@ -38,6 +39,7 @@ fun AuraMusicTheme(
     themeColor: Color = DefaultThemeColor,
     selectedFont: String = "OUTFIT",
     fontScale: Float = 1f,
+    fontBoldness: Float = 0f,
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
@@ -74,8 +76,8 @@ fun AuraMusicTheme(
         "POPPINS", "ROBOTO", "INTER", "OUTFIT" -> Outfit
         else -> Outfit
     }
-    val typography = remember(fontFamily, fontScale) {
-        AppTypography.withFontFamily(fontFamily).scaledBy(fontScale)
+    val typography = remember(fontFamily, fontScale, fontBoldness) {
+        AppTypography.withFontFamily(fontFamily).scaledBy(fontScale).boldedBy(fontBoldness)
     }
 
     // Use standard MaterialTheme instead of MaterialExpressiveTheme
@@ -170,3 +172,45 @@ private fun TextStyle.scaledBy(scale: Float) =
         lineHeight = (lineHeight.value * scale.coerceIn(0.5f, 3f)).sp,
         letterSpacing = (letterSpacing.value * scale.coerceIn(0.5f, 3f)).sp,
     )
+
+private fun androidx.compose.material3.Typography.boldedBy(boldness: Float) =
+    if (boldness <= 0f) this
+    else copy(
+        displayLarge = displayLarge.boldedBy(boldness),
+        displayMedium = displayMedium.boldedBy(boldness),
+        displaySmall = displaySmall.boldedBy(boldness),
+        headlineLarge = headlineLarge.boldedBy(boldness),
+        headlineMedium = headlineMedium.boldedBy(boldness),
+        headlineSmall = headlineSmall.boldedBy(boldness),
+        titleLarge = titleLarge.boldedBy(boldness),
+        titleMedium = titleMedium.boldedBy(boldness),
+        titleSmall = titleSmall.boldedBy(boldness),
+        bodyLarge = bodyLarge.boldedBy(boldness),
+        bodyMedium = bodyMedium.boldedBy(boldness),
+        bodySmall = bodySmall.boldedBy(boldness),
+        labelLarge = labelLarge.boldedBy(boldness),
+        labelMedium = labelMedium.boldedBy(boldness),
+        labelSmall = labelSmall.boldedBy(boldness)
+    )
+
+private fun TextStyle.boldedBy(boldness: Float) = copy(
+    fontWeight = when (fontWeight) {
+        FontWeight.Thin -> lerp(FontWeight.Thin, FontWeight.Black, boldness)
+        FontWeight.Light -> lerp(FontWeight.Light, FontWeight.Black, boldness)
+        FontWeight.Normal -> lerp(FontWeight.Normal, FontWeight.Black, boldness)
+        FontWeight.Medium -> lerp(FontWeight.Medium, FontWeight.Black, boldness)
+        FontWeight.SemiBold -> lerp(FontWeight.SemiBold, FontWeight.Black, boldness)
+        FontWeight.Bold -> FontWeight.Bold
+        FontWeight.Black -> FontWeight.Black
+        else -> fontWeight
+    }
+)
+
+private fun lerp(a: FontWeight, b: FontWeight, fraction: Float): FontWeight {
+    val clampedFraction = fraction.coerceIn(0f, 1f)
+    return when {
+        clampedFraction <= 0f -> a
+        clampedFraction >= 1f -> b
+        else -> FontWeight((a.weight + (b.weight - a.weight) * clampedFraction).toInt())
+    }
+}

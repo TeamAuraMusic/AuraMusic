@@ -152,6 +152,8 @@ import com.auramusic.app.constants.UpdateArchitectureKey
 import com.auramusic.app.constants.UpdateVariantKey
 import com.auramusic.app.constants.UseNewMiniPlayerDesignKey
 import com.auramusic.app.constants.SelectedFontKey
+import com.auramusic.app.constants.FontScaleKey
+import com.auramusic.app.constants.FontBoldnessKey
 import com.auramusic.app.db.MusicDatabase
 import com.auramusic.app.db.entities.SearchHistory
 import com.auramusic.app.extensions.toEnum
@@ -537,6 +539,8 @@ class MainActivity : ComponentActivity() {
         val selectedThemeColor = Color(selectedThemeColorInt)
 
         val selectedFont by rememberPreference(SelectedFontKey, defaultValue = "DEFAULT")
+        val fontScale by rememberPreference(FontScaleKey, defaultValue = 1f)
+        val fontBoldness by rememberPreference(FontBoldnessKey, defaultValue = 0f)
 
         var themeColor by rememberSaveable(stateSaver = ColorSaver) {
             mutableStateOf(selectedThemeColor)
@@ -586,6 +590,8 @@ class MainActivity : ComponentActivity() {
             pureBlack = pureBlack,
             themeColor = themeColor,
             selectedFont = selectedFont,
+            fontScale = fontScale,
+            fontBoldness = fontBoldness,
         ) {
             BoxWithConstraints(
                 modifier = Modifier
