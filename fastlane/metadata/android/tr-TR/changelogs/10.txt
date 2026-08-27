@@ -1,0 +1,4 @@
+- F-Droid'de ilk sürüm
+- Video oynatma desteği
+- Sözleri görüntüleme ve çevirme
+- Youtube Music'den müzik oynatma

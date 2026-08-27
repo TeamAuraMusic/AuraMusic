@@ -1,0 +1,15 @@
+Aura Music, doğrudan Youtube Music'den müzik dinlemenizi sağlayan açık kaynaklı bir müzik oynatıcısıdır.
+
+Özellikler:
+- Youtube Music'den müzik dinle
+- Video oynatma desteği
+- Sözleri gösterme ve çevirme
+- Ses kalitesi ayarları
+- Arka planda dinleme
+- Kuyruk yönetimi
+- Arama özelliği
+- Sanatçı ve albümlere göz atma
+
+Bu F-Droid ile uyumlu olan özgür ve açık kaynaklı sürümü. Google Play Servisleri bağımlılıklarını içermez.
+
+Lisans: GPL-3.0
