@@ -94,7 +94,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.graphicsLayer
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -120,6 +119,7 @@ import dagger.hilt.android.EntryPointAccessors
 import com.auramusic.app.di.VoiceCommandEntryPoint
 import com.auramusic.app.voice.VoiceCommandManager
 import com.auramusic.app.voice.VoiceRecognitionEvent
+import com.auramusic.app.voice.RecognitionMode
  import coil3.compose.AsyncImage
  import com.auramusic.app.R
  import com.auramusic.app.db.entities.Artist
@@ -419,13 +419,14 @@ enum class TvSection(val label: String) {
                      true
                  }
                  else -> false
+              }
+          }
+          } else {
+                 false
              }
-         } else {
-             false
-         }
-      }
+        }
 
-      CompositionLocalProvider(LocalTvNavigator provides navigator) {
+       CompositionLocalProvider(LocalTvNavigator provides navigator) {
          Surface(
              modifier = Modifier
                  .fillMaxSize()
@@ -2132,7 +2133,7 @@ fun TvSearchScreen(
             micErrorMessage = null
             voiceManager.startListening(RecognitionMode.COMMAND)
         } else {
-            micErrorMessage = context.getString(android.R.string.permission_recording)
+            micErrorMessage = context.getString(R.string.mic_permission_required)
         }
     }
 

@@ -1747,7 +1747,7 @@ private fun TvContentToggleRow(
 }
 
 @Composable
-private fun TvSliderRow(
+fun TvSliderRow(
     title: String,
     subtitle: String,
     value: Float,

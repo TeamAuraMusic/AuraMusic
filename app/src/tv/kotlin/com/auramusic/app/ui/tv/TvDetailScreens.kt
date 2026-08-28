@@ -71,6 +71,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import com.auramusic.app.LocalDatabase
+import com.auramusic.app.R
 import com.auramusic.app.constants.ArtistSongSortType
 import com.auramusic.app.constants.SongSortType
 import com.auramusic.app.db.entities.AlbumEntity
@@ -80,6 +81,7 @@ import com.auramusic.app.db.entities.PlaylistEntity
 import com.auramusic.app.db.entities.Song
 import com.auramusic.app.db.entities.PlaylistSong
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import com.auramusic.app.extensions.toMediaItem
 import com.auramusic.app.playback.PlayerConnection
 import com.auramusic.app.playback.queues.ListQueue
@@ -569,7 +571,7 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
     // Like button (only for remote YouTube playlists, not the local "Liked Music" view)
     val isYtPlaylist = !isLikedMusic && (localPlaylist?.playlist?.isLocal != true)
     val dbPlaylist by database.playlistByBrowseId(playlistId).collectAsState(initial = null)
-    val isLiked = dbPlaylist?.bookmarkedAt != null
+    val isLiked = dbPlaylist?.playlist?.bookmarkedAt != null
     val onLikeClick: () -> Unit = {
         scope.launch {
             val existing = database.playlistByBrowseId(playlistId).first()
@@ -583,7 +585,7 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
                 database.insert(entity)
                 YouTube.likePlaylist(playlistId, true)
             } else {
-                val updated = existing.localToggleLike()
+                val updated = existing.playlist.localToggleLike()
                 database.update(updated)
                 YouTube.likePlaylist(playlistId, updated.bookmarkedAt != null)
             }

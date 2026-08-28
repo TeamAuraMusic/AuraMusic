@@ -2510,8 +2510,15 @@ class MusicService :
             }
         }
 
-        // Update Discord RPC when media item changes or playback starts
-        if (events.containsAny(Player.EVENT_MEDIA_ITEM_TRANSITION, Player.EVENT_IS_PLAYING_CHANGED) && player.isPlaying) {
+        // Update Discord RPC when media item changes or playback starts.
+        // Trigger on MEDIA_ITEM_TRANSITION unconditionally: during an automatic
+        // transition the player is frequently still buffering (not yet "playing"),
+        // so gating on player.isPlaying would skip the update and leave the
+        // previous song's text/thumbnail showing. The play-state change handler
+        // (below) re-syncs once playback actually resumes.
+        if (events.containsAny(Player.EVENT_MEDIA_ITEM_TRANSITION) ||
+            (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED) && player.isPlaying)
+        ) {
             syncDiscordState()
         }
 
