@@ -970,4 +970,7 @@
     <string name="alarm_channel_desc">Seçtiğiniz şarkıları çalan uyandırma alarmı.</string>
     <string name="ko_fi">Ko-fi</string>
     <string name="ko_fi_desc">Geliştiriciye tek seferlik kahve</string>
+    <string name="font_size">Yazı Tipi Boyutu</string>
+    <string name="font_boldness">Yazı Tipi Kalınlığı</string>
+    <string name="mic_permission_required">Sesli arama için mikrofon izni gereklidir.</string>
 </resources>
