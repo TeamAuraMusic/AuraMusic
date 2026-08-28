@@ -476,7 +476,7 @@ fun TvPlayerScreen(
                     // Album art / Lyrics / Video container
                     if (lyricsExpanded && showLyrics) {
                         // Expanded lyrics mode — lyrics fill the entire left column
-                        val positionProvider = { currentPosition }
+                            val positionProvider = { effectivePlayerConnection?.player?.currentPosition ?: currentPosition }
                         val lyrics = remember(currentLyrics) { currentLyrics?.lyrics?.trim() }
                         Box(
                             modifier = Modifier
@@ -589,7 +589,7 @@ fun TvPlayerScreen(
                             }
                         } else if (showLyrics) {
                             // Show lyrics behind thumbnail when enabled
-                            val positionProvider = { currentPosition }
+                            val positionProvider = { effectivePlayerConnection?.player?.currentPosition ?: currentPosition }
 
                             val lyrics = remember(currentLyrics) { currentLyrics?.lyrics?.trim() }
 

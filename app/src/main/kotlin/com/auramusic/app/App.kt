@@ -20,8 +20,11 @@ import coil3.disk.directory
 import coil3.memory.MemoryCache
 import com.auramusic.music.betterlyrics.BetterLyrics
 import coil3.request.CachePolicy
+import coil3.request.ErrorResult
+import coil3.request.ImageResult
 import coil3.request.allowHardware
 import coil3.request.crossfade
+import coil3.intercept.Interceptor
 import com.auramusic.innertube.YouTube
 import com.auramusic.innertube.models.YouTubeLocale
 import com.auramusic.kugou.KuGou
@@ -260,6 +263,30 @@ class App : Application(), SingletonImageLoader.Factory {
                 MemoryCache.Builder()
                     .maxSizePercent(context, if (isTv) 0.15 else 0.25) // Smaller memory cache for TV
                     .build()
+            }
+            // Retry YouTube video poster thumbnails with a lower-quality variant when the
+            // requested size (e.g. maxresdefault.jpg) returns a 404. Not every YouTube video
+            // has a maxresdefault image, which left video-song album art blank across the app.
+            // hqdefault/sddefault exist for (essentially) every video, so they are safe fallbacks.
+            components {
+                add(object : Interceptor {
+                    override suspend fun intercept(chain: Interceptor.Chain): ImageResult {
+                        val result = chain.proceed()
+                        val data = chain.request.data as? String ?: return result
+                        if (result is ErrorResult && data.contains("i.ytimg.com")) {
+                            val fallbacks = listOf("hqdefault.jpg", "sddefault.jpg")
+                                .map { fb -> data.replace("maxresdefault.jpg", fb) }
+                                .filter { it != data }
+                            for (fallback in fallbacks) {
+                                val fbResult = chain.withRequest(
+                                    chain.request.newBuilder().data(fallback).build()
+                                ).proceed()
+                                if (fbResult !is ErrorResult) return fbResult
+                            }
+                        }
+                        return result
+                    }
+                })
             }
             if (cacheSize == 0) {
                 diskCachePolicy(CachePolicy.DISABLED)

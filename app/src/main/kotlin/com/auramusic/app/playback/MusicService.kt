@@ -654,8 +654,21 @@ class MusicService :
                     extras: Bundle,
                 ): Boolean = defaultMediaNotificationProvider.handleCustomCommand(session, action, extras)
 
-                override fun getNotificationChannelInfo(): MediaNotification.Provider.NotificationChannelInfo =
-                    defaultMediaNotificationProvider.notificationChannelInfo
+                override fun getNotificationChannelInfo(): MediaNotification.Provider.NotificationChannelInfo {
+                    val info = defaultMediaNotificationProvider.notificationChannelInfo
+                    // On TV, the media notification must surface prominently in the
+                    // notification shade / home control panel. The default provider
+                    // returns IMPORTANCE_LOW which can keep it hidden on Google TV,
+                    // so bump it to DEFAULT for TV.
+                    return if (isTv) {
+                        MediaNotification.Provider.NotificationChannelInfo(
+                            TV_CHANNEL_ID,
+                            getString(R.string.music_player),
+                        )
+                    } else {
+                        info
+                    }
+                }
             },
         )
 
@@ -729,7 +742,18 @@ class MusicService :
                     PendingIntent.getActivity(
                         this,
                         0,
-                        Intent(this, MainActivity::class.java),
+                        Intent(
+                            this,
+                            if (isTv) {
+                                try {
+                                    Class.forName("com.auramusic.app.TvMainActivity")
+                                } catch (_: Exception) {
+                                    MainActivity::class.java
+                                }
+                            } else {
+                                MainActivity::class.java
+                            },
+                        ),
                         PendingIntent.FLAG_IMMUTABLE,
                     ),
                 ).setBitmapLoader(CoilBitmapLoader(this, scope))
@@ -1904,7 +1928,15 @@ class MusicService :
             player.shuffleModeEnabled,
         )
         if (nextIndex == C.INDEX_UNSET) {
-            addToQueueAutomix(automixItems.value.first(), 0)
+            // Automix must only insert regular (audio) songs. Video songs are left to
+            // play natively and transition via onMediaItemTransition, where SponsorBlock
+            // loads correctly. Picking the first non-video item also removes it from the
+            // pool at its actual index.
+            val nextItem = automixItems.value.firstOrNull { it.metadata?.isVideoSong != true }
+            if (nextItem != null) {
+                val index = automixItems.value.indexOf(nextItem)
+                addToQueueAutomix(nextItem, index)
+            }
         }
     }
 
@@ -4399,7 +4431,14 @@ class MusicService :
             return
         }
         if (crossfadeGapless && isNextItemGapless()) return
-        if (nextCrossfadeMediaItemIndex() == C.INDEX_UNSET) return
+        val nextCrossfadeIndex = nextCrossfadeMediaItemIndex()
+        if (nextCrossfadeIndex == C.INDEX_UNSET) return
+        // Never crossfade/automix into a video-backed song: it must play natively so
+        // onMediaItemTransition routes it through video mode and SponsorBlock works.
+        if (player.getMediaItemAt(nextCrossfadeIndex).metadata?.isVideoSong == true) {
+            Timber.d("scheduleCrossfade: Skipping crossfade into video song")
+            return
+        }
         
         // Automix starts the blend once the configured % of the current song has
         // played (default 90%). Uses a linear fade for a DJ-style mix.

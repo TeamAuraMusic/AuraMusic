@@ -5,6 +5,8 @@
 
 package com.auramusic.app.ui.tv
 
+import android.Manifest
+import android.content.pm.PackageManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateFloatAsState
@@ -68,6 +70,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.Mic
 import com.auramusic.app.LocalPlayerConnection
 import com.auramusic.app.db.entities.Song
 import com.auramusic.app.models.toMediaMetadata
@@ -85,11 +88,13 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.graphicsLayer
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -109,11 +114,18 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import dagger.hilt.android.EntryPointAccessors
+import com.auramusic.app.di.VoiceCommandEntryPoint
+import com.auramusic.app.voice.VoiceCommandManager
+import com.auramusic.app.voice.VoiceRecognitionEvent
  import coil3.compose.AsyncImage
  import com.auramusic.app.R
  import com.auramusic.app.db.entities.Artist
  import com.auramusic.app.db.entities.Album
  import com.auramusic.app.db.entities.Playlist
+import com.auramusic.app.db.entities.PlaylistEntity
  import com.auramusic.app.db.entities.SpeedDialItem
  import com.auramusic.app.db.entities.LocalItem
 import com.auramusic.app.extensions.toMediaItem
@@ -149,6 +161,8 @@ import com.auramusic.app.ui.screens.settings.DarkMode
 import com.auramusic.app.ui.screens.settings.AppFont
 import com.auramusic.app.utils.rememberEnumPreference
 import com.auramusic.app.utils.rememberPreference
+import com.auramusic.app.constants.FontScaleKey
+import com.auramusic.app.constants.FontBoldnessKey
 import android.os.Build
 import com.auramusic.innertube.pages.ExplorePage
 import androidx.compose.foundation.layout.width
@@ -338,19 +352,46 @@ enum class TvSection(val label: String) {
                  android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
              )
          }
-         onDispose {
-             window?.clearFlags(
-                 android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
-                 android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
-                 android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
-             )
-         }
-     }
+          onDispose {
+              window?.clearFlags(
+                  android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
+                  android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
+                  android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
+              )
+          }
+      }
 
-     // Handle keyboard shortcuts for TV remote
-     val onPreviewKeyEvent: (androidx.compose.ui.input.key.KeyEvent) -> Boolean = { event ->
-         if (event.type == KeyEventType.KeyDown) {
-             when (event.key) {
+      // TV screensaver: show a dimmed now-playing overlay after a period of idle input.
+      var isScreensaverActive by remember { mutableStateOf(false) }
+      val lastInteraction = remember { mutableStateOf(System.currentTimeMillis()) }
+      val idleTimeoutMs = 120_000L
+      val resetIdle: () -> Unit = {
+          lastInteraction.value = System.currentTimeMillis()
+          if (isScreensaverActive) isScreensaverActive = false
+      }
+      LaunchedEffect(Unit) {
+          while (true) {
+              delay(1000)
+              val hasSong = currentSong != null || currentMediaMetadata != null
+              if (hasSong && !isScreensaverActive &&
+                  System.currentTimeMillis() - lastInteraction.value > idleTimeoutMs
+              ) {
+                  isScreensaverActive = true
+              }
+          }
+      }
+
+      // Handle keyboard shortcuts for TV remote
+      val onPreviewKeyEvent: (androidx.compose.ui.input.key.KeyEvent) -> Boolean = { event ->
+          if (event.type == KeyEventType.KeyDown) {
+              if (isScreensaverActive) {
+                  // Any key press dismisses the screensaver and resumes where the
+                  // user left off (focus is preserved underneath the overlay).
+                  isScreensaverActive = false
+                  true
+              } else {
+                  resetIdle()
+                  when (event.key) {
                  Key.VolumeUp -> {
                      playerConnection?.player?.let { player ->
                          val currentVolume = player.volume
@@ -576,9 +617,19 @@ enum class TvSection(val label: String) {
                          navigator.selectTopLevel(TvDestination.Home)
                          sectionState.value = section
                      },
-                     topBarFocusRequester = topBarFocusRequester,
-                 )
-             }
+                      topBarFocusRequester = topBarFocusRequester,
+                  )
+
+                  // TV screensaver overlay (now-playing + album art, dimmed).
+                  // Dismissed by any key press via the root onPreviewKeyEvent above,
+                  // which preserves the underlying focus/position.
+                  if (isScreensaverActive) {
+                      TvScreensaver(
+                          playerConnection = playerConnection,
+                          onDismiss = { isScreensaverActive = false },
+                      )
+                  }
+              }
          }
      }
  }
@@ -1969,15 +2020,28 @@ fun TvLibraryScreen(
                 )
             }
         }
-        if (playlists.isNotEmpty()) {
-            item(key = "playlists") { 
+        if (playlists.isNotEmpty() || songs.isNotEmpty()) {
+            item(key = "playlists") {
+                val likedMusicPlaylist = Playlist(
+                    playlist = PlaylistEntity(
+                        id = "LM",
+                        name = stringResource(R.string.liked_songs),
+                        isLocal = false,
+                    ),
+                    songCount = songs.size,
+                    songThumbnails = songs.take(4).map { it.thumbnailUrl },
+                )
+                val libraryPlaylists = buildList {
+                    if (songs.isNotEmpty()) add(likedMusicPlaylist)
+                    addAll(playlists)
+                }
                 LocalItemRow(
-                    title = "Playlists", 
-                    localItems = playlists, 
+                    title = "Playlists",
+                    localItems = libraryPlaylists,
                     playerConnection = playerConnection,
                     modifier = Modifier.onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 2 },
                     onItemFocused = { focusedLibraryItem = it },
-                ) 
+                )
             }
         }
         if (artists.isNotEmpty()) {
@@ -2050,6 +2114,59 @@ fun TvSearchScreen(
     // Track which item is currently focused
     var focusedItemIndex by remember { mutableStateOf(-1) }
 
+    // Voice search via the remote microphone.
+    val context = LocalContext.current
+    val voiceManager = remember {
+        EntryPointAccessors.fromApplication(
+            context.applicationContext,
+            VoiceCommandEntryPoint::class.java,
+        ).voiceCommandManager()
+    }
+    val isListening by voiceManager.isListening.collectAsState()
+    var micErrorMessage by remember { mutableStateOf<String?>(null) }
+
+    val recordAudioPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (granted) {
+            micErrorMessage = null
+            voiceManager.startListening(RecognitionMode.COMMAND)
+        } else {
+            micErrorMessage = context.getString(android.R.string.permission_recording)
+        }
+    }
+
+    fun startVoiceSearch() {
+        if (isListening) {
+            voiceManager.stopListening()
+            return
+        }
+        val permission = context.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO)
+        if (permission == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            micErrorMessage = null
+            voiceManager.startListening(RecognitionMode.COMMAND)
+        } else {
+            recordAudioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        voiceManager.events.collect { event ->
+            when (event) {
+                is VoiceRecognitionEvent.FinalText -> {
+                    if (event.text.isNotBlank()) {
+                        tvSearchViewModel.updateQuery(event.text)
+                        tvSearchViewModel.onSearchSubmitted(event.text)
+                    }
+                }
+                is VoiceRecognitionEvent.Error -> {
+                    if (!event.recoverable) micErrorMessage = event.message
+                }
+                else -> Unit
+            }
+        }
+    }
+
     // Save current query to recent searches when user clicks a result
     val saveQueryToHistory: () -> Unit = {
         if (query.isNotBlank()) {
@@ -2078,15 +2195,58 @@ fun TvSearchScreen(
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
         item(key = "search_bar") {
-            OutlinedTextField(
-                value = query,
-                onValueChange = { tvSearchViewModel.updateQuery(it) },
-                label = { Text("Search") },
-                singleLine = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 0 }
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { tvSearchViewModel.updateQuery(it) },
+                    label = { Text("Search") },
+                    singleLine = true,
+                    modifier = Modifier
+                        .weight(1f)
+                        .onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 0 }
+                )
+                var micFocused by remember { mutableStateOf(false) }
+                IconButton(
+                    onClick = { startVoiceSearch() },
+                    modifier = Modifier
+                        .size(56.dp)
+                        .onFocusChanged { state ->
+                            micFocused = state.hasFocus
+                            if (state.hasFocus) focusedItemIndex = 0
+                        }
+                        .border(
+                            width = if (micFocused || isListening) 3.dp else 0.dp,
+                            color = if (micFocused || isListening) MaterialTheme.colorScheme.primary else Color.Transparent,
+                            shape = CircleShape,
+                        ),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Mic,
+                        contentDescription = "Voice search",
+                        tint = if (isListening) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
+            if (isListening) {
+                Text(
+                    text = "Listening…",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
+            if (micErrorMessage != null) {
+                Text(
+                    text = micErrorMessage ?: "",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
         }
 
         if (query.isEmpty()) {
@@ -3471,10 +3631,12 @@ fun TvSettingsScreen(
  ) {
      BackHandler { onBackClick() }
      val (darkMode, onDarkModeChange) = rememberEnumPreference(DarkModeKey, DarkMode.AUTO)
-     val (selectedFont, onSelectedFontChange) = rememberEnumPreference(
-         com.auramusic.app.constants.SelectedFontKey,
-         com.auramusic.app.ui.screens.settings.AppFont.DEFAULT,
-     )
+      val (selectedFont, onSelectedFontChange) = rememberEnumPreference(
+          com.auramusic.app.constants.SelectedFontKey,
+          com.auramusic.app.ui.screens.settings.AppFont.DEFAULT,
+      )
+      val (fontScale, onFontScaleChange) = rememberPreference(FontScaleKey, defaultValue = 1.15f)
+      val (fontBoldness, onFontBoldnessChange) = rememberPreference(FontBoldnessKey, defaultValue = 0f)
 
      val dynamicThemeSupported = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S
      val dynamicThemeState: MutableState<Boolean> = if (dynamicThemeSupported) {
@@ -3636,6 +3798,28 @@ fun TvSettingsScreen(
                 icon = Icons.Filled.Tune,
             )
         }
+
+        item {
+            TvSliderRow(
+                title = "Font Size",
+                subtitle = "${(fontScale * 100).toInt()}%",
+                value = fontScale,
+                valueRange = 0.8f..1.5f,
+                steps = 6,
+                onValueChange = onFontScaleChange,
+            )
+        }
+
+        item {
+            TvSliderRow(
+                title = "Font Boldness",
+                subtitle = "${(fontBoldness * 100).toInt()}%",
+                value = fontBoldness,
+                valueRange = 0f..1f,
+                steps = 9,
+                onValueChange = onFontBoldnessChange,
+            )
+        }
     }
 }
 
@@ -3715,4 +3899,104 @@ fun PlayerConnection?.playSong(song: Song) {
             startIndex = 0,
         ),
     )
+}
+
+/**
+ * Dimmed, in-app TV screensaver shown after a period of idle input.
+ * Displays the now-playing artwork/metadata plus synced lyrics, and is
+ * dismissed by any remote key press (handled at the root onPreviewKeyEvent),
+ * which resumes the UI exactly where the user left off.
+ */
+@Composable
+private fun TvScreensaver(
+    playerConnection: PlayerConnection?,
+    onDismiss: () -> Unit,
+) {
+    val mediaMetadata by playerConnection?.mediaMetadata?.collectAsState(null)
+        ?: remember { mutableStateOf(null) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.94f)),
+    ) {
+        mediaMetadata?.thumbnailUrl?.let { url ->
+            AsyncImage(
+                model = url,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer { alpha = 0.35f },
+            )
+        }
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            Color.Black.copy(alpha = 0.55f),
+                            Color.Black.copy(alpha = 0.88f),
+                        ),
+                    ),
+                ),
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(64.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(48.dp),
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.width(380.dp),
+            ) {
+                AsyncImage(
+                    model = mediaMetadata?.thumbnailUrl,
+                    contentDescription = mediaMetadata?.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(380.dp)
+                        .clip(RoundedCornerShape(24.dp)),
+                )
+                Text(
+                    text = mediaMetadata?.title ?: "",
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    maxLines = 2,
+                )
+                Text(
+                    text = mediaMetadata?.artists?.joinToString(", ") { it.name } ?: "",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = Color.White.copy(alpha = 0.8f),
+                    maxLines = 1,
+                )
+            }
+
+            Box(Modifier.weight(1f)) {
+                val positionProvider = { playerConnection?.player?.currentPosition ?: 0L }
+                com.auramusic.app.ui.component.Lyrics(
+                    sliderPositionProvider = positionProvider,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 24.dp),
+                    showLyrics = true,
+                    disableInteractiveFeatures = true,
+                )
+            }
+        }
+
+        Text(
+            text = "Press any button to resume",
+            color = Color.White.copy(alpha = 0.6f),
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 32.dp),
+        )
+    }
 }

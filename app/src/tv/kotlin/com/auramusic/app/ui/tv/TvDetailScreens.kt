@@ -72,8 +72,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import com.auramusic.app.LocalDatabase
 import com.auramusic.app.constants.ArtistSongSortType
+import com.auramusic.app.constants.SongSortType
+import com.auramusic.app.db.entities.AlbumEntity
+import com.auramusic.app.db.entities.ArtistEntity
+import com.auramusic.app.db.entities.Playlist
+import com.auramusic.app.db.entities.PlaylistEntity
 import com.auramusic.app.db.entities.Song
 import com.auramusic.app.db.entities.PlaylistSong
+import kotlinx.coroutines.flow.first
 import com.auramusic.app.extensions.toMediaItem
 import com.auramusic.app.playback.PlayerConnection
 import com.auramusic.app.playback.queues.ListQueue
@@ -156,6 +162,35 @@ fun TvAlbumDetailScreen(albumId: String, playerConnection: PlayerConnection?, on
     val displayThumbnail = localAlbum?.album?.thumbnailUrl ?: ytAlbum.value?.thumbnail
     val songCount = displaySongs.size
 
+    // Like button (YouTube albums only; syncs to library + YouTube Music account)
+    val scope = rememberCoroutineScope()
+    val dbAlbum by database.album(albumId).collectAsState(initial = null)
+    val isAlbumLiked = dbAlbum?.album?.bookmarkedAt != null
+    val showAlbumLike = localAlbum?.album?.isLocal != true
+    val onAlbumLikeClick: () -> Unit = {
+        scope.launch {
+            val existing = database.album(albumId).first()
+            if (existing == null) {
+                val playlistId = ytAlbum.value?.playlistId ?: ""
+                val entity = AlbumEntity(
+                    id = albumId,
+                    playlistId = playlistId.ifEmpty { null },
+                    title = displayTitle,
+                    thumbnailUrl = displayThumbnail,
+                    songCount = songCount,
+                    duration = 0,
+                ).localToggleLike()
+                database.insert(entity)
+                if (playlistId.isNotEmpty()) YouTube.likePlaylist(playlistId, true)
+            } else {
+                val updated = existing.album.localToggleLike()
+                database.update(updated)
+                val playlistId = updated.playlistId ?: ""
+                if (playlistId.isNotEmpty()) YouTube.likePlaylist(playlistId, updated.bookmarkedAt != null)
+            }
+        }
+    }
+
     TvDetailLayout(
         title = displayTitle,
         subtitle = displaySubtitle,
@@ -167,6 +202,9 @@ fun TvAlbumDetailScreen(albumId: String, playerConnection: PlayerConnection?, on
         onBackClick = onBackClick,
         focusRequester = focusRequester,
         onNavigateUp = onNavigateUp,
+        showLikeButton = showAlbumLike,
+        isLiked = isAlbumLiked,
+        onLikeClick = onAlbumLikeClick,
     )
 }
 
@@ -203,6 +241,32 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
 
     val displayTitle = localArtist?.artist?.name ?: ytArtistPage.value?.artist?.title ?: "Artist"
     val displayThumbnail = localArtist?.artist?.thumbnailUrl ?: ytArtistPage.value?.artist?.thumbnail
+
+    // Subscribe button (syncs to library + YouTube Music account)
+    val scope = rememberCoroutineScope()
+    val dbArtist by database.artist(artistId).collectAsState(initial = null)
+    val isSubscribed = dbArtist?.artist?.bookmarkedAt != null
+    val onSubscribeClick: () -> Unit = {
+        scope.launch {
+            val existing = database.artist(artistId).first()
+            if (existing == null) {
+                val channelId = ytArtistPage.value?.artist?.channelId ?: YouTube.getChannelId(artistId)
+                val entity = ArtistEntity(
+                    id = artistId,
+                    name = displayTitle,
+                    thumbnailUrl = displayThumbnail,
+                    channelId = channelId.ifEmpty { null },
+                ).localToggleLike()
+                database.insert(entity)
+                if (channelId.isNotEmpty()) YouTube.subscribeChannel(channelId, true)
+            } else {
+                val updated = existing.artist.localToggleLike()
+                database.update(updated)
+                val channelId = updated.channelId ?: YouTube.getChannelId(artistId)
+                if (channelId.isNotEmpty()) YouTube.subscribeChannel(channelId, updated.bookmarkedAt != null)
+            }
+        }
+    }
 
     // Structure content similar to mobile app
     var backButtonFocused by remember { mutableStateOf(false) }
@@ -382,6 +446,9 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
                             }
                             playerConnection.playAll(allSongs.shuffled(), displayTitle)
                         }
+                        TvSecondaryButton(label = if (isSubscribed) "Subscribed" else "Subscribe") {
+                            onSubscribeClick()
+                        }
                     }
                 }
             }
@@ -455,19 +522,24 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
     BackHandler { onBackClick() }
     val playlistsViewModel: LibraryPlaylistsViewModel = hiltViewModel()
     val database = LocalDatabase.current
+    val scope = rememberCoroutineScope()
 
     val playlists by playlistsViewModel.allPlaylists.collectAsStateWithLifecycle()
     val localPlaylist = playlists.find { it.playlist.id == playlistId }
 
+    val isLikedMusic = playlistId == "LM"
+
     val localPlaylistSongs by database.playlistSongs(playlistId).collectAsState(emptyList())
-    val localSongs = localPlaylistSongs.map { it.song }
+    val localLikedSongs by database.likedSongs(SongSortType.CREATE_DATE, false).collectAsState(emptyList())
+
+    val localSongs = if (isLikedMusic) localLikedSongs else localPlaylistSongs.map { it.song }
 
     // YouTube data
     val ytSongs = remember { mutableStateOf<List<SongItem>?>(null) }
     val ytPlaylist = remember { mutableStateOf<com.auramusic.innertube.models.PlaylistItem?>(null) }
 
     LaunchedEffect(playlistId) {
-        if (localPlaylist == null && localSongs.isEmpty()) {
+        if (!isLikedMusic && localPlaylist == null && localSongs.isEmpty()) {
             // Try to fetch from YouTube
             YouTube.playlist(playlistId).onSuccess { playlistPage ->
                 ytPlaylist.value = playlistPage.playlist
@@ -482,9 +554,41 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
         ytSongs.value?.map { DisplaySong.YouTubeSong(it) } ?: emptyList()
     }
 
-    val displayTitle = localPlaylist?.playlist?.name ?: ytPlaylist.value?.title ?: "Playlist"
-    val displayThumbnail = localPlaylist?.playlist?.thumbnailUrl ?: ytPlaylist.value?.thumbnail
+    val displayTitle = if (isLikedMusic) {
+        stringResource(R.string.liked_songs)
+    } else {
+        localPlaylist?.playlist?.name ?: ytPlaylist.value?.title ?: "Playlist"
+    }
+    val displayThumbnail = if (isLikedMusic) {
+        localSongs.firstOrNull()?.thumbnailUrl
+    } else {
+        localPlaylist?.playlist?.thumbnailUrl ?: ytPlaylist.value?.thumbnail
+    }
     val songCount = displaySongs.size
+
+    // Like button (only for remote YouTube playlists, not the local "Liked Music" view)
+    val isYtPlaylist = !isLikedMusic && (localPlaylist?.playlist?.isLocal != true)
+    val dbPlaylist by database.playlistByBrowseId(playlistId).collectAsState(initial = null)
+    val isLiked = dbPlaylist?.bookmarkedAt != null
+    val onLikeClick: () -> Unit = {
+        scope.launch {
+            val existing = database.playlistByBrowseId(playlistId).first()
+            if (existing == null) {
+                val entity = PlaylistEntity(
+                    name = ytPlaylist.value?.title ?: displayTitle,
+                    browseId = playlistId,
+                    thumbnailUrl = displayThumbnail,
+                    isEditable = false,
+                ).localToggleLike()
+                database.insert(entity)
+                YouTube.likePlaylist(playlistId, true)
+            } else {
+                val updated = existing.localToggleLike()
+                database.update(updated)
+                YouTube.likePlaylist(playlistId, updated.bookmarkedAt != null)
+            }
+        }
+    }
 
     TvDetailLayout(
         title = displayTitle,
@@ -497,6 +601,9 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
         onBackClick = onBackClick,
         focusRequester = focusRequester,
         onNavigateUp = onNavigateUp,
+        showLikeButton = isYtPlaylist,
+        isLiked = isLiked,
+        onLikeClick = onLikeClick,
     )
 }
 
@@ -514,6 +621,9 @@ private fun TvDetailLayout(
     onBackClick: () -> Unit,
     focusRequester: FocusRequester? = null,
     onNavigateUp: (() -> Unit)? = null,
+    showLikeButton: Boolean = false,
+    isLiked: Boolean = false,
+    onLikeClick: () -> Unit = {},
 ) {
     val backButtonFocus = focusRequester ?: remember { FocusRequester() }
     // Tracks whether the back button currently holds focus. We only steal
@@ -621,6 +731,11 @@ private fun TvDetailLayout(
                         }
                         TvSecondaryButton(label = "Shuffle") {
                             playerConnection.playAll(displaySongs.shuffled(), playAllTitle)
+                        }
+                        if (showLikeButton) {
+                            TvSecondaryButton(label = if (isLiked) "Liked" else "Like") {
+                                onLikeClick()
+                            }
                         }
                     }
                 }
