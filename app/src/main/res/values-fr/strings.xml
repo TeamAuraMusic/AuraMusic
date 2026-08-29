@@ -985,4 +985,7 @@
     <string name="mini_player_show_favorite">Afficher le bouton « Ajouter aux favoris »</string>
     <string name="mini_player_show_subscribe">Afficher le bouton « S\'abonner »</string>
     <string name="mini_player_show_hardware">Afficher le bouton physique</string>
+    <string name="font_size">Taille de la police</string>
+    <string name="font_boldness">Épaisseur de la police</string>
+    <string name="mic_permission_required">L\'autorisation d\'accès au microphone est nécessaire pour la recherche vocale.</string>
 </resources>
