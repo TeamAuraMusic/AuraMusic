@@ -1359,6 +1359,19 @@ fun TvPlaybackSettingsScreen(
         }
 
         item {
+            val (enhancedLyrics, onEnhancedLyricsChange) = rememberPreference(
+                com.auramusic.app.constants.EnhancedLyricsKey, true,
+            )
+            TvContentToggleRow(
+                title = "Enhanced Lyrics",
+                subtitle = "Synced highlighting, romanization and word-by-word animation",
+                checked = enhancedLyrics,
+                onCheckedChange = onEnhancedLyricsChange,
+                icon = Icons.Filled.Lyrics,
+            )
+        }
+
+        item {
             TvContentToggleRow(
                 title = "Seek Extra Seconds",
                 subtitle = "Show 10-second seek buttons on player",

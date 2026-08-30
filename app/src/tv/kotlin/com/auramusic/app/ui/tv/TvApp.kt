@@ -388,6 +388,7 @@ enum class TvSection(val label: String) {
                   // Any key press dismisses the screensaver and resumes where the
                   // user left off (focus is preserved underneath the overlay).
                   isScreensaverActive = false
+                  lastInteraction.value = System.currentTimeMillis()
                   true
               } else {
                   resetIdle()
@@ -1750,6 +1751,7 @@ fun YouTubeMediaCard(
                 maxLines = 1,
                 textAlign = TextAlign.Center,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth(),
             )
         }
     } else {
@@ -1799,6 +1801,7 @@ fun YouTubeMediaCard(
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth(),
                 )
                 Text(
                     text = subtitle,
@@ -1806,6 +1809,7 @@ fun YouTubeMediaCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
         }

@@ -215,7 +215,7 @@ fun Lyrics(
     showLyrics: Boolean,
     disableInteractiveFeatures: Boolean = false
 ) {
-    val enhancedLyrics by rememberPreference(EnhancedLyricsKey, false)
+    val enhancedLyrics by rememberPreference(EnhancedLyricsKey, true)
     if (enhancedLyrics) {
         EnhancedLyricsView(
             sliderPositionProvider = sliderPositionProvider,
@@ -270,7 +270,7 @@ fun OriginalLyrics(
     val romanizeCyrillicByLine by rememberPreference(LyricsRomanizeCyrillicByLineKey, false)
     val romanizeChineseLyrics by rememberPreference(LyricsRomanizeChineseKey, true)
     val lyricsGlowEffect by rememberPreference(LyricsGlowEffectKey, false)
-    val enhancedLyrics by rememberPreference(EnhancedLyricsKey, false)
+    val enhancedLyrics by rememberPreference(EnhancedLyricsKey, true)
     val lyricsAnimationStyle by rememberEnumPreference(LyricsAnimationStyleKey, LyricsAnimationStyle.NONE)
     val baseLyricsTextSize by rememberPreference(LyricsTextSizeKey, 24f)
     val lyricsTextSize = baseLyricsTextSize

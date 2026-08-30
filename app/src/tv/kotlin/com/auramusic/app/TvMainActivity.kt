@@ -26,13 +26,16 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.lifecycleScope
  import com.auramusic.app.LocalDatabase
  import com.auramusic.app.LocalPlayerConnection
-  import com.auramusic.app.constants.DarkModeKey
-  import com.auramusic.app.constants.DynamicThemeKey
-  import com.auramusic.app.constants.PureBlackKey
-  import com.auramusic.app.constants.SelectedFontKey
-  import com.auramusic.app.constants.SelectedThemeColorKey
-  import com.auramusic.app.constants.FontScaleKey
-  import com.auramusic.app.constants.FontBoldnessKey
+import com.auramusic.app.constants.DarkModeKey
+import com.auramusic.app.constants.DynamicThemeKey
+import com.auramusic.app.constants.FontBoldnessKey
+import com.auramusic.app.constants.FontScaleKey
+import com.auramusic.app.constants.PureBlackKey
+import com.auramusic.app.constants.SelectedFontKey
+import com.auramusic.app.constants.SelectedThemeColorKey
+import com.auramusic.app.constants.ContentCountryKey
+import com.auramusic.app.constants.CountryCodeToName
+import com.auramusic.app.constants.SYSTEM_DEFAULT
  import com.auramusic.app.db.MusicDatabase
  import com.auramusic.app.listentogether.ListenTogetherManager
  import com.auramusic.app.playback.MusicService
@@ -44,13 +47,17 @@ import com.auramusic.app.ui.theme.DefaultThemeColor
 import com.auramusic.app.ui.screens.settings.DarkMode
 import com.auramusic.app.ui.tv.TvApp
 import com.auramusic.app.utils.SyncUtils
+import com.auramusic.app.utils.dataStore
 import com.auramusic.app.utils.rememberEnumPreference
 import com.auramusic.app.utils.rememberPreference
+import com.auramusic.innertube.YouTube
+import com.auramusic.innertube.models.YouTubeLocale
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.util.Locale
 import javax.inject.Inject
 
 /**
@@ -185,6 +192,15 @@ class TvMainActivity : ComponentActivity() {
               val selectedFont by rememberPreference(SelectedFontKey, defaultValue = "DEFAULT")
               val fontScale by rememberPreference(FontScaleKey, defaultValue = 1.15f)
               val fontBoldness by rememberPreference(FontBoldnessKey, defaultValue = 0f)
+
+              // Sync content country with YouTube so region-locked content is filtered correctly.
+              val contentCountry by rememberPreference(ContentCountryKey, SYSTEM_DEFAULT)
+              YouTube.locale = YouTubeLocale(
+                  gl = contentCountry.takeIf { it != SYSTEM_DEFAULT }
+                      ?: Locale.getDefault().country.takeIf { it in CountryCodeToName }
+                      ?: "US",
+                  hl = "en",
+              )
 
               AuraMusicTheme(
                   darkTheme = useDarkTheme,

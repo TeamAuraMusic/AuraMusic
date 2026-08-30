@@ -80,6 +80,7 @@ import com.auramusic.app.db.entities.Playlist
 import com.auramusic.app.db.entities.PlaylistEntity
 import com.auramusic.app.db.entities.Song
 import com.auramusic.app.db.entities.PlaylistSong
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import com.auramusic.app.extensions.toMediaItem
@@ -170,7 +171,7 @@ fun TvAlbumDetailScreen(albumId: String, playerConnection: PlayerConnection?, on
     val isAlbumLiked = dbAlbum?.album?.bookmarkedAt != null
     val showAlbumLike = localAlbum?.album?.isLocal != true
     val onAlbumLikeClick: () -> Unit = {
-        scope.launch {
+        scope.launch(Dispatchers.IO) {
             val existing = database.album(albumId).first()
             if (existing == null) {
                 val playlistId = ytAlbum.value?.playlistId ?: ""
@@ -249,7 +250,7 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
     val dbArtist by database.artist(artistId).collectAsState(initial = null)
     val isSubscribed = dbArtist?.artist?.bookmarkedAt != null
     val onSubscribeClick: () -> Unit = {
-        scope.launch {
+        scope.launch(Dispatchers.IO) {
             val existing = database.artist(artistId).first()
             if (existing == null) {
                 val channelId = ytArtistPage.value?.artist?.channelId ?: YouTube.getChannelId(artistId)
@@ -573,7 +574,7 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
     val dbPlaylist by database.playlistByBrowseId(playlistId).collectAsState(initial = null)
     val isLiked = dbPlaylist?.playlist?.bookmarkedAt != null
     val onLikeClick: () -> Unit = {
-        scope.launch {
+        scope.launch(Dispatchers.IO) {
             val existing = database.playlistByBrowseId(playlistId).first()
             if (existing == null) {
                 val entity = PlaylistEntity(

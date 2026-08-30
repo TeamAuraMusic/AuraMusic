@@ -316,7 +316,7 @@ fun markWrappedAsSeen() {
             }
             launch {
                 val fromTimeStamp = System.currentTimeMillis() - 86400000 * 7 * 2
-                val keepListeningSongs = database.mostPlayedSongs(fromTimeStamp, limit = 15, offset = 5).first().filterVideoSongs(hideVideoSongs).shuffled().take(10)
+                val keepListeningSongs = database.mostPlayedSongs(fromTimeStamp, limit = 15, offset = 5).first().filterVideoSongs(hideVideoSongs).filter { it.song.thumbnailUrl != null }.shuffled().take(10)
                 val keepListeningAlbums = database.mostPlayedAlbums(fromTimeStamp, limit = 8, offset = 2).first().filter { it.album.thumbnailUrl != null }.shuffled().take(5)
                 val keepListeningArtists = database.mostPlayedArtists(fromTimeStamp).first().filter { it.artist.isYouTubeArtist && it.artist.thumbnailUrl != null }.shuffled().take(5)
                 keepListening.value = (keepListeningSongs + keepListeningAlbums + keepListeningArtists).shuffled()

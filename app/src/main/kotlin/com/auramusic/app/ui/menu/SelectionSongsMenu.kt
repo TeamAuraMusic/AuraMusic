@@ -555,10 +555,8 @@ fun SelectionMediaMetadataMenu(
         isVisible = showChoosePlaylistDialog,
         onGetSong = {
             songSelection.map {
-                runBlocking {
-                    withContext(Dispatchers.IO) {
-                        database.insert(it)
-                    }
+                withContext(Dispatchers.IO) {
+                    database.insert(it)
                 }
                 it.id
             }
