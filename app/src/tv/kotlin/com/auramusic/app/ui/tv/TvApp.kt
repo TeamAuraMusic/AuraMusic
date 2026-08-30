@@ -94,6 +94,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -329,12 +330,14 @@ enum class TvSection(val label: String) {
           )
       }
 
-     // Keep screen on when music is playing
-     val (keepScreenOnPref, _) = rememberPreference(com.auramusic.app.constants.KeepScreenOn, false)
-     DisposableEffect(isPlayingState.value, keepScreenOnPref) {
-         val activity = view.context as? android.app.Activity
-         val window = activity?.window
-         if (isPlayingState.value && keepScreenOnPref) {
+      // Keep screen on when "Do not sleep" is enabled — must stay on across ALL
+      // TV screens (home, search, detail...), not only while playing. Otherwise the
+      // Android TV home tiles / Dream reappear after inactivity on non-player screens.
+      val (keepScreenOnPref, _) = rememberPreference(com.auramusic.app.constants.KeepScreenOn, false)
+      DisposableEffect(keepScreenOnPref) {
+          val activity = view.context as? android.app.Activity
+          val window = activity?.window
+          if (keepScreenOnPref) {
              window?.addFlags(
                  android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
                  android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
@@ -369,11 +372,10 @@ enum class TvSection(val label: String) {
           lastInteraction.value = System.currentTimeMillis()
           if (isScreensaverActive) isScreensaverActive = false
       }
-      LaunchedEffect(Unit) {
+       LaunchedEffect(Unit) {
           while (true) {
               delay(1000)
-              val hasSong = currentSong != null || currentMediaMetadata != null
-              if (hasSong && !isScreensaverActive &&
+              if (!isScreensaverActive &&
                   System.currentTimeMillis() - lastInteraction.value > idleTimeoutMs
               ) {
                   isScreensaverActive = true
@@ -3923,6 +3925,7 @@ private fun TvScreensaver(
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .zIndex(100f)
             .background(Color.Black.copy(alpha = 0.94f)),
     ) {
         mediaMetadata?.thumbnailUrl?.let { url ->
