@@ -383,6 +383,22 @@ enum class TvSection(val label: String) {
           }
       }
 
+      val screensaverContext = LocalContext.current
+      // Keep screen on while in-app screensaver is visible to prevent the
+      // Android TV Dream / home tiles from appearing over our dimmed overlay.
+      DisposableEffect(isScreensaverActive) {
+          val activity = screensaverContext as? android.app.Activity
+          val window = activity?.window
+          if (isScreensaverActive) {
+              window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+          }
+          onDispose {
+              if (!keepScreenOnPref) {
+                  window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+              }
+          }
+      }
+
       // Handle keyboard shortcuts for TV remote
       val onPreviewKeyEvent: (androidx.compose.ui.input.key.KeyEvent) -> Boolean = { event ->
           if (event.type == KeyEventType.KeyDown) {
@@ -3921,6 +3937,30 @@ private fun TvScreensaver(
 ) {
     val mediaMetadata by playerConnection?.mediaMetadata?.collectAsState(null)
         ?: remember { mutableStateOf(null) }
+    val currentSong by playerConnection?.currentSong?.collectAsState(null)
+        ?: remember { mutableStateOf(null) }
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    // Fetch lyrics for the screensaver independently of TvPlayer's showLyrics toggle —
+    // otherwise the Lyrics composable just shows shimmer forever when the player toggle is off.
+    androidx.compose.runtime.LaunchedEffect(mediaMetadata?.id) {
+        val metadata = mediaMetadata ?: return@LaunchedEffect
+        val pc = playerConnection ?: return@LaunchedEffect
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val entryPoint = dagger.hilt.android.EntryPointAccessors.fromApplication(
+                    context.applicationContext,
+                    com.auramusic.app.di.LyricsHelperEntryPoint::class.java
+                )
+                val lyricsHelper = entryPoint.lyricsHelper()
+                val fetched = lyricsHelper.getLyrics(metadata)
+                pc.updateTvLyrics(metadata.id, fetched.lyrics, fetched.provider)
+            } catch (t: Throwable) {
+                if (t is kotlinx.coroutines.CancellationException) throw t
+                pc.updateTvLyrics(metadata.id, com.auramusic.app.db.entities.LyricsEntity.LYRICS_NOT_FOUND, "")
+            }
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -3986,8 +4026,6 @@ private fun TvScreensaver(
             }
 
             Box(Modifier.weight(1f)) {
-                val currentSong by playerConnection?.currentSong?.collectAsState(null)
-                    ?: remember { mutableStateOf(null) }
                 val isVideo = mediaMetadata?.isVideoSong == true || currentSong?.song?.isVideo == true
                 val activePlayer by (playerConnection?.service?.playerFlow?.collectAsState(initial = null)
                     ?: remember { mutableStateOf(null) })
