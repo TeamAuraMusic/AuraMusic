@@ -338,30 +338,33 @@ enum class TvSection(val label: String) {
           val activity = view.context as? android.app.Activity
           val window = activity?.window
           if (keepScreenOnPref) {
-             window?.addFlags(
-                 android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
-                 android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
-                 android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
-             )
-             // Disable TV screensaver while music is playing
-             try {
-                 val uiModeManager = activity?.getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager
-                 uiModeManager?.disableCarMode(0)
-             } catch (_: Exception) {}
-         } else {
-             window?.clearFlags(
-                 android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
-                 android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
-                 android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
-             )
-         }
-          onDispose {
+              window?.addFlags(
+                  android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
+                  android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
+                  android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
+              )
+              view.keepScreenOn = true
+              // Disable TV screensaver while music is playing
+              try {
+                  val uiModeManager = activity?.getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager
+                  uiModeManager?.disableCarMode(0)
+              } catch (_: Exception) {}
+          } else {
               window?.clearFlags(
                   android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
                   android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
                   android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
               )
+              view.keepScreenOn = false
           }
+           onDispose {
+               window?.clearFlags(
+                   android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
+                   android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
+                   android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
+               )
+               view.keepScreenOn = false
+           }
       }
 
       // TV screensaver: show a dimmed now-playing overlay after a period of idle input.
@@ -375,7 +378,9 @@ enum class TvSection(val label: String) {
        LaunchedEffect(Unit) {
           while (true) {
               delay(1000)
-              if (!isScreensaverActive &&
+              val hasSong = currentSong != null || currentMediaMetadata != null
+              val isVideo = currentMediaMetadata?.isVideoSong == true || currentSong?.song?.isVideo == true
+              if (hasSong && !isVideo && !isScreensaverActive &&
                   System.currentTimeMillis() - lastInteraction.value > idleTimeoutMs
               ) {
                   isScreensaverActive = true
@@ -383,19 +388,49 @@ enum class TvSection(val label: String) {
           }
       }
 
+      val screensaverView = LocalView.current
       val screensaverContext = LocalContext.current
       // Keep screen on while in-app screensaver is visible to prevent the
       // Android TV Dream / home tiles from appearing over our dimmed overlay.
+      // Use both window flag and view.keepScreenOn for robustness on Android TV.
       DisposableEffect(isScreensaverActive) {
           val activity = screensaverContext as? android.app.Activity
           val window = activity?.window
           if (isScreensaverActive) {
               window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+              screensaverView.keepScreenOn = true
           }
           onDispose {
               if (!keepScreenOnPref) {
                   window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                  screensaverView.keepScreenOn = false
               }
+          }
+      }
+
+      // Fetch video in background even without opening the player, so when the
+      // user later opens the player the video is already playing (not just audio).
+      // This makes home taps behave like search — video mode is enabled via the
+      // WatchEndpoint flow even when TvPlayer isn't composed.
+      val (videoModeBackgroundPref, _) = rememberPreference(com.auramusic.app.constants.VideoModeEnabledKey, true)
+      LaunchedEffect(currentMediaMetadata?.id, videoModeBackgroundPref) {
+          val metadata = currentMediaMetadata ?: return@LaunchedEffect
+          val pc = playerConnection ?: return@LaunchedEffect
+          if (!videoModeBackgroundPref) return@LaunchedEffect
+          if (pc.videoModeEnabled.value && pc.currentVideoId.value != null) return@LaunchedEffect
+          kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+              try {
+                  // Small delay to let TvPlayer's own fast-path run first when player is open.
+                  kotlinx.coroutines.delay(400)
+                  val currentId = pc.mediaMetadata.value?.id
+                  if (currentId != metadata.id) return@withContext
+                  if (pc.videoModeEnabled.value) return@withContext
+                  val available = pc.service.checkVideoAvailability(metadata.id)
+                  val currentId2 = pc.mediaMetadata.value?.id
+                  if (currentId2 == metadata.id && available) {
+                      pc.enableVideoMode(true)
+                  }
+              } catch (_: Exception) {}
           }
       }
 
@@ -4027,29 +4062,38 @@ private fun TvScreensaver(
 
             Box(Modifier.weight(1f)) {
                 val isVideo = mediaMetadata?.isVideoSong == true || currentSong?.song?.isVideo == true
-                val activePlayer by (playerConnection?.service?.playerFlow?.collectAsState(initial = null)
-                    ?: remember { mutableStateOf(null) })
-
-                if (isVideo && activePlayer != null) {
-                    // Video mode: show the playing video with its native captions/subtitles.
-                    // PlayerView handles subtitle rendering when a text track is selected.
-                    androidx.compose.ui.viewinterop.AndroidView(
-                        factory = { ctx ->
-                            androidx.media3.ui.PlayerView(ctx).apply {
-                                player = activePlayer
-                                useController = false
-                                resizeMode = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
-                                setBackgroundColor(android.graphics.Color.BLACK)
-                            }
-                        },
+                if (isVideo) {
+                    // Video: show thumbnail dimmed with play indicator, not live PlayerView.
+                    // Using a second PlayerView steals the surface from TvPlayer and causes
+                    // freeze/black screen when dismissing. Thumbnail + captions placeholder
+                    // keeps the video playing in background (audio) and restores correctly.
+                    Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .clip(RoundedCornerShape(16.dp)),
-                        update = { view ->
-                            if (view.player !== activePlayer) view.player = activePlayer
-                        },
-                        onRelease = { view -> view.player = null },
-                    )
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.1f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        AsyncImage(
+                            model = mediaMetadata?.thumbnailUrl,
+                            contentDescription = mediaMetadata?.title,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.4f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.PlayArrow,
+                                contentDescription = "Video",
+                                tint = Color.White.copy(alpha = 0.9f),
+                                modifier = Modifier.size(64.dp),
+                            )
+                        }
+                    }
                 } else {
                     val positionProvider = { playerConnection?.player?.currentPosition ?: 0L }
                     com.auramusic.app.ui.component.Lyrics(
