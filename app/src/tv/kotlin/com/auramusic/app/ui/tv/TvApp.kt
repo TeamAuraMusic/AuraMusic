@@ -417,10 +417,10 @@ enum class TvSection(val label: String) {
           val metadata = currentMediaMetadata ?: return@LaunchedEffect
           val pc = playerConnection ?: return@LaunchedEffect
           if (!videoModeBackgroundPref) return@LaunchedEffect
+          if (!metadata.isVideoSong) return@LaunchedEffect
           if (pc.videoModeEnabled.value && pc.currentVideoId.value != null) return@LaunchedEffect
           kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
               try {
-                  // Small delay to let TvPlayer's own fast-path run first when player is open.
                   kotlinx.coroutines.delay(400)
                   val currentId = pc.mediaMetadata.value?.id
                   if (currentId != metadata.id) return@withContext
@@ -1703,7 +1703,10 @@ fun YouTubeAlbumRow(
             horizontalArrangement = Arrangement.spacedBy(20.dp),
             modifier = Modifier.fillMaxWidth(),
         ) {
-            items(albums) { album ->
+            items(
+                items = albums.distinctBy { it.id },
+                key = { it.id }
+            ) { album ->
                 YouTubeAlbumCard(
                     album = album,
                     onClick = { onAlbumClick(album) },
@@ -2927,7 +2930,10 @@ fun SongRow(
             horizontalArrangement = Arrangement.spacedBy(24.dp),
             modifier = Modifier.fillMaxWidth(),
         ) {
-            items(songs) { song ->
+            items(
+                items = songs.distinctBy { it.song.id },
+                key = { it.song.id }
+            ) { song ->
                 MediaCard(
                     title = song.song.title,
                     subtitle = song.artists.joinToString(", ") { it.name },

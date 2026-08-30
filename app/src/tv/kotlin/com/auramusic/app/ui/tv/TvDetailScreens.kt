@@ -467,7 +467,7 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
                     color = MaterialTheme.colorScheme.onBackground,
                 )
             }
-            itemsIndexed(localSongs, key = { _, song -> song.id }) { index, song ->
+            itemsIndexed(localSongs, key = { index, song -> "${index}_${song.id}" }) { index, song ->
                 SongRowItem(
                     displaySong = DisplaySong.LocalSong(song),
                     onClick = { playerConnection?.playSong(song) },
@@ -746,7 +746,7 @@ private fun TvDetailLayout(
         }
         item { Spacer(modifier = Modifier.height(8.dp)) }
 
-        itemsIndexed(displaySongs, key = { index, displaySong -> displaySong.id }) { index, displaySong ->
+        itemsIndexed(displaySongs, key = { index, displaySong -> "${index}_${displaySong.id}" }) { index, displaySong ->
             SongRowItem(
                 displaySong = displaySong,
                 onClick = { playerConnection?.playDisplaySong(displaySong) },

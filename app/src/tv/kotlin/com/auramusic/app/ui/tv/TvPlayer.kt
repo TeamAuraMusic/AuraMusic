@@ -364,21 +364,6 @@ fun TvPlayerScreen(
             return@LaunchedEffect
         }
 
-        // Home feed SongItems are sometimes not flagged isVideoSong even though a
-        // video exists. For those, do a background check and only enable if a
-        // video is actually available — do NOT optimistically enable for regular
-        // (audio) songs, which would incorrectly fetch video for every tap.
-        if (videoModeToggleEnabled && !mediaMetadata.isVideoSong && !videoModeEnabled) {
-            launch(kotlinx.coroutines.Dispatchers.IO) {
-                val available = playerConnection.service.checkVideoAvailability(videoId)
-                val currentId = playerConnection.mediaMetadata.value?.id
-                if (currentId == videoId && available) {
-                    playerConnection.enableVideoMode(true)
-                }
-            }
-            return@LaunchedEffect
-        }
-
         val available = playerConnection.service.checkVideoAvailability(videoId)
 
         // Staleness check: song may have changed during network call
