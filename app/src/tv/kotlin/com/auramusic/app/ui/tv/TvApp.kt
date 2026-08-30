@@ -2078,21 +2078,20 @@ fun TvLibraryScreen(
                 )
             }
         }
-        if (playlists.isNotEmpty() || songs.isNotEmpty()) {
-            item(key = "playlists") {
-                val likedMusicPlaylist = Playlist(
-                    playlist = PlaylistEntity(
-                        id = "LM",
-                        name = stringResource(R.string.liked_songs),
-                        isLocal = false,
-                    ),
-                    songCount = songs.size,
-                    songThumbnails = songs.take(4).map { it.thumbnailUrl },
-                )
-                val libraryPlaylists = buildList {
-                    if (songs.isNotEmpty()) add(likedMusicPlaylist)
-                    addAll(playlists)
-                }
+        item(key = "playlists") {
+            val likedMusicPlaylist = Playlist(
+                playlist = PlaylistEntity(
+                    id = "LM",
+                    name = stringResource(R.string.liked_songs),
+                    isLocal = false,
+                ),
+                songCount = songs.size,
+                songThumbnails = songs.take(4).map { it.thumbnailUrl },
+            )
+            val libraryPlaylists = buildList {
+                add(likedMusicPlaylist)
+                addAll(playlists)
+            }
                 LocalItemRow(
                     title = "Playlists",
                     localItems = libraryPlaylists,
