@@ -3983,15 +3983,43 @@ private fun TvScreensaver(
             }
 
             Box(Modifier.weight(1f)) {
-                val positionProvider = { playerConnection?.player?.currentPosition ?: 0L }
-                com.auramusic.app.ui.component.Lyrics(
-                    sliderPositionProvider = positionProvider,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 24.dp),
-                    showLyrics = true,
-                    disableInteractiveFeatures = true,
-                )
+                val currentSong by playerConnection?.currentSong?.collectAsState(null)
+                    ?: remember { mutableStateOf(null) }
+                val isVideo = mediaMetadata?.isVideoSong == true || currentSong?.song?.isVideo == true
+                val activePlayer by (playerConnection?.service?.playerFlow?.collectAsState(initial = null)
+                    ?: remember { mutableStateOf(null) })
+
+                if (isVideo && activePlayer != null) {
+                    // Video mode: show the playing video with its native captions/subtitles.
+                    // PlayerView handles subtitle rendering when a text track is selected.
+                    androidx.compose.ui.viewinterop.AndroidView(
+                        factory = { ctx ->
+                            androidx.media3.ui.PlayerView(ctx).apply {
+                                player = activePlayer
+                                useController = false
+                                resizeMode = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
+                                setBackgroundColor(android.graphics.Color.BLACK)
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(16.dp)),
+                        update = { view ->
+                            if (view.player !== activePlayer) view.player = activePlayer
+                        },
+                        onRelease = { view -> view.player = null },
+                    )
+                } else {
+                    val positionProvider = { playerConnection?.player?.currentPosition ?: 0L }
+                    com.auramusic.app.ui.component.Lyrics(
+                        sliderPositionProvider = positionProvider,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 24.dp),
+                        showLyrics = true,
+                        disableInteractiveFeatures = true,
+                    )
+                }
             }
         }
 
