@@ -221,6 +221,7 @@ fun Lyrics(
             sliderPositionProvider = sliderPositionProvider,
             modifier = modifier,
             showLyrics = showLyrics,
+            disableInteractiveFeatures = disableInteractiveFeatures,
         )
     } else {
         OriginalLyrics(
