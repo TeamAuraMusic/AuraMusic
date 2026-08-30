@@ -348,6 +348,38 @@ fun TvPlayerScreen(
         // network call and any mode toggle so the video isn't re-fetched on re-entry.
         if (videoModeEnabled && playerConnection.currentVideoId.value != null) return@LaunchedEffect
 
+        // Fast path for TV: if this is a known video song, enable video mode immediately
+        // without waiting for the network availability check. The check is still done
+        // in parallel to disable if unavailable, but the video starts fetching right away.
+        if (videoModeToggleEnabled && mediaMetadata.isVideoSong && !videoModeEnabled) {
+            playerConnection.enableVideoMode(true)
+            // Verify availability in background; if not actually available, fall back to audio.
+            launch(kotlinx.coroutines.Dispatchers.IO) {
+                val available = playerConnection.service.checkVideoAvailability(videoId)
+                val currentId = playerConnection.mediaMetadata.value?.id
+                if (currentId == videoId && !available) {
+                    playerConnection.enableVideoMode(false)
+                }
+            }
+            return@LaunchedEffect
+        }
+
+        // Home feed on TV often has SongItems not flagged as isVideoSong even though a
+        // video exists (search marks them correctly). For TV, optimistically enable
+        // video immediately so home taps feel as fast as search; fall back to audio
+        // in background if no video actually exists.
+        if (videoModeToggleEnabled && !mediaMetadata.isVideoSong && !videoModeEnabled) {
+            playerConnection.enableVideoMode(true)
+            launch(kotlinx.coroutines.Dispatchers.IO) {
+                val available = playerConnection.service.checkVideoAvailability(videoId)
+                val currentId = playerConnection.mediaMetadata.value?.id
+                if (currentId == videoId && !available) {
+                    playerConnection.enableVideoMode(false)
+                }
+            }
+            return@LaunchedEffect
+        }
+
         val available = playerConnection.service.checkVideoAvailability(videoId)
 
         // Staleness check: song may have changed during network call
