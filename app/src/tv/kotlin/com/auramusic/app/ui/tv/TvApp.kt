@@ -2090,16 +2090,15 @@ fun TvLibraryScreen(
             )
             val libraryPlaylists = buildList {
                 add(likedMusicPlaylist)
-                addAll(playlists)
+                addAll(playlists.filter { it.id != "LM" }.distinctBy { it.id })
             }
-                LocalItemRow(
-                    title = "Playlists",
-                    localItems = libraryPlaylists,
-                    playerConnection = playerConnection,
-                    modifier = Modifier.onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 2 },
-                    onItemFocused = { focusedLibraryItem = it },
-                )
-            }
+            LocalItemRow(
+                title = "Playlists",
+                localItems = libraryPlaylists.distinctBy { it.id },
+                playerConnection = playerConnection,
+                modifier = Modifier.onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 2 },
+                onItemFocused = { focusedLibraryItem = it },
+            )
         }
         if (artists.isNotEmpty()) {
             item(key = "artists") {
@@ -3139,7 +3138,24 @@ fun LocalItemRow(title: String, localItems: List<LocalItem>, playerConnection: P
             horizontalArrangement = Arrangement.spacedBy(24.dp),
             modifier = Modifier.fillMaxWidth(),
         ) {
-            items(localItems) { item ->
+            items(
+                items = localItems.distinctBy {
+                    when (it) {
+                        is Artist -> it.artist.id
+                        is Album -> it.album.id
+                        is Playlist -> it.playlist.id
+                        is Song -> it.song.id
+                    }
+                },
+                key = {
+                    when (it) {
+                        is Artist -> it.artist.id
+                        is Album -> it.album.id
+                        is Playlist -> it.playlist.id
+                        is Song -> it.song.id
+                    }
+                }
+            ) { item ->
                 when (item) {
                     is Artist -> MediaCard(
                         title = item.artist.name,

@@ -364,17 +364,16 @@ fun TvPlayerScreen(
             return@LaunchedEffect
         }
 
-        // Home feed on TV often has SongItems not flagged as isVideoSong even though a
-        // video exists (search marks them correctly). For TV, optimistically enable
-        // video immediately so home taps feel as fast as search; fall back to audio
-        // in background if no video actually exists.
+        // Home feed SongItems are sometimes not flagged isVideoSong even though a
+        // video exists. For those, do a background check and only enable if a
+        // video is actually available — do NOT optimistically enable for regular
+        // (audio) songs, which would incorrectly fetch video for every tap.
         if (videoModeToggleEnabled && !mediaMetadata.isVideoSong && !videoModeEnabled) {
-            playerConnection.enableVideoMode(true)
             launch(kotlinx.coroutines.Dispatchers.IO) {
                 val available = playerConnection.service.checkVideoAvailability(videoId)
                 val currentId = playerConnection.mediaMetadata.value?.id
-                if (currentId == videoId && !available) {
-                    playerConnection.enableVideoMode(false)
+                if (currentId == videoId && available) {
+                    playerConnection.enableVideoMode(true)
                 }
             }
             return@LaunchedEffect
@@ -568,7 +567,8 @@ fun TvPlayerScreen(
                                 },
                                 modifier = Modifier.fillMaxSize(),
                                 update = { playerView ->
-                                    // Always sync player reference and resume surface
+                                    // Always sync player reference and resume surface. Keep player
+                                    // attached across navigations to avoid black screen after 2+ re-entries.
                                     if (playerView.player !== activePlayer) {
                                         playerView.player = activePlayer
                                     }
@@ -577,7 +577,6 @@ fun TvPlayerScreen(
                                     playerView.requestLayout()
                                 },
                                 onRelease = { playerView ->
-                                    playerView.player = null
                                     playerView.onPause()
                                 },
                             )
