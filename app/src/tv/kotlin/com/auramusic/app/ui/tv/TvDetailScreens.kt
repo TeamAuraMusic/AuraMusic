@@ -57,6 +57,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -109,6 +110,7 @@ sealed class DisplaySong {
     abstract val thumbnailUrl: String?
     abstract val artists: String
     abstract val duration: String?
+    abstract val explicit: Boolean
 
     data class LocalSong(val song: Song) : DisplaySong() {
         override val id: String = song.id
@@ -116,6 +118,7 @@ sealed class DisplaySong {
         override val thumbnailUrl: String? = song.thumbnailUrl
         override val artists: String = song.artists.joinToString(", ") { it.name }
         override val duration: String? = null // Local songs don't have duration in this format
+        override val explicit: Boolean = song.song.explicit
     }
 
     data class YouTubeSong(val songItem: SongItem) : DisplaySong() {
@@ -124,6 +127,7 @@ sealed class DisplaySong {
         override val thumbnailUrl: String? = songItem.thumbnail
         override val artists: String = songItem.artists?.joinToString(", ") { it.name } ?: ""
         override val duration: String? = songItem.duration?.let { makeTimeString(it * 1000L) }
+        override val explicit: Boolean = songItem.explicit
     }
 }
 
@@ -799,13 +803,26 @@ private fun SongRowItem(displaySong: DisplaySong, onClick: () -> Unit, modifier:
             )
         }
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = displaySong.title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 1,
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = displaySong.title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = 1,
+                )
+                if (displaySong.explicit) {
+                    Icon(
+                        painter = painterResource(com.auramusic.app.R.drawable.explicit),
+                        contentDescription = "Explicit",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
             Text(
                 text = displaySong.artists,
                 style = MaterialTheme.typography.bodySmall,

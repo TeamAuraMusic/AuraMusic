@@ -379,8 +379,8 @@ enum class TvSection(val label: String) {
           while (true) {
               delay(1000)
               val hasSong = currentSong != null || currentMediaMetadata != null
-              val isVideo = currentMediaMetadata?.isVideoSong == true || currentSong?.song?.isVideo == true
-              if (hasSong && !isVideo && !isScreensaverActive &&
+              val isVideoSong = currentMediaMetadata?.isVideoSong == true
+              if (hasSong && !isVideoSong && !isScreensaverActive &&
                   System.currentTimeMillis() - lastInteraction.value > idleTimeoutMs
               ) {
                   isScreensaverActive = true
@@ -918,6 +918,7 @@ fun TvTopBar(
                     val miniArtists = currentSong?.artists?.joinToString(", ") { it.name }
                         ?: currentMediaMetadata?.artists?.joinToString(", ") { it.name }.orEmpty()
                     val miniThumbnail = currentSong?.thumbnailUrl ?: currentMediaMetadata?.thumbnailUrl
+                    val miniExplicit = currentSong?.song?.explicit == true || currentMediaMetadata?.explicit == true
                     var miniInfoFocused by remember { mutableStateOf(false) }
                     var miniPlayFocused by remember { mutableStateOf(false) }
                     val miniInfoScale by animateFloatAsState(
@@ -1013,14 +1014,28 @@ fun TvTopBar(
 
                             // Song info
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = miniTitle,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                ) {
+                                    Text(
+                                        text = miniTitle,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f, fill = false),
+                                    )
+                                    if (miniExplicit) {
+                                        Icon(
+                                            painter = painterResource(com.auramusic.app.R.drawable.explicit),
+                                            contentDescription = "Explicit",
+                                            modifier = Modifier.size(14.dp),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                }
                                 Text(
                                     text = miniArtists,
                                     style = MaterialTheme.typography.labelSmall,

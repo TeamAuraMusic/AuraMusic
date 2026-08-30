@@ -343,15 +343,16 @@ fun TvPlayerScreen(
         val videoId = mediaMetadata?.id ?: return@LaunchedEffect
         val playerConnection = pc ?: return@LaunchedEffect
 
-        // Returning to the player screen: if video mode is already active and a video
-        // has been resolved for this song, there is nothing to do. Skip the availability
-        // network call and any mode toggle so the video isn't re-fetched on re-entry.
-        if (videoModeEnabled && playerConnection.currentVideoId.value != null) return@LaunchedEffect
+        // If video mode is already active in the service, never re-trigger it.
+        // The PlayerView update block handles surface re-attachment on re-entry.
+        // Re-calling enableVideoMode on re-entry pauses playback, shows loading,
+        // and causes the black-screen-then-loading bug on the 2nd+ re-entry.
+        if (videoModeEnabled) return@LaunchedEffect
 
         // Fast path for TV: if this is a known video song, enable video mode immediately
         // without waiting for the network availability check. The check is still done
         // in parallel to disable if unavailable, but the video starts fetching right away.
-        if (videoModeToggleEnabled && mediaMetadata.isVideoSong && !videoModeEnabled) {
+        if (videoModeToggleEnabled && mediaMetadata.isVideoSong) {
             playerConnection.enableVideoMode(true)
             // Verify availability in background; if not actually available, fall back to audio.
             launch(kotlinx.coroutines.Dispatchers.IO) {
@@ -370,7 +371,7 @@ fun TvPlayerScreen(
         val currentId = playerConnection.mediaMetadata.value?.id
         if (currentId != videoId) return@LaunchedEffect
 
-        if (videoModeToggleEnabled && mediaMetadata.isVideoSong && available && !videoModeEnabled) {
+        if (videoModeToggleEnabled && mediaMetadata.isVideoSong && available) {
             playerConnection.enableVideoMode(true)
         } else if (videoModeEnabled && !mediaMetadata.isVideoSong) {
             playerConnection.enableVideoMode(false)
@@ -679,6 +680,10 @@ fun TvPlayerScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
                     Text(
                         text = mediaMetadata?.title ?: "No song playing",
                         style = MaterialTheme.typography.headlineMedium.copy(
@@ -694,6 +699,15 @@ fun TvPlayerScreen(
                             velocity = 30.dp
                         )
                     )
+                        if (mediaMetadata?.explicit == true) {
+                            Icon(
+                                painter = painterResource(com.auramusic.app.R.drawable.explicit),
+                                contentDescription = "Explicit",
+                                modifier = Modifier.size(22.dp),
+                                tint = Color.White.copy(alpha = 0.8f),
+                            )
+                        }
+                    }
 
                         Text(
                             text = mediaMetadata?.artists?.joinToString(", ") { it.name }.orEmpty(),
