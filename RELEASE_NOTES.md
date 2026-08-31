@@ -1,3 +1,60 @@
+# AuraMusic v3.1.0 (Build 28) Release Notes
+
+> [!NOTE]
+> AuraMusic 3.1.0 is a focused stability and polish update. It hardens playback and streaming for the 2026 YouTube enforcement, fixes media notifications, delivers extensive Android TV polish (video playback, screensaver, library thumbnails and navigation), improves Discord Rich Presence, restores missing artwork, and makes split ABI APKs actually smaller as intended.
+
+## What's New
+
+### Playback, Streaming & Media3
+- Fixed foreground notification crashes and bot-check handling that could kill playback.
+- Resolved next-song crashes, wrong-video advance and stream URL chunking for reliable queue progression.
+- Reworked stream resolution and PO token attestation for 2026 enforcement — added URL probing, rate-limit respect, guest-client fallback, exponential backoff and corrected `IO_BAD_HTTP_STATUS` handling.
+- Upgraded media3 to 1.11.0 then pinned to 1.10.1 for stability; hardened foreground service lifecycle and fixed `audio flush()` overload.
+- Fixed media notifications not showing by aligning notification lifecycle with media3 best practices and removing the `ForegroundSafeMediaNotificationProvider` wrapper.
+- Restored missing video thumbnails and added font size / boldness controls for readability.
+- Made AutoMix deduplication and configurable blend point more robust; uses guest clients when logged in.
+
+### Android TV — Player, Screensaver, Library & Navigation
+- Unified Google TV and Android TV UI scaling; larger TV fonts and improved home hero design.
+- Fixed video playback transitions, next-song crashes, black screen on 2nd re-entry and surface restoration; video mode now enables instantly on home taps.
+- Hardened video-song reliability with SponsorBlock/AutoMix guards and stopped regular songs from incorrectly fetching video.
+- Added artist subscribe, album like (YouTube Music-synced), synced lyrics, and the Liked Songs tile to the TV library — library now always shows Liked Songs.
+- Fixed duplicate-key crashes in all lazy lists and library `distinctBy`/`key` handling.
+- Added and refined the in-app screensaver: shows video with captions instead of lyrics, prevents Android Dream from covering it, fetches lyrics/video correctly, respects Do Not Sleep on all screens and stays on top. Screensaver now shows only for audio (not video) and correctly for regular songs.
+- Made enhanced lyrics default on, fixed panel focus, and fixed DB main-thread access, India content and cover art.
+
+### Discord & Integrations
+- Switched Discord HTTP from CIO to OkHttp to fix login TLS errors.
+- Uses presence OAuth scope and persists profile so Rich Presence stays connected.
+- Removed `application_id` from presence RPC that was blocking artist and song thumbnails in Discord.
+
+### Library, Thumbnails & Artwork
+- Fixed liked albums showing empty when opened from the library and playlist thumbnails missing (both TV and mobile) — now fills in missing `thumbnailUrl` during playlist sync and shows a MusicNote fallback when still null.
+- Fixed TV liked playlists to show the first song thumbnail in the library card instead of black.
+- Fixed TV `MediaCard` and mobile `ItemThumbnail`/`SongRowItem` to show a fallback icon when artwork is missing.
+
+### Home, Widgets & Customization
+- Added homepage layout toggle (grid/list), mini-player tweaks and expanded liquid-glass effects; fixed layout-toggle crash and Quick Picks list mode.
+- Improved widgets with full-bleed square art, visible play button and serialized updates.
+
+### Build & Distribution
+- Made split APKs actually split by ABI — removed the `defaultConfig` ABI filter that forced all 4 ABIs into every variant. `universal` keeps 4 ABIs, `arm64`/`armeabi`/`x86`/`x86_64` each contain only one, so standalone APKs are ~30% smaller as intended.
+
+### Localization
+- Updated translations via Weblate: German, Chinese (Simplified), Russian, French, Spanish and Turkish — thanks to all Weblate contributors.
+
+## Contributors
+- @chila254 — playback, TV, Discord, library, thumbnails, widgets, build and release engineering
+- @zhx000 — German translations
+- @gmkeebiy — Chinese (Simplified Han script) translations
+- @Maxim Prokopyev, @vityatii, @LibreTranslate, @Mickaël Binos, @Hosted Weblate, @Buğra, @Oğuz Ersen — Russian, French, Spanish and Turkish translations
+
+**Full Changelog**: https://github.com/TeamAuraMusic/AuraMusic/compare/v3.0.0...e1d2c0e
+
+**Complete commit range (57 commits):** `e2f86cd` through `e1d2c0e`, inclusive
+
+**Full diff:** https://github.com/TeamAuraMusic/AuraMusic/compare/v3.0.0...e1d2c0e
+
 # AuraMusic v3.0.0 (Build 27) Release Notes
 
 # AuraMusic v3.0.0 (Build 27) Release Notes

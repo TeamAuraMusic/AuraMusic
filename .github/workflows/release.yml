@@ -122,7 +122,26 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [ -f RELEASE_NOTES.md ]; then
+          version_name="${VERSION_NAME}"
+          version_code="${VERSION_CODE}"
+
+          if [ -f RELEASE_NOTES.md ] && grep -q "AuraMusic v${version_name} (Build ${version_code})" RELEASE_NOTES.md; then
+            python3 - <<'PY'
+          import re
+          from pathlib import Path
+          import os
+
+          version_name = os.environ["VERSION_NAME"]
+          version_code = os.environ["VERSION_CODE"]
+          text = Path("RELEASE_NOTES.md").read_text(encoding="utf-8")
+          pattern = rf"^# AuraMusic v{re.escape(version_name)} \(Build {re.escape(version_code)}\).*?(?=^# AuraMusic v|\Z)"
+          m = re.search(pattern, text, re.MULTILINE | re.DOTALL)
+          if m:
+              Path("release-notes-body.md").write_text(m.group(0).strip() + "\n", encoding="utf-8")
+          else:
+              Path("release-notes-body.md").write_text(f"# AuraMusic v{version_name} (Build {version_code})\n\n@chila254 released v{version_name}.\n", encoding="utf-8")
+          PY
+          elif [ -f RELEASE_NOTES.md ]; then
             cp RELEASE_NOTES.md release-notes-body.md
           else
             echo "# AuraMusic v${VERSION_NAME} (Build ${VERSION_CODE})" > release-notes-body.md
@@ -152,6 +171,10 @@ jobs:
           for filename, suffix in targets.items():
               path = Path(filename)
               old = path.read_text(encoding="utf-8") if path.exists() else ""
+              header = f"AuraMusic v{version_name} (Build {version_code})"
+              if header in old:
+                  print(f"{filename} already contains {header}, skipping")
+                  continue
               new_section = f"# AuraMusic v{version_name} (Build {version_code}) {suffix}\n\n{body}\n\n"
               path.write_text(new_section + old.lstrip(), encoding="utf-8")
           PY

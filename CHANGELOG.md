@@ -1,3 +1,115 @@
+# AuraMusic v3.1.0 (Build 28) Changelog
+
+> [!NOTE]
+> This changelog covers all 57 commits from `e2f86cd` through `e1d2c0e`, inclusive. No commits in the requested range are omitted.
+
+## Highlights
+
+- **Playback hardened for 2026** — PO token attestation, stream probing, media3 lifecycle and notification fixes eliminate the `foreground notification` and `next-song` crashes.
+- **Extensive TV polish** — video playback, screensaver, library thumbnails, duplicate-key crashes and D-pad focus all fixed; TV library now always shows Liked Songs.
+- **Thumbnails restored** — missing video thumbnails, liked-album empty states and playlist artwork now fall back correctly on both mobile and TV.
+- **Split APKs fixed** — ABI splits now actually contain only one ABI and are ~30% smaller.
+
+## Major Changes
+
+### Playback, Streaming & Media3
+- Fixed foreground notification `bot-check` crash and lifecycle alignment with media3 best practices.
+- Resolved next-song crash, wrong-video advance and stream URL chunking.
+- Reworked stream resolution and PO token attestation for 2026 enforcement — probing, rate-limit respect, guest-client fallback, exponential backoff and corrected `IO_BAD_HTTP_STATUS` handling.
+- Upgraded media3 to 1.11.0 then pinned to 1.10.1 for stability; fixed `audio flush()` overload and FGS lifecycle.
+- Fixed media notifications not showing and hardened FGS crash handling.
+- Restored video thumbnails and added font size / boldness settings.
+
+### Android TV
+- Unified Google TV and Android TV UI scaling and enlarged TV fonts.
+- Fixed video playback, next-song crashes, black screen on 2nd re-entry and surface restoration; video mode now enables instantly on home taps.
+- Hardened video-song reliability with SponsorBlock/AutoMix guards and stopped regular songs from fetching video.
+- Added artist subscribe, album like (YouTube Music-synced), synced lyrics and the Liked Songs tile; library always shows Liked Songs.
+- Fixed duplicate-key crashes in all lazy lists and library `distinctBy`/`key` handling.
+- Built and refined the in-app screensaver — video with captions, prevents Dream, fetches lyrics/video correctly, respects Do Not Sleep, stays on top and shows only for audio (not video).
+
+### Discord
+- Switched Discord HTTP from CIO to OkHttp to fix TLS login errors; uses presence OAuth scope and persists profile.
+- Removed `application_id` from presence RPC that was blocking artist and song thumbnails in Discord.
+
+### Library, Thumbnails & Artwork
+- Fixed liked albums showing empty from the library and playlist thumbnails missing — fills missing `thumbnailUrl` during sync and shows fallback icons.
+- Fixed TV liked playlists to show the first song thumbnail instead of black; `MediaCard` and `ItemThumbnail` now show a fallback when artwork is missing.
+
+### Home, Widgets & Customization
+- Added homepage layout toggle (grid/list), mini-player tweaks and liquid-glass effects; fixed layout-toggle crash and Quick Picks list mode.
+- Improved widgets with full-bleed square art and visible play button.
+
+### Build & Distribution
+- Fixed split APKs — removed the `defaultConfig` ABI filter that forced all 4 ABIs into every variant. `universal` keeps 4 ABIs, `arm64`/`armeabi`/`x86`/`x86_64` each contain only one.
+
+### Localization
+- German, Chinese (Simplified), Russian, French, Spanish and Turkish translation updates via Weblate.
+
+## Full Changelog — All 57 Commits
+
+- Translated using Weblate (German) ([e2f86cd](https://github.com/TeamAuraMusic/AuraMusic/commit/e2f86cdad860eb4476d45369b8ba4c71a9fd4f54)) — zhx000
+- Translated using Weblate (Chinese (Simplified Han script)) ([d1e57a1](https://github.com/TeamAuraMusic/AuraMusic/commit/d1e57a1ed206329e53e999d5f0dbb16f7641ee09)) — gmkeebiy
+- Translated using Weblate (Chinese (Simplified Han script)) ([61e8813](https://github.com/TeamAuraMusic/AuraMusic/commit/61e8813d08f5ec8f6a324d40f219839f6a1a68f3)) — gmkeebiy
+- fix: crash from foreground notification and playback bot-check ([a9f9cae](https://github.com/TeamAuraMusic/AuraMusic/commit/a9f9cae9af21dddcb0fffa0074fc47cc15446ee8)) — chila254
+- fix(tv): unify Google TV and Android TV UI scaling ([ce03ccb](https://github.com/TeamAuraMusic/AuraMusic/commit/ce03ccb3ed7fbd5f1e635629f700783f6ff56cd5)) — chila254
+- fix(tv): video playback, next-song crashes, and home hero design ([dcb5ebd](https://github.com/TeamAuraMusic/AuraMusic/commit/dcb5ebd05515eb21f05ae4efa40e7af69835454d)) — chila254
+- fix(playback): resolve next-song crash, wrong-video advance, and stream URL chunking ([905e95c](https://github.com/TeamAuraMusic/AuraMusic/commit/905e95cc511c83f837ca2291fa45d393f402315a)) — chila254
+- fix(widget): full-bleed square art, visible play button, and serialized updates ([3880bce](https://github.com/TeamAuraMusic/AuraMusic/commit/3880bce20dfebd20ea723fc4c943f2911ed250b8)) — chila254
+- fix(tv): video-song reliability, SponsorBlock/Automix guards, and larger TV fonts ([053ca7b](https://github.com/TeamAuraMusic/AuraMusic/commit/053ca7b083856cf07314dbef8edf7cd78f75ae3a)) — chila254
+- fix(playback): dedupe automix queue entries and use guest clients when logged in ([5c85ec9](https://github.com/TeamAuraMusic/AuraMusic/commit/5c85ec922ea1986ce382bfcbae965d8f1e1c683b)) — chila254
+- fix(discord): switch HTTP from CIO to OkHttp engine to fix login TLS error ([12dc9e7](https://github.com/TeamAuraMusic/AuraMusic/commit/12dc9e72e8d1e81f2f949373469c98da579dd1d4)) — chila254
+- fix(playback): configurable automix blend point and bot-check streaming fixes ([212cd05](https://github.com/TeamAuraMusic/AuraMusic/commit/212cd05e443714190fbfec0de12eb634c373a8be)) — chila254
+- fix(discord): use presence OAuth scope and persist profile so Rich Presence stays connected ([f2aeb75](https://github.com/TeamAuraMusic/AuraMusic/commit/f2aeb75f77b01e8c8bc9b205b003c8894080dd48)) — chila254
+- feat(customization): add homepage layout toggle, mini player tweaks, and expanded liquid glass effects ([7bcadf5](https://github.com/TeamAuraMusic/AuraMusic/commit/7bcadf5fba723e1c28109620804ae264ed860a1a)) — chila254
+- fix(home): fix layout toggle crash and add quick picks list mode ([a850acd](https://github.com/TeamAuraMusic/AuraMusic/commit/a850acdbec81210a1456afaa10d764cf0ce020e4)) — chila254
+- fix(playback): don't mislabel all IO_BAD_HTTP_STATUS errors as age-restricted ([cbcff60](https://github.com/TeamAuraMusic/AuraMusic/commit/cbcff60f41bfdb7ff393d3162631000818243b5c)) — chila254
+- fix(playback): add exponential backoff to IO error retry handlers ([cb363e7](https://github.com/TeamAuraMusic/AuraMusic/commit/cb363e7fdb1bb8afc8c914162568aca0e9ec07e1)) — chila254
+- Prokopyev Added translation using Weblate (Russian) ([1cc0897](https://github.com/TeamAuraMusic/AuraMusic/commit/1cc0897064fdab35cd6bef8d5212d02e2d53e5ea)) — Maxim
+- Binos Translated using Weblate (French) ([5a946d8](https://github.com/TeamAuraMusic/AuraMusic/commit/5a946d8c624559fb41a6b0d6aece39b13f0cf392)) — Mickaël
+- Prokopyev Translated using Weblate (Russian) ([ec24e37](https://github.com/TeamAuraMusic/AuraMusic/commit/ec24e37928c40290ad07b7436eeef32869f84603)) — Maxim
+- Prokopyev Translated using Weblate (Russian) ([3a0708f](https://github.com/TeamAuraMusic/AuraMusic/commit/3a0708fbd2e4075d139bc16a54a37d8c0e56dc96)) — Maxim
+- Translated using Weblate (Russian) ([d6977f3](https://github.com/TeamAuraMusic/AuraMusic/commit/d6977f322e624a799c682889244e5652f71662d2)) — LibreTranslate
+- Translated using Weblate (Russian) ([8e6a999](https://github.com/TeamAuraMusic/AuraMusic/commit/8e6a99972852b7644368a04038e46497d20de3f1)) — vityatii
+- Translated using Weblate (Russian) ([7aa06a3](https://github.com/TeamAuraMusic/AuraMusic/commit/7aa06a3467e410c2402b43a2f7a6a243a3536e8a)) — LibreTranslate
+- Translated using Weblate (Russian) ([55d683a](https://github.com/TeamAuraMusic/AuraMusic/commit/55d683a416d1e5f025c811bb6cb0c805eefc0062)) — vityatii
+- Translated using Weblate (Russian) ([96917b7](https://github.com/TeamAuraMusic/AuraMusic/commit/96917b717591e5caf1dfdf513497903d1d309434)) — LibreTranslate
+- fix(playback): upgrade media3 to 1.11.0, stop FGS crash, and harden stream resolution ([2385e95](https://github.com/TeamAuraMusic/AuraMusic/commit/2385e95815988f540c8d7647225d0f78153587be)) — chila254
+- fix(playback): probe stream URLs, respect rate limits, keep miniplayer visible ([acefb95](https://github.com/TeamAuraMusic/AuraMusic/commit/acefb95efb7dc2b018678442ad343a877114a4da)) — chila254
+- fix(playback): rework stream resolution and PO token attestation for 2026 enforcement ([606bd4b](https://github.com/TeamAuraMusic/AuraMusic/commit/606bd4b5b9d6e2790990f0b05de7568df0f8909f)) — chila254
+- Fix media notification not showing in notification panel ([793c613](https://github.com/TeamAuraMusic/AuraMusic/commit/793c613664a7065b0ed0c5cc0cac22a49f3e3f24)) — chila254
+- Fix media notification not showing by removing ForegroundSafeMediaNotificationProvider wrapper ([b7bafe5](https://github.com/TeamAuraMusic/AuraMusic/commit/b7bafe5eef26bf7e8e9137ee89eb59ae977d2986)) — chila254
+- Fix media notification by aligning notification lifecycle with media3 best practices ([556171d](https://github.com/TeamAuraMusic/AuraMusic/commit/556171df38f9ac64910d21e22ce76117a43816e6)) — chila254
+- Downgrade media3 from 1.11.0 to 1.10.1 ([c2b2f2e](https://github.com/TeamAuraMusic/AuraMusic/commit/c2b2f2e8d4ba3dfde2d11d5707c1708480b29a04)) — chila254
+- fix: audio flush() overload error and video thumbnails not showing ([d0d71c2](https://github.com/TeamAuraMusic/AuraMusic/commit/d0d71c21e98f6e1bca33451575202462273ff9d5)) — chila254
+- Weblate user 159403 Translated using Weblate (Spanish) ([c1395c7](https://github.com/TeamAuraMusic/AuraMusic/commit/c1395c78fc092446a737583abb5f6df8754a5511)) — Hosted
+- fix: video thumbnails not showing + add font size/boldness settings ([491e75a](https://github.com/TeamAuraMusic/AuraMusic/commit/491e75a2d22debc7098bc9be10a98bd34bd054ac)) — chila254
+- feat(tv): artist subscribe, album like, synced lyrics, screensaver, liked-music tile + fixes ([261bb09](https://github.com/TeamAuraMusic/AuraMusic/commit/261bb09b687042c5d386b904c5b4d752309bbbc3)) — chila254
+- fix(tv): resolve TV compile errors (onPreviewKeyEvent braces, voice imports) + Discord Rich Presence app id ([7652af2](https://github.com/TeamAuraMusic/AuraMusic/commit/7652af269adbe6f5b5c93eef813ab3030639110b)) — chila254
+- Translated using Weblate (Turkish) ([1bbb87b](https://github.com/TeamAuraMusic/AuraMusic/commit/1bbb87b5e80268ad00d160bf9b25c1120cb44900)) — Buğra
+- Translated using Weblate (Turkish) ([a2ee6c6](https://github.com/TeamAuraMusic/AuraMusic/commit/a2ee6c64a391e238e8b59d5e43ec3bf0dacdf94d)) — Buğra
+- Ersen Translated using Weblate (Turkish) ([9e4bd56](https://github.com/TeamAuraMusic/AuraMusic/commit/9e4bd56f1ed321b998b01bbae0e99d738f41b2af)) — Oğuz
+- fix(tv+mobile): Enhanced Lyrics default on, screensaver dismiss, DB main-thread crash, India content, cover art ([405ad5a](https://github.com/TeamAuraMusic/AuraMusic/commit/405ad5a15def721ccd50177d8ba61ed7eae6cf9e)) — chila254
+- feat(tv): screensaver shows video with captions instead of lyrics ([da99fa7](https://github.com/TeamAuraMusic/AuraMusic/commit/da99fa74e9e49917a2b8b70edb44fc96a3536995)) — chila254
+- fix(tv): keep-screen-on respects Do Not Sleep on all screens, screensaver always on top ([dc63af6](https://github.com/TeamAuraMusic/AuraMusic/commit/dc63af6e6ffa66a4faba4a110d0cbcb551a1f208)) — chila254
+- fix(tv): enhanced lyrics panel not focusable on TV ([2850936](https://github.com/TeamAuraMusic/AuraMusic/commit/285093655c865d317e0cb42f1886ec4c016da60a)) — chila254
+- fix(tv): video mode enables instantly on home taps so video loads as fast as search ([5b82f5c](https://github.com/TeamAuraMusic/AuraMusic/commit/5b82f5c5df9e4c75cdfc51d197f7ad2c55eb662b)) — chila254
+- fix(tv): screensaver prevents Dream, fetches lyrics/video correctly ([6c241f8](https://github.com/TeamAuraMusic/AuraMusic/commit/6c241f89c33bff710d7a6bf104cda4a542ac1996)) — chila254
+- fix(tv): screensaver only for audio, not video ([5a0d962](https://github.com/TeamAuraMusic/AuraMusic/commit/5a0d9626c527857593837bd79fc083d676a2dcf5)) — chila254
+- fix(tv): library always shows Liked Songs playlist ([cedc8ac](https://github.com/TeamAuraMusic/AuraMusic/commit/cedc8acfbd46869759097a72738c9c933589fe2f)) — chila254
+- fix(tv): library duplicate key crash, regular songs not fetching video, video player surface ([9adca57](https://github.com/TeamAuraMusic/AuraMusic/commit/9adca57a6b54b4dc804abdbc67f0421a1f51c6b8)) — chila254
+- fix(tv): stop regular songs fetching video, fix duplicate key crashes in all lazy lists ([7aa4158](https://github.com/TeamAuraMusic/AuraMusic/commit/7aa4158a6bcb5d385cd58f8944061e10578f0275)) — chila254
+- fix(tv): video black screen on 2nd re-entry, screensaver for regular songs, explicit badge ([3cd8997](https://github.com/TeamAuraMusic/AuraMusic/commit/3cd8997876ca2f8223e13abafb1ecfcf249049ad)) — chila254
+- Binos Translated using Weblate (French) ([9656fa4](https://github.com/TeamAuraMusic/AuraMusic/commit/9656fa4c3086a352a9c8772bcb2897f7a733f79c)) — Mickaël
+- fix: liked albums empty, playlist thumbnails missing, null thumbnail fallback icons ([6184dc6](https://github.com/TeamAuraMusic/AuraMusic/commit/6184dc632795f51197974069c6add611c551204f)) — chila254
+- fix: remove Discord application_id, fix TV playlist thumbnails, paste release notes from file ([50ca674](https://github.com/TeamAuraMusic/AuraMusic/commit/50ca6740a5b8d6ab235e48709f42796f7dd38f88)) — chila254
+- fix(tv): liked playlists show first song thumbnail in library ([9666695](https://github.com/TeamAuraMusic/AuraMusic/commit/9666695f9fcedd0505d3d40cb0ad83359c6d5109)) — chila254
+- fix(build): make split APKs actually split by ABI ([e1d2c0e](https://github.com/TeamAuraMusic/AuraMusic/commit/e1d2c0e15edea230df3b3d194dfc5d0045deda90)) — chila254
+
+**Complete commit range:** `e2f86cd` through `e1d2c0e`, inclusive
+
+**Full diff:** https://github.com/TeamAuraMusic/AuraMusic/compare/v3.0.0...e1d2c0e
+
 # AuraMusic v3.0.0 (Build 27) Changelog
 
 # AuraMusic v3.0.0 (Build 27) Release Notes
