@@ -117,155 +117,18 @@ jobs:
 
       - name: Generate release notes
         env:
-          GH_TOKEN: ${{ github.token }}
-          TAG_NAME: ${{ steps.metadata.outputs.tag_name }}
-          PREVIOUS_TAG: ${{ steps.metadata.outputs.previous_tag }}
           VERSION_NAME: ${{ steps.metadata.outputs.version_name }}
           VERSION_CODE: ${{ steps.metadata.outputs.version_code }}
-          REPO_OWNER: ${{ github.repository_owner }}
-          TARGET_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          target_sha="$(git rev-parse "${TARGET_SHA}^{commit}")"
-          compare_url="https://github.com/${GITHUB_REPOSITORY}/compare/${PREVIOUS_TAG}...${target_sha}"
-          export target_sha compare_url
 
-          python3 - <<'PY' > release-notes-body.md
-          import os, subprocess, re
-          from collections import defaultdict
-
-          previous_tag = os.environ["PREVIOUS_TAG"]
-          target_sha = os.environ["target_sha"]
-          version_name = os.environ["VERSION_NAME"]
-          version_code = os.environ["VERSION_CODE"]
-          repo_owner = os.environ["REPO_OWNER"]
-          compare_url = os.environ["compare_url"]
-
-          raw = subprocess.check_output([
-              "git", "log", "--reverse", "--pretty=format:%s||%h||%H||%an||%s",
-              f"{previous_tag}..{target_sha}"
-          ], text=True)
-
-          lines = [l for l in raw.strip().split("\n") if l.strip()]
-          commits = []
-          for line in lines:
-              parts = line.split("||")
-              if len(parts) >= 5:
-                  subject, short, full, author, _ = parts[0], parts[1], parts[2], parts[3], parts[4] if len(parts)>4 else ""
-                  commits.append({"subject": subject.strip(), "short": short.strip(), "full": full.strip(), "author": author.strip()})
-              elif len(parts) >= 4:
-                  commits.append({"subject": parts[0].strip(), "short": parts[1].strip(), "full": parts[2].strip(), "author": parts[3].strip()})
-
-          # Filter out bot commits and merge commits
-          filtered = [c for c in commits if not c["subject"].startswith("Merge ") and "[bot]" not in c["author"]]
-
-          # Categorize commits
-          categories = defaultdict(list)
-          translations = []
-          other = []
-
-          for c in filtered:
-              s = c["subject"]
-              if s.lower().startswith("translat") or "weblate" in s.lower():
-                  translations.append(c)
-              elif s.startswith("feat") or s.startswith("feature"):
-                  categories["New Features"].append(c)
-              elif s.startswith("fix"):
-                  categories["Bug Fixes"].append(c)
-              elif s.startswith("refactor"):
-                  categories["Improvements"].append(c)
-              elif s.startswith("build") or s.startswith("ci") or s.startswith("chore"):
-                  categories["Build & Maintenance"].append(c)
-              elif s.startswith("style") or s.startswith("ui") or s.startswith("UX"):
-                  categories["UI/UX Improvements"].append(c)
-              elif s.startswith("perf"):
-                  categories["Performance"].append(c)
-              elif s.startswith("docs") or s.startswith("doc"):
-                  categories["Documentation"].append(c)
-              elif s.startswith("test"):
-                  categories["Testing"].append(c)
-              elif s.startswith("tv") or s.startswith("(tv)"):
-                  categories["Android TV"].append(c)
-              elif s.startswith("lyrics"):
-                  categories["Lyrics"].append(c)
-              elif s.startswith("video") or "video" in s.lower():
-                  categories["Video Playback"].append(c)
-              elif s.startswith("search"):
-                  categories["Search"].append(c)
-              elif s.startswith("player") or s.startswith("playback"):
-                  categories["Playback"].append(c)
-              else:
-                  other.append(c)
-
-          # Build summary of key changes
-          all_features = categories.get("New Features", [])
-          all_fixes = categories.get("Bug Fixes", [])
-          key_changes = []
-          for c in all_features[:5]:
-              key_changes.append(c["subject"])
-          for c in all_fixes[:3]:
-              key_changes.append(c["subject"])
-
-          # Generate output
-          lines = []
-          lines.append(f"# AuraMusic v{version_name} (Build {version_code}) Release Notes")
-          lines.append("")
-
-          # Summary note
-          if key_changes:
-              summary_items = ", ".join(key_changes[:4])
-              lines.append("> [!NOTE]")
-              lines.append(f"> This release includes {summary_items}.")
-              lines.append("")
-
-          lines.append("## What's New")
-          lines.append("")
-
-          # Render each category
-          ordered_cats = ["New Features", "Android TV", "Lyrics", "Video Playback", "Playback", "Search", "UI/UX Improvements", "Improvements", "Bug Fixes", "Performance", "Build & Maintenance", "Documentation", "Testing"]
-
-          for cat in ordered_cats:
-              items = categories.get(cat, [])
-              if not items:
-                  continue
-              lines.append(f"### {cat}")
-              lines.append(f"Implemented by @{repo_owner}")
-              lines.append("")
-              for c in items:
-                  lines.append(f"- {c['subject']}")
-              lines.append("")
-
-          # Other changes
-          if other:
-              lines.append("### Other Changes")
-              lines.append(f"Implemented by @{repo_owner}")
-              lines.append("")
-              for c in other:
-                  lines.append(f"- {c['subject']}")
-              lines.append("")
-
-          # Translations
-          if translations:
-              lines.append("## Translation Contributors")
-              lines.append("")
-              # Extract unique translator names
-              translators = set()
-              for t in translations:
-                  name = t["author"]
-                  if "[bot]" not in name and name.lower() not in ("chila254", repo_owner.lower()):
-                      translators.add(name)
-                  # Try to extract @username from commit message
-                  m = re.search(r'@(\w+)', t["subject"])
-                  if m:
-                      translators.add(m.group(1))
-              for name in sorted(translators):
-                  lines.append(f"- @{name} contributed translations")
-              lines.append("")
-
-          lines.append(f"**Full Changelog**: {compare_url}")
-          lines.append("")
-
-          print("\n".join(lines))
+          if [ -f RELEASE_NOTES.md ]; then
+            cp RELEASE_NOTES.md release-notes-body.md
+          else
+            echo "# AuraMusic v${VERSION_NAME} (Build ${VERSION_CODE})" > release-notes-body.md
+            echo "" >> release-notes-body.md
+            echo "@chila254 released v${VERSION_NAME}." >> release-notes-body.md
+          fi
 
       - name: Update RELEASE_NOTES.md and CHANGELOG.md
         env:
@@ -392,8 +255,8 @@ jobs:
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           set -euo pipefail
-          git config user.name "${{ github.repository_owner }}"
-          git config user.email "${{ github.repository_owner }}@users.noreply.github.com"
+          git config user.name "chila254"
+          git config user.email "franklinfinyange@gmail.com"
 
           git add app/build.gradle.kts RELEASE_NOTES.md CHANGELOG.md
           if ! git diff --cached --quiet; then

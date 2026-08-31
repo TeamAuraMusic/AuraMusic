@@ -1,6 +1,5 @@
 package com.auramusic.app.discord
 
-import com.auramusic.app.BuildConfig
 import org.json.JSONArray
 import org.json.JSONObject
 import timber.log.Timber
@@ -99,10 +98,6 @@ object DiscordPresence {
         val obj = JSONObject()
         obj.put("name", activity.name)
         obj.put("type", activity.type)
-        // Tie the activity to the AuraMusic Discord application so its logo is
-        // shown next to "Listening to AuraMusic" and so resolved external
-        // assets are attributed to the right app.
-        obj.put("application_id", BuildConfig.DISCORD_APP_ID.toString())
         activity.statusDisplayType?.let { obj.put("status_display_type", it) }
         activity.details?.let { obj.put("details", it) }
         activity.state?.let { obj.put("state", it) }

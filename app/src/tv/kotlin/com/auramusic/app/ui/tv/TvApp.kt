@@ -3038,12 +3038,21 @@ fun MediaCard(
                     .border(width = 3.dp, color = borderColor, shape = CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
-                AsyncImage(
-                    model = thumbnailUrl,
-                    contentDescription = title,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
+                if (thumbnailUrl.isNullOrBlank()) {
+                    Icon(
+                        imageVector = Icons.Filled.MusicNote,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(32.dp),
+                    )
+                } else {
+                    AsyncImage(
+                        model = thumbnailUrl,
+                        contentDescription = title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(12.dp))
             Text(
@@ -3098,12 +3107,21 @@ fun MediaCard(
                         .background(MaterialTheme.colorScheme.surface),
                     contentAlignment = Alignment.Center,
                 ) {
-                    AsyncImage(
-                        model = thumbnailUrl,
-                        contentDescription = title,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
-                    )
+                    if (thumbnailUrl.isNullOrBlank()) {
+                        Icon(
+                            imageVector = Icons.Filled.MusicNote,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(32.dp),
+                        )
+                    } else {
+                        AsyncImage(
+                            model = thumbnailUrl,
+                            contentDescription = title,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
@@ -3198,7 +3216,7 @@ fun LocalItemRow(title: String, localItems: List<LocalItem>, playerConnection: P
                     is Playlist -> MediaCard(
                         title = item.playlist.name,
                         subtitle = "${item.songCount} songs",
-                        thumbnailUrl = item.playlist.thumbnailUrl,
+                        thumbnailUrl = item.thumbnailUrl,
                         onClick = { navigator.navigate(TvDestination.Playlist(item.id)) },
                         onFocusChanged = onItemFocused,
                     )
