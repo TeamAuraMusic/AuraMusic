@@ -44,11 +44,6 @@ android {
 
         // Discord application ID used for OAuth2 login and Rich Presence
         buildConfigField("Long", "DISCORD_APP_ID", "1450052823617372160L")
-        
-        // NDK configuration for vibra_fp library
-        ndk {
-            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
-        }
     }
     
     externalNativeBuild {
