@@ -3216,7 +3216,7 @@ fun LocalItemRow(title: String, localItems: List<LocalItem>, playerConnection: P
                     is Playlist -> MediaCard(
                         title = item.playlist.name,
                         subtitle = "${item.songCount} songs",
-                        thumbnailUrl = item.thumbnailUrl,
+                        thumbnailUrl = item.thumbnails.firstOrNull(),
                         onClick = { navigator.navigate(TvDestination.Playlist(item.id)) },
                         onFocusChanged = onItemFocused,
                     )

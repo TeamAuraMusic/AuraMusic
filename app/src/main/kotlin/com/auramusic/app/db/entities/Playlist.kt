@@ -34,7 +34,7 @@ data class Playlist(
     override val title: String
         get() = playlist.name
     override val thumbnailUrl: String?
-        get() = thumbnails.firstOrNull()
+        get() = null
     
     val thumbnails: List<String>
         get() {
