@@ -1000,4 +1000,7 @@
     <string name="wrapped_intro_button">Смотрите мой %s</string>
     <string name="wrapped_logo_content_description">AuraMusic Wraped</string>
     <string name="wrapped_close">Закрыть</string>
+    <string name="font_size">Размер шрифта</string>
+    <string name="font_boldness">Толщина шрифта</string>
+    <string name="mic_permission_required">Для голосового поиска требуется разрешение на микрофон.</string>
 </resources>
