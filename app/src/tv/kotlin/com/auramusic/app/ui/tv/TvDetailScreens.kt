@@ -64,6 +64,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.foundation.layout.WindowInsets
@@ -149,7 +150,7 @@ fun TvAlbumDetailScreen(albumId: String, playerConnection: PlayerConnection?, on
     val ytAlbum = remember { mutableStateOf<com.auramusic.innertube.models.AlbumItem?>(null) }
 
     LaunchedEffect(albumId) {
-        if (localAlbum == null && localSongs.isEmpty()) {
+        if (localSongs.isEmpty() && ytSongs.value == null) {
             // Try to fetch from YouTube
             YouTube.album(albumId).onSuccess { albumPage ->
                 ytAlbum.value = albumPage.album
@@ -546,7 +547,7 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
     val ytPlaylist = remember { mutableStateOf<com.auramusic.innertube.models.PlaylistItem?>(null) }
 
     LaunchedEffect(playlistId) {
-        if (!isLikedMusic && localPlaylist == null && localSongs.isEmpty()) {
+        if (!isLikedMusic && localSongs.isEmpty() && ytSongs.value == null) {
             // Try to fetch from YouTube
             YouTube.playlist(playlistId).onSuccess { playlistPage ->
                 ytPlaylist.value = playlistPage.playlist
@@ -794,13 +795,23 @@ private fun SongRowItem(displaySong: DisplaySong, onClick: () -> Unit, modifier:
                 .size(56.dp)
                 .clip(RoundedCornerShape(6.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center,
         ) {
-            AsyncImage(
-                model = displaySong.thumbnailUrl,
-                contentDescription = displaySong.title,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-            )
+            if (displaySong.thumbnailUrl.isNullOrBlank()) {
+                Icon(
+                    imageVector = Icons.Filled.MusicNote,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(24.dp),
+                )
+            } else {
+                AsyncImage(
+                    model = displaySong.thumbnailUrl,
+                    contentDescription = displaySong.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
         }
         Column(modifier = Modifier.weight(1f)) {
             Row(

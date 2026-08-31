@@ -948,8 +948,11 @@ class SyncUtils @Inject constructor(
                     database.withTransaction {
                         database.clearPlaylist(playlistId)
                         songs.forEachIndexed { idx, song ->
-                            if (database.song(song.id).firstOrNull() == null) {
+                            val existingSong = database.song(song.id).firstOrNull()
+                            if (existingSong == null) {
                                 database.insert(song)
+                            } else if (existingSong.song.thumbnailUrl == null && song.thumbnailUrl != null) {
+                                database.update(existingSong.song.copy(thumbnailUrl = song.thumbnailUrl))
                             }
                             database.insert(
                                 PlaylistSongMap(
