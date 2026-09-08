@@ -69,6 +69,8 @@ data class YouTubeSearchResponse(
         val title: SimpleText?,
         val thumbnail: Thumbnails?,
         val subscriberCountText: SimpleText?,
+        val videoCountText: SimpleText?,
+        val descriptionSnippet: TextRuns?,
     )
 
     @Serializable
@@ -76,6 +78,8 @@ data class YouTubeSearchResponse(
         val playlistId: String?,
         val title: SimpleText?,
         val thumbnail: Thumbnails?,
+        val videoCountText: SimpleText?,
+        val longBylineText: TextRuns?,
     )
 
     @Serializable

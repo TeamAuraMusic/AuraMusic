@@ -243,6 +243,25 @@ class InnerTube {
         }
     }
 
+    suspend fun browseYouTube(
+        client: YouTubeClient,
+        browseId: String? = null,
+        params: String? = null,
+        continuation: String? = null,
+    ) = withRetry {
+        httpClient.post("https://www.youtube.com/youtubei/v1/browse") {
+            ytClient(client, setLogin = false, useMusicOrigin = false)
+            setBody(
+                BrowseBody(
+                    context = client.toContext(locale, visitorData, null),
+                    browseId = browseId,
+                    params = params,
+                    continuation = continuation
+                )
+            )
+        }
+    }
+
     suspend fun player(
         client: YouTubeClient,
         videoId: String,

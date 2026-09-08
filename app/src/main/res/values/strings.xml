@@ -29,6 +29,9 @@
     <string name="no_videos_found">No videos found</string>
     <string name="trending_videos">Trending Videos</string>
     <string name="for_you">For You</string>
+    <string name="video_search_title">YouTube Search</string>
+    <string name="search_tap_to_search">Tap to search YouTube</string>
+    <string name="playback_error">Playback error</string>
     <!-- Top bar -->
     <plurals name="n_selected">
         <item quantity="other">%d selected</item>

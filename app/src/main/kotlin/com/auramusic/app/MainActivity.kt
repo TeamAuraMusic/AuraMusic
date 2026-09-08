@@ -729,19 +729,22 @@ class MainActivity : ComponentActivity() {
                 val navigationItemRoutes = remember(navigationItems) {
                     navigationItems.map { it.route }.toSet()
                 }
+                val inVideoPlayerScreen = currentRoute?.startsWith("video_player") == true
 
-                val shouldShowNavigationBar = remember(currentRoute, navigationItemRoutes) {
-                    currentRoute == null ||
-                        navigationItemRoutes.contains(currentRoute) ||
-                        currentRoute!!.startsWith("search/") ||
-                        currentRoute!!.startsWith("video_search/")
+                val shouldShowNavigationBar = remember(currentRoute, navigationItemRoutes, inVideoPlayerScreen) {
+                    !inVideoPlayerScreen && (
+                        currentRoute == null ||
+                            navigationItemRoutes.contains(currentRoute) ||
+                            currentRoute!!.startsWith("search/") ||
+                            currentRoute!!.startsWith("video_search/")
+                        )
                 }
 
                 val windowSize = configuration.containerDpSize
                 val isLandscape = windowSize.width > windowSize.height
                 val isTabletWidth = windowSize.width >= 600.dp && windowSize.height >= 480.dp
 
-                val showRail = (isLandscape || isTabletWidth) && !inSearchScreen
+                val showRail = (isLandscape || isTabletWidth) && !inSearchScreen && !inVideoPlayerScreen
 
                 val navPadding = if (shouldShowNavigationBar && !showRail) {
                     if (slimNav) SlimNavBarHeight else NavigationBarHeight
@@ -867,9 +870,12 @@ class MainActivity : ComponentActivity() {
 
                 var shouldShowTopBar by rememberSaveable { mutableStateOf(false) }
 
+                val isVideoPlayerRoute = navBackStackEntry?.destination?.route?.startsWith("video_player") == true
+
                 LaunchedEffect(navBackStackEntry) {
                     shouldShowTopBar = navBackStackEntry?.destination?.route in topLevelScreens && 
-                        navBackStackEntry?.destination?.route != "settings"
+                        navBackStackEntry?.destination?.route != "settings" &&
+                        !isVideoPlayerRoute
                 }
 
                 val coroutineScope = rememberCoroutineScope()
@@ -901,6 +907,7 @@ class MainActivity : ComponentActivity() {
                         Screens.Home.route -> R.string.home
                         "search_input" -> R.string.search
                         Screens.Videos.route -> R.string.videos
+                        "video_search/{query}" -> R.string.video_search_title
                         Screens.Library.route -> R.string.filter_library
                         "listen_together" -> R.string.together
                         else -> null
@@ -942,6 +949,28 @@ class MainActivity : ComponentActivity() {
                                             )
                                         },
                                         actions = {
+                                            val isVideosRoute = currentRoute?.startsWith(Screens.Videos.route) == true
+                                            val isHomeRoute = currentRoute == Screens.Home.route
+                                            if (isHomeRoute || isVideosRoute) {
+                                                IconButton(
+                                                    onClick = {
+                                                        if (isVideosRoute) {
+                                                            navController.navigate("video_search/") {
+                                                                launchSingleTop = true
+                                                            }
+                                                        } else {
+                                                            navController.navigate("search_input") {
+                                                                launchSingleTop = true
+                                                            }
+                                                        }
+                                                    }
+                                                ) {
+                                                    Icon(
+                                                        painter = painterResource(R.drawable.search),
+                                                        contentDescription = stringResource(R.string.search)
+                                                    )
+                                                }
+                                            }
                                             IconButton(onClick = { navController.navigate("history") }) {
                                                 Icon(
                                                     painter = painterResource(R.drawable.history),

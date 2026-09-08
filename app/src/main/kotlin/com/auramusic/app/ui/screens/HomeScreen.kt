@@ -583,15 +583,6 @@ fun HomeScreen(
                         modifier = Modifier.weight(1f)
                     )
                     IconButton(
-                        onClick = { navController.navigate("search_input") }
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.search),
-                            contentDescription = stringResource(R.string.search),
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                    IconButton(
                         onClick = {
                             val newMode = homeLayoutMode.toggle()
                             viewModel.setHomeLayoutMode(newMode)

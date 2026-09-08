@@ -64,6 +64,8 @@ import com.auramusic.innertube.pages.NextResult
 import com.auramusic.innertube.pages.PlaylistContinuationPage
 import com.auramusic.innertube.pages.PlaylistPage
 import com.auramusic.innertube.pages.RelatedPage
+import com.auramusic.innertube.pages.YouTubeFeedPage
+import com.auramusic.innertube.pages.YouTubeFeedResult
 import com.auramusic.innertube.pages.SearchPage
 import com.auramusic.innertube.pages.SearchResult
 import com.auramusic.innertube.pages.SearchSuggestionPage
@@ -160,6 +162,21 @@ object YouTube {
             it.jsonPrimitive.contentOrNull
         } ?: emptyList()
         suggestions
+    }
+
+    /** Regular YouTube home feed (FEwhat_to_watch) - personalized recommendations. */
+    suspend fun youtubeHomeFeed(continuation: String? = null): Result<YouTubeFeedResult> = runCatching {
+        youtubeFeed(browseId = "FEwhat_to_watch", continuation = continuation).getOrThrow()
+    }
+
+    /** Regular YouTube trending feed (FEtrending). */
+    suspend fun youtubeTrending(continuation: String? = null): Result<YouTubeFeedResult> = runCatching {
+        youtubeFeed(browseId = "FEtrending", continuation = continuation).getOrThrow()
+    }
+
+    private suspend fun youtubeFeed(browseId: String, continuation: String? = null): Result<YouTubeFeedResult> = runCatching {
+        val response = innerTube.browseYouTube(WEB, browseId = browseId, continuation = continuation)
+        YouTubeFeedPage.fromBrowseResponse(response.bodyAsText())
     }
 
     suspend fun searchSummary(query: String): Result<SearchSummaryPage> = runCatching {
