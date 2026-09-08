@@ -8,6 +8,7 @@ package com.auramusic.app.ui.screens.videos
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -38,11 +39,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.material3.pulltorefresh.pullToRefresh
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -63,12 +68,13 @@ import coil3.compose.AsyncImage
 import com.auramusic.app.LocalPlayerAwareWindowInsets
 import com.auramusic.app.R
 import com.auramusic.app.constants.VideoFeedGridViewKey
+import com.auramusic.app.ui.component.shimmer.ShimmerHost
 import com.auramusic.app.utils.rememberPreference
 import com.auramusic.app.video.VideoPlaybackManager
 import com.auramusic.innertube.YouTube
 import com.auramusic.innertube.models.YouTubeVideoItem
-import com.valentinilk.shimmer.shimmer
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 private enum class VideoCategory(
@@ -97,6 +103,10 @@ fun VideosScreen(
     var isLoading by remember { mutableStateOf(true) }
     var isLoadingMore by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    var isRefreshing by remember { mutableStateOf(false) }
+
+    val pullRefreshState = rememberPullToRefreshState()
+    val scope = rememberCoroutineScope()
 
     suspend fun loadFirstPage() {
         if (!isLoading) {
@@ -124,6 +134,12 @@ fun VideosScreen(
             }
         }
         isLoading = false
+        isRefreshing = false
+    }
+
+    suspend fun refresh() {
+        isRefreshing = true
+        loadFirstPage()
     }
 
     suspend fun loadMore() {
@@ -171,100 +187,116 @@ fun VideosScreen(
         }.collect { nearEnd -> if (nearEnd) loadMore() }
     }
 
-    Column(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .padding(bottom = insets.calculateBottomPadding())
-    ) {
-        FeedFilterBar(
-            selected = selectedCategory,
-            gridView = gridView,
-            onCategorySelected = { selectedCategory = it },
-            onToggleView = { gridView = !gridView },
-        )
-
-        when {
-            isLoading && feed.isEmpty() -> SkeletonFeed(columns = columns)
-            error != null && feed.isEmpty() -> {
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.slow_motion_video),
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    val err = error
-                    Text(
-                        text = err.orEmpty(),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                }
-            }
-            else -> {
-                val playVideo: (YouTubeVideoItem) -> Unit = { video ->
-                    VideoPlaybackManager.playWithDetails(
-                        context = context,
-                        videoId = video.videoId,
-                        title = video.title,
-                        channelName = video.channelName,
-                        channelId = video.channelId,
-                        description = video.description,
-                        viewCountText = video.viewCountText,
-                        publishedTimeText = video.publishedTimeText,
-                        thumbnails = video.thumbnails,
-                    )
-                }
-                val openChannel: (String) -> Unit = { channelId ->
-                    navController.navigate("youtube_browse/$channelId")
-                }
-                if (gridView) {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(columns),
-                        state = gridListState,
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-                    ) {
-                        items(
-                            items = feed,
-                            key = { "video_${it.videoId}" }
-                        ) { video ->
-                            FeedVideoGridCard(
-                                video = video,
-                                onClick = { playVideo(video) },
-                                onChannelClick = openChannel,
-                            )
-                        }
-                        item(
-                            key = "feed_footer",
-                            span = { GridItemSpan(maxLineSpan) }
-                        ) {
-                            GridListFooter(isLoadingMore = isLoadingMore, hasMore = continuation != null)
-                        }
+            .pullToRefresh(
+                state = pullRefreshState,
+                isRefreshing = isRefreshing,
+                onRefresh = { 
+                    isRefreshing = true
+                    scope.launch {
+                        loadFirstPage()
                     }
-                } else {
-                    LazyColumn(
-                        state = listListState,
+                },
+            ),
+        contentAlignment = Alignment.TopStart
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = insets.calculateBottomPadding())
+        ) {
+            FeedFilterBar(
+                selected = selectedCategory,
+                gridView = gridView,
+                onCategorySelected = { selectedCategory = it },
+                onToggleView = { gridView = !gridView },
+            )
+
+            when {
+                isLoading && feed.isEmpty() -> SkeletonFeed(columns = columns)
+                error != null && feed.isEmpty() -> {
+                    Column(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(vertical = 4.dp)
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
-                        items(
-                            items = feed,
-                            key = { "video_${it.videoId}" }
-                        ) { video ->
-                            FeedVideoListRow(
-                                video = video,
-                                onClick = { playVideo(video) },
-                                onChannelClick = openChannel,
-                            )
+                        Icon(
+                            painter = painterResource(R.drawable.slow_motion_video),
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        val err = error
+                        Text(
+                            text = err.orEmpty(),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+                else -> {
+                    val playVideo: (YouTubeVideoItem) -> Unit = { video ->
+                        VideoPlaybackManager.playWithDetails(
+                            context = context,
+                            videoId = video.videoId,
+                            title = video.title,
+                            channelName = video.channelName,
+                            channelId = video.channelId,
+                            description = video.description,
+                            viewCountText = video.viewCountText,
+                            publishedTimeText = video.publishedTimeText,
+                            thumbnails = video.thumbnails,
+                        )
+                    }
+                    val openChannel: (String) -> Unit = { channelId ->
+                        navController.navigate("youtube_browse/$channelId")
+                    }
+                    if (gridView) {
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(columns),
+                            state = gridListState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            items(
+                                items = feed,
+                                key = { "video_${it.videoId}" }
+                            ) { video ->
+                                FeedVideoGridCard(
+                                    video = video,
+                                    onClick = { playVideo(video) },
+                                    onChannelClick = openChannel,
+                                )
+                            }
+                            item(
+                                key = "feed_footer",
+                                span = { GridItemSpan(maxLineSpan) }
+                            ) {
+                                GridListFooter(isLoadingMore = isLoadingMore, hasMore = continuation != null)
+                            }
                         }
-                        item(key = "feed_footer") {
-                            GridListFooter(isLoadingMore = isLoadingMore, hasMore = continuation != null)
+                    } else {
+                        LazyColumn(
+                            state = listListState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(vertical = 4.dp)
+                        ) {
+                            items(
+                                items = feed,
+                                key = { "video_${it.videoId}" }
+                            ) { video ->
+                                FeedVideoListRow(
+                                    video = video,
+                                    onClick = { playVideo(video) },
+                                    onChannelClick = openChannel,
+                                )
+                            }
+                            item(key = "feed_footer") {
+                                GridListFooter(isLoadingMore = isLoadingMore, hasMore = continuation != null)
+                            }
                         }
                     }
                 }
@@ -326,32 +358,32 @@ private fun SkeletonFeed(columns: Int) {
             Column(
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp)
             ) {
-                Box(
+                ShimmerHost(
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(16f / 9f)
                         .clip(RoundedCornerShape(18.dp))
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                        .shimmer()
-                )
+                ) {
+                    Box(modifier = Modifier.fillMaxSize())
+                }
                 Spacer(modifier = Modifier.height(8.dp))
-                Box(
+                ShimmerHost(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(12.dp)
                         .clip(RoundedCornerShape(6.dp))
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                        .shimmer()
-                )
+                ) {
+                    Box(modifier = Modifier.fillMaxSize())
+                }
                 Spacer(modifier = Modifier.height(6.dp))
-                Box(
+                ShimmerHost(
                     modifier = Modifier
                         .fillMaxWidth(0.6f)
                         .height(10.dp)
                         .clip(RoundedCornerShape(5.dp))
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                        .shimmer()
-                )
+                ) {
+                    Box(modifier = Modifier.fillMaxSize())
+                }
             }
         }
     }

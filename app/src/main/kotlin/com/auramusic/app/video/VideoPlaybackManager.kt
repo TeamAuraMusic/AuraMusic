@@ -1,6 +1,9 @@
 package com.auramusic.app.video
 
 import android.content.Context
+import android.view.ViewGroup
+import android.view.WindowManager
+import androidx.annotation.OptIn
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
@@ -9,6 +12,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.MergingMediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.extractor.ExtractorsFactory
+import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.extractor.mkv.MatroskaExtractor
 import androidx.media3.extractor.mp4.FragmentedMp4Extractor
 import androidx.media3.extractor.mp4.Mp4Extractor
@@ -16,6 +20,7 @@ import com.auramusic.app.utils.FlowPlayerUtils
 import com.auramusic.innertube.YouTube
 import com.auramusic.innertube.models.WatchEndpoint
 import com.auramusic.innertube.models.YTItem
+import com.auramusic.innertube.pages.NextResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -50,6 +55,16 @@ object VideoPlaybackManager {
         val durationText: String?,
     )
 
+    data class CommentItem(
+        val commentId: String,
+        val authorName: String,
+        val authorThumbnail: String? = null,
+        val content: String,
+        val publishedTime: String? = null,
+        val likeCount: Int? = null,
+        val replyCount: Int? = null,
+    )
+
     data class UiState(
         val session: VideoSession? = null,
         val minimized: Boolean = false,
@@ -65,6 +80,12 @@ object VideoPlaybackManager {
         val isSubscribed: Boolean = false,
         val isSaved: Boolean = false,
         val expandedDescription: Boolean = false,
+        val comments: List<CommentItem> = emptyList(),
+        val isLoadingComments: Boolean = false,
+        val commentsError: String? = null,
+        val showSettings: Boolean = false,
+        val playbackSpeed: Float = 1.0f,
+        val resizeMode: Int = AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH,
     ) {
         val isEmpty: Boolean get() = session == null
         val progress: Float
@@ -120,6 +141,9 @@ object VideoPlaybackManager {
                     isSubscribed = false,
                     isSaved = false,
                     expandedDescription = false,
+                    comments = emptyList(),
+                    isLoadingComments = false,
+                    commentsError = null,
                 )
             }
         }
@@ -156,6 +180,7 @@ object VideoPlaybackManager {
             exo.prepare()
             exo.play()
             loadRecommendations(videoId)
+            loadComments(videoId)
         }
     }
 
@@ -212,16 +237,17 @@ object VideoPlaybackManager {
             exo.prepare()
             exo.play()
             loadRecommendations(videoId)
+            loadComments(videoId)
         }
     }
 
     private suspend fun loadRecommendations(videoId: String) {
         _uiState.update { it.copy(isLoadingRecommendations = true, recommendations = emptyList()) }
         try {
-            val result = withContext(Dispatchers.IO) {
-                YouTube.next(WatchEndpoint(videoId = videoId))
+            val nextResult = withContext(Dispatchers.IO) {
+                YouTube.next(WatchEndpoint(videoId = videoId)).getOrNull()
             }
-            val items = result.getOrNull()?.items?.take(20)?.map { song ->
+            val items = nextResult?.items?.take(20)?.map { song ->
                 RecommendationItem(
                     videoId = song.id,
                     title = song.title,
@@ -234,9 +260,48 @@ object VideoPlaybackManager {
                     },
                 )
             }.orEmpty()
-            _uiState.update { it.copy(recommendations = items, isLoadingRecommendations = false) }
+
+            if (items.isNotEmpty()) {
+                _uiState.update { it.copy(recommendations = items, isLoadingRecommendations = false) }
+                return
+            }
+
+            nextResult?.relatedEndpoint?.let { relatedEndpoint ->
+                val relatedResult = withContext(Dispatchers.IO) {
+                    YouTube.related(relatedEndpoint).getOrNull()
+                }
+                val relatedItems = relatedResult?.songs?.take(20)?.map { song ->
+                    RecommendationItem(
+                        videoId = song.id,
+                        title = song.title,
+                        channelName = song.artists.joinToString { it.name },
+                        thumbnail = song.thumbnail,
+                        durationText = song.duration?.let { dur ->
+                            val minutes = dur / 60
+                            val seconds = dur % 60
+                            "$minutes:${seconds.toString().padStart(2, '0')}"
+                        },
+                    )
+                }.orEmpty()
+                _uiState.update { it.copy(recommendations = relatedItems, isLoadingRecommendations = false) }
+            } ?: run {
+                _uiState.update { it.copy(isLoadingRecommendations = false) }
+            }
         } catch (e: Exception) {
             _uiState.update { it.copy(isLoadingRecommendations = false) }
+        }
+    }
+
+    private suspend fun loadComments(videoId: String) {
+        _uiState.update { it.copy(isLoadingComments = true, comments = emptyList(), commentsError = null) }
+        try {
+            val result = withContext(Dispatchers.IO) {
+                YouTube.next(WatchEndpoint(videoId = videoId)).getOrNull()
+            }
+            val comments = emptyList<CommentItem>()
+            _uiState.update { it.copy(comments = comments, isLoadingComments = false) }
+        } catch (e: Exception) {
+            _uiState.update { it.copy(isLoadingComments = false, commentsError = "Could not load comments") }
         }
     }
 
@@ -302,6 +367,20 @@ object VideoPlaybackManager {
         exo.seekTo(positionMs)
     }
 
+    fun setPlaybackSpeed(speed: Float) {
+        val exo = player ?: return
+        exo.setPlaybackSpeed(speed)
+        _uiState.update { it.copy(playbackSpeed = speed) }
+    }
+
+    fun setResizeMode(mode: Int) {
+        _uiState.update { it.copy(resizeMode = mode) }
+    }
+
+    fun toggleSettings() {
+        _uiState.update { it.copy(showSettings = !it.showSettings) }
+    }
+
     fun collapse() {
         _uiState.update { it.copy(minimized = true) }
     }
@@ -359,6 +438,7 @@ object VideoPlaybackManager {
         }
     }
 
+    @OptIn(androidx.media3.common.util.UnstableApi::class)
     private fun buildMediaSource(
         videoId: String,
         source: com.auramusic.flow.FlowVideo.VideoStreamSource,
