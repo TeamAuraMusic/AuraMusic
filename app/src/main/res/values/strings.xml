@@ -1041,6 +1041,23 @@
     <string name="video_quality">Video Quality</string>
     <string name="video_lyrics_offset">Video Lyrics Offset</string>
     <string name="video_lyrics_offset_description">Adjust to sync lyrics with video (for intro/talk before music)</string>
+    <!-- Video player UI -->
+    <string name="video_player_description">Description</string>
+    <string name="video_player_comments">Comments</string>
+    <string name="video_player_up_next">Up next</string>
+    <string name="video_player_related">Related</string>
+    <string name="video_player_like">Like</string>
+    <string name="video_player_dislike">Dislike</string>
+    <string name="video_player_share">Share</string>
+    <string name="video_player_save">Save</string>
+    <string name="video_player_saved">Saved</string>
+    <string name="video_player_show_more">Show more</string>
+    <string name="video_player_show_less">Show less</string>
+    <string name="video_player_comments_unavailable">Comments are unavailable for this video</string>
+    <string name="video_player_no_recommendations">No recommendations available</string>
+    <string name="video_player_loading_recommendations">Loading recommendations…</string>
+    <string name="video_player_subscribe_count">%s subscribers</string>
+    <string name="video_player_views">%s views</string>
     <!-- Music Alarm -->
     <string name="alarm_title">Music alarm</string>
     <string name="alarm_subtitle">Alarm scheduled for %1$s</string>

@@ -324,11 +324,16 @@ fun VideoSearchScreen(
                             SearchResultRow(
                                 result = result,
                                 onVideoClick = { video ->
-                                    VideoPlaybackManager.play(
+                                    VideoPlaybackManager.playWithDetails(
                                         context = context,
                                         videoId = video.videoId,
                                         title = video.title,
                                         channelName = video.channelName,
+                                        channelId = video.channelId,
+                                        description = video.description,
+                                        viewCountText = video.viewCountText,
+                                        publishedTimeText = video.publishedTimeText,
+                                        thumbnails = video.thumbnails,
                                     )
                                 },
                                 onChannelClick = { channelId ->

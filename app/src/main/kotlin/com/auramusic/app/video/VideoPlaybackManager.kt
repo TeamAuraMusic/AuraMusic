@@ -13,7 +13,9 @@ import androidx.media3.extractor.mkv.MatroskaExtractor
 import androidx.media3.extractor.mp4.FragmentedMp4Extractor
 import androidx.media3.extractor.mp4.Mp4Extractor
 import com.auramusic.app.utils.FlowPlayerUtils
-import com.auramusic.flow.FlowVideo
+import com.auramusic.innertube.YouTube
+import com.auramusic.innertube.models.WatchEndpoint
+import com.auramusic.innertube.models.YTItem
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -27,19 +29,25 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/**
- * Holds the standalone video playback session for the Videos experience.
- *
- * The player lives at the app shell level (not in a route) so that the same
- * ExoPlayer surface can be shown full-screen and float as a minimized tile
- * while the user keeps browsing.
- */
 object VideoPlaybackManager {
 
     data class VideoSession(
         val videoId: String,
         val title: String,
         val channelName: String = "",
+        val channelId: String? = null,
+        val channelThumbnail: String? = null,
+        val description: String? = null,
+        val viewCountText: String? = null,
+        val publishedTimeText: String? = null,
+    )
+
+    data class RecommendationItem(
+        val videoId: String,
+        val title: String,
+        val channelName: String,
+        val thumbnail: String?,
+        val durationText: String?,
     )
 
     data class UiState(
@@ -50,6 +58,13 @@ object VideoPlaybackManager {
         val positionMs: Long = 0,
         val durationMs: Long = 0,
         val error: String? = null,
+        val recommendations: List<RecommendationItem> = emptyList(),
+        val isLoadingRecommendations: Boolean = false,
+        val isLiked: Boolean = false,
+        val isDisliked: Boolean = false,
+        val isSubscribed: Boolean = false,
+        val isSaved: Boolean = false,
+        val expandedDescription: Boolean = false,
     ) {
         val isEmpty: Boolean get() = session == null
         val progress: Float
@@ -63,7 +78,6 @@ object VideoPlaybackManager {
     private var player: ExoPlayer? = null
     private var tickerJob: Job? = null
 
-    /** The active player instance, if any. UI attaches PlayerView surfaces to it. */
     fun playerOrNull(): ExoPlayer? = player
 
     private val playerListener = object : Player.Listener {
@@ -99,12 +113,18 @@ object VideoPlaybackManager {
                     durationMs = exo.duration.takeIf { d -> d > 0 } ?: 0,
                     isBuffering = true,
                     error = null,
+                    recommendations = emptyList(),
+                    isLoadingRecommendations = false,
+                    isLiked = false,
+                    isDisliked = false,
+                    isSubscribed = false,
+                    isSaved = false,
+                    expandedDescription = false,
                 )
             }
         }
     }
 
-    /** Start (or resume) a video. Same videoId just expands/resumes. */
     fun play(context: Context, videoId: String, title: String, channelName: String = "") {
         val current = _uiState.value
         if (current.session?.videoId == videoId) {
@@ -135,7 +155,140 @@ object VideoPlaybackManager {
             exo.setMediaSource(mediaSource)
             exo.prepare()
             exo.play()
+            loadRecommendations(videoId)
         }
+    }
+
+    fun playWithDetails(
+        context: Context,
+        videoId: String,
+        title: String,
+        channelName: String,
+        channelId: String? = null,
+        channelThumbnail: String? = null,
+        description: String? = null,
+        viewCountText: String? = null,
+        publishedTimeText: String? = null,
+        thumbnails: List<com.auramusic.innertube.models.Thumbnail> = emptyList(),
+    ) {
+        val current = _uiState.value
+        if (current.session?.videoId == videoId) {
+            current.error?.let {
+                _uiState.update { s -> s.copy(error = null) }
+            }
+            _uiState.update { it.copy(minimized = false) }
+            player?.play()
+            return
+        }
+
+        val bestThumbnail = thumbnails.maxByOrNull { it.width ?: 0 }?.url
+
+        val exo = getOrCreatePlayer(context)
+        _uiState.value = UiState(
+            session = VideoSession(
+                videoId = videoId,
+                title = title,
+                channelName = channelName,
+                channelId = channelId,
+                channelThumbnail = bestThumbnail ?: channelThumbnail,
+                description = description,
+                viewCountText = viewCountText,
+                publishedTimeText = publishedTimeText,
+            ),
+            minimized = false,
+            isPlaying = true,
+            isBuffering = true,
+        )
+        scope.launch {
+            val source = withContext(Dispatchers.IO) {
+                FlowPlayerUtils.getVideoStreamSource(videoId).getOrNull()
+            }
+            if (source == null) {
+                _uiState.update { it.copy(isBuffering = false, error = "Could not load video") }
+                return@launch
+            }
+            val mediaSource = buildMediaSource(videoId, source)
+            exo.setMediaSource(mediaSource)
+            exo.prepare()
+            exo.play()
+            loadRecommendations(videoId)
+        }
+    }
+
+    private suspend fun loadRecommendations(videoId: String) {
+        _uiState.update { it.copy(isLoadingRecommendations = true, recommendations = emptyList()) }
+        try {
+            val result = withContext(Dispatchers.IO) {
+                YouTube.next(WatchEndpoint(videoId = videoId))
+            }
+            val items = result.getOrNull()?.items?.take(20)?.map { song ->
+                RecommendationItem(
+                    videoId = song.id,
+                    title = song.title,
+                    channelName = song.artists.joinToString { it.name },
+                    thumbnail = song.thumbnail,
+                    durationText = song.duration?.let { dur ->
+                        val minutes = dur / 60
+                        val seconds = dur % 60
+                        "$minutes:${seconds.toString().padStart(2, '0')}"
+                    },
+                )
+            }.orEmpty()
+            _uiState.update { it.copy(recommendations = items, isLoadingRecommendations = false) }
+        } catch (e: Exception) {
+            _uiState.update { it.copy(isLoadingRecommendations = false) }
+        }
+    }
+
+    fun toggleLike() {
+        val session = _uiState.value.session ?: return
+        val newLiked = !_uiState.value.isLiked
+        scope.launch {
+            YouTube.likeVideo(session.videoId, newLiked)
+            _uiState.update {
+                it.copy(
+                    isLiked = newLiked,
+                    isDisliked = if (newLiked) false else it.isDisliked
+                )
+            }
+        }
+    }
+
+    fun toggleDislike() {
+        val session = _uiState.value.session ?: return
+        val newDisliked = !_uiState.value.isDisliked
+        _uiState.update {
+            it.copy(
+                isDisliked = newDisliked,
+                isLiked = if (newDisliked) false else it.isLiked
+            )
+        }
+    }
+
+    fun toggleSubscribe() {
+        val channelId = _uiState.value.session?.channelId ?: return
+        val newSubscribed = !_uiState.value.isSubscribed
+        scope.launch {
+            YouTube.subscribeChannel(channelId, newSubscribed)
+            _uiState.update { it.copy(isSubscribed = newSubscribed) }
+        }
+    }
+
+    fun toggleSave() {
+        val session = _uiState.value.session ?: return
+        val newSaved = !_uiState.value.isSaved
+        scope.launch {
+            if (newSaved) {
+                YouTube.addSongToLibrary(session.videoId)
+            } else {
+                YouTube.removeSongFromLibrary(session.videoId)
+            }
+            _uiState.update { it.copy(isSaved = newSaved) }
+        }
+    }
+
+    fun toggleExpandedDescription() {
+        _uiState.update { it.copy(expandedDescription = !it.expandedDescription) }
     }
 
     fun togglePlayPause() {
@@ -173,7 +326,6 @@ object VideoPlaybackManager {
         _uiState.value = UiState()
     }
 
-    /** Release any active session without touching state observers. */
     fun release() {
         player?.removeListener(playerListener)
         player?.release()
@@ -209,7 +361,7 @@ object VideoPlaybackManager {
 
     private fun buildMediaSource(
         videoId: String,
-        source: FlowVideo.VideoStreamSource,
+        source: com.auramusic.flow.FlowVideo.VideoStreamSource,
     ): androidx.media3.exoplayer.source.MediaSource {
         val factory = ProgressiveMediaSource.Factory(
             DefaultHttpDataSource.Factory(),
@@ -222,7 +374,7 @@ object VideoPlaybackManager {
             }
         )
         return when (source) {
-            is FlowVideo.VideoStreamSource.Single -> {
+            is com.auramusic.flow.FlowVideo.VideoStreamSource.Single -> {
                 val mediaItem = MediaItem.Builder()
                     .setUri(source.url)
                     .setMimeType(source.mimeType)
@@ -230,7 +382,7 @@ object VideoPlaybackManager {
                     .build()
                 factory.createMediaSource(mediaItem)
             }
-            is FlowVideo.VideoStreamSource.Merged -> {
+            is com.auramusic.flow.FlowVideo.VideoStreamSource.Merged -> {
                 val videoMediaItem = MediaItem.Builder()
                     .setUri(source.videoUrl)
                     .setMimeType(source.videoMimeType)
