@@ -106,7 +106,6 @@ import com.auramusic.app.constants.AutoDownloadOnLikeKey
 import com.auramusic.app.constants.AutoLoadMoreKey
 import com.auramusic.app.constants.AutoSkipNextOnErrorKey
 import com.auramusic.app.constants.CrossfadeDurationKey
-import com.auramusic.app.constants.VideoModeEnabledKey
 import com.auramusic.app.constants.VideoQuality
 import com.auramusic.app.constants.VideoQualityKey
 import com.auramusic.app.constants.CrossfadeEnabledKey
@@ -2257,57 +2256,15 @@ class MusicService :
             } else {
                 resetVideoMode()
             }
-            
-            // Auto-enable video mode for new video songs
-            if (newMediaId != null) {
-                // Immediately show loading state while we check and fetch
-                // video for the new song — prevents black screen gap
-                if (isVideoMode) {
-                    _isVideoSwitching.value = true
-                }
-                val videoModeEnabledPref = dataStore.get(VideoModeEnabledKey, true)
-                val isVideoSong = mediaItem.metadata?.isVideoSong == true
 
-                if (isVideoSong && videoModeEnabledPref) {
-                    // A video song with the user's video toggle ON.
-                    scope.launch {
-                        try {
-                            if (isVideoMode) {
-                                // Already in video mode and next song is also a video song.
-                                // Always re-enable video mode regardless of checkVideoAvailability
-                                // to avoid black screen on auto-transition.
-                                if (currentVideoSourceMediaId != newMediaId) {
-                                    Timber.d("onMediaItemTransition: Re-enabling video mode for next video song: $newMediaId")
-                                    setVideoMode(true)
-                                } else {
-                                    // Video already resolved for this song — nothing to refetch.
-                                    _isVideoSwitching.value = false
-                                }
-                            } else {
-                                // Not yet in video mode. Skip the separate availability probe —
-                                // it triggers a full NewPipe stream extraction on top of the one
-                                // setVideoMode already performs, doubling the wait before the video
-                                // appears on TV. setVideoMode resolves the stream itself and falls
-                                // back gracefully when nothing is playable.
-                                Timber.d("onMediaItemTransition: Auto-enabling video mode for video song: $newMediaId")
-                                setVideoMode(true)
-                            }
-                        } catch (e: Exception) {
-                            Timber.e(e, "onMediaItemTransition: Error auto-enabling video mode")
-                        }
-                    }
-                } else {
-                    // Either a normal (audio) song, or a video song while the user has
-                    // the video toggle OFF. Never force video mode here — a video song
-                    // must still play as audio. Drop any stale video mode so the current
-                    // item is its audio version and playback continues normally.
-                    if (isVideoMode) {
-                        Timber.d("onMediaItemTransition: Dropping video mode (toggle off or non-video song)")
-                        resetVideoMode()
-                    } else {
-                        _isVideoSwitching.value = false
-                    }
-                }
+            // Video songs in the music path always play as audio. Never
+            // auto-fetch/switch to a matching video. Drop any lingering video
+            // mode so playback continues as audio on every transition.
+            if (isVideoMode) {
+                Timber.d("onMediaItemTransition: Dropping video mode (music path plays audio)")
+                resetVideoMode()
+            } else {
+                _isVideoSwitching.value = false
             }
         } else {
             Timber.d("onMediaItemTransition: Skipping video mode reset - currently switching")

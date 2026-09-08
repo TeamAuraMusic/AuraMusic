@@ -147,21 +147,23 @@ class InnerTube {
         }
     }
 
-    private fun HttpRequestBuilder.ytClient(client: YouTubeClient, setLogin: Boolean = false) {
+    private fun HttpRequestBuilder.ytClient(client: YouTubeClient, setLogin: Boolean = false, useMusicOrigin: Boolean = true) {
         contentType(ContentType.Application.Json)
         headers {
             append("X-Goog-Api-Format-Version", "1")
             append("X-YouTube-Client-Name", client.clientId /* Not a typo. The Client-Name header does contain the client id. */)
             append("X-YouTube-Client-Version", client.clientVersion)
-            append("X-Origin", YouTubeClient.ORIGIN_YOUTUBE_MUSIC)
-            append("Referer", YouTubeClient.REFERER_YOUTUBE_MUSIC)
+            val origin = if (useMusicOrigin) YouTubeClient.ORIGIN_YOUTUBE_MUSIC else YouTubeClient.ORIGIN_YOUTUBE
+            val referer = if (useMusicOrigin) YouTubeClient.REFERER_YOUTUBE_MUSIC else YouTubeClient.REFERER_YOUTUBE
+            append("X-Origin", origin)
+            append("Referer", referer)
             visitorData?.let { append("X-Goog-Visitor-Id", it) }
             if (setLogin && client.loginSupported) {
                 cookie?.let { cookie ->
                     append("cookie", cookie)
                     if ("SAPISID" !in cookieMap) return@let
                     val currentTime = System.currentTimeMillis() / 1000
-                    val sapisidHash = sha1("$currentTime ${cookieMap["SAPISID"]} ${YouTubeClient.ORIGIN_YOUTUBE_MUSIC}")
+                    val sapisidHash = sha1("$currentTime ${cookieMap["SAPISID"]} $origin")
                     append("Authorization", "SAPISIDHASH ${currentTime}_${sapisidHash}")
                 }
             }
@@ -212,6 +214,26 @@ class InnerTube {
                         visitorData,
                         if (useLogin) dataSyncId else null
                     ),
+                    query = query,
+                    params = params
+                )
+            )
+            parameter("continuation", continuation)
+            parameter("ctoken", continuation)
+        }
+    }
+
+    suspend fun searchYouTube(
+        client: YouTubeClient,
+        query: String? = null,
+        params: String? = null,
+        continuation: String? = null,
+    ) = withRetry {
+        httpClient.post("https://www.youtube.com/youtubei/v1/search") {
+            ytClient(client, setLogin = false, useMusicOrigin = false)
+            setBody(
+                SearchBody(
+                    context = client.toContext(locale, visitorData, null),
                     query = query,
                     params = params
                 )

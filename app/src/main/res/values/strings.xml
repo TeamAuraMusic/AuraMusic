@@ -19,6 +19,16 @@
     <string name="playlists">Playlists</string>
     <string name="search">Search</string>
     <string name="together">Listen Together</string>
+    <string name="videos">Videos</string>
+    <string name="search_youtube">Search YouTube…</string>
+    <string name="filter_music">Music</string>
+    <string name="filter_live">Live</string>
+    <string name="filter_shorts">Shorts</string>
+    <string name="music_section">Music</string>
+    <string name="video_section">Videos</string>
+    <string name="no_videos_found">No videos found</string>
+    <string name="trending_videos">Trending Videos</string>
+    <string name="for_you">For You</string>
     <!-- Top bar -->
     <plurals name="n_selected">
         <item quantity="other">%d selected</item>

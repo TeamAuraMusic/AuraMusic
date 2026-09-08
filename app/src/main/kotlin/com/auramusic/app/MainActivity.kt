@@ -145,7 +145,6 @@ import com.auramusic.app.constants.SYSTEM_DEFAULT
 import com.auramusic.app.constants.SelectedThemeColorKey
 import com.auramusic.app.constants.SlimNavBarHeight
 import com.auramusic.app.constants.SlimNavBarKey
-import com.auramusic.app.constants.ListenTogetherAtTopKey
 import com.auramusic.app.constants.StopMusicOnTaskClearKey
 import com.auramusic.app.constants.UpdateNotificationsEnabledKey
 import com.auramusic.app.constants.UpdateArchitectureKey
@@ -670,16 +669,11 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                val (listenTogetherAtTop) = rememberPreference(ListenTogetherAtTopKey, defaultValue = true)
                 val (slimNav) = rememberPreference(SlimNavBarKey, defaultValue = false)
-                
-                // Navigation items - exclude ListenTogether when it's at top (shown in app bar instead)
-                val navigationItems = remember(listenTogetherAtTop) {
-                    if (listenTogetherAtTop) {
-                        listOf(Screens.Home, Screens.Search, Screens.Library)
-                    } else {
-                        listOf(Screens.Home, Screens.ListenTogether, Screens.Search, Screens.Library)
-                    }
+
+                // Navigation items
+                val navigationItems = remember {
+                    listOf(Screens.Home, Screens.Videos, Screens.Library)
                 }
                 
                 val (useNewMiniPlayerDesign) = rememberPreference(UseNewMiniPlayerDesignKey, defaultValue = true)
@@ -697,8 +691,9 @@ class MainActivity : ComponentActivity() {
                 val topLevelScreens = remember {
                     listOf(
                         Screens.Home.route,
+                        Screens.Videos.route,
                         Screens.Library.route,
-                        Screens.ListenTogether.route,
+                        "listen_together",
                         "settings",
                     )
                 }
@@ -738,7 +733,8 @@ class MainActivity : ComponentActivity() {
                 val shouldShowNavigationBar = remember(currentRoute, navigationItemRoutes) {
                     currentRoute == null ||
                         navigationItemRoutes.contains(currentRoute) ||
-                        currentRoute!!.startsWith("search/")
+                        currentRoute!!.startsWith("search/") ||
+                        currentRoute!!.startsWith("video_search/")
                 }
 
                 val windowSize = configuration.containerDpSize
@@ -903,9 +899,10 @@ class MainActivity : ComponentActivity() {
                 val currentTitleRes = remember(navBackStackEntry) {
                     when (navBackStackEntry?.destination?.route) {
                         Screens.Home.route -> R.string.home
-                        Screens.Search.route -> R.string.search
+                        "search_input" -> R.string.search
+                        Screens.Videos.route -> R.string.videos
                         Screens.Library.route -> R.string.filter_library
-                        Screens.ListenTogether.route -> R.string.together
+                        "listen_together" -> R.string.together
                         else -> null
                     }
                 }
@@ -1024,14 +1021,6 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             }
-                            
-                            val onSearchLongClick: () -> Unit = remember(navController) {
-                                {
-                                    navController.navigate("recognition") {
-                                        launchSingleTop = true
-                                    }
-                                }
-                            }
 
                             // Pre-calculate values for graphicsLayer to avoid reading state during composition
                             val navBarTotalHeight = bottomInset + NavigationBarHeight
@@ -1050,7 +1039,6 @@ class MainActivity : ComponentActivity() {
                                         onItemClick = onNavItemClick,
                                         pureBlack = pureBlack,
                                         slimNav = slimNav,
-                                        onSearchLongClick = onSearchLongClick,
                                         modifier = Modifier
                                             .align(Alignment.BottomCenter)
                                             .height(bottomInset + navPadding)
@@ -1136,21 +1124,12 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
 
-                            val onRailSearchLongClick: () -> Unit = remember(navController) {
-                                {
-                                    navController.navigate("recognition") {
-                                        launchSingleTop = true
-                                    }
-                                }
-                            }
-
                             if (showRail && currentRoute != "wrapped") {
                                 AppNavigationRail(
                                     navigationItems = navigationItems,
                                     currentRoute = currentRoute,
                                     onItemClick = onRailItemClick,
                                     pureBlack = pureBlack,
-                                    onSearchLongClick = onRailSearchLongClick
                                 )
                             }
                             Box(Modifier.weight(1f)) {

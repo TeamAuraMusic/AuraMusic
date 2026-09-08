@@ -328,47 +328,6 @@ fun BottomSheetPlayer(
         }
     }
 
-    // Check video availability only for actual video songs. Regular audio
-    // tracks should not show the video toggle or resolve video streams.
-    LaunchedEffect(mediaMetadata?.id, mediaMetadata?.isVideoSong) {
-        val videoId = mediaMetadata?.id
-        val isVideoSong = mediaMetadata?.isVideoSong == true
-
-        if (videoId == null) return@LaunchedEffect
-
-        if (!isVideoSong) {
-            if (videoModeEnabled) {
-                timber.log.Timber.d("VideoToggle: Disabling video mode for regular song")
-                playerConnection.enableVideoMode(false)
-            }
-            return@LaunchedEffect
-        }
-
-        timber.log.Timber.d("VideoToggle: Checking availability for videoId: $videoId")
-        try {
-            val available = playerConnection.service.checkVideoAvailability(videoId)
-
-            // Staleness check: the song may have changed while the network call
-            // was in flight. Only enable video mode if we're still on the same song.
-            val currentId = playerConnection.mediaMetadata.value?.id
-            if (currentId != videoId) {
-                timber.log.Timber.d("VideoToggle: Song changed during check ($videoId -> $currentId), skipping enable")
-                return@LaunchedEffect
-            }
-
-            timber.log.Timber.d("VideoToggle: Video available = $available, isVideoSong = true")
-
-            // Auto-enable video mode for video songs if video is available and user has video mode enabled
-            if (videoModeToggleEnabled && available && !videoModeEnabled) {
-                timber.log.Timber.d("VideoToggle: Auto-enabling video mode for video song")
-                playerConnection.enableVideoMode(true)
-            }
-        } catch (e: Exception) {
-            timber.log.Timber.e(e, "VideoToggle: Error checking video availability")
-            // Error is already handled in checkVideoAvailability
-        }
-    }
-    
     // Listen Together state (reactive)
     val listenTogetherManager = LocalListenTogetherManager.current
     val listenTogetherRoleState = listenTogetherManager?.role?.collectAsState(initial = RoomRole.NONE)

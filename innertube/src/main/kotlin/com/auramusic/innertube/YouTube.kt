@@ -26,6 +26,10 @@ import com.auramusic.innertube.models.YouTubeClient
 import com.auramusic.innertube.models.YouTubeClient.Companion.WEB
 import com.auramusic.innertube.models.YouTubeClient.Companion.WEB_REMIX
 import com.auramusic.innertube.models.YouTubeClient.Companion.MOBILE
+import com.auramusic.innertube.models.YouTubeVideoItem
+import com.auramusic.innertube.models.response.YouTubeSearchResponse
+import com.auramusic.innertube.pages.YouTubeSearchPage
+import com.auramusic.innertube.pages.YouTubeSearchResult
 import com.auramusic.innertube.models.YouTubeLocale
 import com.auramusic.innertube.models.getContinuation
 import com.auramusic.innertube.models.getItems
@@ -136,6 +140,26 @@ object YouTube {
                 }
             }.orEmpty()
         )
+    }
+
+    suspend fun youtubeSearch(query: String): Result<YouTubeSearchResult> = runCatching {
+        val response = innerTube.searchYouTube(WEB, query).body<YouTubeSearchResponse>()
+        YouTubeSearchPage.fromYouTubeSearchResponse(response)
+    }
+
+    suspend fun youtubeSearchContinuation(continuation: String): Result<YouTubeSearchResult> = runCatching {
+        val response = innerTube.searchYouTube(WEB, continuation = continuation).body<YouTubeSearchResponse>()
+        YouTubeSearchPage.fromYouTubeSearchResponse(response)
+    }
+
+    suspend fun youtubeSearchSuggestions(query: String): Result<List<String>> = runCatching {
+        val response = innerTube.getUrl("https://suggestqueries.google.com/complete/search?client=youtube&ds=yt&q=$query")
+        val text = response.bodyAsText()
+        val json = kotlinx.serialization.json.Json.parseToJsonElement(text)
+        val suggestions = json.jsonArray.getOrNull(1)?.jsonArray?.mapNotNull {
+            it.jsonPrimitive.contentOrNull
+        } ?: emptyList()
+        suggestions
     }
 
     suspend fun searchSummary(query: String): Result<SearchSummaryPage> = runCatching {

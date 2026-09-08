@@ -16,6 +16,7 @@ import com.auramusic.app.ui.theme.AuraTransitions
 import com.auramusic.app.ui.theme.StaggeredAnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
@@ -568,7 +569,7 @@ fun HomeScreen(
             state = lazylistState,
             contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
         ) {
-            item {
+            item(key = "home_search_bar") {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -581,6 +582,15 @@ fun HomeScreen(
                         },
                         modifier = Modifier.weight(1f)
                     )
+                    IconButton(
+                        onClick = { navController.navigate("search_input") }
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.search),
+                            contentDescription = stringResource(R.string.search),
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
                     IconButton(
                         onClick = {
                             val newMode = homeLayoutMode.toggle()

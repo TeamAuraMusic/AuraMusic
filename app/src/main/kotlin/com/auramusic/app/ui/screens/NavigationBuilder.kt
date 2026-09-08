@@ -31,6 +31,8 @@ import com.auramusic.app.ui.screens.artist.ArtistScreen
 import com.auramusic.app.ui.screens.artist.ArtistSongsScreen
 import com.auramusic.app.ui.screens.equalizer.EqScreen
 import com.auramusic.app.ui.screens.library.LibraryScreen
+import com.auramusic.app.ui.screens.videos.VideosScreen
+import com.auramusic.app.ui.screens.videos.VideoSearchScreen
 import com.auramusic.app.ui.screens.playlist.AutoPlaylistScreen
 import com.auramusic.app.ui.screens.playlist.CachePlaylistScreen
 import com.auramusic.app.ui.screens.playlist.LocalPlaylistScreen
@@ -75,7 +77,7 @@ fun NavGraphBuilder.navigationBuilder(
         HomeScreen(navController = navController, snackbarHostState = snackbarHostState)
     }
 
-    composable(Screens.Search.route) {
+    composable("search_input") {
         val pureBlackEnabled by rememberPreference(PureBlackKey, defaultValue = false)
         val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
         val isSystemInDarkTheme = isSystemInDarkTheme()
@@ -95,7 +97,22 @@ fun NavGraphBuilder.navigationBuilder(
         LibraryScreen(navController)
     }
 
-    composable(Screens.ListenTogether.route) {
+    composable(Screens.Videos.route) {
+        VideosScreen(navController)
+    }
+
+    composable(
+        route = "video_search/{query}",
+        arguments = listOf(
+            navArgument("query") {
+                type = NavType.StringType
+            },
+        ),
+    ) {
+        VideoSearchScreen(navController)
+    }
+
+    composable("listen_together") {
         ListenTogetherScreen(navController)
     }
 
