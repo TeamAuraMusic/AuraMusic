@@ -174,6 +174,11 @@ object YouTube {
         youtubeFeed(browseId = "FEtrending", continuation = continuation).getOrThrow()
     }
 
+    /** Regular YouTube category/tab feed (music, gaming, news, ...). */
+    suspend fun youtubeCategoryFeed(browseId: String, continuation: String? = null): Result<YouTubeFeedResult> = runCatching {
+        youtubeFeed(browseId = browseId, continuation = continuation).getOrThrow()
+    }
+
     private suspend fun youtubeFeed(browseId: String, continuation: String? = null): Result<YouTubeFeedResult> = runCatching {
         val response = innerTube.browseYouTube(WEB, browseId = browseId, continuation = continuation)
         YouTubeFeedPage.fromBrowseResponse(response.bodyAsText())

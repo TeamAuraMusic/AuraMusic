@@ -33,7 +33,6 @@ import com.auramusic.app.ui.screens.equalizer.EqScreen
 import com.auramusic.app.ui.screens.library.LibraryScreen
 import com.auramusic.app.ui.screens.videos.VideosScreen
 import com.auramusic.app.ui.screens.videos.VideoSearchScreen
-import com.auramusic.app.ui.screens.videos.VideoPlayerScreen
 import com.auramusic.app.ui.screens.playlist.AutoPlaylistScreen
 import com.auramusic.app.ui.screens.playlist.CachePlaylistScreen
 import com.auramusic.app.ui.screens.playlist.LocalPlaylistScreen
@@ -111,17 +110,6 @@ fun NavGraphBuilder.navigationBuilder(
         ),
     ) {
         VideoSearchScreen(navController)
-    }
-
-    composable(
-        route = "video_player/{videoId}",
-        arguments = listOf(
-            navArgument("videoId") {
-                type = NavType.StringType
-            },
-        ),
-    ) {
-        VideoPlayerScreen(navController)
     }
 
     composable("listen_together") {

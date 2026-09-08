@@ -32,6 +32,16 @@
     <string name="video_search_title">YouTube Search</string>
     <string name="search_tap_to_search">Tap to search YouTube</string>
     <string name="playback_error">Playback error</string>
+    <string name="video_category_gaming">Gaming</string>
+    <string name="videos_grid_view">Grid view</string>
+    <string name="videos_list_view">List view</string>
+    <string name="videos_feed_error">Couldn\'t load videos. Check your connection.</string>
+    <string name="collapse_video">Minimize video</string>
+    <string name="no_more_content">You\'re all caught up</string>
+    <string name="all_results">All</string>
+    <string name="channels">Channels</string>
+    <string name="search_suggestions">Suggestions</string>
+    <string name="search_failed">Search failed</string>
     <!-- Top bar -->
     <plurals name="n_selected">
         <item quantity="other">%d selected</item>

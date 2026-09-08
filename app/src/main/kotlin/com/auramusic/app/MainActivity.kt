@@ -197,6 +197,7 @@ import com.auramusic.app.viewmodels.HomeViewModel
 import com.auramusic.app.voice.LocalVoiceCommandController
 import com.auramusic.app.voice.VoiceCommandController
 import com.auramusic.app.voice.VoiceCommandOverlay
+import com.auramusic.app.video.VideoPlayerOverlay
 import com.auramusic.app.voice.VoiceCommandViewModel
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -729,22 +730,19 @@ class MainActivity : ComponentActivity() {
                 val navigationItemRoutes = remember(navigationItems) {
                     navigationItems.map { it.route }.toSet()
                 }
-                val inVideoPlayerScreen = currentRoute?.startsWith("video_player") == true
 
-                val shouldShowNavigationBar = remember(currentRoute, navigationItemRoutes, inVideoPlayerScreen) {
-                    !inVideoPlayerScreen && (
-                        currentRoute == null ||
-                            navigationItemRoutes.contains(currentRoute) ||
-                            currentRoute!!.startsWith("search/") ||
-                            currentRoute!!.startsWith("video_search/")
-                        )
+                val shouldShowNavigationBar = remember(currentRoute, navigationItemRoutes) {
+                    currentRoute == null ||
+                        navigationItemRoutes.contains(currentRoute) ||
+                        currentRoute!!.startsWith("search/") ||
+                        currentRoute!!.startsWith("video_search/")
                 }
 
                 val windowSize = configuration.containerDpSize
                 val isLandscape = windowSize.width > windowSize.height
                 val isTabletWidth = windowSize.width >= 600.dp && windowSize.height >= 480.dp
 
-                val showRail = (isLandscape || isTabletWidth) && !inSearchScreen && !inVideoPlayerScreen
+                val showRail = (isLandscape || isTabletWidth) && !inSearchScreen
 
                 val navPadding = if (shouldShowNavigationBar && !showRail) {
                     if (slimNav) SlimNavBarHeight else NavigationBarHeight
@@ -870,12 +868,9 @@ class MainActivity : ComponentActivity() {
 
                 var shouldShowTopBar by rememberSaveable { mutableStateOf(false) }
 
-                val isVideoPlayerRoute = navBackStackEntry?.destination?.route?.startsWith("video_player") == true
-
                 LaunchedEffect(navBackStackEntry) {
-                    shouldShowTopBar = navBackStackEntry?.destination?.route in topLevelScreens && 
-                        navBackStackEntry?.destination?.route != "settings" &&
-                        !isVideoPlayerRoute
+                    shouldShowTopBar = navBackStackEntry?.destination?.route in topLevelScreens &&
+                        navBackStackEntry?.destination?.route != "settings"
                 }
 
                 val coroutineScope = rememberCoroutineScope()
@@ -1307,6 +1302,9 @@ class MainActivity : ComponentActivity() {
                         state = voiceUiState,
                         onDismiss = { voiceCommandViewModel.dismissOverlay() },
                     )
+
+                    // Global video player overlay (full player + floating mini tile)
+                    VideoPlayerOverlay()
                 }
             }
         }
