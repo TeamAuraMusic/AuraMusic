@@ -22,11 +22,13 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -57,8 +59,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SecondaryScrollableTabRow
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
@@ -101,6 +101,7 @@ import androidx.media3.ui.PlayerView
 import coil3.compose.AsyncImage
 import com.auramusic.app.LocalPlayerAwareWindowInsets
 import com.auramusic.app.R
+import com.auramusic.app.constants.MiniPlayerBottomSpacing
 import com.auramusic.app.video.VideoPlaybackManager.CommentItem
 import com.auramusic.app.video.VideoPlaybackManager.RecommendationItem
 import kotlinx.coroutines.delay
@@ -193,7 +194,7 @@ private fun VideoMinimizedTile(
                     alpha = 1f - 0.45f * dismissProgress
                 }
                 .padding(horizontal = 10.dp)
-                .padding(bottom = insets.calculateBottomPadding() + 88.dp)
+                .padding(bottom = insets.calculateBottomPadding() + MiniPlayerBottomSpacing)
                 .fillMaxWidth()
                 .height(128.dp)
                 .shadow(24.dp, RoundedCornerShape(26.dp)),
@@ -677,10 +678,6 @@ private fun PlayerBottomControls(
     uiState: VideoPlaybackManager.UiState,
     modifier: Modifier = Modifier,
 ) {
-    var scrubPosition by remember { mutableFloatStateOf(-1f) }
-    val durationSeconds = uiState.durationMs.toFloat().coerceAtLeast(1f)
-    val effectivePosition = if (scrubPosition >= 0f) scrubPosition else uiState.positionMs.toFloat()
-
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -765,7 +762,7 @@ private fun PlayerBottomControls(
                 .padding(horizontal = 12.dp),
         ) {
             Text(
-                text = formatTime(effectivePosition.toLong()),
+                text = formatTime(uiState.positionMs),
                 style = MaterialTheme.typography.labelMedium,
                 color = Color.White.copy(alpha = 0.85f)
             )
@@ -777,22 +774,87 @@ private fun PlayerBottomControls(
             )
         }
 
-        Slider(
-            value = effectivePosition.coerceIn(0f, durationSeconds),
-            onValueChange = { scrubPosition = it },
-            onValueChangeFinished = {
-                VideoPlaybackManager.seekTo(scrubPosition.toLong())
-                scrubPosition = -1f
-            },
-            valueRange = 0f..durationSeconds,
-            colors = SliderDefaults.colors(
-                thumbColor = Color.White,
-                activeTrackColor = MaterialTheme.colorScheme.primary,
-                inactiveTrackColor = Color.White.copy(alpha = 0.3f),
-            ),
+        SlimSeekBar(
+            positionMs = uiState.positionMs,
+            durationMs = uiState.durationMs,
+            onSeek = { VideoPlaybackManager.seekTo(it) },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 4.dp)
+                .padding(horizontal = 10.dp)
+        )
+    }
+}
+
+/**
+ * YouTube-style slim progress bar: a thin track with a small thumb that can be
+ * tapped or dragged to seek.
+ */
+@Composable
+private fun SlimSeekBar(
+    positionMs: Long,
+    durationMs: Long,
+    onSeek: (Long) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val durationSeconds = durationMs.toFloat().coerceAtLeast(1f)
+    var scrub by remember { mutableFloatStateOf(-1f) }
+    val effective = if (scrub >= 0f) scrub else positionMs.toFloat()
+    val progress = (effective / durationSeconds).coerceIn(0f, 1f)
+
+    val trackHeight = 3.dp
+    val thumbSize = 13.dp
+
+    BoxWithConstraints(
+        modifier = modifier
+            .height(20.dp)
+            .pointerInput(durationSeconds) {
+                detectDragGestures(
+                    onDragStart = { offset ->
+                        scrub = (offset.x / size.width * durationSeconds).coerceIn(0f, durationSeconds)
+                    },
+                    onDrag = { change, _ ->
+                        scrub = (change.position.x / size.width * durationSeconds).coerceIn(0f, durationSeconds)
+                        change.consume()
+                    },
+                    onDragEnd = {
+                        scrub.takeIf { it >= 0f }?.let {
+                            onSeek(it.toLong())
+                            scrub = -1f
+                        }
+                    },
+                    onDragCancel = { scrub = -1f },
+                )
+            }
+            .pointerInput(durationSeconds) {
+                detectTapGestures { offset ->
+                    onSeek((offset.x / size.width * durationSeconds).coerceIn(0f, durationSeconds).toLong())
+                }
+            }
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.Center)
+                .height(trackHeight)
+                .clip(RoundedCornerShape(trackHeight / 2))
+                .background(Color.White.copy(alpha = 0.3f))
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(progress)
+                .align(Alignment.CenterStart)
+                .height(trackHeight)
+                .clip(RoundedCornerShape(trackHeight / 2))
+                .background(MaterialTheme.colorScheme.primary)
+        )
+        Box(
+            modifier = Modifier
+                .offset(x = (maxWidth * progress) - (thumbSize / 2))
+                .align(Alignment.Center)
+                .size(thumbSize)
+                .clip(CircleShape)
+                .background(Color.White)
+                .shadow(3.dp, CircleShape)
         )
     }
 }

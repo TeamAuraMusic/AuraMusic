@@ -62,8 +62,19 @@ data class YouTubeSearchResponse(
         val publishedTimeText: SimpleText?,
         val lengthText: SimpleText?,
         val thumbnail: Thumbnails?,
+        val channelThumbnailSupportedRenderers: ChannelThumbnailSupportedRenderers?,
         val ownerText: TextRuns?,
         val descriptionSnippet: TextRuns?,
+    )
+
+    @Serializable
+    data class ChannelThumbnailSupportedRenderers(
+        val channelThumbnailWithLinkRenderer: ChannelThumbnailWithLinkRenderer?,
+    )
+
+    @Serializable
+    data class ChannelThumbnailWithLinkRenderer(
+        val thumbnail: Thumbnails?,
     )
 
     @Serializable

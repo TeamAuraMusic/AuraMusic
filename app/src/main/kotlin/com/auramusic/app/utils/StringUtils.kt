@@ -34,3 +34,33 @@ fun joinByBullet(vararg str: String?) =
         .filterNot {
             it.isNullOrEmpty()
         }.joinToString(separator = " • ")
+
+private val compactNumberRegex = Regex("^([\\d.,]+)(.*)$")
+
+/**
+ * Converts a plain view-count text like "9,659 views" into a YouTube-style compact
+ * form ("9.7K views"). Texts that are already compact ("12M views"), non-numeric
+ * ("No views") or live counters ("1,234 watching") are left untouched.
+ */
+fun compactViewCount(text: String): String {
+    val match = compactNumberRegex.find(text.trim()) ?: return text
+    val (numberPart, suffix) = match.destructured
+    if (numberPart.any { it == 'K' || it == 'k' || it == 'M' || it == 'm' || it == 'B' || it == 'b' }) {
+        return text
+    }
+    val value = numberPart.replace(",", "").toDoubleOrNull() ?: return text
+    fun divisor(unit: String): Double = when (unit) {
+        "B" -> 1_000_000_000.0
+        "M" -> 1_000_000.0
+        else -> 1_000.0
+    }
+    fun compact(unit: String): String =
+        ("%.1f$unit".format(value / divisor(unit))).trimEnd('0').trimEnd('.')
+    val compact = when {
+        value >= 1_000_000_000 -> compact("B")
+        value >= 1_000_000 -> compact("M")
+        value >= 1_000 -> compact("K")
+        else -> numberPart.trimStart('0').ifEmpty { "0" }
+    }
+    return compact + suffix
+}

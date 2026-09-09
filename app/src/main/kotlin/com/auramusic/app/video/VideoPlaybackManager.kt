@@ -3,6 +3,7 @@ package com.auramusic.app.video
 import android.content.Context
 import androidx.annotation.OptIn
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -215,6 +216,7 @@ object VideoPlaybackManager {
         val bestThumbnail = thumbnails.maxByOrNull { it.width ?: 0 }?.url
 
         val exo = getOrCreatePlayer(context)
+        VideoPlaybackService.start(context.applicationContext)
         _uiState.value = UiState(
             session = VideoSession(
                 videoId = videoId,
@@ -238,7 +240,13 @@ object VideoPlaybackManager {
                 _uiState.update { it.copy(isBuffering = false, error = "Could not load video") }
                 return@launch
             }
-            val mediaSource = buildMediaSource(videoId, source)
+            val mediaSource = buildMediaSource(
+                videoId,
+                source,
+                title = title,
+                channelName = channelName,
+                channelThumbnail = channelThumbnail ?: bestThumbnail,
+            )
             exo.setMediaSource(mediaSource)
             exo.prepare()
             exo.play()
@@ -592,6 +600,7 @@ object VideoPlaybackManager {
         tickerJob?.cancel()
         tickerJob = null
         playedVideoIds.clear()
+        VideoPlaybackService.stop(currentContext?.applicationContext ?: return)
         _uiState.value = UiState()
     }
 
@@ -634,6 +643,9 @@ object VideoPlaybackManager {
     private fun buildMediaSource(
         videoId: String,
         source: com.auramusic.auravideo.AuraVideo.VideoStreamSource,
+        title: String,
+        channelName: String,
+        channelThumbnail: String?,
     ): androidx.media3.exoplayer.source.MediaSource {
         val factory = ProgressiveMediaSource.Factory(
             DefaultHttpDataSource.Factory(),
@@ -645,12 +657,20 @@ object VideoPlaybackManager {
                 )
             }
         )
+        val mediaMetadata = MediaMetadata.Builder()
+            .setTitle(title.ifBlank { videoId })
+            .setArtist(channelName.ifBlank { null })
+            .apply {
+                channelThumbnail?.let { setArtworkUri(android.net.Uri.parse(it)) }
+            }
+            .build()
         return when (source) {
             is com.auramusic.auravideo.AuraVideo.VideoStreamSource.Single -> {
                 val mediaItem = MediaItem.Builder()
                     .setUri(source.url)
                     .setMimeType(source.mimeType)
                     .setMediaId(videoId)
+                    .setMediaMetadata(mediaMetadata)
                     .build()
                 factory.createMediaSource(mediaItem)
             }
@@ -659,12 +679,14 @@ object VideoPlaybackManager {
                     .setUri(source.videoUrl)
                     .setMimeType(source.videoMimeType)
                     .setMediaId(videoId + "_v")
+                    .setMediaMetadata(mediaMetadata)
                     .build()
                 val videoSource = factory.createMediaSource(videoMediaItem)
                 val audioMediaItem = MediaItem.Builder()
                     .setUri(source.audioUrl)
                     .setMimeType(source.audioMimeType)
                     .setMediaId(videoId + "_a")
+                    .setMediaMetadata(mediaMetadata)
                     .build()
                 val audioSource = factory.createMediaSource(audioMediaItem)
                 MergingMediaSource(true, true, videoSource, audioSource)

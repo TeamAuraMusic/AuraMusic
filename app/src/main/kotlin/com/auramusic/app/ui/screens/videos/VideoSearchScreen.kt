@@ -73,6 +73,7 @@ import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.auramusic.app.LocalPlayerAwareWindowInsets
 import com.auramusic.app.R
+import com.auramusic.app.utils.compactViewCount
 import com.auramusic.app.video.VideoPlaybackManager
 import com.auramusic.innertube.YouTube
 import com.auramusic.innertube.models.YouTubeSearchResultItem
@@ -406,20 +407,23 @@ private fun SearchField(
         onValueChange = onQueryChange,
         modifier = Modifier
             .fillMaxWidth()
+            .height(42.dp)
             .focusRequester(focusRequester),
         placeholder = {
             Text(
                 text = stringResource(R.string.search_youtube),
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
             )
         },
+        textStyle = MaterialTheme.typography.bodyMedium,
         singleLine = true,
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(21.dp),
         leadingIcon = {
             Icon(
                 painter = painterResource(R.drawable.search),
                 contentDescription = null,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(18.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         },
@@ -429,7 +433,7 @@ private fun SearchField(
                     Icon(
                         painter = painterResource(R.drawable.close),
                         contentDescription = stringResource(R.string.dismiss),
-                        modifier = Modifier.size(18.dp),
+                        modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -780,7 +784,7 @@ private fun SearchHeroVideoCard(
         Text(
             text = listOfNotNull(
                 video.channelName.takeIf { it.isNotEmpty() },
-                video.viewCountText,
+                video.viewCountText?.let { compactViewCount(it) },
                 video.publishedTimeText
             ).joinToString(" • "),
             style = MaterialTheme.typography.bodySmall,
@@ -899,7 +903,7 @@ private fun SearchVideoRow(
             Text(
                 text = listOfNotNull(
                     video.channelName.takeIf { it.isNotEmpty() },
-                    video.viewCountText,
+                    video.viewCountText?.let { compactViewCount(it) },
                     video.publishedTimeText
                 ).joinToString(" • "),
                 style = MaterialTheme.typography.bodySmall,

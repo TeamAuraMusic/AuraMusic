@@ -70,6 +70,10 @@ object YouTubeSearchPage {
             Thumbnail(url = it.url.orEmpty(), width = it.width, height = it.height)
         }.orEmpty()
 
+        val channelThumbnailUrl = videoRenderer.channelThumbnailSupportedRenderers
+            ?.channelThumbnailWithLinkRenderer?.thumbnail?.thumbnails
+            ?.maxByOrNull { it.width ?: 0 }?.url
+
         val isLive = viewCount?.contains("watching") == true || duration == null
 
         return YouTubeVideoItem(
@@ -77,6 +81,7 @@ object YouTubeSearchPage {
             title = title,
             channelName = channelName,
             channelId = channelId,
+            channelThumbnailUrl = channelThumbnailUrl,
             viewCountText = viewCount,
             publishedTimeText = publishedTime,
             durationText = duration,

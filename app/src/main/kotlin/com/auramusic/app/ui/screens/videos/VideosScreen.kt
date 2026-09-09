@@ -85,6 +85,7 @@ import com.auramusic.app.LocalPlayerAwareWindowInsets
 import com.auramusic.app.R
 import com.auramusic.app.constants.VideoFeedGridViewKey
 import com.auramusic.app.ui.component.shimmer.ShimmerHost
+import com.auramusic.app.utils.compactViewCount
 import com.auramusic.app.utils.rememberPreference
 import com.auramusic.app.video.VideoPlaybackManager
 import com.auramusic.innertube.YouTube
@@ -96,9 +97,9 @@ import kotlinx.coroutines.withContext
 private enum class VideoCategory(
     val labelRes: Int,
 ) {
+    Music(R.string.filter_music),
     ForYou(R.string.for_you),
     Trending(R.string.trending),
-    Music(R.string.filter_music),
     Gaming(R.string.video_category_gaming),
 }
 
@@ -107,7 +108,7 @@ fun VideosScreen(
     navController: NavController,
 ) {
     val context = LocalContext.current
-    var selectedCategory by remember { mutableStateOf(VideoCategory.ForYou) }
+    var selectedCategory by remember { mutableStateOf(VideoCategory.Music) }
     var gridView by rememberPreference(VideoFeedGridViewKey, true)
 
     val insets = LocalPlayerAwareWindowInsets.current.asPaddingValues()
@@ -174,7 +175,6 @@ fun VideosScreen(
     }
 
     val columns = when {
-        configuration.screenWidthDp >= 900 -> 4
         configuration.screenWidthDp >= 550 -> 3
         else -> 2
     }
@@ -346,26 +346,26 @@ private fun VideosTopBar(
         Spacer(modifier = Modifier.width(12.dp))
         Surface(
             onClick = onSearchClick,
-            shape = RoundedCornerShape(22.dp),
+            shape = RoundedCornerShape(18.dp),
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
             modifier = Modifier
                 .weight(1f)
-                .height(44.dp)
+                .height(36.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(horizontal = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.padding(horizontal = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Icon(
                     painter = painterResource(R.drawable.search),
                     contentDescription = stringResource(R.string.search_youtube),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(17.dp)
                 )
                 Text(
                     text = stringResource(R.string.search_tap_to_search),
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -544,21 +544,31 @@ private fun isCurrentlyPlaying(videoId: String): Boolean {
 @Composable
 private fun ChannelAvatar(
     channelName: String,
+    channelThumbnailUrl: String?,
     modifier: Modifier = Modifier,
 ) {
-    val initial = channelName.trim().firstOrNull()?.uppercase() ?: "?"
     Box(
         modifier = modifier
             .clip(CircleShape)
             .background(MaterialTheme.colorScheme.primaryContainer),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = initial,
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.SemiBold
-        )
+        if (channelThumbnailUrl != null) {
+            AsyncImage(
+                model = channelThumbnailUrl,
+                contentDescription = channelName,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
+        } else {
+            val initial = channelName.trim().firstOrNull()?.uppercase() ?: "?"
+            Text(
+                text = initial,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
     }
 }
 
@@ -686,9 +696,14 @@ private fun FeedVideoGridCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            val channelClick: () -> Unit = { video.channelId?.let(onChannelClick) }
             ChannelAvatar(
                 channelName = video.channelName,
-                modifier = Modifier.size(22.dp)
+                channelThumbnailUrl = video.channelThumbnailUrl,
+                modifier = Modifier
+                    .size(34.dp)
+                    .clip(CircleShape)
+                    .clickable(onClick = channelClick)
             )
             Text(
                 text = video.channelName,
@@ -699,15 +714,13 @@ private fun FeedVideoGridCard(
                 modifier = Modifier
                     .weight(1f, fill = false)
                     .clip(RoundedCornerShape(4.dp))
-                    .clickable {
-                        val id = video.channelId ?: return@clickable
-                        onChannelClick(id)
-                    }
+                    .clickable(onClick = channelClick)
             )
         }
-        if (video.viewCountText != null) {
+        val compactViews = video.viewCountText?.let { compactViewCount(it) }
+        if (compactViews != null) {
             Text(
-                text = listOfNotNull(video.viewCountText, video.publishedTimeText).joinToString(" • "),
+                text = listOfNotNull(compactViews, video.publishedTimeText).joinToString(" • "),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 maxLines = 1,
@@ -808,9 +821,10 @@ private fun FeedVideoListRow(
                     modifier = Modifier.weight(1f)
                 )
             }
-            if (video.viewCountText != null || video.publishedTimeText != null) {
+            val compactViews = video.viewCountText?.let { compactViewCount(it) }
+            if (compactViews != null || video.publishedTimeText != null) {
                 Text(
-                    text = listOfNotNull(video.viewCountText, video.publishedTimeText).joinToString(" • "),
+                    text = listOfNotNull(compactViews, video.publishedTimeText).joinToString(" • "),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                     maxLines = 1,
@@ -822,9 +836,14 @@ private fun FeedVideoListRow(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    val channelClick: () -> Unit = { video.channelId?.let(onChannelClick) }
                     ChannelAvatar(
                         channelName = video.channelName,
-                        modifier = Modifier.size(20.dp)
+                        channelThumbnailUrl = video.channelThumbnailUrl,
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .clickable(onClick = channelClick)
                     )
                     Text(
                         text = video.channelName,
@@ -835,10 +854,7 @@ private fun FeedVideoListRow(
                         modifier = Modifier
                             .weight(1f, fill = false)
                             .clip(RoundedCornerShape(4.dp))
-                            .clickable {
-                                val id = video.channelId ?: return@clickable
-                                onChannelClick(id)
-                            }
+                            .clickable(onClick = channelClick)
                     )
                 }
             }

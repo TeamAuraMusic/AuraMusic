@@ -78,6 +78,13 @@ object YouTubeFeedPage {
                 }
             }.orEmpty()
 
+        val channelThumbnailUrl = renderer["channelThumbnailSupportedRenderers"]?.jsonObject
+            ?.get("channelThumbnailWithLinkRenderer")?.jsonObject
+            ?.get("thumbnail")?.jsonObject
+            ?.get("thumbnails")?.jsonArray
+            ?.firstOrNull()?.jsonObject
+            ?.getString("url")
+
         val isLive = viewCount?.contains("watching") == true || renderer["badges"] != null
 
         return YouTubeVideoItem(
@@ -85,6 +92,7 @@ object YouTubeFeedPage {
             title = title,
             channelName = channelName,
             channelId = channelId,
+            channelThumbnailUrl = channelThumbnailUrl,
             viewCountText = viewCount,
             publishedTimeText = publishedTime,
             durationText = duration,

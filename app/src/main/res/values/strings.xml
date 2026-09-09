@@ -356,6 +356,7 @@
     <string name="queue_searched_songs">Searched songs</string>
     <!-- Notification name -->
     <string name="music_player">AuraMusic</string>
+    <string name="video_player">Video player</string>
     <string name="widget_music_player">Music Player</string>
     <string name="widget_song_title">Song title</string>
     <string name="widget_artist_name">Artist name</string>

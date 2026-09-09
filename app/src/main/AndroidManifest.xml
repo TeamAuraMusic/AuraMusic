@@ -269,6 +269,16 @@
         </service>
 
         <service
+            android:name=".video.VideoPlaybackService"
+            android:exported="true"
+            android:foregroundServiceType="mediaPlayback"
+            tools:ignore="ExportedService">
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaSessionService" />
+            </intent-filter>
+        </service>
+
+        <service
             android:name=".voice.wakeword.WakeWordService"
             android:exported="false"
             android:foregroundServiceType="microphone"

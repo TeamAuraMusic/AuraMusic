@@ -5,6 +5,7 @@ data class YouTubeVideoItem(
     val title: String,
     val channelName: String,
     val channelId: String? = null,
+    val channelThumbnailUrl: String? = null,
     val viewCountText: String? = null,
     val publishedTimeText: String? = null,
     val durationText: String? = null,

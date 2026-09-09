@@ -144,6 +144,7 @@ import com.auramusic.app.constants.PureBlackKey
 import com.auramusic.app.constants.SYSTEM_DEFAULT
 import com.auramusic.app.constants.SelectedThemeColorKey
 import com.auramusic.app.constants.SlimNavBarHeight
+import com.auramusic.app.constants.VideoMiniPlayerHeight
 import com.auramusic.app.constants.SlimNavBarKey
 import com.auramusic.app.constants.StopMusicOnTaskClearKey
 import com.auramusic.app.constants.UpdateNotificationsEnabledKey
@@ -197,6 +198,7 @@ import com.auramusic.app.viewmodels.HomeViewModel
 import com.auramusic.app.voice.LocalVoiceCommandController
 import com.auramusic.app.voice.VoiceCommandController
 import com.auramusic.app.voice.VoiceCommandOverlay
+import com.auramusic.app.video.VideoPlaybackManager
 import com.auramusic.app.video.VideoPlayerOverlay
 import com.auramusic.app.voice.VoiceCommandViewModel
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -765,17 +767,21 @@ class MainActivity : ComponentActivity() {
                     expandedBound = maxHeight,
                 )
 
+                val videoMiniVisible = VideoPlaybackManager.uiState.collectAsState().value.minimized
+
                 val playerAwareWindowInsets = remember(
                     bottomInset,
                     shouldShowNavigationBar,
                     playerBottomSheetState.isDismissed,
                     showRail,
+                    videoMiniVisible,
                 ) {
                     var bottom = bottomInset
                     if (shouldShowNavigationBar && !showRail) {
                         bottom += NavigationBarHeight
                     }
                     if (!playerBottomSheetState.isDismissed) bottom += MiniPlayerHeight
+                    if (videoMiniVisible) bottom += VideoMiniPlayerHeight + MiniPlayerBottomSpacing
                     windowsInsets
                         .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)
                         .add(WindowInsets(top = AppBarHeight, bottom = bottom))
