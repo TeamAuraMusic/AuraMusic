@@ -4,63 +4,61 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * WEB /next response used for comment threads. The same endpoint returns comments
- * when called with the comments continuation token extracted from the watch page.
- * Initial pages nest threads under twoColumnWatchNextResults; continuation pages
- * under continuationContents.itemSectionContinuation.
+ * WEB comment-thread response.
+ *
+ * Modern WEB client (2025+) no longer returns comment data inside `commentRenderer`.
+ * Instead a comment page is split into two parts:
+ *  - [onResponseReceivedEndpoints]: a `reloadContinuationItemsCommand` whose
+ *    `continuationItems` are lightweight `commentThreadRenderer`s that only carry a
+ *    view-model (commentId, entity key, optional pinned text) plus a trailing
+ *    `continuationItemRenderer` with the next-page token.
+ *  - [frameworkUpdates]: an `entityBatchUpdate` whose mutations carry the actual
+ *    comment `commentEntityPayload` objects (author, content, published time, like/
+ *    reply counts) keyed by the same comment id.
+ *
+ * The first page is fetched by passing the comments continuation token obtained from
+ * [WatchMetadataResponse.commentsContinuation]; later pages pass the token returned
+ * by each page.
  */
 @Serializable
 data class YoutubeCommentResponse(
-    val contents: CommentContents? = null,
-    val continuationContents: CommentContinuationContents? = null,
+    val onResponseReceivedEndpoints: List<CommentResponseEndpoint?>? = null,
+    val frameworkUpdates: CommentFrameworkUpdates? = null,
 )
 
 @Serializable
-data class CommentContents(
-    @SerialName("twoColumnWatchNextResults")
-    val twoColumnWatchNextResults: CommentTwoColumnWatchNextResults? = null,
+data class CommentResponseEndpoint(
+    val reloadContinuationItemsCommand: CommentReloadContinuationItemsCommand? = null,
 )
 
 @Serializable
-data class CommentTwoColumnWatchNextResults(
-    val results: CommentResultsWrapper? = null,
+data class CommentReloadContinuationItemsCommand(
+    val targetId: String? = null,
+    val continuationItems: List<CommentReloadItem?>? = null,
 )
 
 @Serializable
-data class CommentResultsWrapper(
-    val results: CommentResults? = null,
-)
-
-@Serializable
-data class CommentResults(
-    val contents: List<CommentResultContent?>? = null,
-)
-
-@Serializable
-data class CommentResultContent(
-    val itemSectionRenderer: CommentItemSectionRenderer? = null,
-)
-
-@Serializable
-data class CommentItemSectionRenderer(
-    val sectionIdentifier: String? = null,
-    val contents: List<CommentItemSectionContent?>? = null,
-)
-
-@Serializable
-data class CommentItemSectionContent(
+data class CommentReloadItem(
     val commentThreadRenderer: CommentThreadRenderer? = null,
     val continuationItemRenderer: CommentContinuationItemRenderer? = null,
+    val commentsHeaderRenderer: CommentHeaderRenderer? = null,
 )
 
 @Serializable
 data class CommentThreadRenderer(
-    val comment: CommentWrapper? = null,
+    val commentViewModel: CommentThreadViewModelWrapper? = null,
 )
 
 @Serializable
-data class CommentWrapper(
-    val commentRenderer: CommentRenderer? = null,
+data class CommentThreadViewModelWrapper(
+    val commentViewModel: CommentThreadViewModel? = null,
+)
+
+@Serializable
+data class CommentThreadViewModel(
+    val commentId: String? = null,
+    val commentKey: String? = null,
+    val pinnedText: String? = null,
 )
 
 @Serializable
@@ -79,30 +77,67 @@ data class CommentContinuationCommand(
 )
 
 @Serializable
-data class CommentContinuationContents(
-    val itemSectionContinuation: CommentItemSectionContinuation? = null,
-)
-
-@Serializable
-data class CommentItemSectionContinuation(
-    val contents: List<CommentContinuationContent?>? = null,
-    val header: CommentHeader? = null,
-)
-
-@Serializable
-data class CommentContinuationContent(
-    val commentThreadRenderer: CommentThreadRenderer? = null,
-    val continuationItemRenderer: CommentContinuationItemRenderer? = null,
-)
-
-@Serializable
-data class CommentHeader(
-    val commentsHeaderRenderer: CommentHeaderRenderer? = null,
-)
-
-@Serializable
 data class CommentHeaderRenderer(
+    val countText: CommentText? = null,
     val commentsCount: CommentText? = null,
+)
+
+@Serializable
+data class CommentFrameworkUpdates(
+    val entityBatchUpdate: CommentEntityBatchUpdate? = null,
+)
+
+@Serializable
+data class CommentEntityBatchUpdate(
+    val mutations: List<CommentEntityMutation?>? = null,
+)
+
+@Serializable
+data class CommentEntityMutation(
+    val entityKey: String? = null,
+    val payload: CommentEntityPayload? = null,
+)
+
+@Serializable
+data class CommentEntityPayload(
+    val key: String? = null,
+    val properties: CommentEntityProperties? = null,
+    val author: CommentEntityAuthor? = null,
+    val toolbar: CommentEntityToolbar? = null,
+)
+
+@Serializable
+data class CommentEntityProperties(
+    @SerialName("commentId")
+    val commentId: String? = null,
+    val content: CommentEntityContent? = null,
+    val publishedTime: String? = null,
+)
+
+@Serializable
+data class CommentEntityContent(
+    val content: String? = null,
+)
+
+@Serializable
+data class CommentEntityAuthor(
+    @SerialName("displayName")
+    val displayName: String? = null,
+    @SerialName("channelId")
+    val channelId: String? = null,
+    @SerialName("avatarThumbnailUrl")
+    val avatarThumbnailUrl: String? = null,
+    val isVerified: Boolean? = null,
+)
+
+@Serializable
+data class CommentEntityToolbar(
+    @SerialName("likeCountLiked")
+    val likeCountLiked: String? = null,
+    @SerialName("likeCountNotliked")
+    val likeCountNotliked: String? = null,
+    @SerialName("replyCount")
+    val replyCount: String? = null,
 )
 
 @Serializable
@@ -118,76 +153,60 @@ data class CommentTextRun(
     val text: String? = null,
 )
 
-@Serializable
-data class CommentRenderer(
-    val commentId: String? = null,
-    val authorText: CommentText? = null,
-    val authorThumbnail: CommentThumbnails? = null,
-    val contentText: CommentText? = null,
-    val publishedTimeText: CommentText? = null,
-    val voteCount: CommentText? = null,
-    val replyCount: CommentText? = null,
-    val authorIsChannelOwner: Boolean? = null,
-    val pinnedText: CommentText? = null,
-)
-
-@Serializable
-data class CommentThumbnails(
-    val thumbnails: List<CommentThumbnailData>? = null,
-)
-
-@Serializable
-data class CommentThumbnailData(
-    val url: String? = null,
-    val width: Int? = null,
-    val height: Int? = null,
-)
-
 /** Parsed comment threads with the next-page token. */
 fun YoutubeCommentResponse.comments(): List<YoutubeComment> {
-    val threadRenderers = mutableListOf<CommentThreadRenderer>()
-    contents?.twoColumnWatchNextResults?.results?.results?.contents
-        ?.forEach { content ->
-            content?.itemSectionRenderer?.contents?.forEach { item ->
-                item?.commentThreadRenderer?.let(threadRenderers::add)
+    val entities = buildMap<String, CommentEntityPayload> {
+        frameworkUpdates?.entityBatchUpdate?.mutations.orEmpty().forEach { mutation ->
+            mutation?.let { m ->
+                val id = m.payload?.properties?.commentId
+                if (id != null) put(id, m.payload)
             }
         }
-    continuationContents?.itemSectionContinuation?.contents?.forEach { content ->
-        content?.commentThreadRenderer?.let(threadRenderers::add)
     }
-    return threadRenderers.mapNotNull { thread ->
-        val r = thread.comment?.commentRenderer ?: return@mapNotNull null
+    val threads = onResponseReceivedEndpoints.orEmpty()
+        .mapNotNull { it?.reloadContinuationItemsCommand }
+        .flatMap { command -> command.continuationItems.orEmpty() }
+        .mapNotNull { it?.commentThreadRenderer }
+    return threads.mapNotNull { thread ->
+        val viewModel = thread.commentViewModel?.commentViewModel ?: return@mapNotNull null
+        val commentId = viewModel.commentId ?: return@mapNotNull null
+        val entity = entities[commentId] ?: return@mapNotNull null
+        val toolbar = entity.toolbar
         YoutubeComment(
-            commentId = r.commentId ?: return@mapNotNull null,
-            authorName = r.authorText?.text().orEmpty(),
-            authorThumbnail = r.authorThumbnail?.thumbnails?.maxByOrNull { it.width ?: 0 }?.url,
-            content = r.contentText?.text().orEmpty(),
-            publishedTime = r.publishedTimeText?.text()?.takeIf { s -> s.isNotBlank() },
-            likeCount = r.voteCount?.text()?.takeIf { s -> s.isNotBlank() },
-            replyCount = r.replyCount?.text()?.takeIf { s -> s.isNotBlank() },
-            isAuthorPinned = r.pinnedText?.text()?.isNotBlank() == true || r.authorIsChannelOwner == true,
+            commentId = commentId,
+            authorName = entity.author?.displayName.orEmpty(),
+            authorThumbnail = entity.author?.avatarThumbnailUrl,
+            content = entity.properties?.content?.content.orEmpty(),
+            publishedTime = entity.properties?.publishedTime?.takeIf { it.isNotBlank() },
+            likeCount = (toolbar?.likeCountNotliked ?: toolbar?.likeCountLiked)
+                ?.takeIf { it.isNotBlank() },
+            replyCount = toolbar?.replyCount?.takeIf { it.isNotBlank() },
+            isAuthorPinned = viewModel.pinnedText?.isNotBlank() == true,
         )
     }
 }
 
-fun YoutubeCommentResponse.commentsContinuation(): String? {
-    // Initial page: the "load more comments" token lives at the end of the item section.
-    contents?.twoColumnWatchNextResults?.results?.results?.contents
-        ?.forEach { content ->
-            content?.itemSectionRenderer?.contents?.forEach { item ->
-                item?.continuationItemRenderer?.continuationEndpoint?.continuationCommand?.token
-                    ?.let { return it }
-            }
+fun YoutubeCommentResponse.commentsContinuation(): String? =
+    onResponseReceivedEndpoints.orEmpty()
+        .mapNotNull { it?.reloadContinuationItemsCommand }
+        .mapNotNull { command ->
+            command.continuationItems.orEmpty()
+                .lastOrNull { it?.continuationItemRenderer != null }
         }
-    // Continuation pages: token at the end of the item section continuation.
-    return continuationContents?.itemSectionContinuation?.contents
-        ?.lastOrNull { it?.continuationItemRenderer != null }
-        ?.continuationItemRenderer?.continuationEndpoint?.continuationCommand?.token
-}
+        .firstNotNullOfOrNull {
+            it?.continuationItemRenderer?.continuationEndpoint?.continuationCommand?.token
+        }
 
 fun YoutubeCommentResponse.commentsCountText(): String? =
-    continuationContents?.itemSectionContinuation?.header?.commentsHeaderRenderer?.commentsCount
-        ?.text()?.takeIf { s -> s.isNotBlank() }
+    onResponseReceivedEndpoints.orEmpty()
+        .mapNotNull { it?.reloadContinuationItemsCommand }
+        .mapNotNull { command ->
+            command.continuationItems.orEmpty()
+                .firstNotNullOfOrNull { it?.commentsHeaderRenderer }
+        }
+        .firstNotNullOfOrNull { renderer ->
+            renderer.countText?.text()?.takeIf { it.isNotBlank() }
+        }
 
 data class YoutubeComment(
     val commentId: String,

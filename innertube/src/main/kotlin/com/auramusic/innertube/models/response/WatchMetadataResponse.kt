@@ -52,6 +52,58 @@ data class WatchVideoPrimaryInfoRenderer(
     val title: WatchText? = null,
     val viewCount: WatchViewCount? = null,
     val dateText: WatchSimpleText? = null,
+    val videoActions: WatchVideoActions? = null,
+)
+
+@Serializable
+data class WatchVideoActions(
+    val menuRenderer: WatchMenuRenderer? = null,
+)
+
+@Serializable
+data class WatchMenuRenderer(
+    val topLevelButtons: List<WatchTopLevelButton?>? = null,
+)
+
+@Serializable
+data class WatchTopLevelButton(
+    val segmentedLikeDislikeButtonViewModel: WatchSegmentedLikeDislikeButtonViewModel? = null,
+)
+
+@Serializable
+data class WatchSegmentedLikeDislikeButtonViewModel(
+    val likeButtonViewModel: WatchLikeButtonOuter? = null,
+)
+
+@Serializable
+data class WatchLikeButtonOuter(
+    val likeButtonViewModel: WatchLikeButtonInner? = null,
+)
+
+@Serializable
+data class WatchLikeButtonInner(
+    val toggleButtonViewModel: WatchToggleButtonOuter? = null,
+)
+
+@Serializable
+data class WatchToggleButtonOuter(
+    val toggleButtonViewModel: WatchToggleButtonInner? = null,
+)
+
+@Serializable
+data class WatchToggleButtonInner(
+    val defaultButtonViewModel: WatchDefaultButtonViewModel? = null,
+)
+
+@Serializable
+data class WatchDefaultButtonViewModel(
+    val buttonViewModel: WatchButtonViewModel? = null,
+)
+
+@Serializable
+data class WatchButtonViewModel(
+    val title: String? = null,
+    val iconName: String? = null,
 )
 
 @Serializable
@@ -304,6 +356,17 @@ fun WatchMetadataResponse.viewCountText(): String? =
 fun WatchMetadataResponse.dateText(): String? =
     contents?.twoColumnWatchNextResults?.results?.results?.contents
         ?.firstNotNullOfOrNull { it?.videoPrimaryInfoRenderer?.dateText?.simpleText }
+
+fun WatchMetadataResponse.likeCountText(): String? =
+    contents?.twoColumnWatchNextResults?.results?.results?.contents
+        ?.firstNotNullOfOrNull { content ->
+            content?.videoPrimaryInfoRenderer?.videoActions?.menuRenderer?.topLevelButtons
+                ?.firstNotNullOfOrNull { button ->
+                    button?.segmentedLikeDislikeButtonViewModel?.likeButtonViewModel
+                        ?.likeButtonViewModel?.toggleButtonViewModel?.toggleButtonViewModel
+                        ?.defaultButtonViewModel?.buttonViewModel?.title
+                }
+        }
 
 fun WatchMetadataResponse.channelName(): String? =
     contents?.twoColumnWatchNextResults?.results?.results?.contents

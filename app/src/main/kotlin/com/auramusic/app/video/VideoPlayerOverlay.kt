@@ -967,6 +967,7 @@ private fun VideoInfoSection(
             isLiked = uiState.isLiked,
             isDisliked = uiState.isDisliked,
             isSaved = uiState.isSaved,
+            likeCountText = session.likeCountText,
         )
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -1074,6 +1075,7 @@ private fun ActionButtonsRow(
     isLiked: Boolean,
     isDisliked: Boolean,
     isSaved: Boolean,
+    likeCountText: String?,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -1081,7 +1083,10 @@ private fun ActionButtonsRow(
     ) {
         ActionButton(
             icon = R.drawable.ic_thumb_up,
-            label = stringResource(R.string.video_player_like),
+            label = buildString {
+                append(stringResource(R.string.video_player_like))
+                if (!likeCountText.isNullOrBlank()) append(" • ").append(likeCountText)
+            },
             selected = isLiked,
             onClick = { VideoPlaybackManager.toggleLike() },
             modifier = Modifier.weight(1f)

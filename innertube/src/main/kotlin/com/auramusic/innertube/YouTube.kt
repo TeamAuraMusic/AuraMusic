@@ -27,6 +27,7 @@ import com.auramusic.innertube.models.YouTubeClient.Companion.WEB
 import com.auramusic.innertube.models.YouTubeClient.Companion.WEB_REMIX
 import com.auramusic.innertube.models.YouTubeClient.Companion.MOBILE
 import com.auramusic.innertube.models.YouTubeVideoItem
+import com.auramusic.innertube.models.YouTubeSearchResultItem
 import com.auramusic.innertube.models.response.YouTubeSearchResponse
 import com.auramusic.innertube.models.response.WatchCompactVideo
 import com.auramusic.innertube.models.response.WatchMetadataResponse
@@ -99,6 +100,12 @@ import kotlin.random.Random
 object YouTube {
     private val innerTube = InnerTube()
 
+    /** WEB search `sp` filter params (verify against YouTube; %3D is URL-encoded `=`). */
+    const val SEARCH_FILTER_VIDEOS = "EgIQAQ%3D%3D"
+    const val SEARCH_FILTER_CHANNELS = "EgIQAg%3D%3D"
+    const val SEARCH_FILTER_PLAYLISTS = "EgIQAw%3D%3D"
+    private const val VIDEOS_SP_PARAM = SEARCH_FILTER_VIDEOS
+
     var locale: YouTubeLocale
         get() = innerTube.locale
         set(value) {
@@ -150,8 +157,8 @@ object YouTube {
         )
     }
 
-    suspend fun youtubeSearch(query: String): Result<YouTubeSearchResult> = runCatching {
-        val response = innerTube.searchYouTube(WEB, query).body<YouTubeSearchResponse>()
+    suspend fun youtubeSearch(query: String, params: String? = null): Result<YouTubeSearchResult> = runCatching {
+        val response = innerTube.searchYouTube(WEB, query = query, params = params).body<YouTubeSearchResponse>()
         YouTubeSearchPage.fromYouTubeSearchResponse(response)
     }
 
@@ -170,19 +177,45 @@ object YouTube {
         suggestions
     }
 
-    /** Regular YouTube home feed (FEwhat_to_watch) - personalized recommendations. */
+    /**
+     * Regular YouTube home feed (FEwhat_to_watch) - personalized recommendations.
+     * The logged-out WEB client often returns an empty chrome for this browse ID, so
+     * [YouTubeFeedResult] falls back to a broad search feed when that happens.
+     */
     suspend fun youtubeHomeFeed(continuation: String? = null): Result<YouTubeFeedResult> = runCatching {
-        youtubeFeed(browseId = "FEwhat_to_watch", continuation = continuation).getOrThrow()
+        if (continuation == null) {
+            val real = youtubeFeed(browseId = "FEwhat_to_watch").getOrNull()
+            real?.takeIf { it.items.isNotEmpty() }?.let { return@runCatching it }
+        }
+        youtubeSearchFeed("recommended videos", continuation = continuation).getOrThrow()
     }
 
-    /** Regular YouTube trending feed (FEtrending). */
-    suspend fun youtubeTrending(continuation: String? = null): Result<YouTubeFeedResult> = runCatching {
-        youtubeFeed(browseId = "FEtrending", continuation = continuation).getOrThrow()
-    }
+    /** Regular YouTube trending feed. The FEtrending browse ID is dead, so we search. */
+    suspend fun youtubeTrending(continuation: String? = null): Result<YouTubeFeedResult> =
+        youtubeSearchFeed("trending", continuation = continuation)
 
-    /** Regular YouTube category/tab feed (music, gaming, news, ...). */
-    suspend fun youtubeCategoryFeed(browseId: String, continuation: String? = null): Result<YouTubeFeedResult> = runCatching {
-        youtubeFeed(browseId = browseId, continuation = continuation).getOrThrow()
+    /**
+     * Category feed for Music / Gaming etc. The old FE* browse IDs were removed by
+     * YouTube in 2024 (they return INVALID_ARGUMENT), so categories search for the
+     * query phrase with the Videos sp filter.
+     */
+    suspend fun youtubeCategoryFeed(query: String, continuation: String? = null): Result<YouTubeFeedResult> =
+        youtubeSearchFeed(query, continuation = continuation)
+
+    /**
+     * Search-based video feed. Runs a WEB search restricted to the Videos sp filter
+     * and maps the video results to a uniform [YouTubeFeedResult].
+     */
+    private suspend fun youtubeSearchFeed(query: String, continuation: String? = null): Result<YouTubeFeedResult> = runCatching {
+        val result = if (continuation == null) {
+            youtubeSearch(query, params = VIDEOS_SP_PARAM).getOrThrow()
+        } else {
+            youtubeSearchContinuation(continuation).getOrThrow()
+        }
+        YouTubeFeedResult(
+            items = result.items.mapNotNull { (it as? YouTubeSearchResultItem.Video)?.video },
+            continuation = result.continuation,
+        )
     }
 
     private suspend fun youtubeFeed(browseId: String, continuation: String? = null): Result<YouTubeFeedResult> = runCatching {

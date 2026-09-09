@@ -44,6 +44,8 @@
     <string name="search_tap_to_search">Tap to search YouTube</string>
     <string name="playback_error">Playback error</string>
     <string name="video_category_gaming">Gaming</string>
+    <string name="video_category_music_query">music videos</string>
+    <string name="video_category_gaming_query">gaming</string>
     <string name="videos_grid_view">Grid view</string>
     <string name="videos_list_view">List view</string>
     <string name="videos_feed_error">Couldn\'t load videos. Check your connection.</string>

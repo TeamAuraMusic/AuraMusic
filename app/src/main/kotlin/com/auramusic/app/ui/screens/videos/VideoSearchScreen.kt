@@ -84,11 +84,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.URLDecoder
 
-private enum class SearchFilter(val labelRes: Int, val iconRes: Int) {
-    All(R.string.all_results, R.drawable.manage_search),
-    Videos(R.string.video_section, R.drawable.slow_motion_video),
-    Channels(R.string.channels, R.drawable.ic_person),
-    Playlists(R.string.playlists, R.drawable.playlist_play),
+private enum class SearchFilter(val labelRes: Int, val iconRes: Int, val spParams: String?) {
+    All(R.string.all_results, R.drawable.manage_search, null),
+    Videos(R.string.video_section, R.drawable.slow_motion_video, YouTube.SEARCH_FILTER_VIDEOS),
+    Channels(R.string.channels, R.drawable.ic_person, YouTube.SEARCH_FILTER_CHANNELS),
+    Playlists(R.string.playlists, R.drawable.playlist_play, YouTube.SEARCH_FILTER_PLAYLISTS),
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -123,8 +123,9 @@ fun VideoSearchScreen(
         isLoadingMore = false
         error = null
         suggestions = emptyList()
+        val params = activeFilter.spParams
         withContext(Dispatchers.IO) {
-            YouTube.youtubeSearch(searchQuery).fold(
+            YouTube.youtubeSearch(searchQuery, params = params).fold(
                 onSuccess = { result ->
                     allResults = result.items
                     continuation = result.continuation
@@ -204,6 +205,7 @@ fun VideoSearchScreen(
                                 allResults = emptyList()
                                 continuation = null
                                 error = null
+                                activeFilter = SearchFilter.All
                             }
                         },
                         onClear = {
@@ -245,11 +247,19 @@ fun VideoSearchScreen(
                 .padding(bottom = bottomInset)
                 .fillMaxSize()
         ) {
-            SearchFilterBar(
-                active = activeFilter,
-                enabled = hasSearched && allResults.isNotEmpty(),
-                onSelect = { activeFilter = it },
-            )
+            if (hasSearched) {
+                SearchFilterBar(
+                    active = activeFilter,
+                    enabled = query.isNotEmpty(),
+                    onSelect = { selected ->
+                        if (selected == activeFilter) return@SearchFilterBar
+                        activeFilter = selected
+                        if (hasSearched && query.isNotBlank()) {
+                            coroutineScope.launch { performSearch(query) }
+                        }
+                    },
+                )
+            }
 
             val showSuggestions = !hasSearched && suggestions.isNotEmpty()
             when {

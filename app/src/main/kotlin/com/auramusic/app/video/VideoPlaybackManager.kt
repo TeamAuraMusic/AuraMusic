@@ -28,6 +28,7 @@ import com.auramusic.innertube.models.response.comments
 import com.auramusic.innertube.models.response.commentsContinuation
 import com.auramusic.innertube.models.response.dateText
 import com.auramusic.innertube.models.response.description
+import com.auramusic.innertube.models.response.likeCountText
 import com.auramusic.innertube.models.response.relatedContinuation
 import com.auramusic.innertube.models.response.relatedVideos
 import com.auramusic.innertube.models.response.subscriberCountText
@@ -60,6 +61,7 @@ object VideoPlaybackManager {
         val publishedTimeText: String? = null,
         val subscriberCountText: String? = null,
         val commentCountText: String? = null,
+        val likeCountText: String? = null,
     )
 
     data class RecommendationItem(
@@ -273,6 +275,7 @@ object VideoPlaybackManager {
                     publishedTimeText = session.publishedTimeText ?: metadata.dateText(),
                     subscriberCountText = metadata.subscriberCountText(),
                     commentCountText = metadata.commentCountText(),
+                    likeCountText = session.likeCountText ?: metadata.likeCountText(),
                 ),
             )
         }
@@ -390,7 +393,10 @@ object VideoPlaybackManager {
     private suspend fun loadComments(videoId: String) {
         _uiState.update { it.copy(isLoadingComments = true, comments = emptyList(), commentsError = null, commentsContinuation = null) }
         val result = withContext(Dispatchers.IO) {
-            YouTube.videoComments(videoId).getOrNull()
+            // The WEB comment feed is only reachable through the watch page's comments
+            // continuation token, so resolve it first.
+            val token = YouTube.watchMetadata(videoId).getOrNull()?.commentsContinuation()
+            token?.let { YouTube.videoComments(videoId, it).getOrNull() }
         }
         if (_uiState.value.session?.videoId != videoId) return
         if (result == null) {

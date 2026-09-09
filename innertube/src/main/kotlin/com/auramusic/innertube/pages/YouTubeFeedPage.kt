@@ -38,6 +38,13 @@ object YouTubeFeedPage {
                 element["videoRenderer"]?.jsonObject?.let { renderer ->
                     fromVideoRenderer(renderer)?.let { items.add(it) }
                 }
+                element["lockupViewModel"]?.let { raw ->
+                    Lockup.parse(raw)?.let { lockup ->
+                        if (lockup.contentType == Lockup.TYPE_VIDEO) {
+                            Lockup.toVideoItem(lockup)?.let { items.add(it) }
+                        }
+                    }
+                }
                 element["continuationItemRenderer"]?.jsonObject
                     ?.get("continuationEndpoint")?.jsonObject
                     ?.get("continuationCommand")?.jsonObject

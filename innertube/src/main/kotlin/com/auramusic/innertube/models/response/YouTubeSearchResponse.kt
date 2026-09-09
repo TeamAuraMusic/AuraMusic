@@ -2,6 +2,7 @@ package com.auramusic.innertube.models.response
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 @Serializable
 data class YouTubeSearchResponse(
@@ -48,6 +49,8 @@ data class YouTubeSearchResponse(
         val channelRenderer: ChannelRenderer?,
         @SerialName("playlistRenderer")
         val playlistRenderer: PlaylistRendererData?,
+        @SerialName("lockupViewModel")
+        val lockupViewModel: JsonElement?,
     )
 
     @Serializable

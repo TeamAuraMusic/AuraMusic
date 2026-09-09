@@ -131,14 +131,27 @@ data class YouTubeChannelPage(
                             val richContent = itemEl.jsonObject["richItemRenderer"]
                                 ?.jsonObject?.get("content")?.jsonObject
                             val directVideoRenderer = itemEl.jsonObject["videoRenderer"]?.jsonObject
-                            val renderer = when {
-                                directVideoRenderer != null -> directVideoRenderer
-                                itemEl.jsonObject["richItemRenderer"]?.jsonObject != null ->
-                                    richContent?.get("videoRenderer")?.jsonObject
-                                        ?: richContent?.get("reelItemRenderer")?.jsonObject
-                                else -> null
+                            val item = when {
+                                directVideoRenderer != null -> {
+                                    parseVideoRenderer(directVideoRenderer)?.let(videos::add)
+                                    null
+                                }
+                                richContent != null -> richContent
+                                else -> itemEl.jsonObject
                             } ?: return@forEach
-                            parseVideoRenderer(renderer)?.let(videos::add)
+                            // richItemRenderer content may be a videoRenderer, reelItemRenderer
+                            // (Shorts) or the newer lockupViewModel.
+                            val rendered = item["videoRenderer"]?.jsonObject
+                                ?: item["reelItemRenderer"]?.jsonObject
+                            if (rendered != null) {
+                                parseVideoRenderer(rendered)?.let(videos::add)
+                            } else {
+                                item["lockupViewModel"]?.let { raw ->
+                                    Lockup.parse(raw)
+                                        ?.let(Lockup::toVideoItem)
+                                        ?.let(videos::add)
+                                }
+                            }
                         }
                         // Continuation token sits either in the section or the grid.
                         collectContinuation(sectionEl)?.let { continuation = it }

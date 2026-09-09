@@ -4,7 +4,6 @@ import com.auramusic.innertube.models.Thumbnail
 import com.auramusic.innertube.models.YouTubeSearchResultItem
 import com.auramusic.innertube.models.YouTubeVideoItem
 import com.auramusic.innertube.models.response.YouTubeSearchResponse
-
 data class YouTubeSearchResult(
     val items: List<YouTubeSearchResultItem>,
     val continuation: String? = null,
@@ -30,6 +29,10 @@ object YouTubeSearchPage {
                     }
                     item.playlistRenderer != null -> {
                         fromPlaylistRenderer(item.playlistRenderer)
+                            ?.let { items.add(it) }
+                    }
+                    item.lockupViewModel != null -> {
+                        fromLockupPlaylist(item.lockupViewModel)
                             ?.let { items.add(it) }
                     }
                 }
@@ -110,6 +113,20 @@ object YouTubeSearchPage {
             thumbnails = playlistRenderer.thumbnail?.thumbnails?.map {
                 Thumbnail(url = it.url.orEmpty(), width = it.width, height = it.height)
             }.orEmpty(),
+        )
+    }
+
+    fun fromLockupPlaylist(lockupViewModel: kotlinx.serialization.json.JsonElement): YouTubeSearchResultItem.Playlist? {
+        val lockup = Lockup.parse(lockupViewModel) ?: return null
+        if (lockup.contentType != Lockup.TYPE_PLAYLIST) return null
+        val playlistId = lockup.playlistId ?: return null
+        val title = lockup.title ?: return null
+        return YouTubeSearchResultItem.Playlist(
+            playlistId = playlistId,
+            title = title,
+            itemCountText = lockup.metadataText.firstOrNull(),
+            channelName = lockup.metadataText.getOrNull(1),
+            thumbnails = lockup.thumbnails,
         )
     }
 }

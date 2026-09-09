@@ -52,6 +52,7 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -93,13 +94,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 private enum class VideoCategory(
-    val browseId: String,
     val labelRes: Int,
 ) {
-    ForYou("FEwhat_to_watch", R.string.for_you),
-    Trending("FEtrending", R.string.trending),
-    Music("FEmusic", R.string.filter_music),
-    Gaming("FEgaming", R.string.video_category_gaming),
+    ForYou(R.string.for_you),
+    Trending(R.string.trending),
+    Music(R.string.filter_music),
+    Gaming(R.string.video_category_gaming),
 }
 
 @Composable
@@ -130,15 +130,12 @@ fun VideosScreen(
             feed = emptyList()
             continuation = null
         }
-        val browseId = selectedCategory.browseId
         withContext(Dispatchers.IO) {
-            val result = when (browseId) {
-                "FEwhat_to_watch" -> {
-                    YouTube.youtubeHomeFeed().getOrNull()
-                        ?.takeIf { it.items.isNotEmpty() }
-                        ?: YouTube.youtubeTrending().getOrNull()
-                }
-                else -> YouTube.youtubeCategoryFeed(browseId).getOrNull()
+            val result = when (selectedCategory) {
+                VideoCategory.ForYou -> YouTube.youtubeHomeFeed().getOrNull()
+                VideoCategory.Trending -> YouTube.youtubeTrending().getOrNull()
+                VideoCategory.Music -> YouTube.youtubeCategoryFeed(context.getString(R.string.video_category_music_query)).getOrNull()
+                VideoCategory.Gaming -> YouTube.youtubeCategoryFeed(context.getString(R.string.video_category_gaming_query)).getOrNull()
             }
             if (result != null && result.items.isNotEmpty()) {
                 feed = result.items
@@ -159,14 +156,14 @@ fun VideosScreen(
 
     suspend fun loadMore() {
         if (isLoadingMore || isLoading) return
-        val browseId = selectedCategory.browseId
         val cont = continuation ?: return
         isLoadingMore = true
         withContext(Dispatchers.IO) {
-            val result = when (browseId) {
-                "FEwhat_to_watch" -> YouTube.youtubeHomeFeed(cont).getOrNull()
-                    ?: YouTube.youtubeTrending(cont).getOrNull()
-                else -> YouTube.youtubeCategoryFeed(browseId, cont).getOrNull()
+            val result = when (selectedCategory) {
+                VideoCategory.ForYou -> YouTube.youtubeHomeFeed(cont).getOrNull()
+                VideoCategory.Trending -> YouTube.youtubeTrending(cont).getOrNull()
+                VideoCategory.Music -> YouTube.youtubeCategoryFeed(context.getString(R.string.video_category_music_query), cont).getOrNull()
+                VideoCategory.Gaming -> YouTube.youtubeCategoryFeed(context.getString(R.string.video_category_gaming_query), cont).getOrNull()
             }
             result?.let {
                 feed = feed + it.items
@@ -340,21 +337,40 @@ private fun VideosTopBar(
             .fillMaxWidth()
             .padding(start = 16.dp, end = 8.dp, top = 10.dp, bottom = 2.dp)
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = stringResource(R.string.videos),
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-        }
-        IconButton(onClick = onSearchClick) {
-            Icon(
-                painter = painterResource(R.drawable.search),
-                contentDescription = stringResource(R.string.search_youtube),
-                tint = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(22.dp)
-            )
+        Text(
+            text = stringResource(R.string.videos),
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Surface(
+            onClick = onSearchClick,
+            shape = RoundedCornerShape(22.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            modifier = Modifier
+                .weight(1f)
+                .height(44.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.search),
+                    contentDescription = stringResource(R.string.search_youtube),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    text = stringResource(R.string.search_tap_to_search),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
         IconButton(onClick = onToggleView) {
             Icon(
