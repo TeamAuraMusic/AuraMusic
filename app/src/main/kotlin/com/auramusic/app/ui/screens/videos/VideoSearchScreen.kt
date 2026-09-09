@@ -312,37 +312,45 @@ fun VideoSearchScreen(
 
                 else -> {
                     val visibleResults = filterResults(allResults, activeFilter)
+                    val grouped = remember(visibleResults, activeFilter) {
+                        groupResults(visibleResults, activeFilter)
+                    }
                     LazyColumn(
                         state = lazyListState,
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(vertical = 4.dp)
                     ) {
-                        items(
-                            items = visibleResults,
-                            key = { it.key() }
-                        ) { result ->
-                            SearchResultRow(
-                                result = result,
-                                onVideoClick = { video ->
-                                    VideoPlaybackManager.playWithDetails(
-                                        context = context,
-                                        videoId = video.videoId,
-                                        title = video.title,
-                                        channelName = video.channelName,
-                                        channelId = video.channelId,
-                                        description = video.description,
-                                        viewCountText = video.viewCountText,
-                                        publishedTimeText = video.publishedTimeText,
-                                        thumbnails = video.thumbnails,
-                                    )
-                                },
-                                onChannelClick = { channelId ->
-                                    navController.navigate("youtube_browse/$channelId")
-                                },
-                                onPlaylistClick = { playlistId ->
-                                    navController.navigate("youtube_browse/$playlistId")
-                                }
-                            )
+                        grouped.forEach { section ->
+                            item(key = "section_${section.titleRes}") {
+                                SearchSectionHeader(titleRes = section.titleRes)
+                            }
+                            items(
+                                items = section.items,
+                                key = { it.key() }
+                            ) { result ->
+                                SearchResultRow(
+                                    result = result,
+                                    onVideoClick = { video ->
+                                        VideoPlaybackManager.playWithDetails(
+                                            context = context,
+                                            videoId = video.videoId,
+                                            title = video.title,
+                                            channelName = video.channelName,
+                                            channelId = video.channelId,
+                                            description = video.description,
+                                            viewCountText = video.viewCountText,
+                                            publishedTimeText = video.publishedTimeText,
+                                            thumbnails = video.thumbnails,
+                                        )
+                                    },
+                                    onChannelClick = { channelId ->
+                                        navController.navigate("youtube_channel/$channelId")
+                                    },
+                                    onPlaylistClick = { playlistId ->
+                                        navController.navigate("youtube_browse/$playlistId")
+                                    }
+                                )
+                            }
                         }
 
                         if (isLoadingMore) {
@@ -370,6 +378,57 @@ private fun filterResults(
     SearchFilter.Videos -> items.filter { it is YouTubeSearchResultItem.Video }
     SearchFilter.Channels -> items.filter { it is YouTubeSearchResultItem.Channel }
     SearchFilter.Playlists -> items.filter { it is YouTubeSearchResultItem.Playlist }
+}
+
+private data class SearchSection(
+    val titleRes: Int,
+    val items: List<YouTubeSearchResultItem>,
+)
+
+/**
+ * Groups the flat result stream into YouTube-style sections. In "All" the first video
+ * becomes the Top result; the rest are grouped by type so the list scans like YouTube's.
+ * Filtered views collapse into a single titled section.
+ */
+private fun groupResults(
+    items: List<YouTubeSearchResultItem>,
+    filter: SearchFilter,
+): List<SearchSection> {
+    if (items.isEmpty()) return emptyList()
+    return when (filter) {
+        SearchFilter.All -> {
+            val firstVideo = items.indexOfFirst { it is YouTubeSearchResultItem.Video }
+            if (firstVideo < 0) {
+                return listOf(SearchSection(R.string.search_section_results, items))
+            }
+            val top = items[firstVideo]
+            val rest = items.filterIndexed { i, _ -> i != firstVideo }
+            val sections = mutableListOf<SearchSection>(
+                SearchSection(R.string.search_section_top_result, listOf(top)),
+            )
+            val videos = rest.filterIsInstance<YouTubeSearchResultItem.Video>()
+            val channels = rest.filterIsInstance<YouTubeSearchResultItem.Channel>()
+            val playlists = rest.filterIsInstance<YouTubeSearchResultItem.Playlist>()
+            if (videos.isNotEmpty()) sections += SearchSection(R.string.search_section_videos, videos)
+            if (channels.isNotEmpty()) sections += SearchSection(R.string.search_section_channels, channels)
+            if (playlists.isNotEmpty()) sections += SearchSection(R.string.search_section_playlists, playlists)
+            sections
+        }
+        SearchFilter.Videos -> listOf(SearchSection(R.string.search_section_videos, items))
+        SearchFilter.Channels -> listOf(SearchSection(R.string.search_section_channels, items))
+        SearchFilter.Playlists -> listOf(SearchSection(R.string.search_section_playlists, items))
+    }
+}
+
+@Composable
+private fun SearchSectionHeader(titleRes: Int) {
+    Text(
+        text = stringResource(titleRes),
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+    )
 }
 
 private fun YouTubeSearchResultItem.key(): String =

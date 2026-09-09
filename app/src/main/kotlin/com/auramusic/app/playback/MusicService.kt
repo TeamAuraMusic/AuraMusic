@@ -194,7 +194,7 @@ import com.auramusic.app.playback.queues.filterExplicit
 import com.auramusic.app.playback.queues.filterVideoSongs
 import com.auramusic.app.subtitles.SubtitleInfo
 import com.auramusic.app.utils.CoilBitmapLoader
-import com.auramusic.app.utils.FlowPlayerUtils
+import com.auramusic.app.utils.AuraPlayerUtils
 import com.auramusic.app.utils.NetworkConnectivityObserver
 import com.auramusic.app.utils.AUDIOBOOK_MIN_DURATION_SECONDS
 import com.auramusic.app.utils.AUDIOBOOK_RESUME_THRESHOLD_MS
@@ -783,14 +783,14 @@ class MusicService :
 
         // Initialize video quality preference from settings
         val savedVideoQuality = dataStore.get(VideoQualityKey, "QUALITY_720P")
-        val flowVideoQuality = when (savedVideoQuality) {
-            "QUALITY_1080P" -> com.auramusic.flow.FlowVideo.VideoQuality.QUALITY_1080P
-            "QUALITY_720P" -> com.auramusic.flow.FlowVideo.VideoQuality.QUALITY_720P
-            "QUALITY_480P" -> com.auramusic.flow.FlowVideo.VideoQuality.QUALITY_480P
-            "QUALITY_360P" -> com.auramusic.flow.FlowVideo.VideoQuality.QUALITY_360P
-            else -> com.auramusic.flow.FlowVideo.VideoQuality.QUALITY_720P
+        val auraVideoQuality = when (savedVideoQuality) {
+            "QUALITY_1080P" -> com.auramusic.auravideo.AuraVideo.VideoQuality.QUALITY_1080P
+            "QUALITY_720P" -> com.auramusic.auravideo.AuraVideo.VideoQuality.QUALITY_720P
+            "QUALITY_480P" -> com.auramusic.auravideo.AuraVideo.VideoQuality.QUALITY_480P
+            "QUALITY_360P" -> com.auramusic.auravideo.AuraVideo.VideoQuality.QUALITY_360P
+            else -> com.auramusic.auravideo.AuraVideo.VideoQuality.QUALITY_720P
         }
-        com.auramusic.flow.FlowVideo.setPreferredVideoQuality(flowVideoQuality)
+        com.auramusic.auravideo.AuraVideo.setPreferredVideoQuality(auraVideoQuality)
         Timber.d("Initialized video quality preference: $savedVideoQuality")
 
         // Initialize Google Cast
@@ -3828,7 +3828,7 @@ class MusicService :
     private val _currentVideoId = MutableStateFlow<String?>(null)
     val currentVideoId: StateFlow<String?> = _currentVideoId.asStateFlow()
     // Cache for resolved video search results to avoid re-fetching
-    private val videoSearchCache = java.util.concurrent.ConcurrentHashMap<String, com.auramusic.flow.FlowVideo.VideoSearchResult>()
+    private val videoSearchCache = java.util.concurrent.ConcurrentHashMap<String, com.auramusic.auravideo.AuraVideo.VideoSearchResult>()
     // Cache for video captions to avoid re-fetching on player collapse/expand
     val captionCache = java.util.concurrent.ConcurrentHashMap<String, String>()
     val captionAttemptedIds = java.util.Collections.synchronizedSet(mutableSetOf<String>())
@@ -4021,7 +4021,7 @@ class MusicService :
                         // instead of leaving the TV paused on a black surface.
                         val timeoutResult = withContext(Dispatchers.IO) {
                             kotlinx.coroutines.withTimeoutOrNull(VIDEO_SEARCH_TIMEOUT_MS) {
-                                FlowPlayerUtils.getVideoStreamUrlWithFallback(songTitle, artistName, mediaId, isVideoSong)
+                                AuraPlayerUtils.getVideoStreamUrlWithFallback(songTitle, artistName, mediaId, isVideoSong)
                             }
                         }
                         timeoutResult ?: run {
@@ -4112,13 +4112,13 @@ class MusicService :
                             // exceeds 720p, since YouTube only ships separate video-only
                             // and audio-only streams above that resolution.
                             var sourceResult = withContext(Dispatchers.IO) {
-                                FlowPlayerUtils.getVideoStreamSource(videoId)
+                                AuraPlayerUtils.getVideoStreamSource(videoId)
                             }
 
                             if (sourceResult.isFailure && isVideoSong && videoId == mediaId) {
                                 subtitleJob?.cancel()
                                 val fallbackVideo = withContext(Dispatchers.IO) {
-                                    FlowPlayerUtils.getVideoStreamUrlWithFallback(
+                                    AuraPlayerUtils.getVideoStreamUrlWithFallback(
                                         songTitle,
                                         artistName,
                                         mediaId,
@@ -4129,7 +4129,7 @@ class MusicService :
                                     Timber.d("setVideoMode: Direct video failed, trying fallback videoId=${fallbackVideo.videoId}")
                                     videoId = fallbackVideo.videoId
                                     sourceResult = withContext(Dispatchers.IO) {
-                                        FlowPlayerUtils.getVideoStreamSource(videoId)
+                                        AuraPlayerUtils.getVideoStreamSource(videoId)
                                     }
                                 }
                             }
@@ -4137,13 +4137,13 @@ class MusicService :
                             if (sourceResult.isSuccess) {
                                 val streamSource = sourceResult.getOrNull()
                                 val primaryVideoUrl = when (streamSource) {
-                                    is com.auramusic.flow.FlowVideo.VideoStreamSource.Single -> streamSource.url
-                                    is com.auramusic.flow.FlowVideo.VideoStreamSource.Merged -> streamSource.videoUrl
+                                    is com.auramusic.auravideo.AuraVideo.VideoStreamSource.Single -> streamSource.url
+                                    is com.auramusic.auravideo.AuraVideo.VideoStreamSource.Merged -> streamSource.videoUrl
                                     null -> ""
                                 }
                                 val primaryMimeType = when (streamSource) {
-                                    is com.auramusic.flow.FlowVideo.VideoStreamSource.Single -> streamSource.mimeType
-                                    is com.auramusic.flow.FlowVideo.VideoStreamSource.Merged -> streamSource.videoMimeType
+                                    is com.auramusic.auravideo.AuraVideo.VideoStreamSource.Single -> streamSource.mimeType
+                                    is com.auramusic.auravideo.AuraVideo.VideoStreamSource.Merged -> streamSource.videoMimeType
                                     null -> "video/mp4"
                                 }
                                 currentVideoUrl = primaryVideoUrl
@@ -4195,11 +4195,11 @@ class MusicService :
                                 player.playWhenReady = false
 
                                 when (streamSource) {
-                                    is com.auramusic.flow.FlowVideo.VideoStreamSource.Single -> {
+                                    is com.auramusic.auravideo.AuraVideo.VideoStreamSource.Single -> {
                                         Timber.d("setVideoMode: Replacing media item at index $index (single source)")
                                         player.replaceMediaItem(index, videoMediaItem)
                                     }
-                                    is com.auramusic.flow.FlowVideo.VideoStreamSource.Merged -> {
+                                    is com.auramusic.auravideo.AuraVideo.VideoStreamSource.Merged -> {
                                         // Build a MergingMediaSource of (video-only + audio-only)
                                         // so we can actually expose 1080p+ — muxed YouTube
                                         // streams cap below that.
@@ -4320,7 +4320,7 @@ class MusicService :
     suspend fun checkVideoAvailability(mediaId: String): Boolean {
         return withContext(Dispatchers.IO) {
             try {
-                val available = FlowPlayerUtils.hasVideoPlayback(mediaId)
+                val available = AuraPlayerUtils.hasVideoPlayback(mediaId)
                 _isVideoAvailable.value = available
                 Timber.d("checkVideoAvailability: Video available for $mediaId = $available")
                 available

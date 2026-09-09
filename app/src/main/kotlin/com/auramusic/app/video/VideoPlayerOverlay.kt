@@ -1,3 +1,8 @@
+/**
+ * Auramusic Project (C) 2026
+ * Licensed under GPL-3.0 | See git history for contributors
+ */
+
 package com.auramusic.app.video
 
 import android.view.ViewGroup
@@ -15,7 +20,6 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -25,7 +29,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -35,11 +38,11 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
@@ -49,6 +52,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
@@ -57,10 +61,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -91,11 +95,9 @@ import androidx.media3.ui.PlayerView
 import coil3.compose.AsyncImage
 import com.auramusic.app.LocalPlayerAwareWindowInsets
 import com.auramusic.app.R
-import com.auramusic.app.ui.component.shimmer.ShimmerHost
 import com.auramusic.app.video.VideoPlaybackManager.CommentItem
 import com.auramusic.app.video.VideoPlaybackManager.RecommendationItem
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 @Composable
 fun VideoPlayerOverlay() {
@@ -150,6 +152,10 @@ fun VideoPlayerOverlay() {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Mini player
+// ---------------------------------------------------------------------------
+
 @OptIn(UnstableApi::class)
 @Composable
 private fun VideoMinimizedTile(
@@ -160,35 +166,32 @@ private fun VideoMinimizedTile(
     val state by VideoPlaybackManager.uiState.collectAsState()
     val insets = LocalPlayerAwareWindowInsets.current.asPaddingValues()
     val density = LocalDensity.current
-    val session = state.session
 
-    var dragOffset by remember { mutableFloatStateOf(0f) }
-    val animatedOffset by animateFloatAsState(
-        targetValue = dragOffset,
-        animationSpec = tween(durationMillis = 250),
-        label = "miniDragOffset",
+    // Drag distance tracked in px, rendered via density conversion.
+    var dragPx by remember { mutableFloatStateOf(0f) }
+    val animatedDragPx by animateFloatAsState(
+        targetValue = dragPx,
+        animationSpec = tween(durationMillis = 220),
+        label = "miniDragPx",
     )
-    val scale by animateFloatAsState(
-        targetValue = if (dragOffset > 0f) 0.95f else 1f,
-        animationSpec = tween(200),
-        label = "miniScale",
-    )
+    val dismissProgress = (dragPx / 380f).coerceIn(0f, 1f)
 
     Box(modifier = Modifier.fillMaxSize()) {
         Surface(
             onClick = onExpand,
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .offset(y = with(density) { animatedOffset.dp })
-                .widthIn(max = 320.dp)
-                .fillMaxWidth(0.65f)
+                .offset(y = with(density) { animatedDragPx.toDp() })
+                .graphicsLayer {
+                    scaleX = 1f - 0.05f * dismissProgress
+                    scaleY = 1f - 0.05f * dismissProgress
+                    alpha = 1f - 0.4f * dismissProgress
+                }
+                .widthIn(max = 360.dp)
+                .fillMaxWidth(0.62f)
                 .padding(start = 14.dp)
                 .padding(bottom = insets.calculateBottomPadding() + 84.dp)
-                .shadow(18.dp, RoundedCornerShape(18.dp))
-                .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                },
+                .shadow(18.dp, RoundedCornerShape(18.dp)),
             shape = RoundedCornerShape(18.dp),
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
             tonalElevation = 6.dp,
@@ -199,22 +202,22 @@ private fun VideoMinimizedTile(
                     .pointerInput(Unit) {
                         detectVerticalDragGestures(
                             onDragEnd = {
-                                if (dragOffset > 140f) {
+                                if (dragPx > with(density) { 140.dp.toPx() }) {
                                     onClose()
                                 } else {
-                                    dragOffset = 0f
+                                    dragPx = 0f
                                 }
                             },
-                            onDragCancel = { dragOffset = 0f },
+                            onDragCancel = { dragPx = 0f },
                         ) { change, dragAmount ->
-                            if (dragAmount > 0) {
-                                dragOffset = (dragOffset + dragAmount).coerceIn(0f, 420f)
+                            if (dragAmount > 0f) {
+                                dragPx = (dragPx + dragAmount).coerceIn(0f, 480f)
                                 change.consume()
                             }
                         }
                     }
             ) {
-                AndroidVideoSurface(player)
+                AndroidVideoSurface(player, resizeModeOverride = state.resizeMode)
 
                 IconButton(
                     onClick = onClose,
@@ -233,42 +236,37 @@ private fun VideoMinimizedTile(
                     )
                 }
 
-                Box(
+                Column(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
-                        .padding(start = 16.dp, end = 16.dp, bottom = 10.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color.Transparent, Color.Black.copy(alpha = 0.55f))
+                            )
+                        )
+                        .padding(horizontal = 8.dp),
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        IconButton(
+                        MiniControlButton(
+                            iconRes = R.drawable.ic_skip_previous,
+                            contentDescriptionRes = R.string.video_player_up_next,
                             onClick = { VideoPlaybackManager.playPrevious() },
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .background(Color.Black.copy(alpha = 0.42f))
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_skip_previous),
-                                contentDescription = stringResource(R.string.video_player_up_next),
-                                modifier = Modifier.size(18.dp),
-                                tint = Color.White
-                            )
-                        }
-
+                        )
                         Surface(
                             onClick = { VideoPlaybackManager.togglePlayPause() },
                             shape = CircleShape,
                             color = Color.White,
-                            modifier = Modifier.size(40.dp)
+                            modifier = Modifier.size(38.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 if (state.isBuffering) {
                                     CircularProgressIndicator(
-                                        modifier = Modifier.size(20.dp),
+                                        modifier = Modifier.size(18.dp),
                                         color = Color.Black,
                                         strokeWidth = 2.dp
                                     )
@@ -278,34 +276,31 @@ private fun VideoMinimizedTile(
                                         contentDescription = stringResource(
                                             if (state.isPlaying) R.string.pause else R.string.play
                                         ),
-                                        modifier = Modifier.size(20.dp),
+                                        modifier = Modifier.size(18.dp),
                                         tint = Color.Black
                                     )
                                 }
                             }
                         }
-
-                        IconButton(
+                        MiniControlButton(
+                            iconRes = R.drawable.ic_skip_next,
+                            contentDescriptionRes = R.string.video_player_up_next,
                             onClick = { VideoPlaybackManager.playNext() },
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .background(Color.Black.copy(alpha = 0.42f))
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_skip_next),
-                                contentDescription = stringResource(R.string.video_player_up_next),
-                                modifier = Modifier.size(18.dp),
-                                tint = Color.White
-                            )
-                        }
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        Text(
+                            text = "${formatTime(state.positionMs)} / ${formatTime(state.durationMs)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White.copy(alpha = 0.9f),
+                        )
                     }
-
+                    // Determinate progress line.
                     Box(
                         modifier = Modifier
-                            .align(Alignment.BottomCenter)
+                            .padding(top = 4.dp, bottom = 6.dp)
                             .fillMaxWidth()
                             .height(2.dp)
+                            .clip(RoundedCornerShape(1.dp))
                             .background(Color.Black.copy(alpha = 0.45f))
                     ) {
                         Box(
@@ -321,6 +316,32 @@ private fun VideoMinimizedTile(
     }
 }
 
+@Composable
+private fun MiniControlButton(
+    iconRes: Int,
+    contentDescriptionRes: Int,
+    onClick: () -> Unit,
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier
+            .size(32.dp)
+            .clip(CircleShape)
+            .background(Color.Black.copy(alpha = 0.42f))
+    ) {
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription = stringResource(contentDescriptionRes),
+            modifier = Modifier.size(18.dp),
+            tint = Color.White
+        )
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Expanded player
+// ---------------------------------------------------------------------------
+
 @OptIn(UnstableApi::class)
 @Composable
 private fun VideoExpandedPlayer(
@@ -335,14 +356,10 @@ private fun VideoExpandedPlayer(
     val isWideScreen = configuration.screenWidthDp >= 600
     val context = LocalContext.current
 
-    var dragOffset by remember { mutableFloatStateOf(0f) }
     var showControls by remember { mutableStateOf(true) }
-    var seekDirection by remember { mutableStateOf<String?>(null) }
-    var isForward by remember { mutableStateOf(true) }
-    val haptic = LocalHapticFeedback.current
 
-    LaunchedEffect(uiState.isPlaying) {
-        if (uiState.isPlaying) {
+    LaunchedEffect(uiState.isPlaying, showControls) {
+        if (uiState.isPlaying && showControls) {
             delay(3000)
             showControls = false
         }
@@ -355,221 +372,218 @@ private fun VideoExpandedPlayer(
     ) {
         if (isLandscape && isWideScreen) {
             Row(modifier = Modifier.fillMaxSize()) {
-                Box(
+                VideoSurfaceWithControls(
+                    player = player,
+                    session = session,
+                    uiState = uiState,
+                    showControls = showControls,
+                    onToggleControls = { showControls = !showControls },
+                    onCollapse = onCollapse,
+                    onClose = onClose,
                     modifier = Modifier
-                        .weight(0.6f)
-                        .fillMaxHeight()
-                ) {
-                    AndroidVideoSurface(player)
-                    TopBarLandscape(
-                        modifier = Modifier.align(Alignment.TopCenter),
-                        onCollapse = onCollapse,
-                        onClose = onClose,
-                        title = session.title,
-                        channelName = session.channelName,
-                        onSettingsClick = { VideoPlaybackManager.toggleSettings() },
-                    )
-                    BottomControlsLandscape(
-                        modifier = Modifier.align(Alignment.BottomCenter),
-                        player = player,
-                        uiState = uiState,
-                    )
-                    if (uiState.showSettings) {
-                        SettingsOverlay(
-                            player = player,
-                            uiState = uiState,
-                            onDismiss = { VideoPlaybackManager.toggleSettings() },
-                        )
-                    }
-                }
-                LazyColumn(
+                        .weight(0.62f)
+                        .fillMaxHeight(),
+                    useFullHeight = true,
+                )
+                VideoDetailPane(
+                    session = session,
+                    uiState = uiState,
                     modifier = Modifier
-                        .weight(0.4f)
+                        .weight(0.38f)
                         .fillMaxHeight()
                         .background(MaterialTheme.colorScheme.surface),
-                    contentPadding = PaddingValues(bottom = 16.dp)
-                ) {
-                    item {
-                        VideoInfoSidebar(
-                            session = session,
-                            uiState = uiState,
-                            onToggleLike = { VideoPlaybackManager.toggleLike() },
-                            onToggleDislike = { VideoPlaybackManager.toggleDislike() },
-                            onToggleSubscribe = { VideoPlaybackManager.toggleSubscribe() },
-                            onToggleSave = { VideoPlaybackManager.toggleSave() },
-                            onToggleDescription = { VideoPlaybackManager.toggleExpandedDescription() },
-                            onRecommendationClick = { videoId ->
-                                VideoPlaybackManager.playWithDetails(
-                                    context = context,
-                                    videoId = videoId,
-                                    title = "",
-                                    channelName = "",
-                                )
-                            },
-                        )
-                    }
-                }
+                )
             }
         } else {
             Column(modifier = Modifier.fillMaxSize()) {
-                Box(
+                VideoSurfaceWithControls(
+                    player = player,
+                    session = session,
+                    uiState = uiState,
+                    showControls = showControls,
+                    onToggleControls = { showControls = !showControls },
+                    onCollapse = onCollapse,
+                    onClose = onClose,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .aspectRatio(16f / 9f)
-                        .graphicsLayer {
-                            translationY = dragOffset
-                            alpha = (1f - (dragOffset / 700f).coerceIn(0f, 1f)).coerceIn(0.3f, 1f)
-                        }
-                        .pointerInput(Unit) {
-                            detectVerticalDragGestures(
-                                onDragEnd = {
-                                    if (dragOffset > 120f) onCollapse() else dragOffset = 0f
-                                },
-                                onDragCancel = { dragOffset = 0f },
-                            ) { change, dragAmount ->
-                                if (dragAmount > 0) {
-                                    dragOffset = (dragOffset + dragAmount).coerceIn(0f, 800f)
-                                    change.consume()
-                                }
-                            }
-                        }
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onTap = {
-                                    showControls = !showControls
-                                    if (showControls) {
-                                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
-                                    }
-                                }
-                            )
-                        }
-                        .pointerInput(Unit) {
-                            detectDragGestures(
-                                onDragStart = { offset ->
-                                    showControls = true
-                                    val isLeftSide = offset.x < size.width / 2
-                                    if (isLeftSide) {
-                                        seekDirection = "Brightness"
-                                    } else {
-                                        seekDirection = "Volume"
-                                    }
-                                },
-                                onDragEnd = {
-                                    seekDirection = null
-                                },
-                                onDragCancel = {
-                                    seekDirection = null
-                                },
-                                onDrag = { change, dragAmount ->
-                                    change.consume()
-                                    val delta = -dragAmount.y / size.height
-                                    if (seekDirection == "Brightness") {
-                                        val window = (context as? android.app.Activity)?.window
-                                        window?.let {
-                                            val params = it.attributes
-                                            val newBrightness = (params.screenBrightness + delta).coerceIn(0.01f, 1f)
-                                            params.screenBrightness = newBrightness
-                                            it.attributes = params
-                                        }
-                                    } else if (seekDirection == "Volume") {
-                                        val volume = (player.volume + delta).coerceIn(0f, 1f)
-                                        player.volume = volume
-                                    }
-                                }
-                            )
-                        }
-                        .pointerInput(Unit) {
-                            detectHorizontalDragGestures(
-                                onHorizontalDrag = { change, dragAmount ->
-                                    change.consume()
-                                    val dragPx = dragAmount
-                                    if (kotlin.math.abs(dragPx) > 50) {
-                                        isForward = dragPx > 0
-                                        seekDirection = if (isForward) "10s" else "-10s"
-                                        val newPos = (uiState.positionMs + if (isForward) 10000 else -10000)
-                                            .coerceIn(0, uiState.durationMs)
-                                        VideoPlaybackManager.seekTo(newPos)
-                                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
-                                    }
-                                },
-                                onDragEnd = {
-                                    seekDirection = null
-                                }
-                            )
-                        }
-                ) {
-                    AndroidVideoSurface(player)
-                    if (showControls) {
-                        TopBarPortrait(
-                            modifier = Modifier.align(Alignment.TopCenter),
-                            onCollapse = onCollapse,
-                            onClose = onClose,
-                            title = session.title,
-                            channelName = session.channelName,
-                            onSettingsClick = { VideoPlaybackManager.toggleSettings() },
-                        )
-                        BottomControlsPortrait(
-                            player = player,
-                            uiState = uiState,
-                            modifier = Modifier.align(Alignment.BottomCenter),
-                        )
-                    }
-                    if (uiState.showSettings) {
-                        SettingsOverlay(
-                            player = player,
-                            uiState = uiState,
-                            onDismiss = { VideoPlaybackManager.toggleSettings() },
-                        )
-                    }
-                    seekDirection?.let { dir ->
-                        SeekEffectOverlay(
-                            seekDirection = dir,
-                            isForward = isForward,
-                            modifier = Modifier.align(Alignment.Center)
-                        )
-                    }
-                }
-
-                LazyColumn(
+                        .aspectRatio(16f / 9f),
+                    useFullHeight = false,
+                )
+                VideoDetailPane(
+                    session = session,
+                    uiState = uiState,
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
                         .background(MaterialTheme.colorScheme.surface),
-                    contentPadding = PaddingValues(bottom = 16.dp)
-                ) {
-                    item {
-                        VideoInfoSection(
-                            session = session,
-                            uiState = uiState,
-                            onToggleLike = { VideoPlaybackManager.toggleLike() },
-                            onToggleDislike = { VideoPlaybackManager.toggleDislike() },
-                            onToggleSubscribe = { VideoPlaybackManager.toggleSubscribe() },
-                            onToggleSave = { VideoPlaybackManager.toggleSave() },
-                            onToggleDescription = { VideoPlaybackManager.toggleExpandedDescription() },
-                            onRecommendationClick = { videoId ->
-                                VideoPlaybackManager.playWithDetails(
-                                    context = context,
-                                    videoId = videoId,
-                                    title = "",
-                                    channelName = "",
-                                )
-                            },
-                        )
+                )
+            }
+        }
+
+        if (uiState.showSettings) {
+            SettingsOverlay(
+                uiState = uiState,
+                onDismiss = { VideoPlaybackManager.toggleSettings() },
+            )
+        }
+    }
+}
+
+/**
+ * The 16:9 video area: surface + one coherent gesture layer (tap toggles controls,
+ * vertical drag collapses, horizontal drag scrubs) + top/bottom control bars.
+ */
+@OptIn(UnstableApi::class)
+@Composable
+private fun VideoSurfaceWithControls(
+    player: ExoPlayer,
+    session: VideoPlaybackManager.VideoSession,
+    uiState: VideoPlaybackManager.UiState,
+    showControls: Boolean,
+    onToggleControls: () -> Unit,
+    onCollapse: () -> Unit,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+    useFullHeight: Boolean,
+) {
+    val haptic = LocalHapticFeedback.current
+    val density = LocalDensity.current
+
+    var collapseDragPx by remember { mutableFloatStateOf(0f) }
+    var scrubPreviewMs by remember { mutableStateOf<Long?>(null) }
+    var isForward by remember { mutableStateOf(true) }
+    var seekHint by remember { mutableStateOf<String?>(null) }
+    val seekForwardLabel = stringResource(R.string.seek_forward_dynamic)
+    val seekBackwardLabel = stringResource(R.string.seek_backward_dynamic)
+
+    LaunchedEffect(seekHint) {
+        if (seekHint != null) {
+            delay(700)
+            seekHint = null
+        }
+    }
+
+    val collapseFraction = if (useFullHeight) 0f else (collapseDragPx / 900f).coerceIn(0f, 0.75f)
+
+    Box(
+        modifier = modifier
+            .graphicsLayer {
+                translationY = collapseDragPx
+                alpha = 1f - collapseFraction
+            }
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = {
+                        onToggleControls()
+                        if (!showControls) {
+                            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        }
+                    },
+                    onDoubleTap = { offset ->
+                        // Double-tap sides seek ±10s; center toggles controls.
+                        val side = when {
+                            offset.x < size.width / 3 -> -1
+                            offset.x > size.width * 2 / 3 -> 1
+                            else -> 0
+                        }
+                        if (side == 0) {
+                            onToggleControls()
+                        } else {
+                            val target = (VideoPlaybackManager.uiState.value.positionMs + side * 10_000L)
+                                .coerceIn(0L, VideoPlaybackManager.uiState.value.durationMs)
+                            VideoPlaybackManager.seekTo(target)
+                            isForward = side > 0
+                            seekHint = if (side > 0) seekForwardLabel else seekBackwardLabel
+                            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        }
+                    }
+                )
+            }
+            .pointerInput(useFullHeight) {
+                if (useFullHeight) return@pointerInput
+                detectVerticalDragGestures(
+                    onDragEnd = {
+                        if (collapseDragPx > with(density) { 120.dp.toPx() }) onCollapse() else collapseDragPx = 0f
+                    },
+                    onDragCancel = { collapseDragPx = 0f },
+                ) { change, dragAmount ->
+                    if (dragAmount > 0f) {
+                        collapseDragPx = (collapseDragPx + dragAmount).coerceIn(0f, 800f)
+                        change.consume()
                     }
                 }
             }
+            .pointerInput(uiState.durationMs) {
+                // Base position captured once at drag start; each event adds its own delta.
+                var dragBaseMs = 0L
+                detectHorizontalDragGestures(
+                    onDragStart = {
+                        dragBaseMs = VideoPlaybackManager.uiState.value.positionMs
+                    },
+                    onDragEnd = {
+                        scrubPreviewMs?.let { VideoPlaybackManager.seekTo(it) }
+                        scrubPreviewMs = null
+                    },
+                    onDragCancel = {
+                        scrubPreviewMs = null
+                    },
+                ) { change, dragAmount ->
+                    change.consume()
+                    // 1dp of drag ≈ 50ms of video, a smooth scrub speed.
+                    val deltaMs = dragAmount.toDp().value * 50f
+                    isForward = dragAmount > 0
+                    scrubPreviewMs = (dragBaseMs + deltaMs.toLong())
+                        .coerceIn(0L, uiState.durationMs)
+                }
+            }
+    ) {
+        AndroidVideoSurface(player, resizeModeOverride = uiState.resizeMode)
+
+        if (showControls) {
+            PlayerTopBar(
+                onCollapse = onCollapse,
+                onClose = onClose,
+                title = session.title,
+                channelName = session.channelName,
+                modifier = Modifier.align(Alignment.TopCenter),
+            )
+            PlayerBottomControls(
+                uiState = uiState,
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
+        }
+
+        scrubPreviewMs?.let { preview ->
+            SeekPreviewBadge(
+                previewMs = preview,
+                positionMs = uiState.positionMs,
+                isForward = isForward,
+                modifier = Modifier.align(Alignment.Center),
+            )
+        }
+
+        seekHint?.let { hint ->
+            Text(
+                text = hint,
+                color = Color.White,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .background(Color.Black.copy(alpha = 0.65f), RoundedCornerShape(12.dp))
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            )
         }
     }
 }
 
 @Composable
-private fun TopBarPortrait(
+private fun PlayerTopBar(
     onCollapse: () -> Unit,
     onClose: () -> Unit,
     title: String,
     channelName: String,
     modifier: Modifier = Modifier,
-    onSettingsClick: (() -> Unit)? = null,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -580,17 +594,8 @@ private fun TopBarPortrait(
                     listOf(Color.Black.copy(alpha = 0.55f), Color.Transparent)
                 )
             )
-            .padding(start = 4.dp, end = 4.dp, top = 6.dp, bottom = 10.dp)
+            .padding(start = 4.dp, end = 4.dp, top = 6.dp, bottom = 12.dp)
     ) {
-        if (onSettingsClick != null) {
-            IconButton(onClick = onSettingsClick) {
-                Icon(
-                    painter = painterResource(R.drawable.settings),
-                    contentDescription = stringResource(R.string.video_quality),
-                    tint = Color.White
-                )
-            }
-        }
         IconButton(onClick = onCollapse) {
             Icon(
                 painter = painterResource(R.drawable.expand_less),
@@ -611,12 +616,21 @@ private fun TopBarPortrait(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Text(
-                text = channelName,
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.7f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+            if (channelName.isNotBlank()) {
+                Text(
+                    text = channelName,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.7f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+        IconButton(onClick = { VideoPlaybackManager.toggleSettings() }) {
+            Icon(
+                painter = painterResource(R.drawable.settings),
+                contentDescription = stringResource(R.string.video_quality),
+                tint = Color.White
             )
         }
         IconButton(onClick = onClose) {
@@ -630,27 +644,100 @@ private fun TopBarPortrait(
 }
 
 @Composable
-private fun TopBarLandscape(
-    onCollapse: () -> Unit,
-    onClose: () -> Unit,
-    title: String,
-    channelName: String,
+private fun PlayerBottomControls(
+    uiState: VideoPlaybackManager.UiState,
     modifier: Modifier = Modifier,
-    onSettingsClick: (() -> Unit)? = null,
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
+    var scrubPosition by remember { mutableFloatStateOf(-1f) }
+    val durationSeconds = uiState.durationMs.toFloat().coerceAtLeast(1f)
+    val effectivePosition = if (scrubPosition >= 0f) scrubPosition else uiState.positionMs.toFloat()
+
+    Column(
         modifier = modifier
             .fillMaxWidth()
             .background(
                 Brush.verticalGradient(
-                    listOf(Color.Black.copy(alpha = 0.55f), Color.Transparent)
+                    listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f))
                 )
             )
-            .padding(start = 4.dp, end = 4.dp, top = 6.dp, bottom = 10.dp)
+            .padding(top = 14.dp, bottom = 12.dp)
     ) {
-        if (onSettingsClick != null) {
-            IconButton(onClick = onSettingsClick) {
+        Slider(
+            value = effectivePosition.coerceIn(0f, durationSeconds),
+            onValueChange = { scrubPosition = it },
+            onValueChangeFinished = {
+                VideoPlaybackManager.seekTo(scrubPosition.toLong())
+                scrubPosition = -1f
+            },
+            valueRange = 0f..durationSeconds,
+            colors = SliderDefaults.colors(
+                thumbColor = MaterialTheme.colorScheme.primary,
+                activeTrackColor = MaterialTheme.colorScheme.primary,
+                inactiveTrackColor = Color.White.copy(alpha = 0.3f),
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp)
+        )
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+        ) {
+            Text(
+                text = formatTime(effectivePosition.toLong()),
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.White.copy(alpha = 0.8f)
+            )
+            Text(
+                text = " / ${formatTime(uiState.durationMs)}",
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.White.copy(alpha = 0.5f)
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            IconButton(onClick = { VideoPlaybackManager.playPrevious() }) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_skip_previous),
+                    contentDescription = stringResource(R.string.video_player_up_next),
+                    tint = Color.White
+                )
+            }
+            Surface(
+                onClick = { VideoPlaybackManager.togglePlayPause() },
+                shape = CircleShape,
+                color = Color.White,
+                modifier = Modifier.size(52.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    if (uiState.isBuffering) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = Color.Black,
+                            strokeWidth = 3.dp
+                        )
+                    } else {
+                        Icon(
+                            painter = painterResource(if (uiState.isPlaying) R.drawable.pause else R.drawable.play),
+                            contentDescription = stringResource(
+                                if (uiState.isPlaying) R.string.pause else R.string.play
+                            ),
+                            modifier = Modifier.size(26.dp),
+                            tint = Color.Black
+                        )
+                    }
+                }
+            }
+            IconButton(onClick = { VideoPlaybackManager.playNext() }) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_skip_next),
+                    contentDescription = stringResource(R.string.video_player_up_next),
+                    tint = Color.White
+                )
+            }
+            Spacer(modifier = Modifier.weight(1f))
+            IconButton(onClick = { VideoPlaybackManager.toggleSettings() }) {
                 Icon(
                     painter = painterResource(R.drawable.settings),
                     contentDescription = stringResource(R.string.video_quality),
@@ -658,210 +745,98 @@ private fun TopBarLandscape(
                 )
             }
         }
-        IconButton(onClick = onCollapse) {
-            Icon(
-                painter = painterResource(R.drawable.expand_less),
-                contentDescription = stringResource(R.string.collapse_video),
-                tint = Color.White
-            )
-        }
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = 4.dp)
-        ) {
+    }
+}
+
+@Composable
+private fun SeekPreviewBadge(
+    previewMs: Long,
+    positionMs: Long,
+    isForward: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+            .background(Color.Black.copy(alpha = 0.65f), RoundedCornerShape(12.dp))
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Text(
+            text = formatTime(previewMs),
+            color = Color.White,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold,
+        )
+        val deltaSec = (previewMs - positionMs) / 1000L
+        if (deltaSec != 0L) {
             Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = Color.White,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = channelName,
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.7f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-        IconButton(onClick = onClose) {
-            Icon(
-                painter = painterResource(R.drawable.close),
-                contentDescription = stringResource(R.string.close),
-                tint = Color.White
+                text = (if (deltaSec > 0) "+" else "") + "${deltaSec}s",
+                color = if (isForward) Color(0xFF8BC34A) else Color(0xFFFF8A65),
+                style = MaterialTheme.typography.labelSmall,
             )
         }
     }
 }
 
+// ---------------------------------------------------------------------------
+// Detail pane: title, channel row, actions, tabs (comments / up next)
+// ---------------------------------------------------------------------------
+
 @Composable
-private fun BottomControlsPortrait(
-    player: ExoPlayer,
+private fun VideoDetailPane(
+    session: VideoPlaybackManager.VideoSession,
     uiState: VideoPlaybackManager.UiState,
     modifier: Modifier = Modifier,
 ) {
-    var scrubPosition by remember { mutableFloatStateOf(-1f) }
-    val durationSeconds = uiState.durationMs.toFloat().coerceAtLeast(1f)
-    val effectivePosition = if (scrubPosition >= 0f) scrubPosition else uiState.positionMs.toFloat()
+    val listState = rememberLazyListState()
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
 
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f))
-                )
-            )
-            .padding(top = 14.dp, bottom = 16.dp)
-    ) {
-        Slider(
-            value = effectivePosition.coerceIn(0f, durationSeconds),
-            onValueChange = { scrubPosition = it },
-            onValueChangeFinished = {
-                VideoPlaybackManager.seekTo(scrubPosition.toLong())
-                scrubPosition = -1f
-            },
-            valueRange = 0f..durationSeconds,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = formatTime(uiState.positionMs),
-                style = MaterialTheme.typography.labelMedium,
-                color = Color.White.copy(alpha = 0.8f)
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            Surface(
-                onClick = { VideoPlaybackManager.togglePlayPause() },
-                shape = CircleShape,
-                color = Color.White,
-                modifier = Modifier.size(54.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    if (uiState.isBuffering) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = Color.Black,
-                            strokeWidth = 3.dp
-                        )
-                    } else {
-                        Icon(
-                            painter = painterResource(if (uiState.isPlaying) R.drawable.pause else R.drawable.play),
-                            contentDescription = stringResource(
-                                if (uiState.isPlaying) R.string.pause else R.string.play
-                            ),
-                            modifier = Modifier.size(26.dp),
-                            tint = Color.Black
-                        )
-                    }
+    // Infinite scroll for both tabs.
+    LaunchedEffect(listState, uiState.comments.size, uiState.recommendations.size) {
+        snapshotFlowSafe(listState) { nearEnd ->
+            if (!nearEnd) return@snapshotFlowSafe
+            when {
+                uiState.isLoadingMoreComments || uiState.isLoadingMoreRecommendations -> Unit
+                else -> {
+                    VideoPlaybackManager.loadMoreComments()
+                    VideoPlaybackManager.loadMoreRecommendations()
                 }
             }
-            Spacer(modifier = Modifier.weight(1f))
-            Text(
-                text = formatTime(uiState.durationMs),
-                style = MaterialTheme.typography.labelMedium,
-                color = Color.White.copy(alpha = 0.8f)
+        }
+    }
+
+    LazyColumn(
+        state = listState,
+        modifier = modifier,
+        contentPadding = PaddingValues(bottom = 16.dp)
+    ) {
+        item(key = "info") {
+            VideoInfoSection(
+                session = session,
+                uiState = uiState,
             )
+        }
+        item(key = "tabs") {
+            VideoTabs(uiState = uiState)
         }
     }
 }
 
-@Composable
-private fun BottomControlsLandscape(
-    player: ExoPlayer,
-    uiState: VideoPlaybackManager.UiState,
-    modifier: Modifier = Modifier,
+/** Small indirection so the effect body stays readable. */
+private suspend fun snapshotFlowSafe(
+    listState: androidx.compose.foundation.lazy.LazyListState,
+    onNearEnd: suspend (Boolean) -> Unit,
 ) {
-    var scrubPosition by remember { mutableFloatStateOf(-1f) }
-    val durationSeconds = uiState.durationMs.toFloat().coerceAtLeast(1f)
-    val effectivePosition = if (scrubPosition >= 0f) scrubPosition else uiState.positionMs.toFloat()
-
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f))
-                )
-            )
-            .padding(top = 14.dp, bottom = 16.dp)
-    ) {
-        Slider(
-            value = effectivePosition.coerceIn(0f, durationSeconds),
-            onValueChange = { scrubPosition = it },
-            onValueChangeFinished = {
-                VideoPlaybackManager.seekTo(scrubPosition.toLong())
-                scrubPosition = -1f
-            },
-            valueRange = 0f..durationSeconds,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = formatTime(uiState.positionMs),
-                style = MaterialTheme.typography.labelMedium,
-                color = Color.White.copy(alpha = 0.8f)
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            Surface(
-                onClick = { VideoPlaybackManager.togglePlayPause() },
-                shape = CircleShape,
-                color = Color.White,
-                modifier = Modifier.size(54.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    if (uiState.isBuffering) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = Color.Black,
-                            strokeWidth = 3.dp
-                        )
-                    } else {
-                        Icon(
-                            painter = painterResource(if (uiState.isPlaying) R.drawable.pause else R.drawable.play),
-                            contentDescription = stringResource(
-                                if (uiState.isPlaying) R.string.pause else R.string.play
-                            ),
-                            modifier = Modifier.size(26.dp),
-                            tint = Color.Black
-                        )
-                    }
-                }
-            }
-            Spacer(modifier = Modifier.weight(1f))
-            Text(
-                text = formatTime(uiState.durationMs),
-                style = MaterialTheme.typography.labelMedium,
-                color = Color.White.copy(alpha = 0.8f)
-            )
-        }
-    }
+    androidx.compose.runtime.snapshotFlow {
+        val last = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+        last >= listState.layoutInfo.totalItemsCount - 3
+    }.collect { nearEnd -> onNearEnd(nearEnd) }
 }
 
 @Composable
 private fun VideoInfoSection(
     session: VideoPlaybackManager.VideoSession,
     uiState: VideoPlaybackManager.UiState,
-    onToggleLike: () -> Unit,
-    onToggleDislike: () -> Unit,
-    onToggleSubscribe: () -> Unit,
-    onToggleSave: () -> Unit,
-    onToggleDescription: () -> Unit,
-    onRecommendationClick: (String) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -877,13 +852,25 @@ private fun VideoInfoSection(
             overflow = TextOverflow.Ellipsis,
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        val metaLine = listOfNotNull(
+            session.viewCountText,
+            session.publishedTimeText,
+        ).joinToString(" • ")
+        if (metaLine.isNotBlank()) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = metaLine,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
 
         ChannelRow(
-            channelName = session.channelName,
-            channelThumbnail = session.channelThumbnail,
+            session = session,
             isSubscribed = uiState.isSubscribed,
-            onSubscribeClick = onToggleSubscribe,
+            onSubscribeClick = { VideoPlaybackManager.toggleSubscribe() },
         )
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -892,10 +879,6 @@ private fun VideoInfoSection(
             isLiked = uiState.isLiked,
             isDisliked = uiState.isDisliked,
             isSaved = uiState.isSaved,
-            onLikeClick = onToggleLike,
-            onDislikeClick = onToggleDislike,
-            onSaveClick = onToggleSave,
-            onShareClick = {},
         )
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -905,91 +888,17 @@ private fun VideoInfoSection(
                 ExpandableDescription(
                     description = desc,
                     expanded = uiState.expandedDescription,
-                    onToggle = onToggleDescription,
+                    onToggle = { VideoPlaybackManager.toggleExpandedDescription() },
                 )
                 Spacer(modifier = Modifier.height(12.dp))
             }
         }
-
-        VideoTabs(
-            session = session,
-            uiState = uiState,
-            onRecommendationClick = onRecommendationClick,
-        )
-    }
-}
-
-@Composable
-private fun VideoInfoSidebar(
-    session: VideoPlaybackManager.VideoSession,
-    uiState: VideoPlaybackManager.UiState,
-    onToggleLike: () -> Unit,
-    onToggleDislike: () -> Unit,
-    onToggleSubscribe: () -> Unit,
-    onToggleSave: () -> Unit,
-    onToggleDescription: () -> Unit,
-    onRecommendationClick: (String) -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp)
-    ) {
-        Text(
-            text = session.title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 3,
-            overflow = TextOverflow.Ellipsis,
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        ChannelRow(
-            channelName = session.channelName,
-            channelThumbnail = session.channelThumbnail,
-            isSubscribed = uiState.isSubscribed,
-            onSubscribeClick = onToggleSubscribe,
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        ActionButtonsRow(
-            isLiked = uiState.isLiked,
-            isDisliked = uiState.isDisliked,
-            isSaved = uiState.isSaved,
-            onLikeClick = onToggleLike,
-            onDislikeClick = onToggleDislike,
-            onSaveClick = onToggleSave,
-            onShareClick = {},
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        session.description?.let { desc ->
-            if (desc.isNotBlank()) {
-                ExpandableDescription(
-                    description = desc,
-                    expanded = uiState.expandedDescription,
-                    onToggle = onToggleDescription,
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-            }
-        }
-
-        VideoTabs(
-            session = session,
-            uiState = uiState,
-            onRecommendationClick = onRecommendationClick,
-        )
     }
 }
 
 @Composable
 private fun ChannelRow(
-    channelName: String,
-    channelThumbnail: String?,
+    session: VideoPlaybackManager.VideoSession,
     isSubscribed: Boolean,
     onSubscribeClick: () -> Unit,
 ) {
@@ -1003,17 +912,17 @@ private fun ChannelRow(
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.primaryContainer)
         ) {
-            if (!channelThumbnail.isNullOrBlank()) {
+            if (!session.channelThumbnail.isNullOrBlank()) {
                 AsyncImage(
-                    model = channelThumbnail,
-                    contentDescription = channelName,
+                    model = session.channelThumbnail,
+                    contentDescription = session.channelName,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
                 )
             } else {
                 Icon(
                     painter = painterResource(R.drawable.ic_person),
-                    contentDescription = channelName,
+                    contentDescription = session.channelName,
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(8.dp),
@@ -1026,13 +935,22 @@ private fun ChannelRow(
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = channelName,
+                text = session.channelName,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+            session.subscriberCountText?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
 
         Surface(
@@ -1068,45 +986,30 @@ private fun ActionButtonsRow(
     isLiked: Boolean,
     isDisliked: Boolean,
     isSaved: Boolean,
-    onLikeClick: () -> Unit,
-    onDislikeClick: () -> Unit,
-    onSaveClick: () -> Unit,
-    onShareClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         ActionButton(
-            icon = if (isLiked) R.drawable.ic_thumb_up else R.drawable.ic_thumb_up,
-            contentDescription = stringResource(R.string.video_player_like),
+            icon = R.drawable.ic_thumb_up,
             label = stringResource(R.string.video_player_like),
             selected = isLiked,
-            onClick = onLikeClick,
+            onClick = { VideoPlaybackManager.toggleLike() },
             modifier = Modifier.weight(1f)
         )
         ActionButton(
             icon = R.drawable.ic_thumb_down,
-            contentDescription = stringResource(R.string.video_player_dislike),
             label = stringResource(R.string.video_player_dislike),
             selected = isDisliked,
-            onClick = onDislikeClick,
-            modifier = Modifier.weight(1f)
-        )
-        ActionButton(
-            icon = R.drawable.share,
-            contentDescription = stringResource(R.string.share),
-            label = stringResource(R.string.share),
-            selected = false,
-            onClick = onShareClick,
+            onClick = { VideoPlaybackManager.toggleDislike() },
             modifier = Modifier.weight(1f)
         )
         ActionButton(
             icon = if (isSaved) R.drawable.library_add_check else R.drawable.library_add,
-            contentDescription = stringResource(if (isSaved) R.string.video_player_saved else R.string.video_player_save),
             label = stringResource(if (isSaved) R.string.video_player_saved else R.string.video_player_save),
             selected = isSaved,
-            onClick = onSaveClick,
+            onClick = { VideoPlaybackManager.toggleSave() },
             modifier = Modifier.weight(1f)
         )
     }
@@ -1115,7 +1018,6 @@ private fun ActionButtonsRow(
 @Composable
 private fun ActionButton(
     icon: Int,
-    contentDescription: String,
     label: String,
     selected: Boolean,
     onClick: () -> Unit,
@@ -1134,11 +1036,11 @@ private fun ActionButton(
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
-            modifier = Modifier.padding(horizontal = 12.dp)
+            modifier = Modifier.padding(horizontal = 8.dp)
         ) {
             Icon(
                 painter = painterResource(icon),
-                contentDescription = contentDescription,
+                contentDescription = label,
                 modifier = Modifier.size(20.dp),
                 tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -1185,109 +1087,91 @@ private fun ExpandableDescription(
     }
 }
 
+private enum class DetailTab(val labelRes: Int) {
+    Comments(R.string.video_player_comments),
+    UpNext(R.string.video_player_up_next),
+}
+
 @Composable
-private fun VideoTabs(
-    session: VideoPlaybackManager.VideoSession,
-    uiState: VideoPlaybackManager.UiState,
-    onRecommendationClick: (String) -> Unit,
-) {
-    var selectedTab by remember { mutableIntStateOf(1) }
+private fun VideoTabs(uiState: VideoPlaybackManager.UiState) {
+    var selectedTab by remember { mutableIntStateOf(DetailTab.UpNext.ordinal) }
 
     Column {
         ScrollableTabRow(
             selectedTabIndex = selectedTab,
             containerColor = Color.Transparent,
             contentColor = MaterialTheme.colorScheme.primary,
-            indicator = {},
-            edgePadding = 0.dp,
+            edgePadding = 16.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Tab(
-                selected = selectedTab == 0,
-                onClick = { selectedTab = 0 },
-                text = {
-                    Text(
-                        text = stringResource(R.string.video_player_comments),
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal,
-                        color = if (selectedTab == 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            )
-            Tab(
-                selected = selectedTab == 1,
-                onClick = { selectedTab = 1 },
-                text = {
-                    Text(
-                        text = stringResource(R.string.video_player_up_next),
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal,
-                        color = if (selectedTab == 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            )
+            DetailTab.entries.forEach { tab ->
+                Tab(
+                    selected = selectedTab == tab.ordinal,
+                    onClick = { selectedTab = tab.ordinal },
+                    text = {
+                        Text(
+                            text = stringResource(tab.labelRes),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = if (selectedTab == tab.ordinal) FontWeight.Bold else FontWeight.Normal,
+                            color = if (selectedTab == tab.ordinal) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Box(modifier = Modifier.fillMaxWidth()) {
-            if (selectedTab == 0) {
-                when {
-                    uiState.isLoadingComments -> {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 24.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(modifier = Modifier.size(28.dp))
-                        }
-                    }
-                    uiState.commentsError != null -> {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 24.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = uiState.commentsError.orEmpty(),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                            )
-                        }
-                    }
-                    uiState.comments.isEmpty() -> {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 24.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = stringResource(R.string.video_player_comments_unavailable),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                            )
-                        }
-                    }
-                    else -> {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxWidth(),
-                            contentPadding = PaddingValues(vertical = 4.dp)
-                        ) {
-                            items(uiState.comments, key = { it.commentId }) { comment ->
-                                CommentRow(comment = comment)
-                            }
-                        }
+        when (selectedTab) {
+            DetailTab.Comments.ordinal -> CommentsSection(uiState = uiState)
+            else -> UpNextSection(uiState = uiState)
+        }
+    }
+}
+
+@Composable
+private fun CommentsSection(uiState: VideoPlaybackManager.UiState) {
+    when {
+        uiState.isLoadingComments -> {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(modifier = Modifier.size(28.dp))
+            }
+        }
+        uiState.commentsError != null && uiState.comments.isEmpty() -> {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = uiState.commentsError.orEmpty(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+            }
+        }
+        else -> {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                uiState.comments.forEach { comment ->
+                    CommentRow(comment = comment)
+                }
+                if (uiState.isLoadingMoreComments) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
                     }
                 }
-            } else {
-                UpNextList(
-                    recommendations = uiState.recommendations,
-                    isLoading = uiState.isLoadingRecommendations,
-                    onItemClick = onRecommendationClick,
-                )
             }
         }
     }
@@ -1336,40 +1220,73 @@ private fun CommentRow(comment: CommentItem) {
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Text(
-                    text = comment.publishedTime.orEmpty(),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
+                comment.likeCount?.let {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_thumb_up),
+                            contentDescription = null,
+                            modifier = Modifier.size(12.dp),
+                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                }
             }
-            Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = comment.content,
+                text = buildString {
+                    if (comment.isPinned) append("📌 ")
+                    append(comment.content)
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                comment.publishedTime?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    )
+                }
+                comment.replyCount?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun UpNextList(
-    recommendations: List<RecommendationItem>,
-    isLoading: Boolean,
-    onItemClick: (String) -> Unit,
-) {
+private fun UpNextSection(uiState: VideoPlaybackManager.UiState) {
+    val context = LocalContext.current
     when {
-        isLoading -> {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 24.dp),
-                contentAlignment = Alignment.Center
+        uiState.isLoadingRecommendations -> {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                CircularProgressIndicator(modifier = Modifier.size(28.dp))
+                repeat(4) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                            .height(84.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    )
+                }
             }
         }
-        recommendations.isEmpty() -> {
+        uiState.recommendations.isEmpty() -> {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1387,11 +1304,33 @@ private fun UpNextList(
             Column(
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                recommendations.forEach { item ->
+                uiState.recommendations.forEach { item ->
                     UpNextRow(
                         item = item,
-                        onClick = { onItemClick(item.videoId) }
+                        isPlaying = item.videoId == uiState.session?.videoId,
+                        onClick = {
+                            // Pass the full item so the player never shows a blank title.
+                            VideoPlaybackManager.playWithDetails(
+                                context = context,
+                                videoId = item.videoId,
+                                title = item.title,
+                                channelName = item.channelName,
+                                channelId = item.channelId,
+                                viewCountText = item.viewCountText,
+                                publishedTimeText = item.publishedTimeText,
+                            )
+                        }
                     )
+                }
+                if (uiState.isLoadingMoreRecommendations) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    }
                 }
             }
         }
@@ -1401,6 +1340,7 @@ private fun UpNextList(
 @Composable
 private fun UpNextRow(
     item: RecommendationItem,
+    isPlaying: Boolean,
     onClick: () -> Unit,
 ) {
     Row(
@@ -1443,6 +1383,22 @@ private fun UpNextRow(
                     )
                 }
             }
+            if (isPlaying) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(6.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(MaterialTheme.colorScheme.primary)
+                        .padding(horizontal = 5.dp, vertical = 1.dp)
+                ) {
+                    Text(
+                        text = "▶",
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        fontSize = 9.sp,
+                    )
+                }
+            }
         }
 
         Column(
@@ -1454,13 +1410,16 @@ private fun UpNextRow(
             Text(
                 text = item.title,
                 style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.Medium,
+                color = if (isPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = item.channelName,
+                text = listOfNotNull(
+                    item.channelName.takeIf { it.isNotBlank() },
+                    item.viewCountText,
+                ).joinToString(" • "),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 maxLines = 1,
@@ -1470,14 +1429,15 @@ private fun UpNextRow(
     }
 }
 
+// ---------------------------------------------------------------------------
+// Settings overlay
+// ---------------------------------------------------------------------------
+
 @Composable
 private fun SettingsOverlay(
-    player: ExoPlayer,
     uiState: VideoPlaybackManager.UiState,
     onDismiss: () -> Unit,
 ) {
-    var expanded by remember { mutableStateOf(true) }
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -1520,19 +1480,11 @@ private fun SettingsOverlay(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Slider(
-                    value = uiState.playbackSpeed,
-                    onValueChange = { VideoPlaybackManager.setPlaybackSpeed(it) },
-                    valueRange = 0.25f..2.0f,
-                    steps = 7,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
                 ) {
                     listOf(
                         0.5f to "0.5x",
@@ -1559,7 +1511,7 @@ private fun SettingsOverlay(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1568,8 +1520,9 @@ private fun SettingsOverlay(
                     Surface(
                         onClick = {
                             val nextMode = when (uiState.resizeMode) {
-                                AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH -> AspectRatioFrameLayout.RESIZE_MODE_FILL
-                                else -> AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
+                                AspectRatioFrameLayout.RESIZE_MODE_FIT -> AspectRatioFrameLayout.RESIZE_MODE_FILL
+                                AspectRatioFrameLayout.RESIZE_MODE_FILL -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                                else -> AspectRatioFrameLayout.RESIZE_MODE_FIT
                             }
                             VideoPlaybackManager.setResizeMode(nextMode)
                         },
@@ -1579,8 +1532,10 @@ private fun SettingsOverlay(
                     ) {
                         Text(
                             text = when (uiState.resizeMode) {
-                                AspectRatioFrameLayout.RESIZE_MODE_FILL -> "Stretch"
-                                else -> "Fit"
+                                AspectRatioFrameLayout.RESIZE_MODE_FIT -> "Resize: Fit"
+                                AspectRatioFrameLayout.RESIZE_MODE_FILL -> "Resize: Stretch"
+                                AspectRatioFrameLayout.RESIZE_MODE_ZOOM -> "Resize: Crop"
+                                else -> "Resize: Fit"
                             },
                             modifier = Modifier.padding(vertical = 12.dp),
                             textAlign = TextAlign.Center,
@@ -1593,76 +1548,18 @@ private fun SettingsOverlay(
     }
 }
 
-@Composable
-private fun SeekEffectOverlay(
-    seekDirection: String,
-    isForward: Boolean = true,
-    modifier: Modifier = Modifier
-) {
-    val rippleAlpha = remember { Animatable(0.6f) }
-    val rippleScale = remember { Animatable(0.5f) }
-
-    LaunchedEffect(seekDirection) {
-        rippleScale.snapTo(0.5f)
-        rippleAlpha.snapTo(0.6f)
-        launch { rippleScale.animateTo(1.5f, tween(600)) }
-        launch { rippleAlpha.animateTo(0f, tween(600)) }
-    }
-
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = modifier
-    ) {
-        Canvas(
-            modifier = Modifier
-                .size(80.dp)
-                .graphicsLayer {
-                    scaleX = rippleScale.value
-                    scaleY = rippleScale.value
-                    alpha = rippleAlpha.value
-                }
-        ) {
-            drawCircle(
-                color = Color.White.copy(alpha = 0.3f),
-                radius = 40.dp.toPx()
-            )
-        }
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        ) {
-            Icon(
-                painter = painterResource(
-                    if (isForward) R.drawable.fast_forward else R.drawable.fast_forward
-                ),
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier
-                    .size(28.dp)
-                    .graphicsLayer { if (!isForward) scaleX = -1f }
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = seekDirection,
-                color = Color.White,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
-            )
-        }
-    }
-}
+// ---------------------------------------------------------------------------
+// Surface + helpers
+// ---------------------------------------------------------------------------
 
 @OptIn(UnstableApi::class)
 @Composable
-private fun AndroidVideoSurface(player: ExoPlayer) {
+private fun AndroidVideoSurface(player: ExoPlayer, resizeModeOverride: Int) {
     androidx.compose.ui.viewinterop.AndroidView(
         factory = { ctx ->
             PlayerView(ctx).apply {
                 useController = false
-                resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
                 setBackgroundColor(android.graphics.Color.BLACK)
                 layoutParams = ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
@@ -1672,6 +1569,10 @@ private fun AndroidVideoSurface(player: ExoPlayer) {
         },
         update = { view ->
             view.player = player
+            // The resize setting was previously never applied to the surface.
+            if (view.resizeMode != resizeModeOverride) {
+                view.resizeMode = resizeModeOverride
+            }
         },
         modifier = Modifier.fillMaxSize()
     )
@@ -1679,7 +1580,12 @@ private fun AndroidVideoSurface(player: ExoPlayer) {
 
 private fun formatTime(ms: Long): String {
     val totalSeconds = (ms / 1000).coerceAtLeast(0)
-    val minutes = totalSeconds / 60
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
     val seconds = totalSeconds % 60
-    return "$minutes:${seconds.toString().padStart(2, '0')}"
+    return if (hours > 0) {
+        "%d:%02d:%02d".format(hours, minutes, seconds)
+    } else {
+        "$minutes:${seconds.toString().padStart(2, '0')}"
+    }
 }

@@ -379,7 +379,7 @@ dependencies {
     implementation("net.java.dev.jna:jna:5.19.1@aar")
 
     implementation(project(":innertube"))
-    implementation(project(":flow"))
+    implementation(project(":auravideo"))
     implementation(project(":kugou"))
     implementation(project(":lrclib"))
     implementation(project(":lastfm"))

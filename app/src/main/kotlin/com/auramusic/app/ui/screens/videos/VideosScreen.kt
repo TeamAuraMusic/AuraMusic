@@ -252,7 +252,7 @@ fun VideosScreen(
                         )
                     }
                     val openChannel: (String) -> Unit = { channelId ->
-                        navController.navigate("youtube_browse/$channelId")
+                        navController.navigate("youtube_channel/$channelId")
                     }
                     if (gridView) {
                         LazyVerticalGrid(

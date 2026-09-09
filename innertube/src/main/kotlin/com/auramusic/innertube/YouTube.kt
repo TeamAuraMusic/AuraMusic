@@ -28,6 +28,12 @@ import com.auramusic.innertube.models.YouTubeClient.Companion.WEB_REMIX
 import com.auramusic.innertube.models.YouTubeClient.Companion.MOBILE
 import com.auramusic.innertube.models.YouTubeVideoItem
 import com.auramusic.innertube.models.response.YouTubeSearchResponse
+import com.auramusic.innertube.models.response.WatchCompactVideo
+import com.auramusic.innertube.models.response.WatchMetadataResponse
+import com.auramusic.innertube.models.response.YoutubeCommentResponse
+import com.auramusic.innertube.models.response.relatedContinuation
+import com.auramusic.innertube.models.response.relatedVideos
+import com.auramusic.innertube.pages.YouTubeChannelPage
 import com.auramusic.innertube.pages.YouTubeSearchPage
 import com.auramusic.innertube.pages.YouTubeSearchResult
 import com.auramusic.innertube.models.YouTubeLocale
@@ -1137,6 +1143,68 @@ object YouTube {
         )
     }
 
+    /**
+     * Watch-page metadata for a regular YouTube video via the WEB /next endpoint:
+     * related videos, channel info, description, view count and comments token.
+     * The WEB_REMIX /next response used by [next] only carries YT Music queue data.
+     */
+    suspend fun watchMetadata(videoId: String): Result<WatchMetadataResponse> =
+        runCatching {
+            innerTube.next(WEB, videoId, null, null, null, null, null)
+                .body<WatchMetadataResponse>()
+        }
+
+    /**
+     * Next page of related videos for a regular YouTube video.
+     * Returns empty list when the continuation token is invalid/expired.
+     */
+    suspend fun watchMetadataRelatedContinuation(
+        videoId: String,
+        continuation: String,
+    ): Result<Pair<List<WatchCompactVideo>, String?>> = runCatching {
+        val response = innerTube.next(WEB, videoId, null, null, null, null, continuation)
+            .body<WatchMetadataResponse>()
+        Pair(response.relatedVideos(), response.relatedContinuation())
+    }
+
+    /**
+     * Comment threads for a regular YouTube video. The first call needs the comments
+     * continuation token from [WatchMetadataResponse.commentsContinuation]; subsequent
+     * calls pass the token returned by the previous page.
+     */
+    suspend fun videoComments(
+        videoId: String,
+        continuation: String? = null,
+    ): Result<YoutubeCommentResponse> =
+        runCatching {
+            innerTube.next(WEB, videoId, null, null, null, null, continuation)
+                .body<YoutubeCommentResponse>()
+        }
+
+    /**
+     * A regular YouTube channel's header + first page of a tab (Videos/Shorts/Live).
+     */
+    suspend fun youtubeChannel(
+        channelId: String,
+        params: String? = YouTubeChannelPage.VIDEOS_PARAMS,
+    ): Result<YouTubeChannelPage> = runCatching {
+        val response = innerTube.browseYouTube(WEB, browseId = channelId, params = params)
+        YouTubeChannelPage.fromJson(channelId, Json.parseToJsonElement(response.bodyAsText()))
+    }
+
+    /**
+     * Next page of videos for a channel tab. Returns the same page shape; an expired
+     * token yields an empty video list.
+     */
+    suspend fun youtubeChannelContinuation(
+        channelId: String,
+        continuation: String,
+        params: String? = null,
+    ): Result<YouTubeChannelPage> = runCatching {
+        val response = innerTube.browseYouTube(WEB, browseId = channelId, continuation = continuation)
+        YouTubeChannelPage.fromJson(channelId, Json.parseToJsonElement(response.bodyAsText()))
+    }
+
     suspend fun next(endpoint: WatchEndpoint, continuation: String? = null): Result<NextResult> = runCatching {
         val response = innerTube.next(
             WEB_REMIX,
@@ -1161,6 +1229,26 @@ object YouTube {
         val songs = items.map { it.first }
         val currentIndex = items.indexOfFirst { it.second }.takeIf { it != -1 }
 
+        // YouTube inserts/reorders watch-next tabs (a Comments tab appeared at index 2 in
+        // 2026), so lyrics/related must be found by browseId prefix, never by position.
+        val watchNextTabs =
+            response.contents.singleColumnMusicWatchNextResultsRenderer
+                ?.tabbedRenderer
+                ?.watchNextTabbedResultsRenderer
+                ?.tabs
+        val lyricsBrowseEndpoint =
+            watchNextTabs?.firstNotNullOfOrNull { tab ->
+                tab.tabRenderer.endpoint
+                    ?.browseEndpoint
+                    ?.takeIf { it.browseId.startsWith("MPLYt") }
+            }
+        val relatedBrowseEndpoint =
+            watchNextTabs?.firstNotNullOfOrNull { tab ->
+                tab.tabRenderer.endpoint
+                    ?.browseEndpoint
+                    ?.takeIf { it.browseId.startsWith("MPTRt") }
+            }
+
         // load automix items
         playlistPanelRenderer.contents.lastOrNull()?.automixPreviewVideoRenderer?.content?.automixPlaylistVideoRenderer?.navigationEndpoint?.watchPlaylistEndpoint?.let { watchPlaylistEndpoint ->
             return@runCatching next(watchPlaylistEndpoint).getOrThrow().let { result ->
@@ -1170,8 +1258,8 @@ object YouTube {
                     // usually several songs already present in the watch-next queue. Keep the
                     // first occurrence so the queue doesn't show the same track repeatedly.
                     items = (songs + result.items).distinctBy { it.id },
-                    lyricsEndpoint = response.contents.singleColumnMusicWatchNextResultsRenderer?.tabbedRenderer?.watchNextTabbedResultsRenderer?.tabs?.getOrNull(1)?.tabRenderer?.endpoint?.browseEndpoint,
-                    relatedEndpoint = response.contents.singleColumnMusicWatchNextResultsRenderer?.tabbedRenderer?.watchNextTabbedResultsRenderer?.tabs?.getOrNull(2)?.tabRenderer?.endpoint?.browseEndpoint,
+                    lyricsEndpoint = lyricsBrowseEndpoint,
+                    relatedEndpoint = relatedBrowseEndpoint,
                     currentIndex = currentIndex,
                     endpoint = watchPlaylistEndpoint
                 )
@@ -1181,8 +1269,8 @@ object YouTube {
             title = title,
             items = songs,
             currentIndex = currentIndex,
-            lyricsEndpoint = response.contents.singleColumnMusicWatchNextResultsRenderer?.tabbedRenderer?.watchNextTabbedResultsRenderer?.tabs?.getOrNull(1)?.tabRenderer?.endpoint?.browseEndpoint,
-            relatedEndpoint = response.contents.singleColumnMusicWatchNextResultsRenderer?.tabbedRenderer?.watchNextTabbedResultsRenderer?.tabs?.getOrNull(2)?.tabRenderer?.endpoint?.browseEndpoint,
+            lyricsEndpoint = lyricsBrowseEndpoint,
+            relatedEndpoint = relatedBrowseEndpoint,
             continuation = playlistPanelRenderer.continuations?.getContinuation(),
             endpoint = endpoint
         )

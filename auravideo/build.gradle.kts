@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.auramusic.flow"
+    namespace = "com.auramusic.auravideo"
     compileSdk = 36
 
     defaultConfig {

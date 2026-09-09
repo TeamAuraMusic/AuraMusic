@@ -1,4 +1,4 @@
-package com.auramusic.flow
+package com.auramusic.auravideo
 
 import android.util.Log
 import com.auramusic.innertube.NewPipeExtractor
@@ -8,8 +8,8 @@ import com.auramusic.innertube.YouTube.SearchFilter
 import com.auramusic.innertube.models.SongItem
 import com.auramusic.innertube.models.YTItem
 
-object FlowVideo {
-    private const val TAG = "FlowVideo"
+object AuraVideo {
+    private const val TAG = "AuraVideo"
     data class VideoStreamResult(
         val url: String,
         val mimeType: String
@@ -426,7 +426,7 @@ object FlowVideo {
             val muxedVideoStreams = streamInfo.videoStreams // These have both video and audio
             val videoOnlyStreams = streamInfo.videoOnlyStreams // These are video only (no audio)
             
-            Log.d(TAG,"FlowVideo: Found ${muxedVideoStreams.size} muxed and ${videoOnlyStreams.size} video-only streams")
+            Log.d(TAG,"AuraVideo: Found ${muxedVideoStreams.size} muxed and ${videoOnlyStreams.size} video-only streams")
             
             // Priority 1: Muxed MP4 streams (best compatibility with ExoPlayer)
             val mp4MuxedStreams = muxedVideoStreams.filter { isMp4Format(it.format?.mimeType) }
@@ -434,7 +434,7 @@ object FlowVideo {
             if (bestMp4Muxed != null) {
                 val url = bestMp4Muxed.content ?: bestMp4Muxed.url
                 if (url != null) {
-                    Log.d(TAG,"FlowVideo: Using muxed MP4 stream with resolution ${bestMp4Muxed.resolution}")
+                    Log.d(TAG,"AuraVideo: Using muxed MP4 stream with resolution ${bestMp4Muxed.resolution}")
                     return@runCatching VideoStreamResult(url, sanitizeMimeTypeForExoPlayer(bestMp4Muxed.format?.mimeType))
                 }
             }
@@ -444,7 +444,7 @@ object FlowVideo {
             if (bestMuxedStream != null) {
                 val url = bestMuxedStream.content ?: bestMuxedStream.url
                 if (url != null) {
-                    Log.d(TAG,"FlowVideo: Using muxed stream with resolution ${bestMuxedStream.resolution}")
+                    Log.d(TAG,"AuraVideo: Using muxed stream with resolution ${bestMuxedStream.resolution}")
                     return@runCatching VideoStreamResult(url, sanitizeMimeTypeForExoPlayer(bestMuxedStream.format?.mimeType))
                 }
             }
@@ -455,7 +455,7 @@ object FlowVideo {
             if (bestMp4VideoOnly != null) {
                 val url = bestMp4VideoOnly.content ?: bestMp4VideoOnly.url
                 if (url != null) {
-                    Log.d(TAG,"FlowVideo: Using video-only MP4 stream with resolution ${bestMp4VideoOnly.resolution}")
+                    Log.d(TAG,"AuraVideo: Using video-only MP4 stream with resolution ${bestMp4VideoOnly.resolution}")
                     return@runCatching VideoStreamResult(url, sanitizeMimeTypeForExoPlayer(bestMp4VideoOnly.format?.mimeType))
                 }
             }
@@ -465,7 +465,7 @@ object FlowVideo {
             if (bestVideoOnlyStream != null) {
                 val url = bestVideoOnlyStream.content ?: bestVideoOnlyStream.url
                 if (url != null) {
-                    Log.d(TAG,"FlowVideo: Using video-only stream with resolution ${bestVideoOnlyStream.resolution}")
+                    Log.d(TAG,"AuraVideo: Using video-only stream with resolution ${bestVideoOnlyStream.resolution}")
                     return@runCatching VideoStreamResult(url, sanitizeMimeTypeForExoPlayer(bestVideoOnlyStream.format?.mimeType))
                 }
             }
@@ -476,7 +476,7 @@ object FlowVideo {
                     if (fallbackStream != null) {
                         val url = fallbackStream.content ?: fallbackStream.url
                         if (url != null) {
-                            Log.d(TAG,"FlowVideo: Using fallback muxed stream with resolution ${fallbackStream.resolution}")
+                            Log.d(TAG,"AuraVideo: Using fallback muxed stream with resolution ${fallbackStream.resolution}")
                             return@runCatching VideoStreamResult(url, sanitizeMimeTypeForExoPlayer(fallbackStream.format?.mimeType))
                         }
                     }
@@ -488,7 +488,7 @@ object FlowVideo {
                 if (fallbackStream != null) {
                     val url = fallbackStream.content ?: fallbackStream.url
                     if (url != null) {
-                        Log.d(TAG,"FlowVideo: Using fallback video-only stream with resolution ${fallbackStream.resolution}")
+                        Log.d(TAG,"AuraVideo: Using fallback video-only stream with resolution ${fallbackStream.resolution}")
                         return@runCatching VideoStreamResult(url, sanitizeMimeTypeForExoPlayer(fallbackStream.format?.mimeType))
                     }
                 }
@@ -496,7 +496,7 @@ object FlowVideo {
         }
 
         // Fallback to YouTube player API if NewPipe fails
-        Log.d(TAG,"FlowVideo: NewPipe failed, trying YouTube player API")
+        Log.d(TAG,"AuraVideo: NewPipe failed, trying YouTube player API")
         val playerResponse = YouTube.player(videoId, client = WEB_REMIX).getOrThrow()
         
         if (playerResponse.playabilityStatus.status != "OK") {
@@ -521,7 +521,7 @@ object FlowVideo {
                 url = NewPipeExtractor.getStreamUrl(bestFormat, videoId)
             }
             if (url != null) {
-                Log.d(TAG,"FlowVideo: Using YouTube muxed format with height ${bestFormat?.height}")
+                Log.d(TAG,"AuraVideo: Using YouTube muxed format with height ${bestFormat?.height}")
                 return@runCatching VideoStreamResult(url, sanitizeMimeType(bestFormat?.mimeType))
             }
         }
@@ -537,7 +537,7 @@ object FlowVideo {
                 url = NewPipeExtractor.getStreamUrl(bestFormat, videoId)
             }
             if (url != null) {
-                Log.d(TAG,"FlowVideo: Using YouTube adaptive format with height ${bestFormat?.height}")
+                Log.d(TAG,"AuraVideo: Using YouTube adaptive format with height ${bestFormat?.height}")
                 return@runCatching VideoStreamResult(url, sanitizeMimeType(bestFormat?.mimeType))
             }
         }

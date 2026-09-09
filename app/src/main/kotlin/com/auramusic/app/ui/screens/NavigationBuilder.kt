@@ -33,6 +33,7 @@ import com.auramusic.app.ui.screens.equalizer.EqScreen
 import com.auramusic.app.ui.screens.library.LibraryScreen
 import com.auramusic.app.ui.screens.videos.VideosScreen
 import com.auramusic.app.ui.screens.videos.VideoSearchScreen
+import com.auramusic.app.ui.screens.videos.ChannelScreen
 import com.auramusic.app.ui.screens.playlist.AutoPlaylistScreen
 import com.auramusic.app.ui.screens.playlist.CachePlaylistScreen
 import com.auramusic.app.ui.screens.playlist.LocalPlaylistScreen
@@ -338,6 +339,17 @@ fun NavGraphBuilder.navigationBuilder(
         ),
     ) {
         YouTubeBrowseScreen(navController)
+    }
+
+    composable(
+        route = "youtube_channel/{channelId}",
+        arguments = listOf(
+            navArgument("channelId") {
+                type = NavType.StringType
+            },
+        ),
+    ) {
+        ChannelScreen(navController, channelIdOrUrl = it.arguments?.getString("channelId").orEmpty())
     }
 
     composable("settings") {

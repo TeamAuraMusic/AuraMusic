@@ -1,4 +1,4 @@
-package com.auramusic.flow
+package com.auramusic.auravideo
 
 data class VideoItem(
     val id: String,
