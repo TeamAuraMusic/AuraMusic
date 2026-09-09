@@ -23,8 +23,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -60,6 +63,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
@@ -100,7 +104,7 @@ fun VideoSearchScreen(
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
     val focusRequester = remember { FocusRequester() }
-    val lazyListState = rememberLazyListState()
+    val lazyGridState = rememberLazyGridState()
     val coroutineScope = rememberCoroutineScope()
 
     val initialQuery = remember {
@@ -182,10 +186,10 @@ fun VideoSearchScreen(
         }
     }
 
-    LaunchedEffect(lazyListState, activeFilter, hasSearched) {
+    LaunchedEffect(lazyGridState, activeFilter, hasSearched) {
         snapshotFlow {
-            val last = lazyListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-            last >= lazyListState.layoutInfo.totalItemsCount - 3
+            val last = lazyGridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            last >= lazyGridState.layoutInfo.totalItemsCount - 3
         }.collect { nearEnd ->
             if (nearEnd && hasSearched) performLoadMore()
         }
@@ -335,24 +339,39 @@ fun VideoSearchScreen(
                     val grouped = remember(visibleResults, activeFilter) {
                         groupResults(visibleResults, activeFilter)
                     }
-                    LazyColumn(
-                        state = lazyListState,
+                    // YouTube-style grid: videos render as cards like the Videos feed,
+                    // everything else (hero, channels, playlists) spans the full width.
+                    val configuration = LocalConfiguration.current
+                    val gridColumns = when {
+                        configuration.screenWidthDp >= 550 -> 3
+                        else -> 2
+                    }
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(gridColumns),
+                        state = lazyGridState,
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(vertical = 4.dp)
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         grouped.forEach { section ->
-                            if (section.titleRes != R.string.search_section_top_result) {
-                                item(key = "section_${section.titleRes}") {
+                            val isHero = section.titleRes == R.string.search_section_top_result
+                            if (!isHero) {
+                                item(
+                                    key = "section_${section.titleRes}",
+                                    span = { GridItemSpan(maxLineSpan) },
+                                ) {
                                     SearchSectionHeader(titleRes = section.titleRes)
                                 }
                             }
                             section.items.forEachIndexed { index, result ->
+                                val isGridVideo = result is YouTubeSearchResultItem.Video && !isHero
                                 item(
-                                    key = result.key() + (if (section.titleRes == R.string.search_section_top_result) "_${index}" else "")
+                                    key = result.key() + (if (isHero) "_${index}" else ""),
+                                    span = { if (isGridVideo) GridItemSpan(1) else GridItemSpan(maxLineSpan) },
                                 ) {
                                     SearchResultRow(
                                         result = result,
-                                        isHero = section.titleRes == R.string.search_section_top_result,
+                                        isHero = isHero,
                                         onVideoClick = { video ->
                                             VideoPlaybackManager.playWithDetails(
                                                 context = context,
@@ -378,7 +397,10 @@ fun VideoSearchScreen(
                         }
 
                         if (isLoadingMore) {
-                            item(key = "loading_more") {
+                            item(
+                                key = "loading_more",
+                                span = { GridItemSpan(maxLineSpan) },
+                            ) {
                                 Box(
                                     modifier = Modifier.fillMaxWidth().padding(16.dp),
                                     contentAlignment = Alignment.Center
@@ -407,7 +429,6 @@ private fun SearchField(
         onValueChange = onQueryChange,
         modifier = Modifier
             .fillMaxWidth()
-            .height(42.dp)
             .focusRequester(focusRequester),
         placeholder = {
             Text(
@@ -418,7 +439,7 @@ private fun SearchField(
         },
         textStyle = MaterialTheme.typography.bodyMedium,
         singleLine = true,
-        shape = RoundedCornerShape(21.dp),
+        shape = RoundedCornerShape(28.dp),
         leadingIcon = {
             Icon(
                 painter = painterResource(R.drawable.search),
@@ -683,7 +704,7 @@ private fun SearchResultRow(
         is YouTubeSearchResultItem.Video -> if (isHero) SearchHeroVideoCard(
             video = result.video,
             onClick = { onVideoClick(result.video) }
-        ) else SearchVideoRow(
+        ) else SearchVideoGridCard(
             video = result.video,
             onClick = { onVideoClick(result.video) }
         )
@@ -795,50 +816,28 @@ private fun SearchHeroVideoCard(
     }
 }
 
+/**
+ * Grid card for video search results, mirroring the Videos feed card: thumbnail,
+ * title, channel and compact view count. Text is inset horizontally so the card's
+ * rounded corners never clip the leading digit of the views line.
+ */
 @Composable
-private fun SearchAvatar(channelName: String, url: String?, modifierSize: Int) {
-    Box(
-        modifier = Modifier
-            .size(modifierSize.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primaryContainer),
-        contentAlignment = Alignment.Center
-    ) {
-        if (url != null) {
-            AsyncImage(
-                model = url,
-                contentDescription = channelName,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-        } else {
-            Text(
-                text = channelName.trim().firstOrNull()?.uppercase() ?: "?",
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-    }
-}
-
-@Composable
-private fun SearchVideoRow(
+private fun SearchVideoGridCard(
     video: YouTubeVideoItem,
     onClick: () -> Unit,
 ) {
-    Row(
+    Column(
         modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(vertical = 4.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         Box(
             modifier = Modifier
-                .width(150.dp)
+                .fillMaxWidth()
                 .aspectRatio(16f / 9f)
-                .clip(RoundedCornerShape(14.dp))
+                .clip(RoundedCornerShape(16.dp))
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh)
         ) {
             val thumbnailUrl = video.thumbnails.maxByOrNull { it.width ?: 0 }?.url
@@ -886,30 +885,52 @@ private fun SearchVideoRow(
             }
         }
 
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(
-                text = video.title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
+        Text(
+            text = video.title,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 6.dp)
+        )
+        Text(
+            text = listOfNotNull(
+                video.channelName.takeIf { it.isNotEmpty() },
+                video.viewCountText?.let { compactViewCount(it) },
+                video.publishedTimeText
+            ).joinToString(" • "),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(start = 6.dp, end = 6.dp, bottom = 2.dp)
+        )
+    }
+}
+
+@Composable
+private fun SearchAvatar(channelName: String, url: String?, modifierSize: Int) {
+    Box(
+        modifier = Modifier
+            .size(modifierSize.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.primaryContainer),
+        contentAlignment = Alignment.Center
+    ) {
+        if (url != null) {
+            AsyncImage(
+                model = url,
+                contentDescription = channelName,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
             )
+        } else {
             Text(
-                text = listOfNotNull(
-                    video.channelName.takeIf { it.isNotEmpty() },
-                    video.viewCountText?.let { compactViewCount(it) },
-                    video.publishedTimeText
-                ).joinToString(" • "),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                text = channelName.trim().firstOrNull()?.uppercase() ?: "?",
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
             )
         }
     }

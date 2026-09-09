@@ -32,7 +32,7 @@ object YouTubeSearchPage {
                             ?.let { items.add(it) }
                     }
                     item.lockupViewModel != null -> {
-                        fromLockupPlaylist(item.lockupViewModel)
+                        fromLockupViewModel(item.lockupViewModel)
                             ?.let { items.add(it) }
                     }
                 }
@@ -121,17 +121,43 @@ object YouTubeSearchPage {
         )
     }
 
-    fun fromLockupPlaylist(lockupViewModel: kotlinx.serialization.json.JsonElement): YouTubeSearchResultItem.Playlist? {
+    /**
+     * Parses a search `lockupViewModel`. YouTube's newer responses return channels and
+     * playlists (and sometimes videos) as lockups; previously only playlist lockups
+     * were recognized, so the All filter ended up showing videos only.
+     */
+    fun fromLockupViewModel(lockupViewModel: kotlinx.serialization.json.JsonElement): YouTubeSearchResultItem? {
         val lockup = Lockup.parse(lockupViewModel) ?: return null
-        if (lockup.contentType != Lockup.TYPE_PLAYLIST) return null
-        val playlistId = lockup.playlistId ?: return null
-        val title = lockup.title ?: return null
-        return YouTubeSearchResultItem.Playlist(
-            playlistId = playlistId,
-            title = title,
-            itemCountText = lockup.metadataText.firstOrNull(),
-            channelName = lockup.metadataText.getOrNull(1),
-            thumbnails = lockup.thumbnails,
-        )
+        return when (lockup.contentType) {
+            Lockup.TYPE_PLAYLIST -> {
+                val playlistId = lockup.playlistId ?: return null
+                val title = lockup.title ?: return null
+                YouTubeSearchResultItem.Playlist(
+                    playlistId = playlistId,
+                    title = title,
+                    itemCountText = lockup.metadataText.firstOrNull(),
+                    channelName = lockup.metadataText.getOrNull(1),
+                    thumbnails = lockup.thumbnails,
+                )
+            }
+            Lockup.TYPE_CHANNEL -> {
+                val channelId = lockup.channelId ?: return null
+                val title = lockup.title ?: return null
+                val hasVideos = lockup.metadataText.firstOrNull { it.contains("video", ignoreCase = true) }
+                val hasSubscribers = lockup.metadataText.firstOrNull { it.contains("subscriber", ignoreCase = true) }
+                YouTubeSearchResultItem.Channel(
+                    channelId = channelId,
+                    title = title,
+                    subscriberCountText = hasSubscribers ?: lockup.metadataText.firstOrNull(),
+                    videoCountText = hasVideos,
+                    thumbnails = lockup.thumbnails,
+                    description = null,
+                )
+            }
+            Lockup.TYPE_VIDEO -> {
+                Lockup.toVideoItem(lockup)?.let { YouTubeSearchResultItem.Video(it) }
+            }
+            else -> null
+        }
     }
 }

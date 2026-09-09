@@ -682,6 +682,8 @@ private fun FeedVideoGridCard(
             }
         }
 
+        // Inset the text block so the card's rounded corners don't clip the
+        // leading digit of the views line (e.g. "2.0M" losing the "2").
         Text(
             text = video.title,
             style = MaterialTheme.typography.bodyMedium,
@@ -689,10 +691,13 @@ private fun FeedVideoGridCard(
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 8.dp)
         )
 
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
@@ -724,7 +729,9 @@ private fun FeedVideoGridCard(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .padding(start = 8.dp, end = 8.dp, bottom = 2.dp)
             )
         }
     }

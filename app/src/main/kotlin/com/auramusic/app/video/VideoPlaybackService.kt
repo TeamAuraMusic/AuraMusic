@@ -21,6 +21,7 @@ import androidx.media3.session.CommandButton
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaNotification
 import androidx.media3.session.MediaSession
+import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSessionService
 import com.auramusic.app.MainActivity
 import com.auramusic.app.R
@@ -71,16 +72,16 @@ class VideoPlaybackService : MediaSessionService() {
 
         // Media title/artist/artwork live on each MediaItem's MediaMetadata (set when the
         // media source is built), so the session can render the full media notification.
-        mediaSession = MediaSession.Builder(this, exo)
-            .setSessionActivity(
-                PendingIntent.getActivity(
-                    this,
-                    0,
-                    Intent(this, MainActivity::class.java),
-                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-                )
-            )
-            .build()
+        // The session ID must be unique per process; without an explicit ID the default
+        // collides with another live session (e.g. after an abnormal teardown), crashing
+        // onCreate with "Session ID must be unique". If a stale session still lingers,
+        // retry with a per-instance unique ID so the service always comes up.
+        mediaSession = try {
+            buildSession(exo, SESSION_ID)
+        } catch (e: IllegalStateException) {
+            Timber.tag(TAG).w(e, "MediaSession ID collision, retrying with unique ID")
+            buildSession(exo, "$SESSION_ID-${System.nanoTime()}")
+        }
 
         notificationProvider = DefaultMediaNotificationProvider(
             this,
@@ -131,6 +132,19 @@ class VideoPlaybackService : MediaSessionService() {
         )
     }
 
+    private fun buildSession(exo: ExoPlayer, sessionId: String): MediaSession =
+        MediaSession.Builder(this, exo)
+            .setId(sessionId)
+            .setSessionActivity(
+                PendingIntent.getActivity(
+                    this,
+                    0,
+                    Intent(this, MainActivity::class.java),
+                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+                )
+            )
+            .build()
+
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -157,7 +171,11 @@ class VideoPlaybackService : MediaSessionService() {
     }
 
     override fun onDestroy() {
-        mediaSession?.release()
+        try {
+            mediaSession?.release()
+        } catch (e: Exception) {
+            Timber.tag(TAG).w(e, "onDestroy: session release failed")
+        }
         mediaSession = null
         super.onDestroy()
     }
@@ -206,6 +224,7 @@ class VideoPlaybackService : MediaSessionService() {
 
     companion object {
         private const val TAG = "VideoPlaybackService"
+        const val SESSION_ID = "aura_video_playback"
         const val CHANNEL_ID = "video_channel_01"
         const val NOTIFICATION_ID = 889
 
