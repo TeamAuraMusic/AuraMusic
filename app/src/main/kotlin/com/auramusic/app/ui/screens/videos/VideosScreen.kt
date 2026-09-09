@@ -20,14 +20,20 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -41,10 +47,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -88,12 +95,11 @@ import kotlinx.coroutines.withContext
 private enum class VideoCategory(
     val browseId: String,
     val labelRes: Int,
-    val iconRes: Int,
 ) {
-    ForYou("FEwhat_to_watch", R.string.for_you, R.drawable.explore_outlined),
-    Trending("FEtrending", R.string.trending, R.drawable.trending_up),
-    Music("FEmusic", R.string.filter_music, R.drawable.music_note),
-    Gaming("FEgaming", R.string.video_category_gaming, R.drawable.tv),
+    ForYou("FEwhat_to_watch", R.string.for_you),
+    Trending("FEtrending", R.string.trending),
+    Music("FEmusic", R.string.filter_music),
+    Gaming("FEgaming", R.string.video_category_gaming),
 }
 
 @Composable
@@ -199,6 +205,7 @@ fun VideosScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.statusBars.only(WindowInsetsSides.Top))
             .padding(bottom = insets.calculateBottomPadding())
     ) {
         VideosTopBar(
@@ -371,39 +378,28 @@ private fun FeedFilterBar(
         modifier = Modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
+            .padding(vertical = 6.dp)
     ) {
+        Spacer(modifier = Modifier.width(12.dp))
         VideoCategory.entries.forEach { category ->
-            val isSelected = category == selected
-            Surface(
+            FilterChip(
+                selected = category == selected,
                 onClick = { onCategorySelected(category) },
-                shape = RoundedCornerShape(20.dp),
-                color = if (isSelected) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.surfaceContainerHigh,
-                modifier = Modifier.height(38.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 14.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(category.iconRes),
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                label = {
                     Text(
                         text = stringResource(category.labelRes),
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                        else MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.SemiBold
                     )
-                }
-            }
+                },
+                colors = FilterChipDefaults.filterChipColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
+                shape = RoundedCornerShape(16.dp),
+                border = null,
+            )
+            Spacer(modifier = Modifier.width(8.dp))
         }
     }
 }
