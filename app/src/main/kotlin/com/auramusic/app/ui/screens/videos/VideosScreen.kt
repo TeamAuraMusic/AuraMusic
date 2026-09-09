@@ -187,33 +187,33 @@ fun VideosScreen(
         }.collect { nearEnd -> if (nearEnd) loadMore() }
     }
 
-    BoxWithConstraints(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .pullToRefresh(
-                state = pullRefreshState,
-                isRefreshing = isRefreshing,
-                onRefresh = { 
-                    isRefreshing = true
-                    scope.launch {
-                        loadFirstPage()
-                    }
-                },
-            ),
-        contentAlignment = Alignment.TopStart
+            .padding(bottom = insets.calculateBottomPadding())
     ) {
-        Column(
+        FeedFilterBar(
+            selected = selectedCategory,
+            gridView = gridView,
+            onCategorySelected = { selectedCategory = it },
+            onToggleView = { gridView = !gridView },
+        )
+
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = insets.calculateBottomPadding())
+                .pullToRefresh(
+                    state = pullRefreshState,
+                    isRefreshing = isRefreshing,
+                    onRefresh = {
+                        isRefreshing = true
+                        scope.launch {
+                            loadFirstPage()
+                        }
+                    },
+                ),
+            contentAlignment = Alignment.TopStart
         ) {
-            FeedFilterBar(
-                selected = selectedCategory,
-                gridView = gridView,
-                onCategorySelected = { selectedCategory = it },
-                onToggleView = { gridView = !gridView },
-            )
-
             when {
                 isLoading && feed.isEmpty() -> SkeletonFeed(columns = columns)
                 error != null && feed.isEmpty() -> {

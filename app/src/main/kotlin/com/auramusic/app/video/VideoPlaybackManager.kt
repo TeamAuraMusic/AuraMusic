@@ -74,6 +74,7 @@ object VideoPlaybackManager {
         val durationMs: Long = 0,
         val error: String? = null,
         val recommendations: List<RecommendationItem> = emptyList(),
+        val queue: List<RecommendationItem> = emptyList(),
         val isLoadingRecommendations: Boolean = false,
         val isLiked: Boolean = false,
         val isDisliked: Boolean = false,
@@ -98,6 +99,8 @@ object VideoPlaybackManager {
 
     private var player: ExoPlayer? = null
     private var tickerJob: Job? = null
+    private var currentContext: Context? = null
+    private val playedVideoIds = mutableSetOf<String>()
 
     fun playerOrNull(): ExoPlayer? = player
 
@@ -120,6 +123,9 @@ object VideoPlaybackManager {
                     )
                 }
             }
+            if (playbackState == Player.STATE_ENDED) {
+                playNext()
+            }
         }
 
         override fun onPlayerError(error: PlaybackException) {
@@ -135,6 +141,7 @@ object VideoPlaybackManager {
                     isBuffering = true,
                     error = null,
                     recommendations = emptyList(),
+                    queue = emptyList(),
                     isLoadingRecommendations = false,
                     isLiked = false,
                     isDisliked = false,
@@ -160,6 +167,7 @@ object VideoPlaybackManager {
             return
         }
 
+        playedVideoIds.add(videoId)
         val exo = getOrCreatePlayer(context)
         _uiState.value = UiState(
             session = VideoSession(videoId, title, channelName),
@@ -206,6 +214,7 @@ object VideoPlaybackManager {
             return
         }
 
+        playedVideoIds.add(videoId)
         val bestThumbnail = thumbnails.maxByOrNull { it.width ?: 0 }?.url
 
         val exo = getOrCreatePlayer(context)
@@ -242,7 +251,7 @@ object VideoPlaybackManager {
     }
 
     private suspend fun loadRecommendations(videoId: String) {
-        _uiState.update { it.copy(isLoadingRecommendations = true, recommendations = emptyList()) }
+        _uiState.update { it.copy(isLoadingRecommendations = true, recommendations = emptyList(), queue = emptyList()) }
         try {
             val nextResult = withContext(Dispatchers.IO) {
                 YouTube.next(WatchEndpoint(videoId = videoId)).getOrNull()
@@ -262,7 +271,10 @@ object VideoPlaybackManager {
             }.orEmpty()
 
             if (items.isNotEmpty()) {
-                _uiState.update { it.copy(recommendations = items, isLoadingRecommendations = false) }
+                val queue = items.filter { it.videoId !in playedVideoIds }
+                _uiState.update { 
+                    it.copy(recommendations = items, queue = queue, isLoadingRecommendations = false) 
+                }
                 return
             }
 
@@ -283,7 +295,10 @@ object VideoPlaybackManager {
                         },
                     )
                 }.orEmpty()
-                _uiState.update { it.copy(recommendations = relatedItems, isLoadingRecommendations = false) }
+                val queue = relatedItems.filter { it.videoId !in playedVideoIds }
+                _uiState.update { 
+                    it.copy(recommendations = relatedItems, queue = queue, isLoadingRecommendations = false) 
+                }
             } ?: run {
                 _uiState.update { it.copy(isLoadingRecommendations = false) }
             }
@@ -302,6 +317,36 @@ object VideoPlaybackManager {
             _uiState.update { it.copy(comments = comments, isLoadingComments = false) }
         } catch (e: Exception) {
             _uiState.update { it.copy(isLoadingComments = false, commentsError = "Could not load comments") }
+        }
+    }
+
+    fun playNext() {
+        val queue = _uiState.value.queue
+        if (queue.isEmpty()) return
+        val nextItem = queue.firstOrNull { it.videoId != _uiState.value.session?.videoId } ?: return
+        val ctx = currentContext ?: return
+        playWithDetails(
+            context = ctx,
+            videoId = nextItem.videoId,
+            title = nextItem.title,
+            channelName = nextItem.channelName,
+        )
+    }
+
+    fun playPrevious() {
+        val queue = _uiState.value.queue
+        if (queue.isEmpty()) return
+        val currentId = _uiState.value.session?.videoId ?: return
+        val currentIndex = queue.indexOfFirst { it.videoId == currentId }
+        if (currentIndex > 0) {
+            val prevItem = queue[currentIndex - 1]
+            val ctx = currentContext ?: return
+            playWithDetails(
+                context = ctx,
+                videoId = prevItem.videoId,
+                title = prevItem.title,
+                channelName = prevItem.channelName,
+            )
         }
     }
 
@@ -402,6 +447,7 @@ object VideoPlaybackManager {
         player = null
         tickerJob?.cancel()
         tickerJob = null
+        playedVideoIds.clear()
         _uiState.value = UiState()
     }
 
@@ -411,9 +457,11 @@ object VideoPlaybackManager {
         player = null
         tickerJob?.cancel()
         tickerJob = null
+        playedVideoIds.clear()
     }
 
     private fun getOrCreatePlayer(context: Context): ExoPlayer {
+        currentContext = context
         player?.let { return it }
         return ExoPlayer.Builder(context).build().also {
             it.addListener(playerListener)

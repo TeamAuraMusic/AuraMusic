@@ -37,6 +37,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -179,8 +180,8 @@ private fun VideoMinimizedTile(
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .offset(y = with(density) { animatedOffset.dp })
-                .widthIn(max = 220.dp)
-                .fillMaxWidth(0.5f)
+                .widthIn(max = 320.dp)
+                .fillMaxWidth(0.65f)
                 .padding(start = 14.dp)
                 .padding(bottom = insets.calculateBottomPadding() + 84.dp)
                 .shadow(18.dp, RoundedCornerShape(18.dp))
@@ -215,33 +216,6 @@ private fun VideoMinimizedTile(
             ) {
                 AndroidVideoSurface(player)
 
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .padding(start = 10.dp)
-                        .size(34.dp)
-                        .clip(CircleShape)
-                        .background(Color.Black.copy(alpha = 0.42f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (state.isBuffering) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            color = Color.White,
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Icon(
-                            painter = painterResource(if (state.isPlaying) R.drawable.pause else R.drawable.play),
-                            contentDescription = stringResource(
-                                if (state.isPlaying) R.string.pause else R.string.play
-                            ),
-                            modifier = Modifier.size(16.dp),
-                            tint = Color.White
-                        )
-                    }
-                }
-
                 IconButton(
                     onClick = onClose,
                     modifier = Modifier
@@ -263,15 +237,84 @@ private fun VideoMinimizedTile(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
-                        .height(3.dp)
-                        .background(Color.Black.copy(alpha = 0.45f))
+                        .padding(start = 16.dp, end = 16.dp, bottom = 10.dp)
                 ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        IconButton(
+                            onClick = { VideoPlaybackManager.playPrevious() },
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(Color.Black.copy(alpha = 0.42f))
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_skip_previous),
+                                contentDescription = stringResource(R.string.video_player_up_next),
+                                modifier = Modifier.size(18.dp),
+                                tint = Color.White
+                            )
+                        }
+
+                        Surface(
+                            onClick = { VideoPlaybackManager.togglePlayPause() },
+                            shape = CircleShape,
+                            color = Color.White,
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                if (state.isBuffering) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        color = Color.Black,
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Icon(
+                                        painter = painterResource(if (state.isPlaying) R.drawable.pause else R.drawable.play),
+                                        contentDescription = stringResource(
+                                            if (state.isPlaying) R.string.pause else R.string.play
+                                        ),
+                                        modifier = Modifier.size(20.dp),
+                                        tint = Color.Black
+                                    )
+                                }
+                            }
+                        }
+
+                        IconButton(
+                            onClick = { VideoPlaybackManager.playNext() },
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(Color.Black.copy(alpha = 0.42f))
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_skip_next),
+                                contentDescription = stringResource(R.string.video_player_up_next),
+                                modifier = Modifier.size(18.dp),
+                                tint = Color.White
+                            )
+                        }
+                    }
+
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth(state.progress.coerceIn(0f, 1f))
-                            .height(3.dp)
-                            .background(MaterialTheme.colorScheme.primary)
-                    )
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .height(2.dp)
+                            .background(Color.Black.copy(alpha = 0.45f))
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(state.progress.coerceIn(0f, 1f))
+                                .height(2.dp)
+                                .background(MaterialTheme.colorScheme.primary)
+                        )
+                    }
                 }
             }
         }
