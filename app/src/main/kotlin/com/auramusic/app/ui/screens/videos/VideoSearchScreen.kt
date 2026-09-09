@@ -7,12 +7,14 @@ package com.auramusic.app.ui.screens.videos
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,20 +25,20 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -46,8 +48,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,6 +57,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -73,6 +76,7 @@ import com.auramusic.app.R
 import com.auramusic.app.video.VideoPlaybackManager
 import com.auramusic.innertube.YouTube
 import com.auramusic.innertube.models.YouTubeSearchResultItem
+import com.auramusic.innertube.models.YouTubeVideoItem
 import com.valentinilk.shimmer.shimmer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -80,11 +84,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.URLDecoder
 
-private enum class SearchFilter(val labelRes: Int) {
-    All(R.string.all_results),
-    Videos(R.string.videos),
-    Channels(R.string.channels),
-    Playlists(R.string.playlists),
+private enum class SearchFilter(val labelRes: Int, val iconRes: Int) {
+    All(R.string.all_results, R.drawable.manage_search),
+    Videos(R.string.video_section, R.drawable.slow_motion_video),
+    Channels(R.string.channels, R.drawable.ic_person),
+    Playlists(R.string.playlists, R.drawable.playlist_play),
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -167,7 +171,6 @@ fun VideoSearchScreen(
         }
     }
 
-    // Debounced live suggestions while typing a fresh query.
     LaunchedEffect(query) {
         if (query.isNotEmpty() && query != initialQuery && !hasSearched) {
             delay(250)
@@ -177,7 +180,6 @@ fun VideoSearchScreen(
         }
     }
 
-    // Pagination near the end of the current group.
     LaunchedEffect(lazyListState, activeFilter, hasSearched) {
         snapshotFlow {
             val last = lazyListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
@@ -193,9 +195,9 @@ fun VideoSearchScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    OutlinedTextField(
-                        value = query,
-                        onValueChange = {
+                    SearchField(
+                        query = query,
+                        onQueryChange = {
                             query = it
                             if (hasSearched) {
                                 hasSearched = false
@@ -204,32 +206,21 @@ fun VideoSearchScreen(
                                 error = null
                             }
                         },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .focusRequester(focusRequester),
-                        placeholder = {
-                            Text(
-                                text = stringResource(R.string.search_youtube),
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
+                        onClear = {
+                            query = ""
+                            hasSearched = false
+                            allResults = emptyList()
+                            continuation = null
+                            error = null
+                            focusRequester.requestFocus()
                         },
-                        singleLine = true,
-                        shape = RoundedCornerShape(28.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = Color.Transparent,
-                            focusedBorderColor = Color.Transparent,
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                        ),
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                        keyboardActions = KeyboardActions(
-                            onSearch = {
-                                focusManager.clearFocus()
-                                query = query.trim()
-                                hasSearched = true
-                                coroutineScope.launch { performSearch(query) }
-                            }
-                        )
+                        onSubmit = {
+                            focusManager.clearFocus()
+                            query = query.trim()
+                            hasSearched = true
+                            coroutineScope.launch { performSearch(query) }
+                        },
+                        focusRequester = focusRequester,
                     )
                 },
                 navigationIcon = {
@@ -242,7 +233,7 @@ fun VideoSearchScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
+                    containerColor = MaterialTheme.colorScheme.background,
                 )
             )
         },
@@ -266,6 +257,15 @@ fun VideoSearchScreen(
 
                 !hasSearched && showSuggestions -> {
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        item(key = "suggest_title") {
+                            Text(
+                                text = stringResource(R.string.search_suggestions),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+                            )
+                        }
                         items(items = suggestions, key = { it }) { suggestion ->
                             SuggestionRow(
                                 suggestion = suggestion,
@@ -302,11 +302,20 @@ fun VideoSearchScreen(
 
                 hasSearched && allResults.isEmpty() -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(
-                            text = stringResource(R.string.no_results),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                        )
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                painter = painterResource(R.drawable.search_off),
+                                contentDescription = null,
+                                modifier = Modifier.size(56.dp),
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(
+                                text = stringResource(R.string.no_results),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                        }
                     }
                 }
 
@@ -321,35 +330,39 @@ fun VideoSearchScreen(
                         contentPadding = PaddingValues(vertical = 4.dp)
                     ) {
                         grouped.forEach { section ->
-                            item(key = "section_${section.titleRes}") {
-                                SearchSectionHeader(titleRes = section.titleRes)
+                            if (section.titleRes != R.string.search_section_top_result) {
+                                item(key = "section_${section.titleRes}") {
+                                    SearchSectionHeader(titleRes = section.titleRes)
+                                }
                             }
-                            items(
-                                items = section.items,
-                                key = { it.key() }
-                            ) { result ->
-                                SearchResultRow(
-                                    result = result,
-                                    onVideoClick = { video ->
-                                        VideoPlaybackManager.playWithDetails(
-                                            context = context,
-                                            videoId = video.videoId,
-                                            title = video.title,
-                                            channelName = video.channelName,
-                                            channelId = video.channelId,
-                                            description = video.description,
-                                            viewCountText = video.viewCountText,
-                                            publishedTimeText = video.publishedTimeText,
-                                            thumbnails = video.thumbnails,
-                                        )
-                                    },
-                                    onChannelClick = { channelId ->
-                                        navController.navigate("youtube_channel/$channelId")
-                                    },
-                                    onPlaylistClick = { playlistId ->
-                                        navController.navigate("youtube_browse/$playlistId")
-                                    }
-                                )
+                            section.items.forEachIndexed { index, result ->
+                                item(
+                                    key = result.key() + (if (section.titleRes == R.string.search_section_top_result) "_${index}" else "")
+                                ) {
+                                    SearchResultRow(
+                                        result = result,
+                                        isHero = section.titleRes == R.string.search_section_top_result,
+                                        onVideoClick = { video ->
+                                            VideoPlaybackManager.playWithDetails(
+                                                context = context,
+                                                videoId = video.videoId,
+                                                title = video.title,
+                                                channelName = video.channelName,
+                                                channelId = video.channelId,
+                                                description = video.description,
+                                                viewCountText = video.viewCountText,
+                                                publishedTimeText = video.publishedTimeText,
+                                                thumbnails = video.thumbnails,
+                                            )
+                                        },
+                                        onChannelClick = { channelId ->
+                                            navController.navigate("youtube_channel/$channelId")
+                                        },
+                                        onPlaylistClick = { playlistId ->
+                                            navController.navigate("youtube_browse/$playlistId")
+                                        }
+                                    )
+                                }
                             }
                         }
 
@@ -364,6 +377,107 @@ fun VideoSearchScreen(
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SearchField(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onClear: () -> Unit,
+    onSubmit: () -> Unit,
+    focusRequester: FocusRequester,
+) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        modifier = Modifier
+            .fillMaxWidth()
+            .focusRequester(focusRequester),
+        placeholder = {
+            Text(
+                text = stringResource(R.string.search_youtube),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+            )
+        },
+        singleLine = true,
+        shape = RoundedCornerShape(24.dp),
+        leadingIcon = {
+            Icon(
+                painter = painterResource(R.drawable.search),
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        },
+        trailingIcon = {
+            if (query.isNotEmpty()) {
+                IconButton(onClick = onClear) {
+                    Icon(
+                        painter = painterResource(R.drawable.close),
+                        contentDescription = stringResource(R.string.dismiss),
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        },
+        colors = OutlinedTextFieldDefaults.colors(
+            unfocusedBorderColor = Color.Transparent,
+            focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        ),
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        keyboardActions = KeyboardActions(onSearch = { onSubmit() })
+    )
+}
+
+@Composable
+private fun SearchFilterBar(
+    active: SearchFilter,
+    enabled: Boolean,
+    onSelect: (SearchFilter) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        SearchFilter.entries.forEach { filter ->
+            val isSelected = filter == active
+            Surface(
+                onClick = { onSelect(filter) },
+                enabled = enabled,
+                shape = RoundedCornerShape(18.dp),
+                color = if (isSelected) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.surfaceContainerHigh,
+                modifier = Modifier.height(34.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(filter.iconRes),
+                        contentDescription = null,
+                        modifier = Modifier.size(15.dp),
+                        tint = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = stringResource(filter.labelRes),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.onSurface
+                    )
                 }
             }
         }
@@ -422,13 +536,23 @@ private fun groupResults(
 
 @Composable
 private fun SearchSectionHeader(titleRes: Int) {
-    Text(
-        text = stringResource(titleRes),
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onSurface,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-    )
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(width = 4.dp, height = 16.dp)
+                .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp))
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = stringResource(titleRes),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
 }
 
 private fun YouTubeSearchResultItem.key(): String =
@@ -437,34 +561,6 @@ private fun YouTubeSearchResultItem.key(): String =
         is YouTubeSearchResultItem.Channel -> "channel:$channelId"
         is YouTubeSearchResultItem.Playlist -> "playlist:$playlistId"
     }
-
-@Composable
-private fun SearchFilterBar(
-    active: SearchFilter,
-    enabled: Boolean,
-    onSelect: (SearchFilter) -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 10.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        SearchFilter.entries.forEach { filter ->
-            FilterChip(
-                selected = filter == active,
-                enabled = enabled,
-                onClick = { onSelect(filter) },
-                label = {
-                    Text(
-                        text = stringResource(filter.labelRes),
-                        style = MaterialTheme.typography.labelLarge
-                    )
-                }
-            )
-        }
-    }
-}
 
 @Composable
 private fun SearchSkeleton() {
@@ -526,22 +622,37 @@ private fun SuggestionRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Icon(
-            painter = painterResource(R.drawable.search),
-            contentDescription = null,
-            modifier = Modifier.size(18.dp),
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-        )
+        Box(
+            modifier = Modifier
+                .size(34.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.search),
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
         Text(
             text = suggestion,
             style = MaterialTheme.typography.bodyMedium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            color = MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f)
+        )
+        Icon(
+            painter = painterResource(R.drawable.navigate_next),
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
         )
     }
 }
@@ -549,12 +660,16 @@ private fun SuggestionRow(
 @Composable
 private fun SearchResultRow(
     result: YouTubeSearchResultItem,
-    onVideoClick: (com.auramusic.innertube.models.YouTubeVideoItem) -> Unit,
+    isHero: Boolean,
+    onVideoClick: (YouTubeVideoItem) -> Unit,
     onChannelClick: (String) -> Unit,
     onPlaylistClick: (String) -> Unit,
 ) {
     when (result) {
-        is YouTubeSearchResultItem.Video -> SearchVideoRow(
+        is YouTubeSearchResultItem.Video -> if (isHero) SearchHeroVideoCard(
+            video = result.video,
+            onClick = { onVideoClick(result.video) }
+        ) else SearchVideoRow(
             video = result.video,
             onClick = { onVideoClick(result.video) }
         )
@@ -570,7 +685,104 @@ private fun SearchResultRow(
 }
 
 @Composable
-private fun SearchChannelAvatar(channelName: String, url: String?, modifierSize: Int) {
+private fun SearchHeroVideoCard(
+    video: YouTubeVideoItem,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(16f / 9f)
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+        ) {
+            val thumbnailUrl = video.thumbnails.maxByOrNull { it.width ?: 0 }?.url
+            if (thumbnailUrl != null) {
+                AsyncImage(
+                    model = thumbnailUrl,
+                    contentDescription = video.title,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .height(56.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Color.Transparent, Color.Black.copy(alpha = 0.45f))
+                        )
+                    )
+            )
+            if (video.isLive) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(8.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(Color(0xFFE53935))
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.live),
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            } else if (video.durationText != null) {
+                val durationText = video.durationText
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(8.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(Color.Black.copy(alpha = 0.78f))
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = durationText.orEmpty(),
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(10.dp))
+        Text(
+            text = video.title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = listOfNotNull(
+                video.channelName.takeIf { it.isNotEmpty() },
+                video.viewCountText,
+                video.publishedTimeText
+            ).joinToString(" • "),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
+private fun SearchAvatar(channelName: String, url: String?, modifierSize: Int) {
     Box(
         modifier = Modifier
             .size(modifierSize.dp)
@@ -598,20 +810,21 @@ private fun SearchChannelAvatar(channelName: String, url: String?, modifierSize:
 
 @Composable
 private fun SearchVideoRow(
-    video: com.auramusic.innertube.models.YouTubeVideoItem,
+    video: YouTubeVideoItem,
     onClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
                 .width(150.dp)
                 .aspectRatio(16f / 9f)
-                .clip(RoundedCornerShape(16.dp))
+                .clip(RoundedCornerShape(14.dp))
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh)
         ) {
             val thumbnailUrl = video.thumbnails.maxByOrNull { it.width ?: 0 }?.url
@@ -633,13 +846,14 @@ private fun SearchVideoRow(
                         .padding(horizontal = 5.dp, vertical = 1.dp)
                 ) {
                     Text(
-                        text = "LIVE",
+                        text = stringResource(R.string.live),
                         color = Color.White,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
             } else if (video.durationText != null) {
+                val durationText = video.durationText
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
@@ -648,7 +862,6 @@ private fun SearchVideoRow(
                         .background(Color.Black.copy(alpha = 0.78f))
                         .padding(horizontal = 5.dp, vertical = 1.dp)
                 ) {
-                    val durationText = video.durationText
                     Text(
                         text = durationText.orEmpty(),
                         color = Color.White,
@@ -693,51 +906,66 @@ private fun SearchChannelRow(
     channel: YouTubeSearchResultItem.Channel,
     onClick: () -> Unit,
 ) {
-    Row(
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp)
+            .padding(horizontal = 12.dp, vertical = 5.dp)
     ) {
-        val avatar = channel.thumbnails.maxByOrNull { (it.width ?: 0) * (it.height ?: 0) }?.url
-        SearchChannelAvatar(channel.title, avatar, 52)
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = channel.title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = listOfNotNull(
-                    channel.subscriberCountText,
-                    channel.videoCountText
-                ).joinToString(" • "),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            if (!channel.description.isNullOrBlank()) {
-                val description = channel.description
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            val avatar = channel.thumbnails.maxByOrNull { (it.width ?: 0) * (it.height ?: 0) }?.url
+            SearchAvatar(channel.title, avatar, 52)
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = description.orEmpty(),
+                    text = channel.title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = listOfNotNull(
+                        channel.subscriberCountText,
+                        channel.videoCountText
+                    ).joinToString(" • "),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+                if (!channel.description.isNullOrBlank()) {
+                    val description = channel.description
+                    Text(
+                        text = description.orEmpty(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer,
+                modifier = Modifier.size(34.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        painter = painterResource(R.drawable.navigate_next),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
             }
         }
-        Icon(
-            painter = painterResource(R.drawable.more_horiz),
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-        )
     }
 }
 
@@ -750,32 +978,32 @@ private fun SearchPlaylistRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp)
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Box(modifier = Modifier.size(86.dp)) {
+        Box(modifier = Modifier.size(96.dp)) {
             Box(
                 modifier = Modifier
-                    .size(76.dp)
+                    .size(82.dp)
                     .align(Alignment.BottomStart)
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surfaceContainerHighest)
             )
             Box(
                 modifier = Modifier
-                    .size(76.dp)
+                    .size(82.dp)
                     .align(Alignment.CenterEnd)
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             )
             val thumb = playlist.thumbnails.maxByOrNull { (it.width ?: 0) * (it.height ?: 0) }?.url
             Box(
                 modifier = Modifier
-                    .size(76.dp)
+                    .size(82.dp)
                     .align(Alignment.Center)
-                    .clip(RoundedCornerShape(10.dp))
-                    .shadow(4.dp, RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(12.dp))
+                    .shadow(4.dp, RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             ) {
                 if (thumb != null) {
@@ -784,6 +1012,30 @@ private fun SearchPlaylistRow(
                         contentDescription = playlist.title,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color.Transparent, Color.Black.copy(alpha = 0.55f))
+                            )
+                        )
+                )
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .size(34.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.5f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.play),
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = Color.White
                     )
                 }
             }
@@ -797,6 +1049,7 @@ private fun SearchPlaylistRow(
                 overflow = TextOverflow.Ellipsis,
                 color = MaterialTheme.colorScheme.onSurface
             )
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = listOfNotNull(
                     playlist.channelName,

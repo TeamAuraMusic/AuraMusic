@@ -11,13 +11,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -26,10 +27,12 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.SecondaryScrollableTabRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -53,16 +56,18 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.auramusic.app.LocalPlayerAwareWindowInsets
 import com.auramusic.app.R
-import com.auramusic.app.video.VideoPlaybackManager
 import com.auramusic.app.utils.VideoThumbnails
+import com.auramusic.app.video.VideoPlaybackManager
 import com.auramusic.innertube.YouTube
 import com.auramusic.innertube.models.Thumbnail
 import com.auramusic.innertube.models.YouTubeVideoItem
 import com.auramusic.innertube.pages.YouTubeChannelPage
+import com.valentinilk.shimmer.shimmer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -75,11 +80,7 @@ private enum class ChannelTab(val labelRes: Int) {
     About(R.string.channel_tab_about),
 }
 
-/**
- * A regular YouTube channel screen: banner, avatar, subscriber count and
- * Videos/Shorts/Live/About tabs with infinite scroll. Content comes from the
- * YouTube WEB browse endpoint, not YT Music (which can't resolve UC... channels).
- */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChannelScreen(
     navController: NavController,
@@ -146,13 +147,10 @@ fun ChannelScreen(
         isLoadingMore = false
     }
 
-    // Header + first page of the active tab. A tab switch reloads; the channel id
-    // stays in the key so back navigation re-uses the same screen instance.
     LaunchedEffect(channelId, selectedTab) {
         loadFirstPage(ChannelTab.entries[selectedTab])
     }
 
-    // Infinite scroll.
     LaunchedEffect(listState, selectedTab) {
         snapshotFlow {
             val last = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
@@ -248,7 +246,7 @@ private fun ChannelHeaderSection(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(6f / 1f),
+                .height(150.dp),
         ) {
             if (header?.bannerUrl != null) {
                 AsyncImage(
@@ -262,7 +260,7 @@ private fun ChannelHeaderSection(
                         .fillMaxSize()
                         .background(
                             Brush.verticalGradient(
-                                listOf(Color.Transparent, MaterialTheme.colorScheme.background.copy(alpha = 0.7f)),
+                                listOf(Color.Black.copy(alpha = 0.25f), MaterialTheme.colorScheme.background),
                             ),
                         ),
                 )
@@ -270,84 +268,147 @@ private fun ChannelHeaderSection(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                                    MaterialTheme.colorScheme.background,
+                                )
+                            )
+                        ),
                 )
             }
 
-            IconButton(
+            Surface(
                 onClick = onBackClick,
+                shape = CircleShape,
+                color = Color.Black.copy(alpha = 0.35f),
                 modifier = Modifier
                     .align(Alignment.TopStart)
-                    .padding(6.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.72f)),
+                    .padding(10.dp)
+                    .size(38.dp)
             ) {
-                Icon(
-                    painter = painterResource(R.drawable.arrow_back),
-                    contentDescription = stringResource(R.string.dismiss),
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        painter = painterResource(R.drawable.arrow_back),
+                        contentDescription = stringResource(R.string.dismiss),
+                        tint = Color.White,
+                    )
+                }
             }
         }
 
         Row(
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.Bottom,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = 16.dp),
         ) {
             Box(
                 modifier = Modifier
-                    .size(72.dp)
+                    .size(84.dp)
+                    .offset(y = (-26).dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(4.dp)
             ) {
-                val avatar = header?.avatarUrl
-                if (avatar != null) {
-                    AsyncImage(
-                        model = avatar,
-                        contentDescription = header.title,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                    )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    val avatar = header?.avatarUrl
+                    if (avatar != null) {
+                        AsyncImage(
+                            model = avatar,
+                            contentDescription = header.title,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                        )
+                    } else {
+                        Text(
+                            text = header?.title?.trim()?.firstOrNull()?.uppercase() ?: "?",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        )
+                    }
                 }
             }
-            Spacer(modifier = Modifier.width(14.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = header?.title.orEmpty().ifBlank { stringResource(R.string.app_name) },
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                val meta = listOfNotNull(
+        }
+
+        if (isLoading && header == null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
+                    .height(18.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .shimmer()
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.4f)
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                    .height(14.dp)
+                    .clip(RoundedCornerShape(7.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .shimmer()
+            )
+        } else {
+            Text(
+                text = header?.title.orEmpty().ifBlank { stringResource(R.string.app_name) },
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 16.dp).padding(top = 6.dp),
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            ) {
+                listOfNotNull(
                     header?.subscriberCountText,
                     header?.videosCountText,
-                ).joinToString(" • ")
-                if (meta.isNotBlank()) {
-                    Text(
-                        text = meta,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                ).forEach { stat ->
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        modifier = Modifier.height(30.dp)
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.padding(horizontal = 12.dp)
+                        ) {
+                            Text(
+                                text = stat,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                 }
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ChannelTabBar(
     selectedTab: Int,
     onSelect: (Int) -> Unit,
 ) {
-    ScrollableTabRow(
+    SecondaryScrollableTabRow(
         selectedTabIndex = selectedTab,
         containerColor = Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.primary,
         edgePadding = 16.dp,
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -389,24 +450,41 @@ private fun ChannelAboutSection(header: ChannelHeader?) {
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
             )
         } else {
-            Text(
-                text = header?.description.orEmpty(),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            if (header?.subscriberCountText != null) {
-                Text(
-                    text = header.subscriberCountText.orEmpty(),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                )
-            }
-            if (header?.videosCountText != null) {
-                Text(
-                    text = header.videosCountText.orEmpty(),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                )
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Text(
+                        text = "About",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = header?.description.orEmpty(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    if (header?.subscriberCountText != null) {
+                        Text(
+                            text = header.subscriberCountText.orEmpty(),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        )
+                    }
+                    if (header?.videosCountText != null) {
+                        Text(
+                            text = header.videosCountText.orEmpty(),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        )
+                    }
+                }
             }
         }
     }
@@ -429,7 +507,7 @@ private fun ChannelVideoRow(
             durationText = video.durationText,
             isLive = video.isLive,
             modifier = Modifier
-                .width(150.dp)
+                .width(160.dp)
                 .aspectRatio(16f / 9f),
         )
         Column(
@@ -469,10 +547,11 @@ private fun ChannelVideoSkeleton() {
     ) {
         Box(
             modifier = Modifier
-                .width(150.dp)
+                .width(160.dp)
                 .aspectRatio(16f / 9f)
                 .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                .shimmer(),
         )
         Column(
             modifier = Modifier
@@ -485,14 +564,16 @@ private fun ChannelVideoSkeleton() {
                     .fillMaxWidth(0.9f)
                     .height(14.dp)
                     .clip(RoundedCornerShape(6.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .shimmer(),
             )
             Box(
                 modifier = Modifier
                     .fillMaxWidth(0.5f)
                     .height(12.dp)
                     .clip(RoundedCornerShape(6.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .shimmer(),
             )
         }
     }
@@ -523,7 +604,7 @@ private fun ThumbnailWithBadge(
 ) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(14.dp))
             .background(MaterialTheme.colorScheme.surfaceContainerHigh),
     ) {
         AsyncImage(
@@ -559,7 +640,7 @@ private fun TextBadge(
 ) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(4.dp))
+            .clip(RoundedCornerShape(5.dp))
             .background(containerColor)
             .padding(horizontal = 5.dp, vertical = 1.dp),
     ) {

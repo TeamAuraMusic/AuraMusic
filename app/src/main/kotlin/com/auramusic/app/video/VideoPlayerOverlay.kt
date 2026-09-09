@@ -9,15 +9,17 @@ import android.view.ViewGroup
 import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -29,6 +31,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -38,8 +41,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -50,7 +51,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.SecondaryScrollableTabRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
@@ -61,12 +62,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -167,107 +168,143 @@ private fun VideoMinimizedTile(
     val insets = LocalPlayerAwareWindowInsets.current.asPaddingValues()
     val density = LocalDensity.current
 
-    // Drag distance tracked in px, rendered via density conversion.
     var dragPx by remember { mutableFloatStateOf(0f) }
     val animatedDragPx by animateFloatAsState(
         targetValue = dragPx,
         animationSpec = tween(durationMillis = 220),
         label = "miniDragPx",
     )
-    val dismissProgress = (dragPx / 380f).coerceIn(0f, 1f)
+    val dismissProgress = (dragPx / 360f).coerceIn(0f, 1f)
 
     Box(modifier = Modifier.fillMaxSize()) {
         Surface(
             onClick = onExpand,
             modifier = Modifier
-                .align(Alignment.BottomStart)
+                .align(Alignment.BottomCenter)
                 .offset(y = with(density) { animatedDragPx.toDp() })
                 .graphicsLayer {
-                    scaleX = 1f - 0.05f * dismissProgress
-                    scaleY = 1f - 0.05f * dismissProgress
-                    alpha = 1f - 0.4f * dismissProgress
+                    scaleX = 1f - 0.06f * dismissProgress
+                    scaleY = 1f - 0.06f * dismissProgress
+                    alpha = 1f - 0.45f * dismissProgress
                 }
-                .widthIn(max = 360.dp)
-                .fillMaxWidth(0.62f)
-                .padding(start = 14.dp)
-                .padding(bottom = insets.calculateBottomPadding() + 84.dp)
-                .shadow(18.dp, RoundedCornerShape(18.dp)),
-            shape = RoundedCornerShape(18.dp),
+                .padding(horizontal = 10.dp)
+                .padding(bottom = insets.calculateBottomPadding() + 88.dp)
+                .fillMaxWidth()
+                .height(128.dp)
+                .shadow(24.dp, RoundedCornerShape(26.dp)),
+            shape = RoundedCornerShape(26.dp),
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
             tonalElevation = 6.dp,
         ) {
-            Box(
+            Row(
                 modifier = Modifier
-                    .aspectRatio(16f / 9f)
-                    .pointerInput(Unit) {
-                        detectVerticalDragGestures(
-                            onDragEnd = {
-                                if (dragPx > with(density) { 140.dp.toPx() }) {
-                                    onClose()
-                                } else {
-                                    dragPx = 0f
+                    .fillMaxSize()
+                    .padding(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .width(184.dp)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(18.dp))
+                        .pointerInput(Unit) {
+                            detectVerticalDragGestures(
+                                onDragEnd = {
+                                    if (dragPx > with(density) { 130.dp.toPx() }) {
+                                        onClose()
+                                    } else {
+                                        dragPx = 0f
+                                    }
+                                },
+                                onDragCancel = { dragPx = 0f },
+                            ) { change, dragAmount ->
+                                if (dragAmount > 0f) {
+                                    dragPx = (dragPx + dragAmount).coerceIn(0f, 460f)
+                                    change.consume()
                                 }
-                            },
-                            onDragCancel = { dragPx = 0f },
-                        ) { change, dragAmount ->
-                            if (dragAmount > 0f) {
-                                dragPx = (dragPx + dragAmount).coerceIn(0f, 480f)
-                                change.consume()
                             }
                         }
-                    }
-            ) {
-                AndroidVideoSurface(player, resizeModeOverride = state.resizeMode)
-
-                IconButton(
-                    onClick = onClose,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(4.dp)
-                        .clip(CircleShape)
-                        .background(Color.Black.copy(alpha = 0.42f))
-                        .size(30.dp)
                 ) {
-                    Icon(
-                        painter = painterResource(R.drawable.close),
-                        contentDescription = stringResource(R.string.close),
-                        modifier = Modifier.size(14.dp),
-                        tint = Color.White
-                    )
+                    AndroidVideoSurface(player, resizeModeOverride = state.resizeMode)
                 }
+
+                Spacer(modifier = Modifier.width(12.dp))
 
                 Column(
                     modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(Color.Transparent, Color.Black.copy(alpha = 0.55f))
-                            )
-                        )
-                        .padding(horizontal = 8.dp),
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .padding(vertical = 2.dp),
                 ) {
+                    Row {
+                        Text(
+                            text = state.session?.title.orEmpty(),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    if (!state.session?.channelName.isNullOrBlank()) {
+                        Text(
+                            text = state.session?.channelName.orEmpty(),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    // Progress line + times.
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(3.dp)
+                            .clip(RoundedCornerShape(1.5f))
+                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f))
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(state.progress.coerceIn(0f, 1f))
+                                .height(3.dp)
+                                .background(
+                                    Brush.horizontalGradient(
+                                        listOf(
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                            MaterialTheme.colorScheme.primary
+                                        )
+                                    )
+                                )
+                        )
+                    }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 6.dp),
                     ) {
-                        MiniControlButton(
-                            iconRes = R.drawable.ic_skip_previous,
-                            contentDescriptionRes = R.string.video_player_up_next,
-                            onClick = { VideoPlaybackManager.playPrevious() },
+                        Text(
+                            text = "${formatTime(state.positionMs)} / ${formatTime(state.durationMs)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
                         )
+                        Spacer(modifier = Modifier.weight(1f))
                         Surface(
                             onClick = { VideoPlaybackManager.togglePlayPause() },
                             shape = CircleShape,
-                            color = Color.White,
-                            modifier = Modifier.size(38.dp)
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(44.dp),
+                            tonalElevation = 3.dp,
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 if (state.isBuffering) {
                                     CircularProgressIndicator(
-                                        modifier = Modifier.size(18.dp),
-                                        color = Color.Black,
+                                        modifier = Modifier.size(20.dp),
+                                        color = MaterialTheme.colorScheme.onPrimary,
                                         strokeWidth = 2.dp
                                     )
                                 } else {
@@ -276,65 +313,33 @@ private fun VideoMinimizedTile(
                                         contentDescription = stringResource(
                                             if (state.isPlaying) R.string.pause else R.string.play
                                         ),
-                                        modifier = Modifier.size(18.dp),
-                                        tint = Color.Black
+                                        modifier = Modifier.size(22.dp),
+                                        tint = MaterialTheme.colorScheme.onPrimary
                                     )
                                 }
                             }
                         }
-                        MiniControlButton(
-                            iconRes = R.drawable.ic_skip_next,
-                            contentDescriptionRes = R.string.video_player_up_next,
-                            onClick = { VideoPlaybackManager.playNext() },
-                        )
-                        Spacer(modifier = Modifier.weight(1f))
-                        Text(
-                            text = "${formatTime(state.positionMs)} / ${formatTime(state.durationMs)}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White.copy(alpha = 0.9f),
-                        )
                     }
-                    // Determinate progress line.
-                    Box(
-                        modifier = Modifier
-                            .padding(top = 4.dp, bottom = 6.dp)
-                            .fillMaxWidth()
-                            .height(2.dp)
-                            .clip(RoundedCornerShape(1.dp))
-                            .background(Color.Black.copy(alpha = 0.45f))
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(state.progress.coerceIn(0f, 1f))
-                                .height(2.dp)
-                                .background(MaterialTheme.colorScheme.primary)
-                        )
-                    }
+                }
+
+                IconButton(
+                    onClick = onClose,
+                    modifier = Modifier
+                        .align(Alignment.CenterVertically)
+                        .padding(start = 4.dp)
+                        .size(26.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.close),
+                        contentDescription = stringResource(R.string.close),
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun MiniControlButton(
-    iconRes: Int,
-    contentDescriptionRes: Int,
-    onClick: () -> Unit,
-) {
-    IconButton(
-        onClick = onClick,
-        modifier = Modifier
-            .size(32.dp)
-            .clip(CircleShape)
-            .background(Color.Black.copy(alpha = 0.42f))
-    ) {
-        Icon(
-            painter = painterResource(iconRes),
-            contentDescription = stringResource(contentDescriptionRes),
-            modifier = Modifier.size(18.dp),
-            tint = Color.White
-        )
     }
 }
 
@@ -431,7 +436,7 @@ private fun VideoExpandedPlayer(
 
 /**
  * The 16:9 video area: surface + one coherent gesture layer (tap toggles controls,
- * vertical drag collapses, horizontal drag scrubs) + top/bottom control bars.
+ * double-tap sides seek ±10s, vertical drag collapses, horizontal drag scrubs).
  */
 @OptIn(UnstableApi::class)
 @Composable
@@ -480,7 +485,6 @@ private fun VideoSurfaceWithControls(
                         }
                     },
                     onDoubleTap = { offset ->
-                        // Double-tap sides seek ±10s; center toggles controls.
                         val side = when {
                             offset.x < size.width / 3 -> -1
                             offset.x > size.width * 2 / 3 -> 1
@@ -514,7 +518,6 @@ private fun VideoSurfaceWithControls(
                 }
             }
             .pointerInput(uiState.durationMs) {
-                // Base position captured once at drag start; each event adds its own delta.
                 var dragBaseMs = 0L
                 detectHorizontalDragGestures(
                     onDragStart = {
@@ -529,7 +532,6 @@ private fun VideoSurfaceWithControls(
                     },
                 ) { change, dragAmount ->
                     change.consume()
-                    // 1dp of drag ≈ 50ms of video, a smooth scrub speed.
                     val deltaMs = dragAmount.toDp().value * 50f
                     isForward = dragAmount > 0
                     scrubPreviewMs = (dragBaseMs + deltaMs.toLong())
@@ -553,25 +555,20 @@ private fun VideoSurfaceWithControls(
             )
         }
 
+        seekHint?.let { hint ->
+            SeekHintBadge(
+                hint = hint,
+                isForward = isForward,
+                modifier = Modifier.align(Alignment.Center),
+            )
+        }
+
         scrubPreviewMs?.let { preview ->
             SeekPreviewBadge(
                 previewMs = preview,
                 positionMs = uiState.positionMs,
                 isForward = isForward,
                 modifier = Modifier.align(Alignment.Center),
-            )
-        }
-
-        seekHint?.let { hint ->
-            Text(
-                text = hint,
-                color = Color.White,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .background(Color.Black.copy(alpha = 0.65f), RoundedCornerShape(12.dp))
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
             )
         }
     }
@@ -591,18 +588,27 @@ private fun PlayerTopBar(
             .fillMaxWidth()
             .background(
                 Brush.verticalGradient(
-                    listOf(Color.Black.copy(alpha = 0.55f), Color.Transparent)
+                    listOf(Color.Black.copy(alpha = 0.6f), Color.Transparent)
                 )
             )
-            .padding(start = 4.dp, end = 4.dp, top = 6.dp, bottom = 12.dp)
+            .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 14.dp)
     ) {
-        IconButton(onClick = onCollapse) {
-            Icon(
-                painter = painterResource(R.drawable.expand_less),
-                contentDescription = stringResource(R.string.collapse_video),
-                tint = Color.White
-            )
+        Surface(
+            onClick = onCollapse,
+            shape = CircleShape,
+            color = Color.Black.copy(alpha = 0.45f),
+            modifier = Modifier.size(40.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    painter = painterResource(R.drawable.expand_less),
+                    contentDescription = stringResource(R.string.collapse_video),
+                    modifier = Modifier.size(24.dp),
+                    tint = Color.White
+                )
+            }
         }
+        Spacer(modifier = Modifier.width(10.dp))
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -620,25 +626,42 @@ private fun PlayerTopBar(
                 Text(
                     text = channelName,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.7f),
+                    color = Color.White.copy(alpha = 0.75f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             }
         }
-        IconButton(onClick = { VideoPlaybackManager.toggleSettings() }) {
-            Icon(
-                painter = painterResource(R.drawable.settings),
-                contentDescription = stringResource(R.string.video_quality),
-                tint = Color.White
-            )
+        Surface(
+            onClick = { VideoPlaybackManager.toggleSettings() },
+            shape = CircleShape,
+            color = Color.Black.copy(alpha = 0.45f),
+            modifier = Modifier.size(40.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    painter = painterResource(R.drawable.settings),
+                    contentDescription = stringResource(R.string.video_quality),
+                    modifier = Modifier.size(20.dp),
+                    tint = Color.White
+                )
+            }
         }
-        IconButton(onClick = onClose) {
-            Icon(
-                painter = painterResource(R.drawable.close),
-                contentDescription = stringResource(R.string.close),
-                tint = Color.White
-            )
+        Spacer(modifier = Modifier.width(8.dp))
+        Surface(
+            onClick = onClose,
+            shape = CircleShape,
+            color = Color.Black.copy(alpha = 0.45f),
+            modifier = Modifier.size(40.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    painter = painterResource(R.drawable.close),
+                    contentDescription = stringResource(R.string.close),
+                    modifier = Modifier.size(20.dp),
+                    tint = Color.White
+                )
+            }
         }
     }
 }
@@ -657,63 +680,45 @@ private fun PlayerBottomControls(
             .fillMaxWidth()
             .background(
                 Brush.verticalGradient(
-                    listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f))
+                    listOf(Color.Transparent, Color.Black.copy(alpha = 0.75f))
                 )
             )
-            .padding(top = 14.dp, bottom = 12.dp)
+            .padding(top = 20.dp, bottom = 6.dp)
     ) {
-        Slider(
-            value = effectivePosition.coerceIn(0f, durationSeconds),
-            onValueChange = { scrubPosition = it },
-            onValueChangeFinished = {
-                VideoPlaybackManager.seekTo(scrubPosition.toLong())
-                scrubPosition = -1f
-            },
-            valueRange = 0f..durationSeconds,
-            colors = SliderDefaults.colors(
-                thumbColor = MaterialTheme.colorScheme.primary,
-                activeTrackColor = MaterialTheme.colorScheme.primary,
-                inactiveTrackColor = Color.White.copy(alpha = 0.3f),
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp)
-        )
-
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+                .padding(bottom = 6.dp),
+            horizontalArrangement = Arrangement.Center
         ) {
-            Text(
-                text = formatTime(effectivePosition.toLong()),
-                style = MaterialTheme.typography.labelMedium,
-                color = Color.White.copy(alpha = 0.8f)
-            )
-            Text(
-                text = " / ${formatTime(uiState.durationMs)}",
-                style = MaterialTheme.typography.labelMedium,
-                color = Color.White.copy(alpha = 0.5f)
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            IconButton(onClick = { VideoPlaybackManager.playPrevious() }) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_skip_previous),
-                    contentDescription = stringResource(R.string.video_player_up_next),
-                    tint = Color.White
-                )
+            Surface(
+                onClick = { VideoPlaybackManager.playPrevious() },
+                shape = CircleShape,
+                color = Color.White.copy(alpha = 0.18f),
+                modifier = Modifier.size(44.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_skip_previous),
+                        contentDescription = stringResource(R.string.video_player_up_next),
+                        modifier = Modifier.size(24.dp),
+                        tint = Color.White
+                    )
+                }
             }
+            Spacer(modifier = Modifier.width(24.dp))
             Surface(
                 onClick = { VideoPlaybackManager.togglePlayPause() },
                 shape = CircleShape,
                 color = Color.White,
-                modifier = Modifier.size(52.dp)
+                modifier = Modifier.size(62.dp),
+                tonalElevation = 4.dp,
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     if (uiState.isBuffering) {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
+                            modifier = Modifier.size(28.dp),
                             color = Color.Black,
                             strokeWidth = 3.dp
                         )
@@ -723,28 +728,106 @@ private fun PlayerBottomControls(
                             contentDescription = stringResource(
                                 if (uiState.isPlaying) R.string.pause else R.string.play
                             ),
-                            modifier = Modifier.size(26.dp),
+                            modifier = Modifier.size(32.dp),
                             tint = Color.Black
                         )
                     }
                 }
             }
-            IconButton(onClick = { VideoPlaybackManager.playNext() }) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_skip_next),
-                    contentDescription = stringResource(R.string.video_player_up_next),
-                    tint = Color.White
-                )
-            }
-            Spacer(modifier = Modifier.weight(1f))
-            IconButton(onClick = { VideoPlaybackManager.toggleSettings() }) {
-                Icon(
-                    painter = painterResource(R.drawable.settings),
-                    contentDescription = stringResource(R.string.video_quality),
-                    tint = Color.White
-                )
+            Spacer(modifier = Modifier.width(24.dp))
+            Surface(
+                onClick = { VideoPlaybackManager.playNext() },
+                shape = CircleShape,
+                color = Color.White.copy(alpha = 0.18f),
+                modifier = Modifier.size(44.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_skip_next),
+                        contentDescription = stringResource(R.string.video_player_up_next),
+                        modifier = Modifier.size(24.dp),
+                        tint = Color.White
+                    )
+                }
             }
         }
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp),
+        ) {
+            Text(
+                text = formatTime(effectivePosition.toLong()),
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.White.copy(alpha = 0.85f)
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = formatTime(uiState.durationMs),
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.White.copy(alpha = 0.55f)
+            )
+        }
+
+        Slider(
+            value = effectivePosition.coerceIn(0f, durationSeconds),
+            onValueChange = { scrubPosition = it },
+            onValueChangeFinished = {
+                VideoPlaybackManager.seekTo(scrubPosition.toLong())
+                scrubPosition = -1f
+            },
+            valueRange = 0f..durationSeconds,
+            colors = SliderDefaults.colors(
+                thumbColor = Color.White,
+                activeTrackColor = MaterialTheme.colorScheme.primary,
+                inactiveTrackColor = Color.White.copy(alpha = 0.3f),
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp)
+        )
+    }
+}
+
+@Composable
+private fun SeekHintBadge(
+    hint: String,
+    isForward: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val transition = rememberInfiniteTransition(label = "seekHint")
+    val scale by transition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.25f,
+        animationSpec = infiniteRepeatable(tween(300), RepeatMode.Reverse),
+        label = "seekScale"
+    )
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .padding(8.dp)
+    ) {
+        Icon(
+            painter = painterResource(if (isForward) R.drawable.fast_forward else R.drawable.replay),
+            contentDescription = null,
+            modifier = Modifier.size(44.dp),
+            tint = Color.White
+        )
+        Text(
+            text = hint,
+            color = Color.White,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier
+                .background(Color.Black.copy(alpha = 0.65f), RoundedCornerShape(12.dp))
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+        )
     }
 }
 
@@ -789,9 +872,8 @@ private fun VideoDetailPane(
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
-    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val scope = rememberCoroutineScope()
 
-    // Infinite scroll for both tabs.
     LaunchedEffect(listState, uiState.comments.size, uiState.recommendations.size) {
         snapshotFlowSafe(listState) { nearEnd ->
             if (!nearEnd) return@snapshotFlowSafe
@@ -908,7 +990,7 @@ private fun ChannelRow(
     ) {
         Box(
             modifier = Modifier
-                .size(40.dp)
+                .size(44.dp)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.primaryContainer)
         ) {
@@ -925,7 +1007,7 @@ private fun ChannelRow(
                     contentDescription = session.channelName,
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(8.dp),
+                        .padding(10.dp),
                     tint = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
@@ -955,9 +1037,9 @@ private fun ChannelRow(
 
         Surface(
             onClick = onSubscribeClick,
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(22.dp),
             color = if (isSubscribed) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.primary,
-            modifier = Modifier.height(36.dp)
+            modifier = Modifier.height(38.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -965,8 +1047,8 @@ private fun ChannelRow(
             ) {
                 Icon(
                     painter = painterResource(if (isSubscribed) R.drawable.subscribed else R.drawable.subscribe),
-                    contentDescription = stringResource(if (isSubscribed) R.string.subscribed else R.string.subscribe),
-                    modifier = Modifier.size(18.dp),
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
                     tint = if (isSubscribed) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onPrimary
                 )
                 Spacer(modifier = Modifier.width(6.dp))
@@ -989,7 +1071,7 @@ private fun ActionButtonsRow(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         ActionButton(
             icon = R.drawable.ic_thumb_up,
@@ -1029,9 +1111,9 @@ private fun ActionButton(
             haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
             onClick()
         },
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(22.dp),
         color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
-        modifier = modifier.height(40.dp)
+        modifier = modifier.height(42.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -1088,16 +1170,17 @@ private fun ExpandableDescription(
 }
 
 private enum class DetailTab(val labelRes: Int) {
-    Comments(R.string.video_player_comments),
     UpNext(R.string.video_player_up_next),
+    Comments(R.string.video_player_comments),
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun VideoTabs(uiState: VideoPlaybackManager.UiState) {
     var selectedTab by remember { mutableIntStateOf(DetailTab.UpNext.ordinal) }
 
     Column {
-        ScrollableTabRow(
+        SecondaryScrollableTabRow(
             selectedTabIndex = selectedTab,
             containerColor = Color.Transparent,
             contentColor = MaterialTheme.colorScheme.primary,
@@ -1268,6 +1351,7 @@ private fun CommentRow(comment: CommentItem) {
 @Composable
 private fun UpNextSection(uiState: VideoPlaybackManager.UiState) {
     val context = LocalContext.current
+
     when {
         uiState.isLoadingRecommendations -> {
             Column(
@@ -1309,7 +1393,6 @@ private fun UpNextSection(uiState: VideoPlaybackManager.UiState) {
                         item = item,
                         isPlaying = item.videoId == uiState.session?.videoId,
                         onClick = {
-                            // Pass the full item so the player never shows a blank title.
                             VideoPlaybackManager.playWithDetails(
                                 context = context,
                                 videoId = item.videoId,
@@ -1352,7 +1435,7 @@ private fun UpNextRow(
     ) {
         Box(
             modifier = Modifier
-                .width(140.dp)
+                .width(148.dp)
                 .aspectRatio(16f / 9f)
                 .clip(RoundedCornerShape(12.dp))
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh)
@@ -1384,18 +1467,30 @@ private fun UpNextRow(
                 }
             }
             if (isPlaying) {
+                val pulse by rememberInfiniteTransition(label = "upNow").animateFloat(
+                    initialValue = 0.45f,
+                    targetValue = 1f,
+                    animationSpec = infiniteRepeatable(tween(650), RepeatMode.Reverse),
+                    label = "upPulse"
+                )
                 Box(
                     modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(6.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(MaterialTheme.colorScheme.primary)
-                        .padding(horizontal = 5.dp, vertical = 1.dp)
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.28f * pulse))
+                )
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .size(26.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.6f)),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "▶",
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        fontSize = 9.sp,
+                    Icon(
+                        painter = painterResource(R.drawable.pause),
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = Color.White
                     )
                 }
             }
@@ -1415,16 +1510,27 @@ private fun UpNextRow(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(
-                text = listOfNotNull(
-                    item.channelName.takeIf { it.isNotBlank() },
-                    item.viewCountText,
-                ).joinToString(" • "),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            item.channelName.takeIf { it.isNotBlank() }?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            listOfNotNull(
+                item.viewCountText,
+                item.publishedTimeText,
+            ).takeIf { it.isNotEmpty() }?.joinToString(" • ")?.let { meta ->
+                Text(
+                    text = meta,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }
@@ -1443,27 +1549,34 @@ private fun SettingsOverlay(
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.6f))
             .clickable(onClick = onDismiss),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.BottomCenter
     ) {
         Surface(
             modifier = Modifier
-                .fillMaxWidth(0.85f)
+                .fillMaxWidth()
                 .wrapContentHeight(),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(24.dp),
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
             tonalElevation = 8.dp,
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(modifier = Modifier.padding(20.dp)) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = stringResource(R.string.video_quality),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Column {
+                        Text(
+                            text = stringResource(R.string.video_quality),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Playback speed: ${uiState.playbackSpeed}x",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                     IconButton(onClick = onDismiss) {
                         Icon(
                             painter = painterResource(R.drawable.close),
@@ -1473,18 +1586,18 @@ private fun SettingsOverlay(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = "Playback speed: ${uiState.playbackSpeed}x",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
+                    text = "Speed",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 8.dp)
+                        .padding(top = 8.dp)
                 ) {
                     listOf(
                         0.5f to "0.5x",
@@ -1502,7 +1615,7 @@ private fun SettingsOverlay(
                         ) {
                             Text(
                                 text = label,
-                                modifier = Modifier.padding(vertical = 8.dp),
+                                modifier = Modifier.padding(vertical = 10.dp),
                                 textAlign = TextAlign.Center,
                                 style = MaterialTheme.typography.labelLarge,
                                 color = if (uiState.playbackSpeed == speed) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
@@ -1511,36 +1624,38 @@ private fun SettingsOverlay(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
+                Text(
+                    text = "Aspect ratio",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
                 ) {
-                    Surface(
-                        onClick = {
-                            val nextMode = when (uiState.resizeMode) {
-                                AspectRatioFrameLayout.RESIZE_MODE_FIT -> AspectRatioFrameLayout.RESIZE_MODE_FILL
-                                AspectRatioFrameLayout.RESIZE_MODE_FILL -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                                else -> AspectRatioFrameLayout.RESIZE_MODE_FIT
-                            }
-                            VideoPlaybackManager.setResizeMode(nextMode)
-                        },
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(
-                            text = when (uiState.resizeMode) {
-                                AspectRatioFrameLayout.RESIZE_MODE_FIT -> "Resize: Fit"
-                                AspectRatioFrameLayout.RESIZE_MODE_FILL -> "Resize: Stretch"
-                                AspectRatioFrameLayout.RESIZE_MODE_ZOOM -> "Resize: Crop"
-                                else -> "Resize: Fit"
-                            },
-                            modifier = Modifier.padding(vertical = 12.dp),
-                            textAlign = TextAlign.Center,
-                            style = MaterialTheme.typography.labelLarge
-                        )
+                    listOf(
+                        AspectRatioFrameLayout.RESIZE_MODE_FIT to "Fit",
+                        AspectRatioFrameLayout.RESIZE_MODE_FILL to "Stretch",
+                        AspectRatioFrameLayout.RESIZE_MODE_ZOOM to "Crop",
+                    ).forEach { (mode, label) ->
+                        Surface(
+                            onClick = { VideoPlaybackManager.setResizeMode(mode) },
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (uiState.resizeMode == mode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                text = label,
+                                modifier = Modifier.padding(vertical = 10.dp),
+                                textAlign = TextAlign.Center,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = if (uiState.resizeMode == mode) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }
@@ -1569,7 +1684,6 @@ private fun AndroidVideoSurface(player: ExoPlayer, resizeModeOverride: Int) {
         },
         update = { view ->
             view.player = player
-            // The resize setting was previously never applied to the surface.
             if (view.resizeMode != resizeModeOverride) {
                 view.resizeMode = resizeModeOverride
             }

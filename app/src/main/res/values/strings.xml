@@ -27,6 +27,7 @@
     <string name="music_section">Music</string>
     <string name="video_section">Videos</string>
     <string name="no_videos_found">No videos found</string>
+    <string name="live">LIVE</string>
     <string name="channel_tab_videos">Videos</string>
     <string name="channel_tab_shorts">Shorts</string>
     <string name="channel_tab_live">Live</string>

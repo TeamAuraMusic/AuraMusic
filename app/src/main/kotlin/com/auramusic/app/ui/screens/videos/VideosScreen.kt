@@ -5,7 +5,14 @@
 
 package com.auramusic.app.ui.screens.videos
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -13,6 +20,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,21 +31,20 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyGridItemSpanScope
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -48,11 +55,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
@@ -80,11 +88,12 @@ import kotlinx.coroutines.withContext
 private enum class VideoCategory(
     val browseId: String,
     val labelRes: Int,
+    val iconRes: Int,
 ) {
-    ForYou("FEwhat_to_watch", R.string.for_you),
-    Trending("FEtrending", R.string.trending),
-    Music("FEmusic", R.string.filter_music),
-    Gaming("FEgaming", R.string.video_category_gaming),
+    ForYou("FEwhat_to_watch", R.string.for_you, R.drawable.explore_outlined),
+    Trending("FEtrending", R.string.trending, R.drawable.trending_up),
+    Music("FEmusic", R.string.filter_music, R.drawable.music_note),
+    Gaming("FEgaming", R.string.video_category_gaming, R.drawable.tv),
 }
 
 @Composable
@@ -192,11 +201,15 @@ fun VideosScreen(
             .fillMaxSize()
             .padding(bottom = insets.calculateBottomPadding())
     ) {
+        VideosTopBar(
+            gridView = gridView,
+            onToggleView = { gridView = !gridView },
+            onSearchClick = { navController.navigate("video_search/") },
+        )
+
         FeedFilterBar(
             selected = selectedCategory,
-            gridView = gridView,
             onCategorySelected = { selectedCategory = it },
-            onToggleView = { gridView = !gridView },
         )
 
         BoxWithConstraints(
@@ -225,15 +238,16 @@ fun VideosScreen(
                         Icon(
                             painter = painterResource(R.drawable.slow_motion_video),
                             contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                            modifier = Modifier.size(72.dp),
+                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
                         val err = error
                         Text(
                             text = err.orEmpty(),
                             style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            modifier = Modifier.padding(horizontal = 32.dp),
                         )
                     }
                 }
@@ -259,7 +273,7 @@ fun VideosScreen(
                             columns = GridCells.Fixed(columns),
                             state = gridListState,
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             items(
                                 items = feed,
@@ -267,6 +281,7 @@ fun VideosScreen(
                             ) { video ->
                                 FeedVideoGridCard(
                                     video = video,
+                                    isNowPlaying = isCurrentlyPlaying(video.videoId),
                                     onClick = { playVideo(video) },
                                     onChannelClick = openChannel,
                                 )
@@ -290,6 +305,7 @@ fun VideosScreen(
                             ) { video ->
                                 FeedVideoListRow(
                                     video = video,
+                                    isNowPlaying = isCurrentlyPlaying(video.videoId),
                                     onClick = { playVideo(video) },
                                     onChannelClick = openChannel,
                                 )
@@ -306,34 +322,32 @@ fun VideosScreen(
 }
 
 @Composable
-private fun FeedFilterBar(
-    selected: VideoCategory,
+private fun VideosTopBar(
     gridView: Boolean,
-    onCategorySelected: (VideoCategory) -> Unit,
     onToggleView: () -> Unit,
+    onSearchClick: () -> Unit,
 ) {
     Row(
+        verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 10.dp, end = 6.dp, top = 8.dp, bottom = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(start = 16.dp, end = 8.dp, top = 10.dp, bottom = 2.dp)
     ) {
-        Row(
-            modifier = Modifier.weight(1f),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            VideoCategory.entries.forEach { category ->
-                FilterChip(
-                    selected = category == selected,
-                    onClick = { onCategorySelected(category) },
-                    label = {
-                        Text(
-                            text = stringResource(category.labelRes),
-                            style = MaterialTheme.typography.labelLarge
-                        )
-                    }
-                )
-            }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(R.string.videos),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+        IconButton(onClick = onSearchClick) {
+            Icon(
+                painter = painterResource(R.drawable.search),
+                contentDescription = stringResource(R.string.search_youtube),
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(22.dp)
+            )
         }
         IconButton(onClick = onToggleView) {
             Icon(
@@ -341,8 +355,55 @@ private fun FeedFilterBar(
                 contentDescription = stringResource(
                     if (gridView) R.string.videos_list_view else R.string.videos_grid_view
                 ),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(22.dp)
             )
+        }
+    }
+}
+
+@Composable
+private fun FeedFilterBar(
+    selected: VideoCategory,
+    onCategorySelected: (VideoCategory) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        VideoCategory.entries.forEach { category ->
+            val isSelected = category == selected
+            Surface(
+                onClick = { onCategorySelected(category) },
+                shape = RoundedCornerShape(20.dp),
+                color = if (isSelected) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.surfaceContainerHigh,
+                modifier = Modifier.height(38.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(category.iconRes),
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = stringResource(category.labelRes),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
         }
     }
 }
@@ -352,7 +413,7 @@ private fun SkeletonFeed(columns: Int) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(columns),
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
     ) {
         items(8) {
             Column(
@@ -366,23 +427,33 @@ private fun SkeletonFeed(columns: Int) {
                 ) {
                     Box(modifier = Modifier.fillMaxSize())
                 }
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
                 ShimmerHost(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(12.dp)
+                        .height(13.dp)
                         .clip(RoundedCornerShape(6.dp))
                 ) {
                     Box(modifier = Modifier.fillMaxSize())
                 }
                 Spacer(modifier = Modifier.height(6.dp))
-                ShimmerHost(
-                    modifier = Modifier
-                        .fillMaxWidth(0.6f)
-                        .height(10.dp)
-                        .clip(RoundedCornerShape(5.dp))
-                ) {
-                    Box(modifier = Modifier.fillMaxSize())
+                Row {
+                    ShimmerHost(
+                        modifier = Modifier
+                            .size(22.dp)
+                            .clip(CircleShape)
+                    ) {
+                        Box(modifier = Modifier.fillMaxSize())
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    ShimmerHost(
+                        modifier = Modifier
+                            .fillMaxWidth(0.55f)
+                            .height(10.dp)
+                            .clip(RoundedCornerShape(5.dp))
+                    ) {
+                        Box(modifier = Modifier.fillMaxSize())
+                    }
                 }
             }
         }
@@ -408,13 +479,61 @@ private fun GridListFooter(isLoadingMore: Boolean, hasMore: Boolean) {
     }
 }
 
+@Composable
+private fun NowPlayingBars(color: Color, modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "nowPlaying")
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(Color.Black.copy(alpha = 0.62f))
+            .padding(horizontal = 8.dp, vertical = 5.dp)
+    ) {
+        Text(
+            text = "♫",
+            color = color,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            modifier = Modifier
+                .height(12.dp)
+                .padding(top = 1.dp)
+        ) {
+            listOf(0.45f, 0.95f, 0.62f, 0.82f).forEachIndexed { index, base ->
+                val scale by transition.animateFloat(
+                    initialValue = base * 0.55f,
+                    targetValue = base,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(durationMillis = 420 + index * 90),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "bar$index"
+                )
+                Box(
+                    modifier = Modifier
+                        .width(3.dp)
+                        .height((12.dp * scale).coerceAtLeast(3.dp))
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(color)
+                )
+            }
+        }
+    }
+}
+
 private fun isCurrentlyPlaying(videoId: String): Boolean {
-    val session = VideoPlaybackManager.uiState.value.session ?: return false
-    return session.videoId == videoId && VideoPlaybackManager.uiState.value.isPlaying
+    val state = VideoPlaybackManager.uiState.value
+    return state.session?.videoId == videoId
 }
 
 @Composable
-private fun ChannelMonogram(channelName: String, modifier: Modifier = Modifier) {
+private fun ChannelAvatar(
+    channelName: String,
+    modifier: Modifier = Modifier,
+) {
     val initial = channelName.trim().firstOrNull()?.uppercase() ?: "?"
     Box(
         modifier = modifier
@@ -434,24 +553,24 @@ private fun ChannelMonogram(channelName: String, modifier: Modifier = Modifier) 
 @Composable
 private fun FeedVideoGridCard(
     video: YouTubeVideoItem,
+    isNowPlaying: Boolean,
     onClick: () -> Unit,
     onChannelClick: (String) -> Unit,
 ) {
-    val playing = isCurrentlyPlaying(video.videoId)
-
     Column(
         modifier = Modifier
             .padding(horizontal = 4.dp, vertical = 6.dp)
             .clip(RoundedCornerShape(18.dp))
             .then(
-                if (playing) {
+                if (isNowPlaying) {
                     Modifier.background(
                         MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
                         RoundedCornerShape(18.dp)
                     )
                 } else Modifier
-            ),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+            )
+            .clickable(onClick = onClick),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Box(
             modifier = Modifier
@@ -470,17 +589,52 @@ private fun FeedVideoGridCard(
                 )
             }
 
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .height(48.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Color.Transparent, Color.Black.copy(alpha = 0.42f))
+                        )
+                    )
+            )
+
+            if (isNowPlaying) {
+                NowPlayingBars(
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(8.dp)
+                )
+            }
+
             if (video.isLive) {
-                Box(
+                val livePulse by rememberInfiniteTransition(label = "live").animateFloat(
+                    initialValue = 1f,
+                    targetValue = 0.35f,
+                    animationSpec = infiniteRepeatable(tween(700), RepeatMode.Reverse),
+                    label = "livePulse"
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(8.dp)
                         .clip(RoundedCornerShape(6.dp))
                         .background(Color(0xFFE53935))
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                        .padding(horizontal = 7.dp, vertical = 3.dp)
                 ) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = livePulse))
+                    )
                     Text(
-                        text = "LIVE",
+                        text = stringResource(R.string.live),
                         color = Color.White,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
@@ -504,24 +658,6 @@ private fun FeedVideoGridCard(
                     )
                 }
             }
-
-            if (playing) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(8.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(MaterialTheme.colorScheme.primary)
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                ) {
-                    Text(
-                        text = "PLAYING",
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
         }
 
         Text(
@@ -536,16 +672,25 @@ private fun FeedVideoGridCard(
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            ChannelMonogram(video.channelName, Modifier.size(24.dp))
+            ChannelAvatar(
+                channelName = video.channelName,
+                modifier = Modifier.size(22.dp)
+            )
             Text(
                 text = video.channelName,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false)
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .clip(RoundedCornerShape(4.dp))
+                    .clickable {
+                        val id = video.channelId ?: return@clickable
+                        onChannelClick(id)
+                    }
             )
         }
         if (video.viewCountText != null) {
@@ -563,17 +708,20 @@ private fun FeedVideoGridCard(
 @Composable
 private fun FeedVideoListRow(
     video: YouTubeVideoItem,
+    isNowPlaying: Boolean,
     onClick: () -> Unit,
     onChannelClick: (String) -> Unit,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
-                .width(150.dp)
+                .width(160.dp)
                 .aspectRatio(16f / 9f)
                 .clip(RoundedCornerShape(16.dp))
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh)
@@ -597,7 +745,7 @@ private fun FeedVideoListRow(
                         .padding(horizontal = 5.dp, vertical = 1.dp)
                 ) {
                     Text(
-                        text = "LIVE",
+                        text = stringResource(R.string.live),
                         color = Color.White,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold
@@ -627,16 +775,27 @@ private fun FeedVideoListRow(
             modifier = Modifier
                 .weight(1f)
                 .padding(start = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(5.dp)
         ) {
-            Text(
-                text = video.title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (isNowPlaying) {
+                    NowPlayingBars(
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Text(
+                    text = video.title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+            }
             if (video.viewCountText != null || video.publishedTimeText != null) {
                 Text(
                     text = listOfNotNull(video.viewCountText, video.publishedTimeText).joinToString(" • "),
@@ -649,16 +808,25 @@ private fun FeedVideoListRow(
             if (video.channelName.isNotEmpty()) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    ChannelMonogram(video.channelName, Modifier.size(22.dp))
+                    ChannelAvatar(
+                        channelName = video.channelName,
+                        modifier = Modifier.size(20.dp)
+                    )
                     Text(
                         text = video.channelName,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false)
+                        modifier = Modifier
+                            .weight(1f, fill = false)
+                            .clip(RoundedCornerShape(4.dp))
+                            .clickable {
+                                val id = video.channelId ?: return@clickable
+                                onChannelClick(id)
+                            }
                     )
                 }
             }
