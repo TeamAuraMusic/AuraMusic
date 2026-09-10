@@ -33,6 +33,8 @@ import androidx.media3.session.MediaSession
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSessionService
+import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionResult
 import androidx.media3.session.SessionToken
 import com.auramusic.app.MainActivity
 import com.auramusic.app.R
@@ -40,10 +42,15 @@ import com.auramusic.app.constants.MediaSessionConstants
 import com.auramusic.app.constants.MediaSessionConstants.CommandToggleLike
 import com.auramusic.app.utils.CoilBitmapLoader
 import com.google.common.collect.ImmutableList
+import com.google.common.util.concurrent.Futures
+import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 import timber.log.Timber
 
 /**
@@ -58,6 +65,9 @@ class VideoPlaybackService : MediaSessionService() {
     private var latestMediaNotification: Notification? = null
     private var scope = CoroutineScope(Dispatchers.Main + Job())
 
+    /** Whether the service has successfully reached the foreground state. */
+    private var enteredForeground = false
+
     /**
      * Listener attached to the underlying ExoPlayer that explicitly triggers
      * notification rebuilds whenever the media item changes or playback state
@@ -69,7 +79,7 @@ class VideoPlaybackService : MediaSessionService() {
     private val playerNotificationListener = object : Player.Listener {
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             rebuildMediaNotification()
-            updateCustomLayout()
+            updateMediaButtonPreferences()
         }
 
         override fun onPlaybackStateChanged(playbackState: Int) {
@@ -93,6 +103,10 @@ class VideoPlaybackService : MediaSessionService() {
             configureService()
         } catch (e: Exception) {
             Timber.tag(TAG).e(e, "VideoPlaybackService.onCreate failed")
+            // If the service was started via startForegroundService(), it must reach
+            // the foreground state before stopping, otherwise the system (notably
+            // Android 14+ / MIUI) throws ForegroundServiceDidNotStartInTime.
+            promoteToForegroundWithLatestNotification()
             stopSelf()
         }
     }
@@ -100,6 +114,12 @@ class VideoPlaybackService : MediaSessionService() {
     private fun configureService() {
         val exo = VideoPlaybackManager.playerOrNull()
         if (exo == null) {
+            // Happens when the system restarts the service in a fresh process
+            // (e.g. media button delivery after process death): the player is
+            // owned by VideoPlaybackManager, which is empty here. Satisfy the
+            // startForegroundService() contract before stopping, otherwise the
+            // ForegroundServiceDidNotStartInTime watchdog crashes the app.
+            promoteToForegroundWithLatestNotification()
             stopSelf()
             return
         }
@@ -207,14 +227,28 @@ class VideoPlaybackService : MediaSessionService() {
         // notification panel, exactly like the music player does.
         promoteToForegroundWithLatestNotification()
 
-        // Seed the custom layout (like button etc.) so the notification renders
-        // custom action buttons from the very first frame.
-        updateCustomLayout()
+        // Seed the notification buttons (transport + like) so the notification
+        // renders custom action buttons from the very first frame.
+        updateMediaButtonPreferences()
+
+        // Keep the like button in sync: when like state changes, swap its
+        // label/icon and rebuild the notification so the shade reflects it.
+        scope.launch {
+            var lastLiked: Boolean? = VideoPlaybackManager.uiState.value.isLiked
+            VideoPlaybackManager.uiState.collect { state ->
+                if (state.isLiked != lastLiked) {
+                    lastLiked = state.isLiked
+                    updateMediaButtonPreferences()
+                    rebuildMediaNotification()
+                }
+            }
+        }
     }
 
     private fun buildSession(exo: ExoPlayer, sessionId: String): MediaSession {
-        val session = MediaSession.Builder(this, MediaControlsPlayer(exo))
+        return MediaSession.Builder(this, MediaControlsPlayer(exo))
             .setId(sessionId)
+            .setCallback(VideoSessionCallback())
             .setBitmapLoader(CoilBitmapLoader(this, scope))
             .setSessionActivity(
                 PendingIntent.getActivity(
@@ -225,25 +259,40 @@ class VideoPlaybackService : MediaSessionService() {
                 )
             )
             .build()
+    }
 
-        // Declare which transport actions the notification should display.
-        // Without this, the notification may only show a subset of controls
-        // or fall back to a text-only layout on some Android versions.
-        session.setMediaButtonPreferences(
-            ImmutableList.of(
-                CommandButton.Builder()
-                    .setPlayerCommand(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
+    /**
+     * Handles the notification's custom like button (the same CommandToggleLike
+     * the music player exposes). Without a callback the button would render but
+     * do nothing, and without onConnect advertising the command media3 drops
+     * the button from the notification entirely.
+     */
+    private inner class VideoSessionCallback : MediaSession.Callback {
+        override fun onConnect(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo,
+        ): MediaSession.ConnectionResult {
+            val connectionResult = super.onConnect(session, controller)
+            return MediaSession.ConnectionResult.accept(
+                connectionResult.availableSessionCommands
+                    .buildUpon()
+                    .add(CommandToggleLike)
                     .build(),
-                CommandButton.Builder()
-                    .setPlayerCommand(Player.COMMAND_PLAY_PAUSE)
-                    .build(),
-                CommandButton.Builder()
-                    .setPlayerCommand(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
-                    .build(),
-            ),
-        )
+                connectionResult.availablePlayerCommands,
+            )
+        }
 
-        return session
+        override fun onCustomCommand(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo,
+            customCommand: SessionCommand,
+            args: Bundle,
+        ): ListenableFuture<SessionResult> {
+            if (customCommand.customAction == MediaSessionConstants.ACTION_TOGGLE_LIKE) {
+                VideoPlaybackManager.toggleLike()
+            }
+            return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+        }
     }
 
     /**
@@ -303,7 +352,16 @@ class VideoPlaybackService : MediaSessionService() {
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        promoteToForegroundWithLatestNotification()
+        if (intent?.action == ACTION_REFRESH_NOTIFICATION) {
+            // Explicit rebuild request (e.g. after VideoPlaybackManager enriched
+            // the session metadata): re-promote to keep a valid foreground state,
+            // then rebuild the notification from the session's latest metadata.
+            promoteToForegroundWithLatestNotification()
+            rebuildMediaNotification()
+            updateMediaButtonPreferences()
+        } else {
+            promoteToForegroundWithLatestNotification()
+        }
         return super.onStartCommand(intent, flags, startId)
     }
 
@@ -326,6 +384,8 @@ class VideoPlaybackService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        // Stop state collectors before tearing down the session so they can't race it.
+        scope.cancel()
         // Detach the player listener to prevent leaked callbacks after teardown.
         VideoPlaybackManager.playerOrNull()?.removeListener(playerNotificationListener)
         try {
@@ -357,29 +417,40 @@ class VideoPlaybackService : MediaSessionService() {
     }
 
     /**
-     * Sets a custom notification layout with action buttons (like), mirroring
-     * how MusicService decorates its media notification. The custom layout
-     * ensures the notification shows more than just the default transport
-     * controls — it adds app-specific actions like the like/unlike toggle.
+     * Declares which buttons the media notification displays: the transport
+     * controls plus the like/unlike toggle, mirroring how MusicService
+     * decorates its media notification. Media button preferences take
+     * precedence over the deprecated custom layout in media3, so all buttons
+     * are set in one place here; the like button's label/icon is recomputed
+     * from the current like state on every call.
      */
-    private fun updateCustomLayout() {
+    private fun updateMediaButtonPreferences() {
         val session = mediaSession ?: return
-        val isLiked = VideoPlaybackManager.uiState.value.isLiked
-        session.setCustomLayout(
-            listOf(
+        val state = VideoPlaybackManager.uiState.value
+        session.setMediaButtonPreferences(
+            ImmutableList.of(
+                CommandButton.Builder()
+                    .setPlayerCommand(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
+                    .build(),
+                CommandButton.Builder()
+                    .setPlayerCommand(Player.COMMAND_PLAY_PAUSE)
+                    .build(),
+                CommandButton.Builder()
+                    .setPlayerCommand(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
+                    .build(),
                 CommandButton.Builder()
                     .setDisplayName(
                         getString(
-                            if (isLiked) R.string.action_remove_like
+                            if (state.isLiked) R.string.action_remove_like
                             else R.string.action_like
                         ),
                     )
                     .setIconResId(
-                        if (isLiked) R.drawable.ic_heart
+                        if (state.isLiked) R.drawable.ic_heart
                         else R.drawable.ic_heart_outline
                     )
                     .setSessionCommand(CommandToggleLike)
-                    .setEnabled(VideoPlaybackManager.uiState.value.session != null)
+                    .setEnabled(state.session != null)
                     .build(),
             ),
         )
@@ -402,10 +473,29 @@ class VideoPlaybackService : MediaSessionService() {
             } else {
                 startForeground(NOTIFICATION_ID, notification)
             }
+            enteredForeground = true
         } catch (e: ForegroundServiceStartNotAllowedException) {
-            Timber.tag(TAG).w(e, "startForeground: FGS start not allowed")
+            Timber.tag(TAG).w(e, "startForeground: FGS start not allowed, retrying without type")
+            promoteForegroundFallback()
         } catch (e: Exception) {
-            Timber.tag(TAG).e(e, "startForeground: failed")
+            Timber.tag(TAG).e(e, "startForeground: failed, retrying without type")
+            promoteForegroundFallback()
+        }
+    }
+
+    /**
+     * Fallback foreground promotion without an explicit FGS type (the system
+     * then uses the manifest-declared types). If even this fails and the
+     * service never reached the foreground, it stops itself: the
+     * startForegroundService() watchdog would crash the app otherwise.
+     */
+    private fun promoteForegroundFallback() {
+        try {
+            startForeground(NOTIFICATION_ID, buildPlaceholderNotification())
+            enteredForeground = true
+        } catch (e: Exception) {
+            Timber.tag(TAG).e(e, "startForeground fallback failed")
+            if (!enteredForeground) stopSelf()
         }
     }
 
@@ -435,17 +525,19 @@ class VideoPlaybackService : MediaSessionService() {
          * VideoPlaybackManager enriches session metadata with artwork URL).
          */
         fun notifySessionChanged(context: Context) {
-            // The service is already running; triggering an onStartCommand with
-            // no special action causes onUpdateNotification to fire, which
-            // rebuilds the notification with the latest MediaMetadata.
+            // An explicit action is required: a bare startForegroundService intent
+            // only re-promotes the service with the CACHED notification, it does
+            // not rebuild it from the session's latest MediaMetadata.
             try {
                 ContextCompat.startForegroundService(
                     context.applicationContext,
-                    Intent(context.applicationContext, VideoPlaybackService::class.java),
+                    Intent(context.applicationContext, VideoPlaybackService::class.java)
+                        .setAction(ACTION_REFRESH_NOTIFICATION),
                 )
             } catch (_: Exception) { /* service may not be started */ }
         }
         private const val TAG = "VideoPlaybackService"
+        const val ACTION_REFRESH_NOTIFICATION = "com.auramusic.app.video.REFRESH_NOTIFICATION"
         const val SESSION_ID = "aura_video_playback"
         const val CHANNEL_ID = "video_channel_01"
         const val NOTIFICATION_ID = 889
