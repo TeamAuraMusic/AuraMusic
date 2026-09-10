@@ -68,6 +68,7 @@ import com.auramusic.app.utils.compactViewCount
 import com.auramusic.app.video.VideoPlaybackManager
 import com.auramusic.innertube.YouTube
 import com.auramusic.innertube.models.Thumbnail
+import com.auramusic.innertube.models.YouTubeChannelPost
 import com.auramusic.innertube.models.YouTubeVideoItem
 import com.auramusic.innertube.pages.YouTubeChannelPage
 import com.valentinilk.shimmer.shimmer
@@ -80,6 +81,7 @@ private enum class ChannelTab(val labelRes: Int) {
     Videos(R.string.channel_tab_videos),
     Shorts(R.string.channel_tab_shorts),
     Live(R.string.channel_tab_live),
+    Posts(R.string.channel_tab_posts),
     About(R.string.channel_tab_about),
 }
 
@@ -98,6 +100,8 @@ fun ChannelScreen(
     var header by remember { mutableStateOf<ChannelHeader?>(null) }
     var videos by remember(channelId) { mutableStateOf<List<YouTubeVideoItem>>(emptyList()) }
     var continuation by remember(channelId) { mutableStateOf<String?>(null) }
+    var posts by remember(channelId) { mutableStateOf<List<YouTubeChannelPost>>(emptyList()) }
+    var postsContinuation by remember(channelId) { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var isLoadingMore by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -108,11 +112,27 @@ fun ChannelScreen(
         error = null
         videos = emptyList()
         continuation = null
+        posts = emptyList()
+        postsContinuation = null
         val params = when (tab) {
             ChannelTab.Videos -> YouTubeChannelPage.VIDEOS_PARAMS
             ChannelTab.Shorts -> YouTubeChannelPage.SHORTS_PARAMS
             ChannelTab.Live -> YouTubeChannelPage.LIVE_PARAMS
+            ChannelTab.Posts -> null
             ChannelTab.About -> null
+        }
+        if (tab == ChannelTab.Posts) {
+            val page = withContext(Dispatchers.IO) {
+                YouTube.youtubeChannelPosts(channelId).getOrNull()
+            }
+            if (page != null) {
+                posts = page.posts
+                postsContinuation = page.continuation
+            } else {
+                error = context.getString(R.string.videos_feed_error)
+            }
+            isLoading = false
+            return
         }
         val result = withContext(Dispatchers.IO) {
             YouTube.youtubeChannel(channelId, params).getOrNull()
@@ -137,8 +157,26 @@ fun ChannelScreen(
 
     suspend fun loadMore() {
         if (isLoadingMore || isLoading || selectedTab == ChannelTab.About.ordinal) return
-        val cont = continuation ?: return
         isLoadingMore = true
+        if (selectedTab == ChannelTab.Posts.ordinal) {
+            val cont = postsContinuation
+            if (cont != null) {
+                val page = withContext(Dispatchers.IO) {
+                    YouTube.youtubeChannelPosts(channelId, cont).getOrNull()
+                }
+                page?.let {
+                    val existing = posts.map { it.postId }.toSet()
+                    posts = posts + it.posts.filter { p -> p.postId !in existing }
+                    postsContinuation = it.continuation
+                }
+            }
+            isLoadingMore = false
+            return
+        }
+        val cont = continuation ?: run {
+            isLoadingMore = false
+            return
+        }
         val result = withContext(Dispatchers.IO) {
             YouTube.youtubeChannelContinuation(channelId, cont).getOrNull()
         }
@@ -197,6 +235,60 @@ fun ChannelScreen(
                     span = { GridItemSpan(maxLineSpan) },
                 ) {
                     ChannelAboutSection(header = header)
+                }
+            }
+            ChannelTab.Posts -> {
+                if (isLoading && posts.isEmpty()) {
+                    item(
+                        key = "posts_loading",
+                        span = { GridItemSpan(maxLineSpan) },
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.size(28.dp))
+                        }
+                    }
+                } else if (error != null && posts.isEmpty()) {
+                    item(
+                        key = "posts_error",
+                        span = { GridItemSpan(maxLineSpan) },
+                    ) {
+                        ChannelErrorState(message = error.orEmpty())
+                    }
+                } else if (posts.isEmpty()) {
+                    item(
+                        key = "posts_empty",
+                        span = { GridItemSpan(maxLineSpan) },
+                    ) {
+                        ChannelErrorState(message = stringResource(R.string.no_posts_found))
+                    }
+                } else {
+                    items(
+                        count = posts.size,
+                        key = { "post_${posts[it].postId}" },
+                        span = { GridItemSpan(maxLineSpan) },
+                    ) { index ->
+                        ChannelPostCard(post = posts[index])
+                    }
+                    if (isLoadingMore) {
+                        item(
+                            key = "posts_loading_more",
+                            span = { GridItemSpan(maxLineSpan) },
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.size(28.dp))
+                            }
+                        }
+                    }
                 }
             }
             else -> {
@@ -658,6 +750,85 @@ private fun ChannelShortsCard(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(horizontal = 2.dp),
         )
+    }
+}
+
+@Composable
+private fun ChannelPostCard(post: YouTubeChannelPost) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            AsyncImage(
+                model = post.authorThumbnail,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop,
+            )
+            Spacer(Modifier.width(10.dp))
+            Column {
+                Text(
+                    text = post.authorName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                post.publishedTimeText?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+        if (post.contentText.isNotBlank()) {
+            Text(
+                text = post.contentText,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(top = 10.dp),
+            )
+        }
+        if (post.imageUrls.isNotEmpty()) {
+            Spacer(Modifier.height(10.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                post.imageUrls.forEach { url ->
+                    AsyncImage(
+                        model = url,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp)),
+                        contentScale = ContentScale.FillWidth,
+                    )
+                }
+            }
+        }
+        if (post.voteCountText != null) {
+            Row(
+                modifier = Modifier.padding(top = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_thumb_up),
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = post.voteCountText.orEmpty(),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }
 

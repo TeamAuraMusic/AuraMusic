@@ -35,6 +35,7 @@ import com.auramusic.innertube.models.response.YoutubeCommentResponse
 import com.auramusic.innertube.models.response.relatedContinuation
 import com.auramusic.innertube.models.response.relatedVideos
 import com.auramusic.innertube.pages.YouTubeChannelPage
+import com.auramusic.innertube.pages.YouTubeChannelPostsPage
 import com.auramusic.innertube.pages.YouTubeSearchPage
 import com.auramusic.innertube.pages.YouTubeSearchResult
 import com.auramusic.innertube.models.YouTubeLocale
@@ -1266,6 +1267,26 @@ object YouTube {
     ): Result<YouTubeChannelPage> = runCatching {
         val response = innerTube.browseYouTube(WEB, browseId = channelId, continuation = continuation)
         YouTubeChannelPage.fromJson(channelId, Json.parseToJsonElement(response.bodyAsText()))
+    }
+
+    /**
+     * A channel's community posts; request a new page by passing the continuation
+     * returned by the previous page.
+     */
+    suspend fun youtubeChannelPosts(
+        channelId: String,
+        continuation: String? = null,
+    ): Result<YouTubeChannelPostsPage> = runCatching {
+        val response = if (continuation == null) {
+            innerTube.browseYouTube(
+                WEB,
+                browseId = channelId,
+                params = YouTubeChannelPostsPage.POSTS_PARAMS,
+            )
+        } else {
+            innerTube.browseYouTube(WEB, browseId = null, continuation = continuation)
+        }
+        YouTubeChannelPostsPage.fromJson(Json.parseToJsonElement(response.bodyAsText()))
     }
 
     suspend fun next(endpoint: WatchEndpoint, continuation: String? = null): Result<NextResult> = runCatching {
