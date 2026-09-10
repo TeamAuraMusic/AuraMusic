@@ -109,6 +109,17 @@
     <string name="filter_albums">Albums</string>
     <string name="filter_artists">Artists</string>
     <string name="filter_playlists">Playlists</string>
+    <string name="search_filter_any_time">Any time</string>
+    <string name="search_filter_any_duration">Any duration</string>
+    <string name="search_sort_relevance">Relevance</string>
+    <string name="search_sort_rating">Rating</string>
+    <string name="search_sort_upload_date">Upload date</string>
+    <string name="search_sort_view_count">View count</string>
+    <string name="search_duration_under_4_minutes">Under 4 minutes</string>
+    <string name="search_duration_4_to_20_minutes">4–20 minutes</string>
+    <string name="search_duration_over_20_minutes">Over 20 minutes</string>
+    <string name="search_time_this_month">This month</string>
+    <string name="search_time_this_year">This year</string>
     <string name="audiobooks">Audiobooks</string>
     <string name="audiobooks_desc">Long library tracks appear here automatically. Pin anything you want to keep as an audiobook.</string>
     <string name="no_audiobooks_found">No audiobooks yet. Add long tracks to your library or pin a track as an audiobook.</string>

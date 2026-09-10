@@ -38,6 +38,7 @@ import com.auramusic.innertube.pages.YouTubeChannelPage
 import com.auramusic.innertube.pages.YouTubeSearchPage
 import com.auramusic.innertube.pages.YouTubeSearchResult
 import com.auramusic.innertube.models.YouTubeLocale
+import kotlin.io.encoding.Base64
 import com.auramusic.innertube.models.getContinuation
 import com.auramusic.innertube.models.getItems
 import com.auramusic.innertube.models.oddElements
@@ -104,7 +105,36 @@ object YouTube {
     const val SEARCH_FILTER_VIDEOS = "EgIQAQ%3D%3D"
     const val SEARCH_FILTER_CHANNELS = "EgIQAg%3D%3D"
     const val SEARCH_FILTER_PLAYLISTS = "EgIQAw%3D%3D"
+    const val SEARCH_DURATION_UNDER_4_MINUTES = "EgQQARgB"
+    const val SEARCH_DURATION_4_TO_20_MINUTES = "EgQQARgC"
+    const val SEARCH_DURATION_OVER_20_MINUTES = "EgQQARgD"
+    const val SEARCH_TIME_TODAY = "EgIIBA%3D%3D"
+    const val SEARCH_TIME_THIS_WEEK = "EgQIAhAB"
+    const val SEARCH_TIME_THIS_MONTH = "EgQIAhAC"
+    const val SEARCH_TIME_THIS_YEAR = "EgQIAhAD"
+    const val SEARCH_SORT_BY_RATING = "CAE%3D"
+    const val SEARCH_SORT_BY_DATE = "CAI%3D"
+    const val SEARCH_SORT_BY_VIEW_COUNT = "CAM%3D"
     private const val VIDEOS_SP_PARAM = SEARCH_FILTER_VIDEOS
+
+    /**
+     * Combines WEB search filters by concatenating the protobuf from each `sp` param and
+     * re-encoding as base64, the same way YouTube stacks Duration / Anytime / Sort filters.
+     * Returns null when nothing is selected, falling back to the unfiltered search.
+     */
+    fun combineSearchParams(vararg parts: String?): String? {
+        val decoded = parts.filterNotNull().map { part ->
+            Base64.Default.decode(part.replace("%3D", "="))
+        }
+        if (decoded.isEmpty()) return null
+        val combined = ByteArray(decoded.sumOf { it.size })
+        var offset = 0
+        decoded.forEach { bytes ->
+            bytes.copyInto(combined, offset)
+            offset += bytes.size
+        }
+        return Base64.Default.encode(combined)
+    }
 
     var locale: YouTubeLocale
         get() = innerTube.locale

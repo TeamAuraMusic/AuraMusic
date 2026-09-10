@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -34,6 +35,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -96,6 +99,28 @@ private enum class SearchFilter(val labelRes: Int, val iconRes: Int, val spParam
     Playlists(R.string.playlists, R.drawable.playlist_play, YouTube.SEARCH_FILTER_PLAYLISTS),
 }
 
+private enum class SearchDuration(val labelRes: Int, val spParams: String?) {
+    AnyDuration(R.string.search_filter_any_duration, null),
+    Under4Minutes(R.string.search_duration_under_4_minutes, YouTube.SEARCH_DURATION_UNDER_4_MINUTES),
+    Between4And20Minutes(R.string.search_duration_4_to_20_minutes, YouTube.SEARCH_DURATION_4_TO_20_MINUTES),
+    Over20Minutes(R.string.search_duration_over_20_minutes, YouTube.SEARCH_DURATION_OVER_20_MINUTES),
+}
+
+private enum class SearchTimeFrame(val labelRes: Int, val spParams: String?) {
+    AnyTime(R.string.search_filter_any_time, null),
+    Today(R.string.today, YouTube.SEARCH_TIME_TODAY),
+    ThisWeek(R.string.this_week, YouTube.SEARCH_TIME_THIS_WEEK),
+    ThisMonth(R.string.search_time_this_month, YouTube.SEARCH_TIME_THIS_MONTH),
+    ThisYear(R.string.search_time_this_year, YouTube.SEARCH_TIME_THIS_YEAR),
+}
+
+private enum class SearchSortBy(val labelRes: Int, val spParams: String?) {
+    Relevance(R.string.search_sort_relevance, null),
+    Rating(R.string.search_sort_rating, YouTube.SEARCH_SORT_BY_RATING),
+    UploadDate(R.string.search_sort_upload_date, YouTube.SEARCH_SORT_BY_DATE),
+    ViewCount(R.string.search_sort_view_count, YouTube.SEARCH_SORT_BY_VIEW_COUNT),
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VideoSearchScreen(
@@ -121,6 +146,9 @@ fun VideoSearchScreen(
     var error by remember { mutableStateOf<String?>(null) }
     var hasSearched by remember { mutableStateOf(initialQuery.isNotEmpty()) }
     var activeFilter by remember { mutableStateOf(SearchFilter.All) }
+    var activeDuration by remember { mutableStateOf(SearchDuration.AnyDuration) }
+    var activeTimeFrame by remember { mutableStateOf(SearchTimeFrame.AnyTime) }
+    var activeSort by remember { mutableStateOf(SearchSortBy.Relevance) }
 
     suspend fun performSearch(searchQuery: String) {
         if (searchQuery.isEmpty()) return
@@ -128,7 +156,12 @@ fun VideoSearchScreen(
         isLoadingMore = false
         error = null
         suggestions = emptyList()
-        val params = activeFilter.spParams
+        val params = YouTube.combineSearchParams(
+            activeFilter.spParams,
+            activeDuration.spParams,
+            activeTimeFrame.spParams,
+            activeSort.spParams,
+        )
         withContext(Dispatchers.IO) {
             YouTube.youtubeSearch(searchQuery, params = params).fold(
                 onSuccess = { result ->
@@ -211,6 +244,9 @@ fun VideoSearchScreen(
                                 continuation = null
                                 error = null
                                 activeFilter = SearchFilter.All
+                                activeDuration = SearchDuration.AnyDuration
+                                activeTimeFrame = SearchTimeFrame.AnyTime
+                                activeSort = SearchSortBy.Relevance
                             }
                         },
                         onClear = {
@@ -219,6 +255,10 @@ fun VideoSearchScreen(
                             allResults = emptyList()
                             continuation = null
                             error = null
+                            activeFilter = SearchFilter.All
+                            activeDuration = SearchDuration.AnyDuration
+                            activeTimeFrame = SearchTimeFrame.AnyTime
+                            activeSort = SearchSortBy.Relevance
                             focusRequester.requestFocus()
                         },
                         onSubmit = {
@@ -254,11 +294,39 @@ fun VideoSearchScreen(
         ) {
             if (hasSearched) {
                 SearchFilterBar(
-                    active = activeFilter,
+                    activeFilter = activeFilter,
+                    activeDuration = activeDuration,
+                    activeTimeFrame = activeTimeFrame,
+                    activeSort = activeSort,
                     enabled = query.isNotEmpty(),
                     onSelect = { selected ->
-                        if (selected == activeFilter) return@SearchFilterBar
+                        if (selected == activeFilter &&
+                            activeDuration == SearchDuration.AnyDuration &&
+                            activeTimeFrame == SearchTimeFrame.AnyTime &&
+                            activeSort == SearchSortBy.Relevance
+                        ) return@SearchFilterBar
                         activeFilter = selected
+                        if (hasSearched && query.isNotBlank()) {
+                            coroutineScope.launch { performSearch(query) }
+                        }
+                    },
+                    onDurationSelect = { selected ->
+                        if (selected == activeDuration) return@SearchFilterBar
+                        activeDuration = selected
+                        if (hasSearched && query.isNotBlank()) {
+                            coroutineScope.launch { performSearch(query) }
+                        }
+                    },
+                    onTimeFrameSelect = { selected ->
+                        if (selected == activeTimeFrame) return@SearchFilterBar
+                        activeTimeFrame = selected
+                        if (hasSearched && query.isNotBlank()) {
+                            coroutineScope.launch { performSearch(query) }
+                        }
+                    },
+                    onSortSelect = { selected ->
+                        if (selected == activeSort) return@SearchFilterBar
+                        activeSort = selected
                         if (hasSearched && query.isNotBlank()) {
                             coroutineScope.launch { performSearch(query) }
                         }
@@ -473,9 +541,15 @@ private fun SearchField(
 
 @Composable
 private fun SearchFilterBar(
-    active: SearchFilter,
+    activeFilter: SearchFilter,
+    activeDuration: SearchDuration,
+    activeTimeFrame: SearchTimeFrame,
+    activeSort: SearchSortBy,
     enabled: Boolean,
     onSelect: (SearchFilter) -> Unit,
+    onDurationSelect: (SearchDuration) -> Unit,
+    onTimeFrameSelect: (SearchTimeFrame) -> Unit,
+    onSortSelect: (SearchSortBy) -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -484,39 +558,169 @@ private fun SearchFilterBar(
             .padding(horizontal = 12.dp, vertical = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        SearchFilter.entries.forEach { filter ->
-            val isSelected = filter == active
-            Surface(
-                onClick = { onSelect(filter) },
-                enabled = enabled,
-                shape = RoundedCornerShape(18.dp),
-                color = if (isSelected) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.surfaceContainerHigh,
-                modifier = Modifier.height(34.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(5.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(filter.iconRes),
-                        contentDescription = null,
-                        modifier = Modifier.size(15.dp),
-                        tint = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = stringResource(filter.labelRes),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                        else MaterialTheme.colorScheme.onSurface
-                    )
-                }
+        FilterDropdown(
+            label = stringResource(activeFilter.labelRes),
+            selected = activeFilter != SearchFilter.All,
+            enabled = enabled,
+        ) {
+            SearchFilter.entries.forEach { filter ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(filter.labelRes)) },
+                    leadingIcon = {
+                        Icon(
+                            painter = painterResource(filter.iconRes),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    },
+                    trailingIcon = {
+                        if (filter == activeFilter) {
+                            Icon(
+                                painter = painterResource(R.drawable.radio_button_checked),
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                    },
+                    onClick = {
+                        onSelect(filter)
+                        it.dismiss()
+                    },
+                )
+            }
+        }
+        FilterDropdown(
+            label = stringResource(activeTimeFrame.labelRes),
+            selected = activeTimeFrame != SearchTimeFrame.AnyTime,
+            enabled = enabled,
+        ) {
+            SearchTimeFrame.entries.forEach { time ->
+                val label = stringResource(time.labelRes)
+                DropdownMenuItem(
+                    text = { Text(label) },
+                    trailingIcon = {
+                        if (time == activeTimeFrame) {
+                            Icon(
+                                painter = painterResource(R.drawable.radio_button_checked),
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                    },
+                    onClick = {
+                        onTimeFrameSelect(time)
+                        it.dismiss()
+                    },
+                )
+            }
+        }
+        FilterDropdown(
+            label = stringResource(activeDuration.labelRes),
+            selected = activeDuration != SearchDuration.AnyDuration,
+            enabled = enabled,
+        ) {
+            SearchDuration.entries.forEach { duration ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(duration.labelRes)) },
+                    trailingIcon = {
+                        if (duration == activeDuration) {
+                            Icon(
+                                painter = painterResource(R.drawable.radio_button_checked),
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                    },
+                    onClick = {
+                        onDurationSelect(duration)
+                        it.dismiss()
+                    },
+                )
+            }
+        }
+        FilterDropdown(
+            label = stringResource(activeSort.labelRes),
+            selected = activeSort != SearchSortBy.Relevance,
+            enabled = enabled,
+        ) {
+            SearchSortBy.entries.forEach { sort ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(sort.labelRes)) },
+                    trailingIcon = {
+                        if (sort == activeSort) {
+                            Icon(
+                                painter = painterResource(R.drawable.radio_button_checked),
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                    },
+                    onClick = {
+                        onSortSelect(sort)
+                        it.dismiss()
+                    },
+                )
             }
         }
     }
+}
+
+@Composable
+private fun FilterDropdown(
+    label: String,
+    selected: Boolean,
+    enabled: Boolean,
+    content: @Composable (DropdownMenuState) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Surface(
+        onClick = { if (enabled) expanded = true },
+        enabled = enabled,
+        shape = RoundedCornerShape(18.dp),
+        color = if (selected) MaterialTheme.colorScheme.primary
+        else MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = Modifier.height(34.dp)
+    ) {
+        Box(
+            modifier = Modifier.padding(horizontal = 12.dp),
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (selected) MaterialTheme.colorScheme.onPrimary
+                    else MaterialTheme.colorScheme.onSurface
+                )
+                Icon(
+                    painter = painterResource(R.drawable.expand_more),
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = if (selected) MaterialTheme.colorScheme.onPrimary
+                    else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = { expanded = false },
+        modifier = Modifier.widthIn(min = 160.dp)
+    ) {
+        content(object : DropdownMenuState {
+            override fun dismiss() {
+                expanded = false
+            }
+        })
+    }
+}
+
+private interface DropdownMenuState {
+    fun dismiss()
 }
 
 private fun filterResults(
