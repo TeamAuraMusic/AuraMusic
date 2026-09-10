@@ -68,22 +68,22 @@ class VideoPlaybackService : MediaSessionService() {
      */
     private val playerNotificationListener = object : Player.Listener {
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-            triggerNotificationUpdate()
+            rebuildMediaNotification()
             updateCustomLayout()
         }
 
         override fun onPlaybackStateChanged(playbackState: Int) {
             if (playbackState == Player.STATE_READY || playbackState == Player.STATE_ENDED) {
-                triggerNotificationUpdate()
+                rebuildMediaNotification()
             }
         }
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
-            triggerNotificationUpdate()
+            rebuildMediaNotification()
         }
 
         override fun onPlayerError(error: PlaybackException) {
-            triggerNotificationUpdate()
+            rebuildMediaNotification()
         }
     }
 
@@ -342,13 +342,17 @@ class VideoPlaybackService : MediaSessionService() {
      * The DefaultMediaNotificationProvider reads the session's current
      * MediaMetadata (title, artist, artwork) and renders a full MediaStyle
      * notification with artwork, transport controls, and custom buttons.
+     *
+     * Named differently from MediaSessionService#triggerNotificationUpdate
+     * to avoid hiding the framework member (which would otherwise require
+     * an override and replace the service's internal update path).
      */
-    private fun triggerNotificationUpdate() {
+    private fun rebuildMediaNotification() {
         val session = mediaSession ?: return
         try {
             onUpdateNotification(session, true)
         } catch (e: Exception) {
-            Timber.tag(TAG).w(e, "triggerNotificationUpdate failed")
+            Timber.tag(TAG).w(e, "rebuildMediaNotification failed")
         }
     }
 
