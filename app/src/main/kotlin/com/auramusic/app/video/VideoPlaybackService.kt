@@ -438,8 +438,10 @@ class VideoPlaybackService : MediaSessionService() {
                 CommandButton.Builder()
                     .setPlayerCommand(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
                     .build(),
-                CommandButton.Builder()
-                    .setName(CommandToggleLike.customAction)
+                CommandButton.Builder(
+                    if (state.isLiked) CommandButton.ICON_HEART_FILLED
+                    else CommandButton.ICON_HEART_UNFILLED,
+                )
                     .setDisplayName(
                         getString(
                             if (state.isLiked) R.string.action_remove_like
