@@ -41,7 +41,15 @@ class VideoPlaybackService : MediaSessionService() {
 
     override fun onCreate() {
         super.onCreate()
+        try {
+            configureService()
+        } catch (e: Exception) {
+            Timber.tag(TAG).e(e, "VideoPlaybackService.onCreate failed")
+            stopSelf()
+        }
+    }
 
+    private fun configureService() {
         val exo = VideoPlaybackManager.playerOrNull()
         if (exo == null) {
             stopSelf()
@@ -130,6 +138,11 @@ class VideoPlaybackService : MediaSessionService() {
                     )
             },
         )
+
+        // Surface a notification immediately (even before media3 renders the media
+        // controls on the first playable frame) so the video always appears in the
+        // notification panel, exactly like the music player does.
+        promoteToForegroundWithLatestNotification()
     }
 
     private fun buildSession(exo: ExoPlayer, sessionId: String): MediaSession =

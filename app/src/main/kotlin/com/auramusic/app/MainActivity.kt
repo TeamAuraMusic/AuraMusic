@@ -94,6 +94,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.window.Dialog
@@ -767,7 +768,8 @@ class MainActivity : ComponentActivity() {
                     expandedBound = maxHeight,
                 )
 
-                val videoMiniVisible = VideoPlaybackManager.uiState.collectAsState().value.minimized
+                val videoPlaybackState by VideoPlaybackManager.uiState.collectAsState()
+                val videoMiniVisible = videoPlaybackState.minimized
 
                 val playerAwareWindowInsets = remember(
                     bottomInset,
@@ -872,6 +874,18 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                // When a video starts, the music miniplayer must exit so the video
+                // miniplayer can take its place at the bottom of the screen. Pause the
+                // music player too so both states don't keep producing audio at once.
+                LaunchedEffect(videoPlaybackState.session) {
+                    if (videoPlaybackState.session != null) {
+                        playerConnection?.player?.pause()
+                        if (!playerBottomSheetState.isDismissed) {
+                            playerBottomSheetState.dismiss()
+                        }
+                    }
+                }
+
                 var shouldShowTopBar by rememberSaveable { mutableStateOf(false) }
 
                 LaunchedEffect(navBackStackEntry) {
@@ -924,6 +938,8 @@ class MainActivity : ComponentActivity() {
                     LocalContentColor provides if (pureBlack) Color.White else contentColorFor(MaterialTheme.colorScheme.surface),
                     LocalPlayerConnection provides playerConnection,
                     LocalPlayerAwareWindowInsets provides playerAwareWindowInsets,
+                    LocalVideoMiniPlayerBottomPadding provides
+                        (bottomInset + navPadding + MiniPlayerBottomSpacing),
                     LocalDownloadUtil provides downloadUtil,
                     LocalShimmerTheme provides ShimmerTheme,
                     LocalSyncUtils provides syncUtils,
@@ -1468,6 +1484,7 @@ class MainActivity : ComponentActivity() {
 val LocalDatabase = staticCompositionLocalOf<MusicDatabase> { error("No database provided") }
 val LocalPlayerConnection = staticCompositionLocalOf<PlayerConnection?> { error("No PlayerConnection provided") }
 val LocalPlayerAwareWindowInsets = compositionLocalOf<WindowInsets> { error("No WindowInsets provided") }
+val LocalVideoMiniPlayerBottomPadding = compositionLocalOf<Dp> { 0.dp }
 val LocalDownloadUtil = staticCompositionLocalOf<DownloadUtil> { error("No DownloadUtil provided") }
 val LocalSyncUtils = staticCompositionLocalOf<SyncUtils> { error("No SyncUtils provided") }
 val LocalListenTogetherManager = staticCompositionLocalOf<com.auramusic.app.listentogether.ListenTogetherManager?> { null }

@@ -35,7 +35,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -99,9 +98,8 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import coil3.compose.AsyncImage
-import com.auramusic.app.LocalPlayerAwareWindowInsets
+import com.auramusic.app.LocalVideoMiniPlayerBottomPadding
 import com.auramusic.app.R
-import com.auramusic.app.constants.MiniPlayerBottomSpacing
 import com.auramusic.app.video.VideoPlaybackManager.CommentItem
 import com.auramusic.app.video.VideoPlaybackManager.RecommendationItem
 import kotlinx.coroutines.delay
@@ -171,7 +169,6 @@ private fun VideoMinimizedTile(
     onClose: () -> Unit,
 ) {
     val state by VideoPlaybackManager.uiState.collectAsState()
-    val insets = LocalPlayerAwareWindowInsets.current.asPaddingValues()
     val density = LocalDensity.current
 
     var dragPx by remember { mutableFloatStateOf(0f) }
@@ -194,7 +191,7 @@ private fun VideoMinimizedTile(
                     alpha = 1f - 0.45f * dismissProgress
                 }
                 .padding(horizontal = 10.dp)
-                .padding(bottom = insets.calculateBottomPadding() + MiniPlayerBottomSpacing)
+                .padding(bottom = LocalVideoMiniPlayerBottomPadding.current)
                 .fillMaxWidth()
                 .height(128.dp)
                 .shadow(24.dp, RoundedCornerShape(26.dp)),
