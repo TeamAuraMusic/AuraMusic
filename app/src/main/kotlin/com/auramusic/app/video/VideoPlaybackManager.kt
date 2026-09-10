@@ -281,6 +281,11 @@ object VideoPlaybackManager {
             exo.setMediaSource(mediaSource)
             exo.prepare()
             exo.play()
+            // Force the video service notification to rebuild immediately with
+            // the media metadata (title, artist, artwork) so the MediaStyle
+            // notification shows full artwork + transport controls instead of
+            // the initial text-only placeholder.
+            VideoPlaybackService.notifySessionChanged(context.applicationContext)
         }
         scope.launch {
             // Enrich metadata (fills gaps for views/description/channel avatar), then load content.
@@ -318,6 +323,11 @@ object VideoPlaybackManager {
                 ),
             )
         }
+        // Notify the service that session metadata has been enriched (artwork URL,
+        // channel name etc.) so the media notification is rebuilt with the updated
+        // title, artist, and artwork — the same metadata that the MediaControlsPlayer
+        // surfaces via getMediaMetadata().
+        currentContext?.let { VideoPlaybackService.notifySessionChanged(it) }
     }
 
     private suspend fun loadRecommendations(videoId: String) {

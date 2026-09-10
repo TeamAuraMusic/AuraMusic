@@ -22,6 +22,7 @@ import androidx.core.content.ContextCompat
 import androidx.annotation.OptIn
 import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.CommandButton
@@ -29,11 +30,14 @@ import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaController
 import androidx.media3.session.MediaNotification
 import androidx.media3.session.MediaSession
+import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSessionService
 import androidx.media3.session.SessionToken
 import com.auramusic.app.MainActivity
 import com.auramusic.app.R
+import com.auramusic.app.constants.MediaSessionConstants
+import com.auramusic.app.constants.MediaSessionConstants.CommandToggleLike
 import com.auramusic.app.utils.CoilBitmapLoader
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.MoreExecutors
@@ -54,6 +58,35 @@ class VideoPlaybackService : MediaSessionService() {
     private var latestMediaNotification: Notification? = null
     private var scope = CoroutineScope(Dispatchers.Main + Job())
 
+    /**
+     * Listener attached to the underlying ExoPlayer that explicitly triggers
+     * notification rebuilds whenever the media item changes or playback state
+     * shifts. Without this, MediaSessionService's auto-update path can miss
+     * state transitions through the ForwardingPlayer wrapper, leaving the
+     * notification stuck on the initial placeholder (title/artist only, no
+     * artwork or transport controls).
+     */
+    private val playerNotificationListener = object : Player.Listener {
+        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+            triggerNotificationUpdate()
+            updateCustomLayout()
+        }
+
+        override fun onPlaybackStateChanged(playbackState: Int) {
+            if (playbackState == Player.STATE_READY || playbackState == Player.STATE_ENDED) {
+                triggerNotificationUpdate()
+            }
+        }
+
+        override fun onIsPlayingChanged(isPlaying: Boolean) {
+            triggerNotificationUpdate()
+        }
+
+        override fun onPlayerError(error: PlaybackException) {
+            triggerNotificationUpdate()
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         try {
@@ -70,6 +103,11 @@ class VideoPlaybackService : MediaSessionService() {
             stopSelf()
             return
         }
+
+        // Attach a listener that forces notification rebuilds on every meaningful
+        // player state change. This is the critical link that makes the media
+        // notification show artwork + transport controls instead of just text.
+        exo.addListener(playerNotificationListener)
 
         setListener(
             object : MediaSessionService.Listener {
@@ -168,10 +206,14 @@ class VideoPlaybackService : MediaSessionService() {
         // controls on the first playable frame) so the video always appears in the
         // notification panel, exactly like the music player does.
         promoteToForegroundWithLatestNotification()
+
+        // Seed the custom layout (like button etc.) so the notification renders
+        // custom action buttons from the very first frame.
+        updateCustomLayout()
     }
 
-    private fun buildSession(exo: ExoPlayer, sessionId: String): MediaSession =
-        MediaSession.Builder(this, MediaControlsPlayer(exo))
+    private fun buildSession(exo: ExoPlayer, sessionId: String): MediaSession {
+        val session = MediaSession.Builder(this, MediaControlsPlayer(exo))
             .setId(sessionId)
             .setBitmapLoader(CoilBitmapLoader(this, scope))
             .setSessionActivity(
@@ -183,6 +225,26 @@ class VideoPlaybackService : MediaSessionService() {
                 )
             )
             .build()
+
+        // Declare which transport actions the notification should display.
+        // Without this, the notification may only show a subset of controls
+        // or fall back to a text-only layout on some Android versions.
+        session.setMediaButtonPreferences(
+            ImmutableList.of(
+                CommandButton.Builder()
+                    .setPlayerCommand(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
+                    .build(),
+                CommandButton.Builder()
+                    .setPlayerCommand(Player.COMMAND_PLAY_PAUSE)
+                    .build(),
+                CommandButton.Builder()
+                    .setPlayerCommand(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
+                    .build(),
+            ),
+        )
+
+        return session
+    }
 
     /**
      * Exposes seek-to-next/previous in the MediaSession so the media notification
@@ -264,6 +326,8 @@ class VideoPlaybackService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        // Detach the player listener to prevent leaked callbacks after teardown.
+        VideoPlaybackManager.playerOrNull()?.removeListener(playerNotificationListener)
         try {
             mediaSession?.release()
         } catch (e: Exception) {
@@ -271,6 +335,50 @@ class VideoPlaybackService : MediaSessionService() {
         }
         mediaSession = null
         super.onDestroy()
+    }
+
+    /**
+     * Explicitly triggers a notification rebuild via the MediaSessionService.
+     * The DefaultMediaNotificationProvider reads the session's current
+     * MediaMetadata (title, artist, artwork) and renders a full MediaStyle
+     * notification with artwork, transport controls, and custom buttons.
+     */
+    private fun triggerNotificationUpdate() {
+        val session = mediaSession ?: return
+        try {
+            onUpdateNotification(session, true)
+        } catch (e: Exception) {
+            Timber.tag(TAG).w(e, "triggerNotificationUpdate failed")
+        }
+    }
+
+    /**
+     * Sets a custom notification layout with action buttons (like), mirroring
+     * how MusicService decorates its media notification. The custom layout
+     * ensures the notification shows more than just the default transport
+     * controls — it adds app-specific actions like the like/unlike toggle.
+     */
+    private fun updateCustomLayout() {
+        val session = mediaSession ?: return
+        val isLiked = VideoPlaybackManager.uiState.value.isLiked
+        session.setCustomLayout(
+            listOf(
+                CommandButton.Builder()
+                    .setDisplayName(
+                        getString(
+                            if (isLiked) R.string.action_remove_like
+                            else R.string.action_like
+                        ),
+                    )
+                    .setIconResId(
+                        if (isLiked) R.drawable.ic_heart
+                        else R.drawable.ic_heart_outline
+                    )
+                    .setSessionCommand(CommandToggleLike)
+                    .setEnabled(VideoPlaybackManager.uiState.value.session != null)
+                    .build(),
+            ),
+        )
     }
 
     private fun handleForegroundServiceStartNotAllowed(error: Throwable?) {
@@ -318,6 +426,21 @@ class VideoPlaybackService : MediaSessionService() {
     }
 
     companion object {
+        /**
+         * Force a full notification rebuild from outside the service (e.g. after
+         * VideoPlaybackManager enriches session metadata with artwork URL).
+         */
+        fun notifySessionChanged(context: Context) {
+            // The service is already running; triggering an onStartCommand with
+            // no special action causes onUpdateNotification to fire, which
+            // rebuilds the notification with the latest MediaMetadata.
+            try {
+                ContextCompat.startForegroundService(
+                    context.applicationContext,
+                    Intent(context.applicationContext, VideoPlaybackService::class.java),
+                )
+            } catch (_: Exception) { /* service may not be started */ }
+        }
         private const val TAG = "VideoPlaybackService"
         const val SESSION_ID = "aura_video_playback"
         const val CHANNEL_ID = "video_channel_01"
