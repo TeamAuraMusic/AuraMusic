@@ -429,13 +429,18 @@ class VideoPlaybackService : MediaSessionService() {
         val state = VideoPlaybackManager.uiState.value
         session.setMediaButtonPreferences(
             ImmutableList.of(
-                CommandButton.Builder()
+                CommandButton.Builder(CommandButton.ICON_PREVIOUS)
+                    .setDisplayName(getString(R.string.previous))
                     .setPlayerCommand(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
                     .build(),
-                CommandButton.Builder()
+                CommandButton.Builder(
+                    if (state.playWhenReady) CommandButton.ICON_PAUSE else CommandButton.ICON_PLAY
+                )
+                    .setDisplayName(getString(if (state.playWhenReady) R.string.pause else R.string.play))
                     .setPlayerCommand(Player.COMMAND_PLAY_PAUSE)
                     .build(),
-                CommandButton.Builder()
+                CommandButton.Builder(CommandButton.ICON_NEXT)
+                    .setDisplayName(getString(R.string.next))
                     .setPlayerCommand(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
                     .build(),
                 CommandButton.Builder(
