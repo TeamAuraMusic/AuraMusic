@@ -85,12 +85,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.compose.LocalNavHostController
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -415,7 +412,7 @@ private fun VideoExpandedPlayer(
                         .weight(0.38f)
                         .fillMaxHeight()
                         .background(MaterialTheme.colorScheme.surface),
-                    onChannelClick = onChannelClick ?: { _, _ -> },
+                    onChannelClick = onChannelClick ?: {},
                 )
             }
         } else {
@@ -441,7 +438,7 @@ private fun VideoExpandedPlayer(
                         .fillMaxWidth()
                         .weight(1f)
                         .background(MaterialTheme.colorScheme.surface),
-                    onChannelClick = onChannelClick ?: { _, _ -> },
+                    onChannelClick = onChannelClick ?: {},
                 )
             }
         }
@@ -602,12 +599,12 @@ private fun VideoSurfaceWithControls(
 private fun PlayerTopBar(
     onCollapse: () -> Unit,
     onClose: () -> Unit,
+    onChannelClick: ((String) -> Unit)?,
     title: String,
     channelName: String,
     channelId: String? = null,
     modifier: Modifier = Modifier,
 ) {
-    val navController = LocalNavHostController.current ?: rememberNavController()
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
@@ -658,7 +655,7 @@ private fun PlayerTopBar(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier
                         .clickable {
-                            channelId?.let { navController.navigate("youtube_channel/$it") }
+                            channelId?.let { onChannelClick?.invoke(it) }
                         }
                 )
             }
