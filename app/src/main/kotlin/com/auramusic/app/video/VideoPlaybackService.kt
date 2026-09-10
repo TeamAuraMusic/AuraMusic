@@ -434,9 +434,9 @@ class VideoPlaybackService : MediaSessionService() {
                     .setPlayerCommand(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
                     .build(),
                 CommandButton.Builder(
-                    if (state.playWhenReady) CommandButton.ICON_PAUSE else CommandButton.ICON_PLAY
+                    if (state.isPlaying) CommandButton.ICON_PAUSE else CommandButton.ICON_PLAY
                 )
-                    .setDisplayName(getString(if (state.playWhenReady) R.string.pause else R.string.play))
+                    .setDisplayName(getString(if (state.isPlaying) R.string.pause else R.string.play))
                     .setPlayerCommand(Player.COMMAND_PLAY_PAUSE)
                     .build(),
                 CommandButton.Builder(CommandButton.ICON_NEXT)
