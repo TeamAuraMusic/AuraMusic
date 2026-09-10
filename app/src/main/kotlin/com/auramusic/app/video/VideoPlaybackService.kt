@@ -10,6 +10,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.ForegroundServiceStartNotAllowedException
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
@@ -19,13 +20,20 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.media3.session.CommandButton
 import androidx.media3.session.DefaultMediaNotificationProvider
+import androidx.media3.session.MediaController
 import androidx.media3.session.MediaNotification
 import androidx.media3.session.MediaSession
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSessionService
+import androidx.media3.session.SessionToken
 import com.auramusic.app.MainActivity
 import com.auramusic.app.R
+import com.auramusic.app.utils.CoilBitmapLoader
 import com.google.common.collect.ImmutableList
+import com.google.common.util.concurrent.MoreExecutors
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import timber.log.Timber
 
 /**
@@ -38,6 +46,7 @@ class VideoPlaybackService : MediaSessionService() {
     private var mediaSession: MediaSession? = null
     private var notificationProvider: DefaultMediaNotificationProvider? = null
     private var latestMediaNotification: Notification? = null
+    private var scope = CoroutineScope(Dispatchers.Main + Job())
 
     override fun onCreate() {
         super.onCreate()
@@ -89,6 +98,16 @@ class VideoPlaybackService : MediaSessionService() {
         } catch (e: IllegalStateException) {
             Timber.tag(TAG).w(e, "MediaSession ID collision, retrying with unique ID")
             buildSession(exo, "$SESSION_ID-${System.nanoTime()}")
+        }
+
+        // Keep a connected controller so the media notification with transport
+        // controls and artwork is rendered and updated, mirroring MusicService.
+        try {
+            val sessionToken = SessionToken(this, ComponentName(this, VideoPlaybackService::class.java))
+            val controllerFuture = MediaController.Builder(this, sessionToken).buildAsync()
+            controllerFuture.addListener({ controllerFuture.get() }, MoreExecutors.directExecutor())
+        } catch (e: Exception) {
+            Timber.tag(TAG).w(e, "Failed to connect MediaController")
         }
 
         notificationProvider = DefaultMediaNotificationProvider(
@@ -148,6 +167,7 @@ class VideoPlaybackService : MediaSessionService() {
     private fun buildSession(exo: ExoPlayer, sessionId: String): MediaSession =
         MediaSession.Builder(this, exo)
             .setId(sessionId)
+            .setBitmapLoader(CoilBitmapLoader(this, scope))
             .setSessionActivity(
                 PendingIntent.getActivity(
                     this,
@@ -217,10 +237,11 @@ class VideoPlaybackService : MediaSessionService() {
         }
     }
 
-    private fun buildPlaceholderNotification(): Notification =
-        NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle(getString(R.string.video_player))
-            .setContentText("")
+    private fun buildPlaceholderNotification(): Notification {
+        val session = VideoPlaybackManager.uiState.value.session
+        return NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle(session?.title?.ifBlank { null } ?: getString(R.string.video_player))
+            .setContentText(session?.channelName.orEmpty())
             .setSmallIcon(R.drawable.ic_notification_icon)
             .setContentIntent(
                 PendingIntent.getActivity(
@@ -234,6 +255,7 @@ class VideoPlaybackService : MediaSessionService() {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setOngoing(true)
             .build()
+    }
 
     companion object {
         private const val TAG = "VideoPlaybackService"
