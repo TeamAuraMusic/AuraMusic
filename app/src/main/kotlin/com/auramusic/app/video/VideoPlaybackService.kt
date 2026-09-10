@@ -18,6 +18,10 @@ import android.os.Build
 import android.os.Bundle
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import androidx.annotation.OptIn
+import androidx.media3.common.ForwardingPlayer
+import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.CommandButton
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaController
@@ -165,7 +169,7 @@ class VideoPlaybackService : MediaSessionService() {
     }
 
     private fun buildSession(exo: ExoPlayer, sessionId: String): MediaSession =
-        MediaSession.Builder(this, exo)
+        MediaSession.Builder(this, MediaControlsPlayer(exo))
             .setId(sessionId)
             .setBitmapLoader(CoilBitmapLoader(this, scope))
             .setSessionActivity(
@@ -177,6 +181,42 @@ class VideoPlaybackService : MediaSessionService() {
                 )
             )
             .build()
+
+    /**
+     * Exposes seek-to-next/previous in the MediaSession so the media notification
+     * always shows skip buttons for the up-next queue (a fresh video plays on a
+     * single-item timeline, which by itself gives the notification no skip button).
+     */
+    @OptIn(UnstableApi::class)
+    private inner class MediaControlsPlayer(delegate: ExoPlayer) : ForwardingPlayer(delegate) {
+        private val queueCommands: Player.Commands =
+            super.getAvailableCommands()
+                .buildUpon()
+                .add(Player.COMMAND_SEEK_TO_NEXT)
+                .add(Player.COMMAND_SEEK_TO_PREVIOUS)
+                .add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
+                .add(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
+                .build()
+
+        override fun getAvailableCommands(): Player.Commands = queueCommands
+
+        override fun isCommandAvailable(command: Int): Boolean = queueCommands.contains(command)
+
+        override fun seekToNext() = VideoPlaybackManager.playNext()
+
+        override fun seekToNextMediaItem() = VideoPlaybackManager.playNext()
+
+        override fun seekToPrevious() = VideoPlaybackManager.playPrevious()
+
+        override fun seekToPreviousMediaItem() = VideoPlaybackManager.playPrevious()
+
+        override fun hasNextMediaItem(): Boolean =
+            VideoPlaybackManager.uiState.value.queue.any {
+                it.videoId != VideoPlaybackManager.uiState.value.session?.videoId
+            }
+
+        override fun hasPreviousMediaItem(): Boolean = false
+    }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
 

@@ -1,6 +1,7 @@
 package com.auramusic.app.video
 
 import android.content.Context
+import android.content.Intent
 import androidx.annotation.OptIn
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
@@ -17,6 +18,7 @@ import androidx.media3.extractor.mp4.FragmentedMp4Extractor
 import androidx.media3.extractor.mp4.Mp4Extractor
 import com.auramusic.app.utils.AuraPlayerUtils
 import com.auramusic.app.utils.VideoThumbnails
+import com.auramusic.app.playback.MusicService
 import com.auramusic.innertube.YouTube
 import com.auramusic.innertube.models.WatchEndpoint
 import com.auramusic.innertube.models.response.WatchCompactVideo
@@ -222,6 +224,16 @@ object VideoPlaybackManager {
         val bestThumbnail = thumbnails.maxByOrNull { it.width ?: 0 }?.url
 
         val exo = getOrCreatePlayer(context)
+        // The video mini player takes over from the music player: stop the music
+        // service so its playback notification leaves the shade and the video
+        // notification (artwork + controls) replaces it.
+        try {
+            context.applicationContext.stopService(
+                Intent(context.applicationContext, MusicService::class.java)
+            )
+        } catch (e: Exception) {
+            // Ignore: music service may not be running.
+        }
         VideoPlaybackService.start(context.applicationContext)
         _uiState.value = UiState(
             session = VideoSession(
