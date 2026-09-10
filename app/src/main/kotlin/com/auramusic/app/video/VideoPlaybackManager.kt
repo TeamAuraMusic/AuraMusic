@@ -1,5 +1,6 @@
 package com.auramusic.app.video
 
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import androidx.annotation.OptIn
@@ -16,6 +17,8 @@ import androidx.media3.extractor.ExtractorsFactory
 import androidx.media3.extractor.mkv.MatroskaExtractor
 import androidx.media3.extractor.mp4.FragmentedMp4Extractor
 import androidx.media3.extractor.mp4.Mp4Extractor
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
 import com.auramusic.app.utils.AuraPlayerUtils
 import com.auramusic.app.utils.VideoThumbnails
 import com.auramusic.app.playback.MusicService
@@ -38,6 +41,9 @@ import com.auramusic.innertube.models.response.subscriberCountText
 import com.auramusic.innertube.models.response.title
 import com.auramusic.innertube.models.response.viewCountText
 import com.auramusic.innertube.models.response.YoutubeComment
+import com.google.common.util.concurrent.ListenableFuture
+import timber.log.Timber
+import com.google.common.util.concurrent.MoreExecutors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -128,6 +134,7 @@ object VideoPlaybackManager {
     private var player: ExoPlayer? = null
     private var tickerJob: Job? = null
     private var currentContext: Context? = null
+    private var videoControllerFuture: ListenableFuture<MediaController>? = null
     private val playedVideoIds = mutableSetOf<String>()
 
     fun playerOrNull(): ExoPlayer? = player
@@ -224,17 +231,23 @@ object VideoPlaybackManager {
         val bestThumbnail = thumbnails.maxByOrNull { it.width ?: 0 }?.url
 
         val exo = getOrCreatePlayer(context)
-        // The video mini player takes over from the music player: stop the music
-        // service so its playback notification leaves the shade and the video
-        // notification (artwork + controls) replaces it.
-        try {
-            context.applicationContext.stopService(
-                Intent(context.applicationContext, MusicService::class.java)
-            )
-        } catch (e: Exception) {
-            // Ignore: music service may not be running.
+        // The video mini player takes over from the music player: tell the music
+        // service to pause and drop its miniplayer notification so the video
+        // notification (artwork + controls) becomes the one shown in the shade.
+        // MusicService is usually still bound by the activity, so stopping it won't
+        // tear it down - an explicit action removes the notification instead.
+        if (MusicService.isRunning) {
+            try {
+                context.applicationContext.startService(
+                    Intent(context.applicationContext, MusicService::class.java)
+                        .setAction(MusicService.ACTION_PAUSE_FOR_VIDEO)
+                )
+            } catch (e: Exception) {
+                // Ignore: music service may not be started.
+            }
         }
         VideoPlaybackService.start(context.applicationContext)
+        connectServiceController(context.applicationContext)
         _uiState.value = UiState(
             session = VideoSession(
                 videoId = videoId,
@@ -618,6 +631,7 @@ object VideoPlaybackManager {
         tickerJob?.cancel()
         tickerJob = null
         playedVideoIds.clear()
+        releaseServiceController()
         VideoPlaybackService.stop(currentContext?.applicationContext ?: return)
         _uiState.value = UiState()
     }
@@ -629,6 +643,43 @@ object VideoPlaybackManager {
         tickerJob?.cancel()
         tickerJob = null
         playedVideoIds.clear()
+        releaseServiceController()
+    }
+
+    /**
+     * Keep a MediaController connected to the video MediaSession from app scope.
+     * The connected controller is what makes the session "active", which is what
+     * causes Media3 to render (and keep updated) the media notification with the
+     * artwork + transport controls, mirroring how the music player's notification
+     * is driven by its own connected controller.
+     */
+    private fun connectServiceController(context: Context) {
+        if (videoControllerFuture != null) return
+        val token = SessionToken(context, ComponentName(context, VideoPlaybackService::class.java))
+        val future = MediaController.Builder(context, token).buildAsync()
+        videoControllerFuture = future
+        future.addListener(
+            {
+                try {
+                    future.get()
+                } catch (e: Exception) {
+                    Timber.tag("VideoPlaybackManager").w(e, "Failed to connect video service controller")
+                    if (videoControllerFuture === future) videoControllerFuture = null
+                }
+            },
+            MoreExecutors.directExecutor(),
+        )
+    }
+
+    private fun releaseServiceController() {
+        videoControllerFuture?.let { future ->
+            try {
+                MediaController.releaseFuture(future)
+            } catch (e: Exception) {
+                Timber.tag("VideoPlaybackManager").w(e, "Failed to release video service controller")
+            }
+        }
+        videoControllerFuture = null
     }
 
     private fun getOrCreatePlayer(context: Context): ExoPlayer {

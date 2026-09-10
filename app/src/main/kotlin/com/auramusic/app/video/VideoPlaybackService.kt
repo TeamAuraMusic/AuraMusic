@@ -14,12 +14,14 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.annotation.OptIn
 import androidx.media3.common.ForwardingPlayer
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.CommandButton
@@ -201,6 +203,24 @@ class VideoPlaybackService : MediaSessionService() {
         override fun getAvailableCommands(): Player.Commands = queueCommands
 
         override fun isCommandAvailable(command: Int): Boolean = queueCommands.contains(command)
+
+        /**
+         * Surface the current video's title/artist/artwork on the MediaSession even
+         * before the underlying player has loaded a MediaItem (and its metadata), so
+         * the media notification always renders the video details + transport
+         * controls instead of falling back to a plain placeholder.
+         */
+        override fun getMediaMetadata(): MediaMetadata {
+            val session = VideoPlaybackManager.uiState.value.session
+                ?: return super.getMediaMetadata()
+            val thumbnailUrl = session.channelThumbnail?.takeIf { it.isNotBlank() }
+            return super.getMediaMetadata()
+                .buildUpon()
+                .setTitle(session.title)
+                .setArtist(session.channelName.ifBlank { null })
+                .setArtworkUri(thumbnailUrl?.let { Uri.parse(it) })
+                .build()
+        }
 
         override fun seekToNext() = VideoPlaybackManager.playNext()
 

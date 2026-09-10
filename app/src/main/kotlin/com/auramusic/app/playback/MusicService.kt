@@ -3627,6 +3627,42 @@ class MusicService :
         startForegroundSafely(notification)
     }
 
+    /**
+     * The in-app video player has started, so the music miniplayer must leave the
+     * notification shade. The service stays bound to the app (queued music is kept),
+     * but playback is paused and the media notification is removed so the video's
+     * notification is the only media notification shown.
+     */
+    private fun pauseForVideoTakeover() {
+        try {
+            if (player.isPlaying || player.playWhenReady) {
+                player.pause()
+            }
+            // Fall through to IDLE so Media3 stops treating the service as an ongoing
+            // media session and stops re-posting the notification.
+            if (player.mediaItemCount > 0) {
+                player.stop()
+            }
+        } catch (e: Exception) {
+            Timber.tag(TAG).w(e, "pauseForVideoTakeover: pause failed")
+        }
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                stopForeground(android.app.Service.STOP_FOREGROUND_REMOVE)
+            } else {
+                @Suppress("DEPRECATION")
+                stopForeground(true)
+            }
+        } catch (e: Exception) {
+            Timber.tag(TAG).w(e, "pauseForVideoTakeover: stopForeground failed")
+        }
+        try {
+            getSystemService(NotificationManager::class.java)?.cancel(NOTIFICATION_ID)
+        } catch (e: Exception) {
+            Timber.tag(TAG).w(e, "pauseForVideoTakeover: cancel notification failed")
+        }
+    }
+
     private fun startForegroundSafely(notification: Notification): Boolean {
         return try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -3654,6 +3690,9 @@ class MusicService :
         when (intent?.action) {
             ACTION_PLAY_ALARM -> {
                 handleAlarmPlay()
+            }
+            ACTION_PAUSE_FOR_VIDEO -> {
+                pauseForVideoTakeover()
             }
             MusicWidgetReceiver.ACTION_PLAY_PAUSE -> {
                 if (player.isPlaying) player.pause() else player.play()
@@ -4724,6 +4763,13 @@ class MusicService :
 
         /** Action used by AlarmReceiver to start music playback in the background. */
         const val ACTION_PLAY_ALARM = "com.auramusic.app.playback.ACTION_PLAY_ALARM"
+
+        /**
+         * Action sent when an in-app video starts playing. The video player takes
+         * over the notification panel, so the music service pauses its (bound) player
+         * and removes its miniplayer notification from the shade.
+         */
+        const val ACTION_PAUSE_FOR_VIDEO = "com.auramusic.app.playback.ACTION_PAUSE_FOR_VIDEO"
 
         const val ROOT = "root"
         const val SONG = "song"
