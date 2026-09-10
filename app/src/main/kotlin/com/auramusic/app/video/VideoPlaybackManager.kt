@@ -160,6 +160,12 @@ object VideoPlaybackManager {
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             val exo = player ?: return
+            // playWithDetails already resets the per-video state before loading, so a
+            // transition for the current session's own video (fired when exo.prepare()
+            // lands) must NOT wipe recommendations/comments — the async loaders may have
+            // just filled them in, and erasing them here made the Up Next list and
+            // comments vanish (or never appear) for fast-loading videos.
+            if (mediaItem?.mediaId == _uiState.value.session?.videoId) return
             _uiState.update {
                 it.copy(
                     positionMs = 0,

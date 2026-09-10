@@ -942,8 +942,9 @@ private fun VideoDetailPane(
     LaunchedEffect(listState, uiState.comments.size, uiState.recommendations.size) {
         snapshotFlowSafe(listState) { nearEnd ->
             if (!nearEnd) return@snapshotFlowSafe
+            val fresh = VideoPlaybackManager.uiState.value
             when {
-                uiState.isLoadingMoreComments || uiState.isLoadingMoreRecommendations -> Unit
+                fresh.isLoadingMoreComments || fresh.isLoadingMoreRecommendations -> Unit
                 else -> {
                     VideoPlaybackManager.loadMoreComments()
                     VideoPlaybackManager.loadMoreRecommendations()
