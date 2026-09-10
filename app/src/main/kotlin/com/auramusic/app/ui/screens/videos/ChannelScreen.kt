@@ -22,8 +22,10 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
@@ -89,7 +91,7 @@ fun ChannelScreen(
 ) {
     val context = LocalContext.current
     val insets = LocalPlayerAwareWindowInsets.current.asPaddingValues()
-    val listState = rememberLazyListState()
+    val gridState = rememberLazyGridState()
 
     val channelId = remember(channelIdOrUrl) { extractChannelId(channelIdOrUrl) }
 
@@ -152,19 +154,25 @@ fun ChannelScreen(
         loadFirstPage(ChannelTab.entries[selectedTab])
     }
 
-    LaunchedEffect(listState, selectedTab) {
+    LaunchedEffect(gridState, selectedTab) {
         snapshotFlow {
-            val last = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-            last >= listState.layoutInfo.totalItemsCount - 4
+            val last = gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            last >= gridState.layoutInfo.totalItemsCount - 4
         }.collect { nearEnd -> if (nearEnd) loadMore() }
     }
 
-    LazyColumn(
-        state = listState,
+    val isShorts = ChannelTab.entries[selectedTab] == ChannelTab.Shorts
+
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
+        state = gridState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = insets.calculateBottomPadding() + 16.dp),
     ) {
-        item(key = "header") {
+        item(
+            key = "header",
+            span = { GridItemSpan(maxLineSpan) },
+        ) {
             ChannelHeaderSection(
                 header = header,
                 isLoading = isLoading,
@@ -172,7 +180,10 @@ fun ChannelScreen(
             )
         }
 
-        item(key = "tabs") {
+        item(
+            key = "tabs",
+            span = { GridItemSpan(maxLineSpan) },
+        ) {
             ChannelTabBar(
                 selectedTab = selectedTab,
                 onSelect = { selectedTab = it },
@@ -181,25 +192,78 @@ fun ChannelScreen(
 
         when (ChannelTab.entries[selectedTab]) {
             ChannelTab.About -> {
-                item(key = "about") {
+                item(
+                    key = "about",
+                    span = { GridItemSpan(maxLineSpan) },
+                ) {
                     ChannelAboutSection(header = header)
                 }
             }
             else -> {
                 if (isLoading && videos.isEmpty()) {
-                    items(count = 4, key = { "skeleton_$it" }) {
+                    items(count = 4, key = { "skeleton_$it" }, span = { GridItemSpan(1) }) {
                         ChannelVideoSkeleton()
                     }
                 } else if (error != null && videos.isEmpty()) {
-                    item(key = "error") {
+                    item(
+                        key = "error",
+                        span = { GridItemSpan(maxLineSpan) },
+                    ) {
                         ChannelErrorState(message = error.orEmpty())
                     }
                 } else if (videos.isEmpty()) {
-                    item(key = "empty") {
+                    item(
+                        key = "empty",
+                        span = { GridItemSpan(maxLineSpan) },
+                    ) {
                         ChannelErrorState(message = stringResource(R.string.no_videos_found))
                     }
+                } else if (isShorts) {
+                    items(
+                        count = videos.size,
+                        key = { "short_${videos[it].videoId}" },
+                        span = { GridItemSpan(1) },
+                    ) { index ->
+                        val video = videos[index]
+                        ChannelShortsCard(
+                            video = video,
+                            onClick = {
+                                VideoPlaybackManager.playWithDetails(
+                                    context = context,
+                                    videoId = video.videoId,
+                                    title = video.title,
+                                    channelName = video.channelName.ifBlank { header?.title.orEmpty() },
+                                    channelId = video.channelId ?: header?.channelId,
+                                    channelThumbnail = header?.avatarUrl,
+                                    description = video.description,
+                                    viewCountText = video.viewCountText,
+                                    publishedTimeText = video.publishedTimeText,
+                                    thumbnails = video.thumbnails,
+                                )
+                            },
+                        )
+                    }
+                    if (isLoadingMore) {
+                        item(
+                            key = "loading_more",
+                            span = { GridItemSpan(maxLineSpan) },
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.size(28.dp))
+                            }
+                        }
+                    }
                 } else {
-                    items(count = videos.size, key = { "video_${videos[it].videoId}" }) { index ->
+                    items(
+                        count = videos.size,
+                        key = { "video_${videos[it].videoId}" },
+                        span = { GridItemSpan(maxLineSpan) },
+                    ) { index ->
                         val video = videos[index]
                         ChannelVideoRow(
                             video = video,
@@ -220,7 +284,10 @@ fun ChannelScreen(
                         )
                     }
                     if (isLoadingMore) {
-                        item(key = "loading_more") {
+                        item(
+                            key = "loading_more",
+                            span = { GridItemSpan(maxLineSpan) },
+                        ) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -536,6 +603,61 @@ private fun ChannelVideoRow(
                 overflow = TextOverflow.Ellipsis,
             )
         }
+    }
+}
+
+@Composable
+private fun ChannelShortsCard(
+    video: YouTubeVideoItem,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 4.dp, vertical = 6.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(9f / 16f)
+                .clip(RoundedCornerShape(14.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+        ) {
+            AsyncImage(
+                model = video.thumbnails.maxByOrNull { it.width ?: 0 }?.url
+                    ?: VideoThumbnails.highQuality(video.videoId),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
+            video.durationText?.let {
+                TextBadge(
+                    text = it,
+                    containerColor = Color.Black.copy(alpha = 0.78f),
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(6.dp),
+                )
+            }
+        }
+        Text(
+            text = video.title,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 2.dp, vertical = 4.dp),
+        )
+        Text(
+            text = video.viewCountText?.let { compactViewCount(it) }.orEmpty(),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 2.dp),
+        )
     }
 }
 
