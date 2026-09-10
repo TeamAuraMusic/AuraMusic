@@ -907,10 +907,12 @@ private fun SearchResultRow(
     when (result) {
         is YouTubeSearchResultItem.Video -> if (isHero) SearchHeroVideoCard(
             video = result.video,
-            onClick = { onVideoClick(result.video) }
+            onClick = { onVideoClick(result.video) },
+            onChannelClick = onChannelClick
         ) else SearchVideoGridCard(
             video = result.video,
-            onClick = { onVideoClick(result.video) }
+            onClick = { onVideoClick(result.video) },
+            onChannelClick = onChannelClick
         )
         is YouTubeSearchResultItem.Channel -> SearchChannelRow(
             channel = result,
@@ -927,6 +929,7 @@ private fun SearchResultRow(
 private fun SearchHeroVideoCard(
     video: YouTubeVideoItem,
     onClick: () -> Unit,
+    onChannelClick: (String) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -1017,6 +1020,34 @@ private fun SearchHeroVideoCard(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
+        if (video.channelName.isNotEmpty()) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, bottom = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                val channelClick: () -> Unit = { video.channelId?.let(onChannelClick) }
+                SearchAvatar(
+                    channelName = video.channelName,
+                    url = video.channelThumbnailUrl,
+                    modifierSize = 28,
+                    onClick = channelClick
+                )
+                Text(
+                    text = video.channelName,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .clip(RoundedCornerShape(4.dp))
+                        .clickable(onClick = channelClick)
+                )
+            }
+        }
     }
 }
 
@@ -1029,6 +1060,7 @@ private fun SearchHeroVideoCard(
 private fun SearchVideoGridCard(
     video: YouTubeVideoItem,
     onClick: () -> Unit,
+    onChannelClick: (String) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -1110,16 +1142,136 @@ private fun SearchVideoGridCard(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(start = 6.dp, end = 6.dp, bottom = 2.dp)
         )
+        if (video.channelName.isNotEmpty()) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 6.dp, bottom = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                SearchAvatar(
+                    channelName = video.channelName,
+                    url = video.channelThumbnailUrl,
+                    modifierSize = 28
+                )
+                Text(
+                    text = video.channelName,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .clip(RoundedCornerShape(4.dp))
+                        .clickable(onClick = { video.channelId?.let(onChannelClick) })
+                )
+            }
+        }
+    }
+}
+            if (video.isLive) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(6.dp)
+                        .clip(RoundedCornerShape(5.dp))
+                        .background(Color(0xFFE53935))
+                        .padding(horizontal = 5.dp, vertical = 1.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.live),
+                        color = Color.White,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            } else if (video.durationText != null) {
+                val durationText = video.durationText
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(6.dp)
+                        .clip(RoundedCornerShape(5.dp))
+                        .background(Color.Black.copy(alpha = 0.78f))
+                        .padding(horizontal = 5.dp, vertical = 1.dp)
+                ) {
+                    Text(
+                        text = durationText.orEmpty(),
+                        color = Color.White,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+
+        Text(
+            text = video.title,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 6.dp)
+        )
+        Text(
+            text = listOfNotNull(
+                video.channelName.takeIf { it.isNotEmpty() },
+                video.viewCountText?.let { compactViewCount(it) },
+                video.publishedTimeText
+            ).joinToString(" • "),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(start = 6.dp, end = 6.dp, bottom = 2.dp)
+        )
+        if (video.channelName.isNotEmpty()) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 6.dp, bottom = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                val channelClick: () -> Unit = { video.channelId?.let(onChannelClick) }
+                SearchAvatar(
+                    channelName = video.channelName,
+                    url = video.channelThumbnailUrl,
+                    modifierSize = 28
+                )
+                Text(
+                    text = video.channelName,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .clip(RoundedCornerShape(4.dp))
+                        .clickable(onClick = channelClick)
+                )
+            }
+        }
     }
 }
 
 @Composable
-private fun SearchAvatar(channelName: String, url: String?, modifierSize: Int) {
+private fun SearchAvatar(
+    channelName: String,
+    url: String?,
+    modifierSize: Int,
+    onClick: (() -> Unit)? = null,
+) {
     Box(
         modifier = Modifier
             .size(modifierSize.dp)
             .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primaryContainer),
+            .background(MaterialTheme.colorScheme.primaryContainer)
+            .then(
+                if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
+            ),
         contentAlignment = Alignment.Center
     ) {
         if (url != null) {
@@ -1127,16 +1279,18 @@ private fun SearchAvatar(channelName: String, url: String?, modifierSize: Int) {
                 model = url,
                 contentDescription = channelName,
                 modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Crop,
             )
         } else {
             Text(
                 text = channelName.trim().firstOrNull()?.uppercase() ?: "?",
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
             )
         }
+    }
+}
     }
 }
 

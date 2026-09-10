@@ -1326,7 +1326,12 @@ class MainActivity : ComponentActivity() {
                     )
 
                     // Global video player overlay (full player + floating mini tile)
-                    VideoPlayerOverlay()
+                    VideoPlayerChannelClick = { channelId ->
+                        navController.navigate("youtube_channel/$channelId")
+                    },
+                    VideoPlayerOverlay(
+                        onChannelClick = VideoPlayerChannelClick,
+                    )
                 }
             }
         }

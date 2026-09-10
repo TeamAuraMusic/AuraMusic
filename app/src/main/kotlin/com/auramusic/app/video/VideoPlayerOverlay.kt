@@ -85,6 +85,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.compose.LocalNavHostController
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -105,7 +110,9 @@ import com.auramusic.app.video.VideoPlaybackManager.RecommendationItem
 import kotlinx.coroutines.delay
 
 @Composable
-fun VideoPlayerOverlay() {
+fun VideoPlayerOverlay(
+    onChannelClick: ((String) -> Unit)? = null,
+) {
     val state by VideoPlaybackManager.uiState.collectAsState()
     val session = state.session ?: return
 
@@ -144,6 +151,7 @@ fun VideoPlayerOverlay() {
                 player = player,
                 onExpand = { VideoPlaybackManager.expand() },
                 onClose = { VideoPlaybackManager.close() },
+                onChannelClick = onChannelClick,
             )
         } else {
             VideoExpandedPlayer(
@@ -152,6 +160,7 @@ fun VideoPlayerOverlay() {
                 uiState = state,
                 onCollapse = { VideoPlaybackManager.collapse() },
                 onClose = { VideoPlaybackManager.close() },
+                onChannelClick = onChannelClick,
             )
         }
     }
@@ -167,6 +176,7 @@ private fun VideoMinimizedTile(
     player: ExoPlayer,
     onExpand: () -> Unit,
     onClose: () -> Unit,
+    onChannelClick: ((String) -> Unit)?,
 ) {
     val state by VideoPlaybackManager.uiState.collectAsState()
     val density = LocalDensity.current
@@ -250,13 +260,16 @@ private fun VideoMinimizedTile(
                             modifier = Modifier.weight(1f),
                         )
                     }
-                    if (!state.session?.channelName.isNullOrBlank()) {
+                    if (!state.session?.channelName.isNullOrBlank() && onChannelClick != null) {
                         Text(
                             text = state.session?.channelName.orEmpty(),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.clickable {
+                                state.session?.channelId?.let(onChannelClick)
+                            }
                         )
                     }
 
@@ -358,6 +371,7 @@ private fun VideoExpandedPlayer(
     uiState: VideoPlaybackManager.UiState,
     onCollapse: () -> Unit,
     onClose: () -> Unit,
+    onChannelClick: ((String) -> Unit)?,
 ) {
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
@@ -392,6 +406,7 @@ private fun VideoExpandedPlayer(
                         .weight(0.62f)
                         .fillMaxHeight(),
                     useFullHeight = true,
+                    onChannelClick = onChannelClick,
                 )
                 VideoDetailPane(
                     session = session,
@@ -400,6 +415,7 @@ private fun VideoExpandedPlayer(
                         .weight(0.38f)
                         .fillMaxHeight()
                         .background(MaterialTheme.colorScheme.surface),
+                    onChannelClick = onChannelClick ?: { _, _ -> },
                 )
             }
         } else {
@@ -416,6 +432,7 @@ private fun VideoExpandedPlayer(
                         .fillMaxWidth()
                         .aspectRatio(16f / 9f),
                     useFullHeight = false,
+                    onChannelClick = onChannelClick,
                 )
                 VideoDetailPane(
                     session = session,
@@ -424,6 +441,7 @@ private fun VideoExpandedPlayer(
                         .fillMaxWidth()
                         .weight(1f)
                         .background(MaterialTheme.colorScheme.surface),
+                    onChannelClick = onChannelClick ?: { _, _ -> },
                 )
             }
         }
@@ -453,6 +471,7 @@ private fun VideoSurfaceWithControls(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
     useFullHeight: Boolean,
+    onChannelClick: ((String) -> Unit)? = null,
 ) {
     val haptic = LocalHapticFeedback.current
     val density = LocalDensity.current
@@ -550,6 +569,8 @@ private fun VideoSurfaceWithControls(
                 onClose = onClose,
                 title = session.title,
                 channelName = session.channelName,
+                channelId = session.channelId,
+                onChannelClick = onChannelClick,
                 modifier = Modifier.align(Alignment.TopCenter),
             )
             PlayerBottomControls(
@@ -583,8 +604,10 @@ private fun PlayerTopBar(
     onClose: () -> Unit,
     title: String,
     channelName: String,
+    channelId: String? = null,
     modifier: Modifier = Modifier,
 ) {
+    val navController = LocalNavHostController.current ?: rememberNavController()
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
@@ -632,7 +655,11 @@ private fun PlayerTopBar(
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.White.copy(alpha = 0.75f),
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .clickable {
+                            channelId?.let { navController.navigate("youtube_channel/$it") }
+                        }
                 )
             }
         }
@@ -935,6 +962,7 @@ private fun VideoDetailPane(
     session: VideoPlaybackManager.VideoSession,
     uiState: VideoPlaybackManager.UiState,
     modifier: Modifier = Modifier,
+    onChannelClick: (String) -> Unit,
 ) {
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -962,6 +990,7 @@ private fun VideoDetailPane(
             VideoInfoSection(
                 session = session,
                 uiState = uiState,
+                onChannelClick = onChannelClick,
             )
         }
         item(key = "tabs") {
@@ -985,6 +1014,7 @@ private suspend fun snapshotFlowSafe(
 private fun VideoInfoSection(
     session: VideoPlaybackManager.VideoSession,
     uiState: VideoPlaybackManager.UiState,
+    onChannelClick: (String) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -1019,6 +1049,7 @@ private fun VideoInfoSection(
             session = session,
             isSubscribed = uiState.isSubscribed,
             onSubscribeClick = { VideoPlaybackManager.toggleSubscribe() },
+            onChannelClick = onChannelClick,
         )
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -1050,6 +1081,7 @@ private fun ChannelRow(
     session: VideoPlaybackManager.VideoSession,
     isSubscribed: Boolean,
     onSubscribeClick: () -> Unit,
+    onChannelClick: (String) -> Unit,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -1060,6 +1092,7 @@ private fun ChannelRow(
                 .size(44.dp)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.primaryContainer)
+                .clickable { session.channelId?.let(onChannelClick) }
         ) {
             if (!session.channelThumbnail.isNullOrBlank()) {
                 AsyncImage(

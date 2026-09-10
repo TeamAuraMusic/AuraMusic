@@ -388,6 +388,12 @@ class VideoPlaybackService : MediaSessionService() {
         scope.cancel()
         // Detach the player listener to prevent leaked callbacks after teardown.
         VideoPlaybackManager.playerOrNull()?.removeListener(playerNotificationListener)
+        // Explicitly remove the foreground notification before releasing the session.
+        // This ensures the notification disappears promptly when the service is destroyed
+        // (e.g. when the video mini player is closed).
+        try {
+            stopForeground(android.app.Service.STOP_FOREGROUND_REMOVE)
+        } catch (_: Exception) { /* ignore if not in foreground */ }
         try {
             mediaSession?.release()
         } catch (e: Exception) {
@@ -558,8 +564,17 @@ class VideoPlaybackService : MediaSessionService() {
         }
 
         fun stop(context: Context) {
-            context.applicationContext.stopService(
-                Intent(context.applicationContext, VideoPlaybackService::class.java),
+            val appContext = context.applicationContext
+            // Explicitly cancel the foreground notification before stopping the
+            // service. stopService() alone may not remove the notification promptly,
+            // leaving a stale video notification in the shade after the mini player
+            // is dismissed.
+            try {
+                val nm = appContext.getSystemService(NotificationManager::class.java)
+                nm?.cancel(NOTIFICATION_ID)
+            } catch (_: Exception) { /* service may not be started */ }
+            appContext.stopService(
+                Intent(appContext, VideoPlaybackService::class.java),
             )
         }
     }
