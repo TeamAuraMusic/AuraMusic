@@ -193,6 +193,8 @@ import com.auramusic.app.playback.queues.YouTubeQueue
 import com.auramusic.app.playback.queues.filterExplicit
 import com.auramusic.app.playback.queues.filterVideoSongs
 import com.auramusic.app.subtitles.SubtitleInfo
+import com.auramusic.app.video.VideoPlaybackManager
+import com.auramusic.app.video.VideoPlaybackService
 import com.auramusic.app.utils.CoilBitmapLoader
 import com.auramusic.app.utils.AuraPlayerUtils
 import com.auramusic.app.utils.NetworkConnectivityObserver
@@ -2422,6 +2424,17 @@ class MusicService :
             return
         }
 
+        // When the music player truly starts playing, the in-app video player (and its
+        // miniplayer + notification) gives way so the music player owns the shade again:
+        // the video pauses, collapses, and its media notification is removed.
+        if (playWhenReady) {
+            try {
+                VideoPlaybackManager.giveWayToMusic(applicationContext)
+            } catch (e: Exception) {
+                Timber.tag(TAG).w(e, "Video playback handoff to music failed")
+            }
+        }
+
         if (reason == Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST) {
             if (playWhenReady) {
                 isPausedByVolumeMute = false
@@ -3690,6 +3703,14 @@ class MusicService :
      */
     private fun clearVideoTakeover() {
         videoTakeoverActive = false
+        try {
+            // Force media3 to re-render the music notification from the current
+            // playback state/metadata right away, instead of letting the user keep
+            // seeing the stale pre-takeover card until the next state change.
+            if (::mediaSession.isInitialized) onUpdateNotification(mediaSession, true)
+        } catch (e: Exception) {
+            Timber.tag(TAG).w(e, "clearVideoTakeover: refresh music notification failed")
+        }
     }
 
     private fun startForegroundSafely(notification: Notification): Boolean {

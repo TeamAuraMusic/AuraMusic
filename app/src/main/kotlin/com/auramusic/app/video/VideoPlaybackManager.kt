@@ -596,7 +596,56 @@ object VideoPlaybackManager {
 
     fun togglePlayPause() {
         val exo = player ?: return
-        if (_uiState.value.isPlaying) exo.pause() else exo.play()
+        if (_uiState.value.isPlaying) {
+            exo.pause()
+        } else {
+            // Resuming after the video yielded the shade to the music player
+            // (giveWayToMusic): re-establish the video's foreground media
+            // notification, re-pause the music player, and reconnect the
+            // controller so the video notification is the one shown again.
+            currentContext?.applicationContext?.let { ctx ->
+                if (MusicService.isRunning) {
+                    try {
+                        ctx.startService(
+                            Intent(ctx, MusicService::class.java)
+                                .setAction(MusicService.ACTION_PAUSE_FOR_VIDEO)
+                        )
+                    } catch (_: Exception) { /* music service may not be running */ }
+                }
+                VideoPlaybackService.start(ctx)
+                connectServiceController(ctx)
+                VideoPlaybackService.notifySessionChanged(ctx)
+            }
+            exo.play()
+        }
+    }
+
+    /**
+     * Called when the music player actually starts playing. The video player (and
+     * miniplayer) gives way to the music player: video audio is paused, the tile
+     * collapses, the video's media notification is removed from the shade, and the
+     * music service's notification-suppression guard is released so the music
+     * notification can be posted again.
+     */
+    fun giveWayToMusic(context: Context) {
+        if (_uiState.value.session == null) {
+            // No active video to demote. (The takeover guard, if any, is released on
+            // close(); there's nothing to clean up here.)
+            return
+        }
+        try {
+            if (player?.isPlaying == true) player?.pause()
+        } catch (e: Exception) {
+            Timber.tag("VideoPlaybackManager").w(e, "giveWayToMusic: pause failed")
+        }
+        _uiState.update { it.copy(isPlaying = false, minimized = true) }
+        val ctx = context.applicationContext
+        // Remove the video notification and drop the connected controller (mirroring
+        // close()) so a later resume reconnects and brings the notification back.
+        VideoPlaybackService.stop(ctx)
+        releaseServiceController()
+        // Lift the music service's takeover guard so it can post its notification.
+        if (MusicService.isRunning) MusicService.resumeFromVideo(ctx)
     }
 
     fun seekTo(positionMs: Long) {

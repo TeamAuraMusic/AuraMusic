@@ -17,6 +17,8 @@ import android.content.pm.ServiceInfo
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.annotation.OptIn
@@ -64,6 +66,7 @@ class VideoPlaybackService : MediaSessionService() {
     private var notificationProvider: DefaultMediaNotificationProvider? = null
     private var latestMediaNotification: Notification? = null
     private var scope = CoroutineScope(Dispatchers.Main + Job())
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     /** Whether the service has successfully reached the foreground state. */
     private var enteredForeground = false
@@ -166,10 +169,25 @@ class VideoPlaybackService : MediaSessionService() {
 
         // Keep a connected controller so the media notification with transport
         // controls and artwork is rendered and updated, mirroring MusicService.
+        // The connection also makes the session "active" (the trigger Media3 uses
+        // to render the full MediaStyle notification), so once it lands we force a
+        // rebuild: this closes the race where the shade is stuck on the text-only
+        // placeholder because the styled render was skipped through the
+        // ForwardingPlayer wrapper.
         try {
             val sessionToken = SessionToken(this, ComponentName(this, VideoPlaybackService::class.java))
             val controllerFuture = MediaController.Builder(this, sessionToken).buildAsync()
-            controllerFuture.addListener({ controllerFuture.get() }, MoreExecutors.directExecutor())
+            controllerFuture.addListener(
+                {
+                    try {
+                        controllerFuture.get()
+                        runOnMain { rebuildMediaNotification() }
+                    } catch (e: Exception) {
+                        Timber.tag(TAG).w(e, "Failed to connect MediaController")
+                    }
+                },
+                MoreExecutors.directExecutor(),
+            )
         } catch (e: Exception) {
             Timber.tag(TAG).w(e, "Failed to connect MediaController")
         }
@@ -224,7 +242,12 @@ class VideoPlaybackService : MediaSessionService() {
 
         // Surface a notification immediately (even before media3 renders the media
         // controls on the first playable frame) so the video always appears in the
-        // notification panel, exactly like the music player does.
+        // notification panel, exactly like the music player does. The notification is
+        // rendered through the styled provider up front (rather than posting the
+        // text-only placeholder first), and the controller-connect rebuild above
+        // re-renders it with artwork + transport controls as soon as the session is
+        // active, so the shade never rests on a bare title/artist card.
+        rebuildMediaNotification()
         promoteToForegroundWithLatestNotification()
 
         // Seed the notification buttons (transport + like) so the notification
@@ -420,6 +443,10 @@ class VideoPlaybackService : MediaSessionService() {
         } catch (e: Exception) {
             Timber.tag(TAG).w(e, "rebuildMediaNotification failed")
         }
+    }
+
+    private fun runOnMain(block: () -> Unit) {
+        if (Looper.myLooper() == Looper.getMainLooper()) block() else mainHandler.post(block)
     }
 
     /**
