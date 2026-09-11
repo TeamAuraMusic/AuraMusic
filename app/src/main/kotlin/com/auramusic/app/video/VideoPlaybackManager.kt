@@ -642,7 +642,12 @@ object VideoPlaybackManager {
         tickerJob = null
         playedVideoIds.clear()
         releaseServiceController()
-        VideoPlaybackService.stop(currentContext?.applicationContext ?: return)
+        currentContext?.applicationContext?.let { ctx ->
+            VideoPlaybackService.stop(ctx)
+            // Lift the music notification transparency guard so the music player's
+            // notification can return once music resumes.
+            if (MusicService.isRunning) MusicService.resumeFromVideo(ctx)
+        }
         _uiState.value = UiState()
     }
 

@@ -315,6 +315,16 @@ class MusicService :
     @Volatile
     private var latestMediaNotification: Notification? = null
 
+    /**
+     * True while the in-app video player owns the notification shade. While set,
+     * the music service suppresses every media3 notification update, otherwise
+     * the connected controller (bound by the activity) keeps re-posting the music
+     * notification — often with stale/previous song metadata — and stomps over the
+     * video's notification.
+     */
+    @Volatile
+    private var videoTakeoverActive = false
+
     private var crossfadeEnabled = false
     private var crossfadeDuration = 5000f
     private var crossfadeGapless = true
@@ -2456,6 +2466,12 @@ class MusicService :
 
         // Widget and Discord RPC updates
         if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED)) {
+            if (player.isPlaying && videoTakeoverActive) {
+                // Music is actually playing again: the video no longer owns the shade,
+                // so allow the music media notification to be posted once more.
+                clearVideoTakeover()
+                promoteToForegroundWithLatestNotification()
+            }
             updateWidgetUI(player.isPlaying)
             if (player.isPlaying) {
                 startWidgetUpdates()
@@ -3600,6 +3616,10 @@ class MusicService :
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo) = mediaSession
 
     override fun onUpdateNotification(session: MediaSession, startInForegroundRequired: Boolean) {
+        // The video player is in charge of the notification shade: drop every media3
+        // notification update so the music notification (and its stale "previous
+        // song" content) can never resurrect behind or over the video's notification.
+        if (videoTakeoverActive) return
         try {
             super.onUpdateNotification(session, startInForegroundRequired)
         } catch (e: ForegroundServiceStartNotAllowedException) {
@@ -3634,6 +3654,7 @@ class MusicService :
      * notification is the only media notification shown.
      */
     private fun pauseForVideoTakeover() {
+        videoTakeoverActive = true
         try {
             if (player.isPlaying || player.playWhenReady) {
                 player.pause()
@@ -3663,6 +3684,14 @@ class MusicService :
         }
     }
 
+    /**
+     * The video miniplayer was dismissed: the music service may resume posting its
+     * media notification again, and does so lazily on the next state change.
+     */
+    private fun clearVideoTakeover() {
+        videoTakeoverActive = false
+    }
+
     private fun startForegroundSafely(notification: Notification): Boolean {
         return try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -3685,7 +3714,11 @@ class MusicService :
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        promoteToForegroundWithLatestNotification()
+        // Never re-post the music notification while the video player owns the shade
+        // (a bare start intent can otherwise resurrect it on widget/broadcast events).
+        if (!videoTakeoverActive || intent?.action == ACTION_PAUSE_FOR_VIDEO) {
+            promoteToForegroundWithLatestNotification()
+        }
 
         when (intent?.action) {
             ACTION_PLAY_ALARM -> {
@@ -3693,6 +3726,9 @@ class MusicService :
             }
             ACTION_PAUSE_FOR_VIDEO -> {
                 pauseForVideoTakeover()
+            }
+            ACTION_RESUME_FROM_VIDEO -> {
+                clearVideoTakeover()
             }
             MusicWidgetReceiver.ACTION_PLAY_PAUSE -> {
                 if (player.isPlaying) player.pause() else player.play()
@@ -4770,6 +4806,22 @@ class MusicService :
          * and removes its miniplayer notification from the shade.
          */
         const val ACTION_PAUSE_FOR_VIDEO = "com.auramusic.app.playback.ACTION_PAUSE_FOR_VIDEO"
+
+        /**
+         * Action sent when the in-app video miniplayer is dismissed. Releases the
+         * transparency guard so the music service may post its media notification
+         * again on the next playback state change.
+         */
+        const val ACTION_RESUME_FROM_VIDEO = "com.auramusic.app.playback.ACTION_RESUME_FROM_VIDEO"
+
+        fun resumeFromVideo(context: Context) {
+            try {
+                context.applicationContext.startService(
+                    Intent(context.applicationContext, MusicService::class.java)
+                        .setAction(ACTION_RESUME_FROM_VIDEO)
+                )
+            } catch (_: Exception) { /* service may not be running */ }
+        }
 
         const val ROOT = "root"
         const val SONG = "song"
