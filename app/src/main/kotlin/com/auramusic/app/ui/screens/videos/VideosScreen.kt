@@ -46,7 +46,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
@@ -54,7 +53,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.pulltorefresh.pullToRefresh
 import androidx.compose.runtime.Composable
@@ -124,13 +122,7 @@ fun VideosScreen(
     val pullRefreshState = rememberPullToRefreshState()
     val scope = rememberCoroutineScope()
 
-    suspend fun loadFirstPage() {
-        if (!isLoading) {
-            isLoading = true
-            error = null
-            feed = emptyList()
-            continuation = null
-        }
+    suspend fun fetchFeed(showError: Boolean = true) {
         withContext(Dispatchers.IO) {
             val result = when (selectedCategory) {
                 VideoCategory.ForYou -> YouTube.youtubeHomeFeed().getOrNull()
@@ -142,17 +134,32 @@ fun VideosScreen(
                 feed = result.items
                 continuation = result.continuation
                 error = null
-            } else {
+            } else if (showError) {
                 error = context.getString(R.string.videos_feed_error)
             }
         }
         isLoading = false
-        isRefreshing = false
     }
 
-    suspend fun refresh() {
-        isRefreshing = true
-        loadFirstPage()
+    suspend fun loadFirstPage() {
+        if (!isLoading) {
+            isLoading = true
+            error = null
+            feed = emptyList()
+            continuation = null
+        }
+        fetchFeed()
+    }
+
+    suspend fun refreshFeed() {
+        if (isLoading) {
+            isRefreshing = false
+            return
+        }
+        // Keep the current feed on screen while a fresh first page loads; only
+        // swap in the new content on success so the refresh is actually visible.
+        fetchFeed(showError = false)
+        isRefreshing = false
     }
 
     suspend fun loadMore() {
@@ -166,9 +173,17 @@ fun VideosScreen(
                 VideoCategory.Music -> YouTube.youtubeCategoryFeed(context.getString(R.string.video_category_music_query), cont).getOrNull()
                 VideoCategory.Gaming -> YouTube.youtubeCategoryFeed(context.getString(R.string.video_category_gaming_query), cont).getOrNull()
             }
-            result?.let {
-                feed = feed + it.items
-                continuation = it.continuation
+            result?.takeIf { it.items.isNotEmpty() }?.let {
+                // Continuation pages can repeat videos; dedupe so the lazy list
+                // never crashes on duplicate keys and pagination terminates.
+                val seen = feed.mapTo(HashSet()) { it.videoId }
+                val newItems = it.items.filter { video -> seen.add(video.videoId) }
+                if (newItems.isNotEmpty()) {
+                    feed = feed + newItems
+                    continuation = it.continuation
+                } else {
+                    continuation = null
+                }
             }
         }
         isLoadingMore = false
@@ -198,6 +213,20 @@ fun VideosScreen(
             last >= listListState.layoutInfo.totalItemsCount - 3
         }.collect { nearEnd -> if (nearEnd) loadMore() }
     }
+    // After a page finishes loading, re-check the end so pagination keeps
+    // fetching when the user is already sitting at the bottom of the list.
+    LaunchedEffect(isLoadingMore) {
+        if (!isLoadingMore && !isLoading) {
+            val nearEnd = if (gridView) {
+                val last = gridListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                last >= gridListState.layoutInfo.totalItemsCount - 8
+            } else {
+                val last = listListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                last >= listListState.layoutInfo.totalItemsCount - 3
+            }
+            if (nearEnd) loadMore()
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -225,14 +254,14 @@ fun VideosScreen(
                     onRefresh = {
                         isRefreshing = true
                         scope.launch {
-                            loadFirstPage()
+                            refreshFeed()
                         }
                     },
                 ),
             contentAlignment = Alignment.TopStart
         ) {
             when {
-                isLoading && feed.isEmpty() -> SkeletonFeed(columns = columns)
+                isLoading && feed.isEmpty() -> SkeletonFeed(columns = columns, gridView = gridView)
                 error != null && feed.isEmpty() -> {
                     Column(
                         modifier = Modifier.fillMaxSize(),
@@ -294,7 +323,12 @@ fun VideosScreen(
                                 key = "feed_footer",
                                 span = { GridItemSpan(maxLineSpan) }
                             ) {
-                                GridListFooter(isLoadingMore = isLoadingMore, hasMore = continuation != null)
+                                GridListFooter(
+                                    isLoadingMore = isLoadingMore,
+                                    hasMore = continuation != null,
+                                    columns = columns,
+                                    gridView = gridView,
+                                )
                             }
                         }
                     } else {
@@ -315,7 +349,12 @@ fun VideosScreen(
                                 )
                             }
                             item(key = "feed_footer") {
-                                GridListFooter(isLoadingMore = isLoadingMore, hasMore = continuation != null)
+                                GridListFooter(
+                                    isLoadingMore = isLoadingMore,
+                                    hasMore = continuation != null,
+                                    columns = columns,
+                                    gridView = gridView,
+                                )
                             }
                         }
                     }
@@ -421,7 +460,52 @@ private fun FeedFilterBar(
 }
 
 @Composable
-private fun SkeletonFeed(columns: Int) {
+private fun SkeletonFeed(columns: Int, gridView: Boolean) {
+    if (!gridView) {
+        LazyColumn(modifier = Modifier.fillMaxSize()) {
+            items(6) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 10.dp)
+                ) {
+                    ShimmerHost(
+                        modifier = Modifier
+                            .width(160.dp)
+                            .aspectRatio(16f / 9f)
+                            .clip(RoundedCornerShape(16.dp))
+                    ) {
+                        Box(modifier = Modifier.fillMaxSize())
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(top = 4.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        ShimmerHost(
+                            modifier = Modifier
+                                .fillMaxWidth(0.9f)
+                                .height(15.dp)
+                                .clip(RoundedCornerShape(7.dp))
+                        ) {
+                            Box(modifier = Modifier.fillMaxSize())
+                        }
+                        ShimmerHost(
+                            modifier = Modifier
+                                .fillMaxWidth(0.55f)
+                                .height(12.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                        ) {
+                            Box(modifier = Modifier.fillMaxSize())
+                        }
+                    }
+                }
+            }
+        }
+        return
+    }
     LazyVerticalGrid(
         columns = GridCells.Fixed(columns),
         modifier = Modifier.fillMaxSize(),
@@ -473,20 +557,112 @@ private fun SkeletonFeed(columns: Int) {
 }
 
 @Composable
-private fun GridListFooter(isLoadingMore: Boolean, hasMore: Boolean) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(64.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        when {
-            isLoadingMore -> CircularProgressIndicator(modifier = Modifier.size(28.dp))
-            else -> Text(
+private fun GridListFooter(
+    isLoadingMore: Boolean,
+    hasMore: Boolean,
+    columns: Int,
+    gridView: Boolean,
+) {
+    when {
+        isLoadingMore -> LoadMoreShimmer(columns = columns, gridView = gridView)
+        hasMore -> Unit
+        else -> Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(64.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
                 text = stringResource(R.string.no_more_content),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
             )
+        }
+    }
+}
+
+@Composable
+private fun LoadMoreShimmer(columns: Int, gridView: Boolean) {
+    if (gridView) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            repeat(columns) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 4.dp)
+                ) {
+                    ShimmerHost(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(16f / 9f)
+                            .clip(RoundedCornerShape(18.dp))
+                    ) {
+                        Box(modifier = Modifier.fillMaxSize())
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                    ShimmerHost(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(13.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                    ) {
+                        Box(modifier = Modifier.fillMaxSize())
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    ShimmerHost(
+                        modifier = Modifier
+                            .fillMaxWidth(0.55f)
+                            .height(10.dp)
+                            .clip(RoundedCornerShape(5.dp))
+                    ) {
+                        Box(modifier = Modifier.fillMaxSize())
+                    }
+                }
+            }
+        }
+    } else {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+        ) {
+            ShimmerHost(
+                modifier = Modifier
+                    .width(160.dp)
+                    .aspectRatio(16f / 9f)
+                    .clip(RoundedCornerShape(16.dp))
+            ) {
+                Box(modifier = Modifier.fillMaxSize())
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(top = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                ShimmerHost(
+                    modifier = Modifier
+                        .fillMaxWidth(0.9f)
+                        .height(15.dp)
+                        .clip(RoundedCornerShape(7.dp))
+                ) {
+                    Box(modifier = Modifier.fillMaxSize())
+                }
+                ShimmerHost(
+                    modifier = Modifier
+                        .fillMaxWidth(0.55f)
+                        .height(12.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                ) {
+                    Box(modifier = Modifier.fillMaxSize())
+                }
+            }
         }
     }
 }
