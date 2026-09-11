@@ -542,7 +542,7 @@ private fun isCurrentlyPlaying(videoId: String): Boolean {
 }
 
 @Composable
-private fun ChannelAvatar(
+internal fun ChannelAvatar(
     channelName: String,
     channelThumbnailUrl: String?,
     modifier: Modifier = Modifier,
@@ -560,20 +560,12 @@ private fun ChannelAvatar(
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
             )
-        } else {
-            val initial = channelName.trim().firstOrNull()?.uppercase() ?: "?"
-            Text(
-                text = initial,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.SemiBold
-            )
         }
     }
 }
 
 @Composable
-private fun FeedVideoGridCard(
+internal fun FeedVideoGridCard(
     video: YouTubeVideoItem,
     isNowPlaying: Boolean,
     onClick: () -> Unit,

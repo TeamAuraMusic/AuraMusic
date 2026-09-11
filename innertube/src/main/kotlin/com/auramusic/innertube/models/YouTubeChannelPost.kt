@@ -9,6 +9,7 @@ data class YouTubeChannelPost(
     val authorThumbnail: String?,
     val publishedTimeText: String?,
     val voteCountText: String?,
+    val commentCountText: String? = null,
     val contentText: String,
     val imageUrls: List<String>,
 )

@@ -59,6 +59,11 @@ data class YouTubeChannelPostsPage(
             val published = renderer["publishedTimeText"]?.jsonObject?.let { textOf(it) }
             val votes = renderer["voteCount"]?.jsonObject
                 ?.get("simpleText")?.jsonPrimitive?.content
+            val comments = renderer["actionButtons"]?.jsonObject
+                ?.get("commentActionButtonsRenderer")?.jsonObject
+                ?.get("replyButton")?.jsonObject
+                ?.get("buttonRenderer")?.jsonObject
+                ?.let { textOf(it["text"]?.jsonObject ?: return@let null) }
             val content = renderer["contentText"]?.jsonObject?.let { textOf(it) }.orEmpty()
             val images = mutableListOf<String>()
             renderer["backstageAttachment"]?.jsonObject?.let { attachment ->
@@ -83,6 +88,7 @@ data class YouTubeChannelPostsPage(
                 authorThumbnail = authorThumbnail,
                 publishedTimeText = published,
                 voteCountText = votes,
+                commentCountText = comments?.takeIf { it.isNotBlank() && it != "Comment" },
                 contentText = content,
                 imageUrls = images,
             )

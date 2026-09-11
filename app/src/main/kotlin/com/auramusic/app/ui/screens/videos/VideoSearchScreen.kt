@@ -418,8 +418,7 @@ fun VideoSearchScreen(
                         columns = GridCells.Fixed(gridColumns),
                         state = lazyGridState,
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                     ) {
                         grouped.forEach { section ->
                             val isHero = section.titleRes == R.string.search_section_top_result
@@ -440,6 +439,9 @@ fun VideoSearchScreen(
                                     SearchResultRow(
                                         result = result,
                                         isHero = isHero,
+                                        isNowPlaying = isCurrentVideoPlaying(
+                                            (result as? YouTubeSearchResultItem.Video)?.video?.videoId
+                                        ),
                                         onVideoClick = { video ->
                                             VideoPlaybackManager.playWithDetails(
                                                 context = context,
@@ -896,10 +898,17 @@ private fun SuggestionRow(
     }
 }
 
+private fun isCurrentVideoPlaying(videoId: String?): Boolean {
+    if (videoId == null) return false
+    val state = VideoPlaybackManager.uiState.value
+    return state.session?.videoId == videoId
+}
+
 @Composable
 private fun SearchResultRow(
     result: YouTubeSearchResultItem,
     isHero: Boolean,
+    isNowPlaying: Boolean,
     onVideoClick: (YouTubeVideoItem) -> Unit,
     onChannelClick: (String) -> Unit,
     onPlaylistClick: (String) -> Unit,
@@ -909,8 +918,9 @@ private fun SearchResultRow(
             video = result.video,
             onClick = { onVideoClick(result.video) },
             onChannelClick = onChannelClick
-        ) else SearchVideoGridCard(
+        ) else FeedVideoGridCard(
             video = result.video,
+            isNowPlaying = isNowPlaying,
             onClick = { onVideoClick(result.video) },
             onChannelClick = onChannelClick
         )
@@ -1051,126 +1061,6 @@ private fun SearchHeroVideoCard(
     }
 }
 
-/**
- * Grid card for video search results, mirroring the Videos feed card: thumbnail,
- * title, channel and compact view count. Text is inset horizontally so the card's
- * rounded corners never clip the leading digit of the views line.
- */
-@Composable
-private fun SearchVideoGridCard(
-    video: YouTubeVideoItem,
-    onClick: () -> Unit,
-    onChannelClick: (String) -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .padding(vertical = 4.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(16f / 9f)
-                .clip(RoundedCornerShape(16.dp))
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-        ) {
-            val thumbnailUrl = video.thumbnails.maxByOrNull { it.width ?: 0 }?.url
-            if (thumbnailUrl != null) {
-                AsyncImage(
-                    model = thumbnailUrl,
-                    contentDescription = video.title,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                )
-            }
-            if (video.isLive) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(6.dp)
-                        .clip(RoundedCornerShape(5.dp))
-                        .background(Color(0xFFE53935))
-                        .padding(horizontal = 5.dp, vertical = 1.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.live),
-                        color = Color.White,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            } else if (video.durationText != null) {
-                val durationText = video.durationText
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(6.dp)
-                        .clip(RoundedCornerShape(5.dp))
-                        .background(Color.Black.copy(alpha = 0.78f))
-                        .padding(horizontal = 5.dp, vertical = 1.dp)
-                ) {
-                    Text(
-                        text = durationText.orEmpty(),
-                        color = Color.White,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
-        }
-
-        Text(
-            text = video.title,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 6.dp)
-        )
-        Text(
-            text = listOfNotNull(
-                video.channelName.takeIf { it.isNotEmpty() },
-                video.viewCountText?.let { compactViewCount(it) },
-                video.publishedTimeText
-            ).joinToString(" • "),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(start = 6.dp, end = 6.dp, bottom = 2.dp)
-        )
-        if (video.channelName.isNotEmpty()) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 6.dp, end = 6.dp, bottom = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                SearchAvatar(
-                    channelName = video.channelName,
-                    url = video.channelThumbnailUrl,
-                    modifierSize = 28
-                )
-                Text(
-                    text = video.channelName,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier
-                        .weight(1f, fill = false)
-                        .clip(RoundedCornerShape(4.dp))
-                        .clickable(onClick = { video.channelId?.let(onChannelClick) })
-                )
-            }
-        }
-    }
-}
-
 @Composable
 private fun SearchAvatar(
     channelName: String,
@@ -1194,13 +1084,6 @@ private fun SearchAvatar(
                 contentDescription = channelName,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
-            )
-        } else {
-            Text(
-                text = channelName.trim().firstOrNull()?.uppercase() ?: "?",
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.SemiBold,
             )
         }
     }

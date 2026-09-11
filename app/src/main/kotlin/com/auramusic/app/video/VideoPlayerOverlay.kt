@@ -151,13 +151,22 @@ fun VideoPlayerOverlay(
                 onChannelClick = onChannelClick,
             )
         } else {
+            // Navigating to a channel while expanded would leave the full-screen
+            // overlay covering it, so minimize the player first so the channel
+            // screen is actually visible.
+            val expandedChannelClick: ((String) -> Unit)? = onChannelClick?.let { click ->
+                { channelId ->
+                    VideoPlaybackManager.collapse()
+                    click(channelId)
+                }
+            }
             VideoExpandedPlayer(
                 player = player,
                 session = session,
                 uiState = state,
                 onCollapse = { VideoPlaybackManager.collapse() },
                 onClose = { VideoPlaybackManager.close() },
-                onChannelClick = onChannelClick,
+                onChannelClick = expandedChannelClick,
             )
         }
     }
