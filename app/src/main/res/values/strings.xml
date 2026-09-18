@@ -56,6 +56,9 @@
     <string name="collapse_video">Minimize video</string>
     <string name="no_more_content">You\'re all caught up</string>
     <string name="added_to_queue">Added to queue</string>
+    <string name="recent_searches">Recent searches</string>
+    <string name="clear_recent_searches">Clear recent searches</string>
+    <string name="now_playing_in_search">Now playing</string>
     <string name="all_results">All</string>
     <string name="channels">Channels</string>
     <string name="search_suggestions">Suggestions</string>

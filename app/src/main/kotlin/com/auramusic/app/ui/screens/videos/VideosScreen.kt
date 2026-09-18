@@ -699,7 +699,7 @@ private fun LoadMoreShimmer(columns: Int, gridView: Boolean) {
 }
 
 @Composable
-private fun NowPlayingBars(color: Color, modifier: Modifier = Modifier) {
+internal fun NowPlayingBars(color: Color, modifier: Modifier = Modifier) {
     val transition = rememberInfiniteTransition(label = "nowPlaying")
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -993,7 +993,7 @@ internal fun FeedVideoGridCard(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun FeedVideoListRow(
+internal fun FeedVideoListRow(
     video: YouTubeVideoItem,
     isNowPlaying: Boolean,
     onClick: () -> Unit,

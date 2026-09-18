@@ -5,6 +5,7 @@
 
 package com.auramusic.app.ui.screens.videos
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -76,11 +77,17 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.datastore.preferences.core.edit
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.auramusic.app.LocalPlayerAwareWindowInsets
 import com.auramusic.app.R
+import com.auramusic.app.constants.VideoRecentSearchesKey
+import com.auramusic.app.constants.VideoSearchGridViewKey
 import com.auramusic.app.utils.compactViewCount
+import com.auramusic.app.utils.dataStore
+import com.auramusic.app.utils.get
+import com.auramusic.app.utils.rememberPreference
 import com.auramusic.app.video.VideoPlaybackManager
 import com.auramusic.innertube.YouTube
 import com.auramusic.innertube.models.YouTubeSearchResultItem
@@ -121,6 +128,22 @@ private enum class SearchSortBy(val labelRes: Int, val spParams: String?) {
     ViewCount(R.string.search_sort_view_count, YouTube.SEARCH_SORT_BY_VIEW_COUNT),
 }
 
+private const val RECENT_SEARCHES_SEPARATOR = "\u001F"
+private const val MAX_RECENT_SEARCHES = 10
+
+private fun readRecentSearches(context: Context): List<String> =
+    context.dataStore[VideoRecentSearchesKey]
+        ?.split(RECENT_SEARCHES_SEPARATOR)
+        ?.filter { it.isNotBlank() }
+        ?.take(MAX_RECENT_SEARCHES)
+        .orEmpty()
+
+private suspend fun writeRecentSearches(context: Context, searches: List<String>) {
+    context.dataStore.edit { settings ->
+        settings[VideoRecentSearchesKey] = searches.take(MAX_RECENT_SEARCHES).joinToString(RECENT_SEARCHES_SEPARATOR)
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VideoSearchScreen(
@@ -149,6 +172,8 @@ fun VideoSearchScreen(
     var activeDuration by remember { mutableStateOf(SearchDuration.AnyDuration) }
     var activeTimeFrame by remember { mutableStateOf(SearchTimeFrame.AnyTime) }
     var activeSort by remember { mutableStateOf(SearchSortBy.Relevance) }
+    var gridView by rememberPreference(VideoSearchGridViewKey, true)
+    var recentSearches by remember { mutableStateOf(readRecentSearches(context)) }
 
     suspend fun performSearch(searchQuery: String) {
         if (searchQuery.isEmpty()) return
@@ -201,6 +226,35 @@ fun VideoSearchScreen(
         isLoadingMore = false
     }
 
+    fun saveRecentSearch(rawQuery: String) {
+        val trimmed = rawQuery.trim()
+        if (trimmed.isEmpty()) return
+        val updated = (listOf(trimmed) + recentSearches.filter { it != trimmed }).take(MAX_RECENT_SEARCHES)
+        recentSearches = updated
+        coroutineScope.launch { writeRecentSearches(context, updated) }
+    }
+
+    fun removeRecentSearch(rawQuery: String) {
+        val updated = recentSearches.filter { it != rawQuery }
+        recentSearches = updated
+        coroutineScope.launch { writeRecentSearches(context, updated) }
+    }
+
+    fun clearRecentSearches() {
+        recentSearches = emptyList()
+        coroutineScope.launch { writeRecentSearches(context, emptyList()) }
+    }
+
+    fun onSearchCommitted(rawQuery: String) {
+        val trimmed = rawQuery.trim()
+        if (trimmed.isEmpty()) return
+        query = trimmed
+        hasSearched = true
+        focusManager.clearFocus()
+        saveRecentSearch(trimmed)
+        coroutineScope.launch { performSearch(trimmed) }
+    }
+
     LaunchedEffect(Unit) {
         if (initialQuery.isNotEmpty()) {
             performSearch(initialQuery)
@@ -214,6 +268,11 @@ fun VideoSearchScreen(
         if (query.isNotEmpty() && query != initialQuery && !hasSearched) {
             delay(250)
             loadSuggestions(query)
+            delay(750)
+            if (!hasSearched && query.isNotBlank()) {
+                hasSearched = true
+                coroutineScope.launch { performSearch(query) }
+            }
         } else if (query.isEmpty() && !hasSearched) {
             loadSuggestions("")
         }
@@ -262,10 +321,9 @@ fun VideoSearchScreen(
                             focusRequester.requestFocus()
                         },
                         onSubmit = {
-                            focusManager.clearFocus()
                             query = query.trim()
                             hasSearched = true
-                            coroutineScope.launch { performSearch(query) }
+                            onSearchCommitted(query)
                         },
                         focusRequester = focusRequester,
                     )
@@ -277,6 +335,19 @@ fun VideoSearchScreen(
                             contentDescription = stringResource(R.string.dismiss),
                             tint = MaterialTheme.colorScheme.onSurface
                         )
+                    }
+                },
+                actions = {
+                    if (hasSearched) {
+                        IconButton(onClick = { gridView = !gridView }) {
+                            Icon(
+                                painter = painterResource(if (gridView) R.drawable.list else R.drawable.grid_view),
+                                contentDescription = stringResource(
+                                    if (gridView) R.string.videos_list_view else R.string.videos_grid_view
+                                ),
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -335,8 +406,49 @@ fun VideoSearchScreen(
             }
 
             val showSuggestions = !hasSearched && suggestions.isNotEmpty()
+            val showRecent = !hasSearched && query.isEmpty() && recentSearches.isNotEmpty()
             when {
                 isLoading -> SearchSkeleton()
+
+                !hasSearched && showRecent -> {
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        item(key = "recent_title") {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.recent_searches),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Text(
+                                    text = stringResource(R.string.clear),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.clickable {
+                                        clearRecentSearches()
+                                    }
+                                )
+                            }
+                        }
+                        items(items = recentSearches, key = { it }) { recent ->
+                            RecentSearchRow(
+                                query = recent,
+                                onClick = {
+                                    query = recent
+                                    hasSearched = true
+                                    onSearchCommitted(recent)
+                                },
+                                onDelete = { removeRecentSearch(recent) }
+                            )
+                        }
+                    }
+                }
 
                 !hasSearched && showSuggestions -> {
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -355,8 +467,7 @@ fun VideoSearchScreen(
                                 onClick = {
                                     query = suggestion
                                     hasSearched = true
-                                    focusManager.clearFocus()
-                                    coroutineScope.launch { performSearch(suggestion) }
+                                    onSearchCommitted(suggestion)
                                 }
                             )
                         }
@@ -431,10 +542,15 @@ fun VideoSearchScreen(
                                 }
                             }
                             section.items.forEachIndexed { index, result ->
-                                val isGridVideo = result is YouTubeSearchResultItem.Video && !isHero
+                                val isGridVideo = result is YouTubeSearchResultItem.Video && !isHero && gridView
+                                val isListVideo = result is YouTubeSearchResultItem.Video && !isHero && !gridView
                                 item(
                                     key = result.key() + (if (isHero) "_${index}" else ""),
-                                    span = { if (isGridVideo) GridItemSpan(1) else GridItemSpan(maxLineSpan) },
+                                    span = {
+                                        if (isGridVideo) GridItemSpan(1)
+                                        else if (isListVideo) GridItemSpan(maxLineSpan)
+                                        else GridItemSpan(maxLineSpan)
+                                    },
                                 ) {
                                     SearchResultRow(
                                         result = result,
@@ -442,6 +558,7 @@ fun VideoSearchScreen(
                                         isNowPlaying = isCurrentVideoPlaying(
                                             (result as? YouTubeSearchResultItem.Video)?.video?.videoId
                                         ),
+                                        gridView = gridView,
                                         onVideoClick = { video ->
                                             VideoPlaybackManager.playWithDetails(
                                                 context = context,
@@ -898,6 +1015,53 @@ private fun SuggestionRow(
     }
 }
 
+@Composable
+private fun RecentSearchRow(
+    query: String,
+    onClick: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(start = 16.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(34.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.history),
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Text(
+            text = query,
+            style = MaterialTheme.typography.bodyMedium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f)
+        )
+        IconButton(onClick = onDelete) {
+            Icon(
+                painter = painterResource(R.drawable.delete),
+                contentDescription = stringResource(R.string.delete),
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+            )
+        }
+    }
+}
+
 private fun isCurrentVideoPlaying(videoId: String?): Boolean {
     if (videoId == null) return false
     val state = VideoPlaybackManager.uiState.value
@@ -909,6 +1073,7 @@ private fun SearchResultRow(
     result: YouTubeSearchResultItem,
     isHero: Boolean,
     isNowPlaying: Boolean,
+    gridView: Boolean,
     onVideoClick: (YouTubeVideoItem) -> Unit,
     onChannelClick: (String) -> Unit,
     onPlaylistClick: (String) -> Unit,
@@ -916,9 +1081,15 @@ private fun SearchResultRow(
     when (result) {
         is YouTubeSearchResultItem.Video -> if (isHero) SearchHeroVideoCard(
             video = result.video,
+            isNowPlaying = isNowPlaying,
             onClick = { onVideoClick(result.video) },
             onChannelClick = onChannelClick
-        ) else FeedVideoGridCard(
+        ) else if (gridView) FeedVideoGridCard(
+            video = result.video,
+            isNowPlaying = isNowPlaying,
+            onClick = { onVideoClick(result.video) },
+            onChannelClick = onChannelClick
+        ) else FeedVideoListRow(
             video = result.video,
             isNowPlaying = isNowPlaying,
             onClick = { onVideoClick(result.video) },
@@ -938,6 +1109,7 @@ private fun SearchResultRow(
 @Composable
 private fun SearchHeroVideoCard(
     video: YouTubeVideoItem,
+    isNowPlaying: Boolean,
     onClick: () -> Unit,
     onChannelClick: (String) -> Unit,
 ) {
@@ -974,6 +1146,26 @@ private fun SearchHeroVideoCard(
                         )
                     )
             )
+            if (isNowPlaying) {
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(8.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(MaterialTheme.colorScheme.primary)
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    NowPlayingBars(color = MaterialTheme.colorScheme.onPrimary)
+                    Text(
+                        text = stringResource(R.string.now_playing),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
             if (video.isLive) {
                 Box(
                     modifier = Modifier
