@@ -10,8 +10,10 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,6 +48,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
@@ -56,6 +60,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.pulltorefresh.pullToRefresh
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -77,6 +82,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.auramusic.app.LocalPlayerAwareWindowInsets
@@ -98,6 +106,7 @@ private enum class VideoCategory(
     Music(R.string.filter_music),
     ForYou(R.string.for_you),
     Trending(R.string.trending),
+    New(R.string.video_category_new),
     Gaming(R.string.video_category_gaming),
 }
 
@@ -128,6 +137,7 @@ fun VideosScreen(
                 VideoCategory.ForYou -> YouTube.youtubeHomeFeed().getOrNull()
                 VideoCategory.Trending -> YouTube.youtubeTrending().getOrNull()
                 VideoCategory.Music -> YouTube.youtubeCategoryFeed(context.getString(R.string.video_category_music_query)).getOrNull()
+                VideoCategory.New -> YouTube.youtubeNewFeed(context.getString(R.string.video_category_new_query)).getOrNull()
                 VideoCategory.Gaming -> YouTube.youtubeCategoryFeed(context.getString(R.string.video_category_gaming_query)).getOrNull()
             }
             if (result != null && result.items.isNotEmpty()) {
@@ -171,6 +181,7 @@ fun VideosScreen(
                 VideoCategory.ForYou -> YouTube.youtubeHomeFeed(cont).getOrNull()
                 VideoCategory.Trending -> YouTube.youtubeTrending(cont).getOrNull()
                 VideoCategory.Music -> YouTube.youtubeCategoryFeed(context.getString(R.string.video_category_music_query), cont).getOrNull()
+                VideoCategory.New -> YouTube.youtubeNewFeed(context.getString(R.string.video_category_new_query), cont).getOrNull()
                 VideoCategory.Gaming -> YouTube.youtubeCategoryFeed(context.getString(R.string.video_category_gaming_query), cont).getOrNull()
             }
             result?.takeIf { it.items.isNotEmpty() }?.let {
@@ -196,6 +207,26 @@ fun VideosScreen(
 
     LaunchedEffect(selectedCategory) {
         loadFirstPage()
+    }
+
+    // Auto-refresh the feed on return: when the screen resumes (app foregrounded,
+    // or the user navigates back from search / a channel / the video player),
+    // silently reload the first page if we're not already loading.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var hasLoadedOnce by remember { mutableStateOf(false) }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME && hasLoadedOnce && !isLoading) {
+                scope.launch {
+                    refreshFeed()
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    LaunchedEffect(isLoading) {
+        if (!isLoading && feed.isNotEmpty()) hasLoadedOnce = true
     }
 
     val gridListState = rememberLazyGridState()
@@ -741,27 +772,76 @@ internal fun ChannelAvatar(
 }
 
 @Composable
+private fun FeedVideoContextMenu(
+    video: YouTubeVideoItem,
+    expanded: Boolean,
+    onDismiss: () -> Unit,
+) {
+    val context = LocalContext.current
+    DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.play_next)) },
+            leadingIcon = { Icon(painterResource(R.drawable.ic_skip_next), contentDescription = null) },
+            onClick = {
+                VideoPlaybackManager.queueNext(video)
+                onDismiss()
+            },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.add_to_queue)) },
+            leadingIcon = { Icon(painterResource(R.drawable.ic_queue), contentDescription = null) },
+            onClick = {
+                VideoPlaybackManager.addToQueue(video)
+                onDismiss()
+            },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.share)) },
+            leadingIcon = { Icon(painterResource(R.drawable.share), contentDescription = null) },
+            onClick = {
+                VideoPlaybackManager.shareVideo(context, video.videoId, video.title)
+                onDismiss()
+            },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.copy_link)) },
+            leadingIcon = { Icon(painterResource(R.drawable.link), contentDescription = null) },
+            onClick = {
+                VideoPlaybackManager.copyVideoLink(context, video.videoId)
+                onDismiss()
+            },
+        )
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
 internal fun FeedVideoGridCard(
     video: YouTubeVideoItem,
     isNowPlaying: Boolean,
     onClick: () -> Unit,
     onChannelClick: (String) -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .padding(horizontal = 4.dp, vertical = 6.dp)
-            .clip(RoundedCornerShape(18.dp))
-            .then(
-                if (isNowPlaying) {
-                    Modifier.background(
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                        RoundedCornerShape(18.dp)
-                    )
-                } else Modifier
-            )
-            .clickable(onClick = onClick),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
+    var menuExpanded by remember { mutableStateOf(false) }
+    Box {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 4.dp, vertical = 6.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .then(
+                    if (isNowPlaying) {
+                        Modifier.background(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                            RoundedCornerShape(18.dp)
+                        )
+                    } else Modifier
+                )
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = { menuExpanded = true },
+                ),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -902,9 +982,16 @@ internal fun FeedVideoGridCard(
                     .padding(start = 8.dp, end = 8.dp, bottom = 2.dp)
             )
         }
+        }
+        FeedVideoContextMenu(
+            video = video,
+            expanded = menuExpanded,
+            onDismiss = { menuExpanded = false },
+        )
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun FeedVideoListRow(
     video: YouTubeVideoItem,
@@ -912,13 +999,18 @@ private fun FeedVideoListRow(
     onClick: () -> Unit,
     onChannelClick: (String) -> Unit,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
+    var menuExpanded by remember { mutableStateOf(false) }
+    Box {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = { menuExpanded = true },
+                )
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
         Box(
             modifier = Modifier
                 .width(160.dp)
@@ -1034,5 +1126,11 @@ private fun FeedVideoListRow(
                 }
             }
         }
+        }
+        FeedVideoContextMenu(
+            video = video,
+            expanded = menuExpanded,
+            onDismiss = { menuExpanded = false },
+        )
     }
 }

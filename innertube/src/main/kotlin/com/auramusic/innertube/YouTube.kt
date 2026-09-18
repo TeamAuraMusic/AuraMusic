@@ -237,9 +237,16 @@ object YouTube {
      * Search-based video feed. Runs a WEB search restricted to the Videos sp filter
      * and maps the video results to a uniform [YouTubeFeedResult].
      */
-    private suspend fun youtubeSearchFeed(query: String, continuation: String? = null): Result<YouTubeFeedResult> = runCatching {
+    private suspend fun youtubeSearchFeed(
+        query: String,
+        continuation: String? = null,
+        sortParams: String? = null,
+    ): Result<YouTubeFeedResult> = runCatching {
         val result = if (continuation == null) {
-            youtubeSearch(query, params = VIDEOS_SP_PARAM).getOrThrow()
+            youtubeSearch(
+                query,
+                params = sortParams?.let { combineSearchParams(VIDEOS_SP_PARAM, it) } ?: VIDEOS_SP_PARAM,
+            ).getOrThrow()
         } else {
             youtubeSearchContinuation(continuation).getOrThrow()
         }
@@ -248,6 +255,10 @@ object YouTube {
             continuation = result.continuation,
         )
     }
+
+    /** Newest-uploads feed: the Videos filter stacked with a sort-by-date param. */
+    suspend fun youtubeNewFeed(query: String, continuation: String? = null): Result<YouTubeFeedResult> =
+        youtubeSearchFeed(query, continuation = continuation, sortParams = SEARCH_SORT_BY_DATE)
 
     private suspend fun youtubeFeed(browseId: String, continuation: String? = null): Result<YouTubeFeedResult> = runCatching {
         val response = innerTube.browseYouTube(WEB, browseId = browseId, continuation = continuation)

@@ -34,6 +34,7 @@ import com.auramusic.app.utils.get
 import com.auramusic.app.playback.MusicService
 import com.auramusic.innertube.YouTube
 import com.auramusic.innertube.models.WatchEndpoint
+import com.auramusic.innertube.models.YouTubeVideoItem
 import com.auramusic.innertube.models.response.WatchCompactVideo
 import com.auramusic.innertube.models.response.WatchMetadataResponse
 import com.auramusic.innertube.models.response.channelAvatarUrl
@@ -502,6 +503,17 @@ object VideoPlaybackManager {
         publishedTimeText = publishedTimeText,
     )
 
+    private fun YouTubeVideoItem.toRecommendationItem() = RecommendationItem(
+        videoId = videoId,
+        title = title,
+        channelName = channelName,
+        channelId = channelId,
+        thumbnail = thumbnails.maxByOrNull { it.width ?: 0 }?.url ?: VideoThumbnails.highQuality(videoId),
+        durationText = durationText,
+        viewCountText = viewCountText,
+        publishedTimeText = publishedTimeText,
+    )
+
     private fun YoutubeComment.toCommentItem() = CommentItem(
         commentId = commentId,
         authorName = authorName,
@@ -732,20 +744,12 @@ object VideoPlaybackManager {
 
     fun shareVideo(context: Context) {
         val session = _uiState.value.session ?: return
-        val url = "https://youtu.be/${session.videoId}"
-        val intent = Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            putExtra(Intent.EXTRA_TEXT, url)
-            putExtra(Intent.EXTRA_SUBJECT, session.title)
-        }
-        context.startActivity(Intent.createChooser(intent, null).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        shareVideo(context, session.videoId, session.title)
     }
 
     fun copyVideoLink(context: Context) {
         val session = _uiState.value.session ?: return
-        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        clipboard.setPrimaryClip(ClipData.newPlainText("video_link", "https://youtu.be/${session.videoId}"))
-        Toast.makeText(context, R.string.video_player_copy_link, Toast.LENGTH_SHORT).show()
+        copyVideoLink(context, session.videoId)
     }
 
     /** Adds the current video to the given playlist id. */
@@ -757,6 +761,50 @@ object VideoPlaybackManager {
                 Toast.makeText(ctx, R.string.video_player_added_to_playlist, Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    /**
+     * Queues a feed/list video (not necessarily the current one) for playback as
+     * the next item. The item is prepended to the Up Next list and the queue.
+     */
+    fun queueNext(video: YouTubeVideoItem) {
+        _uiState.update { state ->
+            val existing = state.recommendations.any { it.videoId == video.videoId }
+            val currentId = state.session?.videoId
+            val item = video.toRecommendationItem()
+            state.copy(
+                recommendations = if (existing) state.recommendations else listOf(item) + state.recommendations,
+                queue = listOf(item) + state.queue.filterNot { it.videoId == currentId },
+            )
+        }
+    }
+
+    /** Appends a feed/list video to the end of the playback queue. */
+    fun addToQueue(video: YouTubeVideoItem) {
+        _uiState.update { state ->
+            if (state.queue.any { it.videoId == video.videoId }) return@update state
+            state.copy(
+                recommendations = if (state.recommendations.any { it.videoId == video.videoId }) state.recommendations
+                else state.recommendations + video.toRecommendationItem(),
+                queue = state.queue + video.toRecommendationItem(),
+            )
+        }
+    }
+
+    fun shareVideo(context: Context, videoId: String, title: String) {
+        val url = "https://youtu.be/$videoId"
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, url)
+            putExtra(Intent.EXTRA_SUBJECT, title)
+        }
+        context.startActivity(Intent.createChooser(intent, null).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
+
+    fun copyVideoLink(context: Context, videoId: String) {
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText("video_link", "https://youtu.be/$videoId"))
+        Toast.makeText(context, R.string.video_player_copy_link, Toast.LENGTH_SHORT).show()
     }
 
     fun toggleSettings() {
