@@ -1054,4 +1054,24 @@
     <string name="video_player_loading_recommendations">Chargement des recommandations…</string>
     <string name="video_player_subscribe_count">%s abonnés</string>
     <string name="video_player_views">%s vues</string>
+    <string name="video_category_new">Nouveau</string>
+    <string name="video_category_new_query">nouvelles vidéos</string>
+    <string name="added_to_queue">Ajouté à la file d\'attente</string>
+    <string name="recent_searches">Recherches récentes</string>
+    <string name="clear_recent_searches">Effacer les recherches récentes</string>
+    <string name="now_playing_in_search">En cours de lecture</string>
+    <string name="video_player_autoplay_next">Lecture automatique de la vidéo suivante</string>
+    <string name="video_player_autoplay_next_desc">Lire automatiquement la vidéo recommandée suivante</string>
+    <string name="video_player_add_to_playlist">Ajouter à la playlist</string>
+    <string name="video_player_added_to_playlist">Ajouté à la playlist</string>
+    <string name="video_player_copy_link">Copier le lien</string>
+    <string name="video_player_quality_360p">360p</string>
+    <string name="video_player_quality_480p">480p</string>
+    <string name="video_player_quality_720p">720p</string>
+    <string name="video_player_quality_1080p">1080p</string>
+    <string name="video_player_remove_from_queue">Retirer de la file d\'attente</string>
+    <string name="video_player_queue_loading">Chargement de vos playlists…</string>
+    <string name="video_player_queue_empty">Aucune playlist trouvée</string>
+    <string name="video_player_brightness">Luminosité</string>
+    <string name="video_player_volume">Volume</string>
 </resources>
