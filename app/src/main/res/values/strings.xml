@@ -1085,6 +1085,20 @@
     <string name="video_player_loading_recommendations">Loading recommendations…</string>
     <string name="video_player_subscribe_count">%s subscribers</string>
     <string name="video_player_views">%s views</string>
+    <string name="video_player_autoplay_next">Autoplay next</string>
+    <string name="video_player_autoplay_next_desc">Play the next recommended video automatically</string>
+    <string name="video_player_add_to_playlist">Add to playlist</string>
+    <string name="video_player_added_to_playlist">Added to playlist</string>
+    <string name="video_player_copy_link">Copy link</string>
+    <string name="video_player_quality_360p">360p</string>
+    <string name="video_player_quality_480p">480p</string>
+    <string name="video_player_quality_720p">720p</string>
+    <string name="video_player_quality_1080p">1080p</string>
+    <string name="video_player_remove_from_queue">Remove from queue</string>
+    <string name="video_player_queue_loading">Loading your playlists…</string>
+    <string name="video_player_queue_empty">No playlists found</string>
+    <string name="video_player_brightness">Brightness</string>
+    <string name="video_player_volume">Volume</string>
     <!-- Music Alarm -->
     <string name="alarm_title">Music alarm</string>
     <string name="alarm_subtitle">Alarm scheduled for %1$s</string>

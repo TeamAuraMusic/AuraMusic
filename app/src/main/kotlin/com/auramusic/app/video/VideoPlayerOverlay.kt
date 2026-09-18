@@ -5,6 +5,7 @@
 
 package com.auramusic.app.video
 
+import android.media.AudioManager
 import android.view.ViewGroup
 import android.view.WindowManager
 import androidx.activity.compose.BackHandler
@@ -49,16 +50,21 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SecondaryScrollableTabRow
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -102,9 +108,15 @@ import androidx.media3.ui.PlayerView
 import coil3.compose.AsyncImage
 import com.auramusic.app.LocalVideoMiniPlayerBottomPadding
 import com.auramusic.app.R
+import com.auramusic.app.constants.VideoQuality
 import com.auramusic.app.video.VideoPlaybackManager.CommentItem
 import com.auramusic.app.video.VideoPlaybackManager.RecommendationItem
+import com.auramusic.innertube.YouTube
+import com.auramusic.innertube.models.PlaylistItem
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun VideoPlayerOverlay(
@@ -481,18 +493,53 @@ private fun VideoSurfaceWithControls(
 ) {
     val haptic = LocalHapticFeedback.current
     val density = LocalDensity.current
+    val context = LocalContext.current
+    val audioManager = context.getSystemService(AudioManager::class.java)
+    val activity = context as? android.app.Activity
+
+    val defaultBrightness: Float = runCatching {
+        val value = android.provider.Settings.System.getInt(
+            context.contentResolver,
+            android.provider.Settings.System.SCREEN_BRIGHTNESS,
+        )
+        value / 255f
+    }.getOrDefault(0.5f)
 
     var collapseDragPx by remember { mutableFloatStateOf(0f) }
     var scrubPreviewMs by remember { mutableStateOf<Long?>(null) }
     var isForward by remember { mutableStateOf(true) }
     var seekHint by remember { mutableStateOf<String?>(null) }
+    var adjustPreview by remember {
+        mutableStateOf<AdjustPreview?>(null)
+    }
     val seekForwardLabel = stringResource(R.string.seek_forward_dynamic)
     val seekBackwardLabel = stringResource(R.string.seek_backward_dynamic)
+
+    // Restore system brightness when leaving the expanded player so the window
+    // brightness override set by the vertical gesture doesn't persist.
+    DisposableEffect(activity) {
+        onDispose {
+            activity?.window?.let { window ->
+                val attrs = window.attributes
+                if (attrs.screenBrightness >= 0f) {
+                    attrs.screenBrightness = -1f
+                    window.attributes = attrs
+                }
+            }
+        }
+    }
 
     LaunchedEffect(seekHint) {
         if (seekHint != null) {
             delay(700)
             seekHint = null
+        }
+    }
+
+    LaunchedEffect(adjustPreview) {
+        if (adjustPreview != null) {
+            delay(800)
+            adjustPreview = null
         }
     }
 
@@ -532,16 +579,70 @@ private fun VideoSurfaceWithControls(
                 )
             }
             .pointerInput(useFullHeight) {
-                if (useFullHeight) return@pointerInput
+                var dragMode = DragMode.NONE
                 detectVerticalDragGestures(
-                    onDragEnd = {
-                        if (collapseDragPx > with(density) { 120.dp.toPx() }) onCollapse() else collapseDragPx = 0f
+                    onDragStart = { offset ->
+                        dragMode = when {
+                            offset.x < size.width / 3f -> DragMode.BRIGHTNESS
+                            offset.x > size.width * 2f / 3f -> DragMode.VOLUME
+                            !useFullHeight -> DragMode.COLLAPSE
+                            else -> DragMode.NONE
+                        }
                     },
-                    onDragCancel = { collapseDragPx = 0f },
+                    onDragEnd = {
+                        when (dragMode) {
+                            DragMode.COLLAPSE -> {
+                                if (collapseDragPx > with(density) { 120.dp.toPx() }) onCollapse() else collapseDragPx = 0f
+                            }
+                            else -> collapseDragPx = 0f
+                        }
+                        dragMode = DragMode.NONE
+                    },
+                    onDragCancel = {
+                        collapseDragPx = 0f
+                        dragMode = DragMode.NONE
+                    },
                 ) { change, dragAmount ->
-                    if (dragAmount > 0f) {
-                        collapseDragPx = (collapseDragPx + dragAmount).coerceIn(0f, 800f)
-                        change.consume()
+                    when (dragMode) {
+                        DragMode.COLLAPSE -> {
+                            if (dragAmount > 0f) {
+                                collapseDragPx = (collapseDragPx + dragAmount).coerceIn(0f, 800f)
+                                change.consume()
+                            }
+                        }
+                        DragMode.BRIGHTNESS -> {
+                            change.consume()
+                            val delta = -dragAmount / size.height
+                            val base = activity?.window?.attributes?.screenBrightness
+                                ?.takeIf { it >= 0f }
+                                ?: defaultBrightness
+                            val newBrightness = (base + delta * 1.2f).coerceIn(0.05f, 1f)
+                            activity?.window?.let { window ->
+                                val attrs = window.attributes
+                                attrs.screenBrightness = newBrightness
+                                window.attributes = attrs
+                            }
+                            adjustPreview = AdjustPreview(DragMode.BRIGHTNESS, newBrightness)
+                            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                        }
+                        DragMode.VOLUME -> {
+                            change.consume()
+                            val max = audioManager?.getStreamMaxVolume(AudioManager.STREAM_MUSIC) ?: return@detectVerticalDragGestures
+                            val current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+                            val target = (current + (-dragAmount / size.height) * max * 1.2f)
+                                .toInt()
+                                .coerceIn(0, max)
+                            if (target != current) {
+                                audioManager.setStreamVolume(
+                                    AudioManager.STREAM_MUSIC,
+                                    target,
+                                    0,
+                                )
+                            }
+                            adjustPreview = AdjustPreview(DragMode.VOLUME, target.toFloat() / max.coerceAtLeast(1))
+                            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                        }
+                        DragMode.NONE -> Unit
                     }
                 }
             }
@@ -598,6 +699,14 @@ private fun VideoSurfaceWithControls(
                 previewMs = preview,
                 positionMs = uiState.positionMs,
                 isForward = isForward,
+                modifier = Modifier.align(Alignment.Center),
+            )
+        }
+
+        adjustPreview?.let { preview ->
+            AdjustPreviewBadge(
+                mode = preview.mode,
+                fraction = preview.fraction,
                 modifier = Modifier.align(Alignment.Center),
             )
         }
@@ -959,6 +1068,48 @@ private fun SeekPreviewBadge(
     }
 }
 
+private enum class DragMode { NONE, BRIGHTNESS, VOLUME, COLLAPSE }
+
+private data class AdjustPreview(
+    val mode: DragMode,
+    val fraction: Float,
+)
+
+@Composable
+private fun AdjustPreviewBadge(
+    mode: DragMode,
+    fraction: Float,
+    modifier: Modifier = Modifier,
+) {
+    val label = when (mode) {
+        DragMode.BRIGHTNESS -> stringResource(R.string.video_player_brightness)
+        else -> stringResource(R.string.video_player_volume)
+    }
+    val icon = when (mode) {
+        DragMode.BRIGHTNESS -> R.drawable.contrast
+        else -> R.drawable.volume_up
+    }
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+            .background(Color.Black.copy(alpha = 0.65f), RoundedCornerShape(12.dp))
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Icon(
+            painter = painterResource(icon),
+            contentDescription = label,
+            modifier = Modifier.size(30.dp),
+            tint = Color.White,
+        )
+        Text(
+            text = "${(fraction.coerceIn(0f, 1f) * 100).toInt()}%",
+            color = Color.White,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold,
+        )
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Detail pane: title, channel row, actions, tabs (comments / up next)
 // ---------------------------------------------------------------------------
@@ -1176,6 +1327,10 @@ private fun ActionButtonsRow(
     isSaved: Boolean,
     likeCountText: String?,
 ) {
+    val context = LocalContext.current
+    var menuOpen by remember { mutableStateOf(false) }
+    var showPlaylistDialog by remember { mutableStateOf(false) }
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -1204,7 +1359,134 @@ private fun ActionButtonsRow(
             onClick = { VideoPlaybackManager.toggleSave() },
             modifier = Modifier.weight(1f)
         )
+        Box {
+            Surface(
+                onClick = { menuOpen = true },
+                shape = RoundedCornerShape(22.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                modifier = Modifier.size(42.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        painter = painterResource(R.drawable.more_horiz),
+                        contentDescription = stringResource(R.string.video_player_share),
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            DropdownMenu(
+                expanded = menuOpen,
+                onDismissRequest = { menuOpen = false },
+            ) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.video_player_share)) },
+                    onClick = {
+                        menuOpen = false
+                        VideoPlaybackManager.shareVideo(context)
+                    },
+                    leadingIcon = {
+                        Icon(painterResource(R.drawable.share), contentDescription = null, modifier = Modifier.size(20.dp))
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.video_player_copy_link)) },
+                    onClick = {
+                        menuOpen = false
+                        VideoPlaybackManager.copyVideoLink(context)
+                    },
+                    leadingIcon = {
+                        Icon(painterResource(R.drawable.link), contentDescription = null, modifier = Modifier.size(20.dp))
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.video_player_add_to_playlist)) },
+                    onClick = {
+                        menuOpen = false
+                        showPlaylistDialog = true
+                    },
+                    leadingIcon = {
+                        Icon(painterResource(R.drawable.playlist_add), contentDescription = null, modifier = Modifier.size(20.dp))
+                    }
+                )
+            }
+        }
     }
+
+    if (showPlaylistDialog) {
+        AddToPlaylistVideoDialog(
+            onDismiss = { showPlaylistDialog = false },
+        )
+    }
+}
+
+@Composable
+private fun AddToPlaylistVideoDialog(
+    onDismiss: () -> Unit,
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var playlists by remember { mutableStateOf<List<PlaylistItem>>(emptyList()) }
+    var loading by remember { mutableStateOf(true) }
+
+    LaunchedEffect(Unit) {
+        loading = true
+        val result = withContext(Dispatchers.IO) {
+            YouTube.library("FEmusic_liked_playlists").getOrNull()
+        }
+        playlists = result?.items.orEmpty().filterIsInstance<PlaylistItem>()
+        loading = false
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(stringResource(R.string.video_player_add_to_playlist))
+        },
+        text = {
+            when {
+                loading -> {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(stringResource(R.string.video_player_queue_loading))
+                    }
+                }
+                playlists.isEmpty() -> {
+                    Text(stringResource(R.string.video_player_queue_empty))
+                }
+                else -> {
+                    LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                        items(playlists) { playlist ->
+                            Text(
+                                text = playlist.title,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        VideoPlaybackManager.addToPlaylist(playlist.id)
+                                        onDismiss()
+                                    }
+                                    .padding(vertical = 12.dp),
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(android.R.string.cancel))
+            }
+        },
+    )
 }
 
 @Composable
@@ -1462,7 +1744,33 @@ private fun CommentRow(comment: CommentItem) {
 private fun UpNextSection(uiState: VideoPlaybackManager.UiState) {
     val context = LocalContext.current
 
-    when {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.video_player_autoplay_next),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = stringResource(R.string.video_player_autoplay_next_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Switch(
+                checked = uiState.autoplayEnabled,
+                onCheckedChange = { VideoPlaybackManager.setAutoplayEnabled(it) },
+            )
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+
+        when {
         uiState.isLoadingRecommendations -> {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -1512,7 +1820,8 @@ private fun UpNextSection(uiState: VideoPlaybackManager.UiState) {
                                 viewCountText = item.viewCountText,
                                 publishedTimeText = item.publishedTimeText,
                             )
-                        }
+                        },
+                        onRemove = { VideoPlaybackManager.removeFromQueue(item.videoId) },
                     )
                 }
                 if (uiState.isLoadingMoreRecommendations) {
@@ -1527,6 +1836,7 @@ private fun UpNextSection(uiState: VideoPlaybackManager.UiState) {
                 }
             }
         }
+        }
     }
 }
 
@@ -1535,6 +1845,7 @@ private fun UpNextRow(
     item: RecommendationItem,
     isPlaying: Boolean,
     onClick: () -> Unit,
+    onRemove: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -1642,6 +1953,26 @@ private fun UpNextRow(
                 )
             }
         }
+
+        if (!isPlaying) {
+            Surface(
+                onClick = onRemove,
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.6f),
+                modifier = Modifier
+                    .padding(start = 6.dp)
+                    .size(28.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        painter = painterResource(R.drawable.close),
+                        contentDescription = stringResource(R.string.video_player_remove_from_queue),
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -1693,6 +2024,42 @@ private fun SettingsOverlay(
                             contentDescription = stringResource(R.string.close),
                             tint = MaterialTheme.colorScheme.onSurface
                         )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "Quality",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                ) {
+                    listOf(
+                        VideoQuality.QUALITY_360P to stringResource(R.string.video_player_quality_360p),
+                        VideoQuality.QUALITY_480P to stringResource(R.string.video_player_quality_480p),
+                        VideoQuality.QUALITY_720P to stringResource(R.string.video_player_quality_720p),
+                        VideoQuality.QUALITY_1080P to stringResource(R.string.video_player_quality_1080p),
+                    ).forEach { (quality, label) ->
+                        Surface(
+                            onClick = { VideoPlaybackManager.setVideoQuality(quality) },
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (uiState.videoQuality == quality) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                text = label,
+                                modifier = Modifier.padding(vertical = 10.dp),
+                                textAlign = TextAlign.Center,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = if (uiState.videoQuality == quality) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
 

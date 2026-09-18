@@ -1,8 +1,11 @@
 package com.auramusic.app.video
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.widget.Toast
 import androidx.annotation.OptIn
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
@@ -19,8 +22,15 @@ import androidx.media3.extractor.mp4.FragmentedMp4Extractor
 import androidx.media3.extractor.mp4.Mp4Extractor
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import androidx.datastore.preferences.core.edit
+import com.auramusic.app.R
+import com.auramusic.app.constants.VideoAutoplayEnabledKey
+import com.auramusic.app.constants.VideoQuality
+import com.auramusic.app.constants.VideoQualityKey
 import com.auramusic.app.utils.AuraPlayerUtils
 import com.auramusic.app.utils.VideoThumbnails
+import com.auramusic.app.utils.dataStore
+import com.auramusic.app.utils.get
 import com.auramusic.app.playback.MusicService
 import com.auramusic.innertube.YouTube
 import com.auramusic.innertube.models.WatchEndpoint
@@ -121,6 +131,8 @@ object VideoPlaybackManager {
         val showSettings: Boolean = false,
         val playbackSpeed: Float = 1.0f,
         val resizeMode: Int = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT,
+        val videoQuality: VideoQuality = VideoQuality.QUALITY_720P,
+        val autoplayEnabled: Boolean = true,
     ) {
         val isEmpty: Boolean get() = session == null
         val progress: Float
@@ -136,6 +148,9 @@ object VideoPlaybackManager {
     private var currentContext: Context? = null
     private var videoControllerFuture: ListenableFuture<MediaController>? = null
     private val playedVideoIds = mutableSetOf<String>()
+
+    private var currentQuality: VideoQuality = VideoQuality.QUALITY_720P
+    private var currentAutoplay: Boolean = true
 
     fun playerOrNull(): ExoPlayer? = player
 
@@ -159,7 +174,7 @@ object VideoPlaybackManager {
                 }
             }
             if (playbackState == Player.STATE_ENDED) {
-                playNext()
+                if (_uiState.value.autoplayEnabled) playNext()
             }
         }
 
@@ -248,6 +263,7 @@ object VideoPlaybackManager {
         }
         VideoPlaybackService.start(context.applicationContext)
         connectServiceController(context.applicationContext)
+        applyStoredPreferences(context.applicationContext)
         _uiState.value = UiState(
             session = VideoSession(
                 videoId = videoId,
@@ -262,6 +278,8 @@ object VideoPlaybackManager {
             minimized = false,
             isPlaying = true,
             isBuffering = true,
+            videoQuality = currentQuality,
+            autoplayEnabled = currentAutoplay,
         )
         scope.launch {
             val source = withContext(Dispatchers.IO) {
@@ -271,21 +289,7 @@ object VideoPlaybackManager {
                 _uiState.update { it.copy(isBuffering = false, error = "Could not load video") }
                 return@launch
             }
-            val mediaSource = buildMediaSource(
-                videoId,
-                source,
-                title = title,
-                channelName = channelName,
-                channelThumbnail = channelThumbnail ?: bestThumbnail,
-            )
-            exo.setMediaSource(mediaSource)
-            exo.prepare()
-            exo.play()
-            // Force the video service notification to rebuild immediately with
-            // the media metadata (title, artist, artwork) so the MediaStyle
-            // notification shows full artwork + transport controls instead of
-            // the initial text-only placeholder.
-            VideoPlaybackService.notifySessionChanged(context.applicationContext)
+            loadMediaSourceInto(videoId, source, title, channelName, channelThumbnail ?: bestThumbnail)
         }
         scope.launch {
             // Enrich metadata (fills gaps for views/description/channel avatar), then load content.
@@ -664,6 +668,97 @@ object VideoPlaybackManager {
         _uiState.update { it.copy(resizeMode = mode) }
     }
 
+    /**
+     * Switches the rendering quality of the currently playing video. Because the
+     * stream URL depends on the quality selection, the current video is re-resolved
+     * and reloaded (keeping the same position). The choice is persisted so future
+     * videos start at it too.
+     */
+    fun setVideoQuality(quality: VideoQuality) {
+        val session = _uiState.value.session ?: return
+        val exo = player ?: return
+        currentQuality = quality
+        AuraPlayerUtils.setPreferredVideoQuality(quality)
+        val positionMs = exo.currentPosition
+        _uiState.update { it.copy(videoQuality = quality) }
+        currentContext?.let { ctx ->
+            scope.launch {
+                ctx.dataStore.edit { it[VideoQualityKey] = quality.name }
+            }
+            scope.launch {
+                val source = withContext(Dispatchers.IO) {
+                    AuraPlayerUtils.getVideoStreamSource(session.videoId).getOrNull()
+                }
+                if (source == null) {
+                    // Keep old stream playing if the new quality can't be resolved.
+                    return@launch
+                }
+                loadMediaSourceInto(
+                    videoId = session.videoId,
+                    source = source,
+                    title = session.title,
+                    channelName = session.channelName,
+                    channelThumbnail = session.channelThumbnail,
+                    startPositionMs = positionMs.coerceAtLeast(0L),
+                )
+            }
+        }
+    }
+
+    fun setAutoplayEnabled(enabled: Boolean) {
+        currentAutoplay = enabled
+        _uiState.update { it.copy(autoplayEnabled = enabled) }
+        currentContext?.let { ctx ->
+            scope.launch {
+                ctx.dataStore.edit { it[VideoAutoplayEnabledKey] = enabled }
+            }
+        }
+    }
+
+    /** Removes a recommendation from both the Up-next list and the playback queue. */
+    fun removeFromQueue(videoId: String) {
+        _uiState.update {
+            it.copy(
+                recommendations = it.recommendations.filterNot { r -> r.videoId == videoId },
+                queue = it.queue.filterNot { q -> q.videoId == videoId },
+            )
+        }
+    }
+
+    /** Clears the pending playback queue (Up next stays visible). */
+    fun clearQueue() {
+        _uiState.update { it.copy(queue = emptyList()) }
+    }
+
+    fun shareVideo(context: Context) {
+        val session = _uiState.value.session ?: return
+        val url = "https://youtu.be/${session.videoId}"
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, url)
+            putExtra(Intent.EXTRA_SUBJECT, session.title)
+        }
+        context.startActivity(Intent.createChooser(intent, null).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
+
+    fun copyVideoLink(context: Context) {
+        val session = _uiState.value.session ?: return
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText("video_link", "https://youtu.be/${session.videoId}"))
+        Toast.makeText(context, R.string.video_player_copy_link, Toast.LENGTH_SHORT).show()
+    }
+
+    /** Adds the current video to the given playlist id. */
+    fun addToPlaylist(playlistId: String) {
+        val session = _uiState.value.session ?: return
+        scope.launch {
+            YouTube.addToPlaylist(playlistId, session.videoId)
+            currentContext?.let { ctx ->
+                Toast.makeText(ctx, R.string.video_player_added_to_playlist, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     fun toggleSettings() {
         _uiState.update { it.copy(showSettings = !it.showSettings) }
     }
@@ -749,12 +844,58 @@ object VideoPlaybackManager {
     private fun getOrCreatePlayer(context: Context): ExoPlayer {
         currentContext = context
         player?.let { return it }
+        // Apply the quality + autoplay preference chosen in Settings/settings-overlay
+        // so freshly created players start with them.
+        applyStoredPreferences(context)
         return ExoPlayer.Builder(context).build().also {
             it.addListener(playerListener)
             it.playWhenReady = true
             player = it
             startTicker()
         }
+    }
+
+    /** Reads videoQuality/autoplay from DataStore and pushes them to AuraVideo + state. */
+    private fun applyStoredPreferences(context: Context) {
+        val storedQuality = context.dataStore.get(VideoQualityKey, "QUALITY_720P")
+        currentQuality = runCatching { VideoQuality.valueOf(storedQuality) }.getOrDefault(VideoQuality.QUALITY_720P)
+        currentAutoplay = context.dataStore.get(VideoAutoplayEnabledKey, true)
+        AuraPlayerUtils.setPreferredVideoQuality(currentQuality)
+        _uiState.update { it.copy(videoQuality = currentQuality, autoplayEnabled = currentAutoplay) }
+    }
+
+    /**
+     * Builds the [MergingMediaSource-like] source for [source], sets it on the
+     * player, prepares, and replays — also rebuilding the media notification.
+     * Used both for initial load and when the stream must be re-resolved
+     * (e.g. quality change mid-playback).
+     */
+    private fun loadMediaSourceInto(
+        videoId: String,
+        source: com.auramusic.auravideo.AuraVideo.VideoStreamSource,
+        title: String,
+        channelName: String,
+        channelThumbnail: String?,
+        startPositionMs: Long = 0L,
+    ) {
+        val exo = player ?: return
+        val mediaSource = buildMediaSource(
+            videoId,
+            source,
+            title = title,
+            channelName = channelName,
+            channelThumbnail = channelThumbnail,
+        )
+        val wasPlaying = exo.playWhenReady || _uiState.value.isPlaying
+        exo.setMediaSource(mediaSource)
+        exo.prepare()
+        if (startPositionMs > 0) exo.seekTo(startPositionMs)
+        if (wasPlaying) exo.play()
+        // Force the video service notification to rebuild immediately with
+        // the media metadata (title, artist, artwork) so the MediaStyle
+        // notification shows full artwork + transport controls instead of
+        // the initial text-only placeholder.
+        currentContext?.let { VideoPlaybackService.notifySessionChanged(it) }
     }
 
     private fun startTicker() {
