@@ -37,12 +37,15 @@ import androidx.compose.material3.SecondaryScrollableTabRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.pullToRefresh
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -60,6 +63,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import android.widget.Toast
 import coil3.compose.AsyncImage
 import com.auramusic.app.LocalPlayerAwareWindowInsets
 import com.auramusic.app.R
@@ -104,8 +108,14 @@ fun ChannelScreen(
     var postsContinuation by remember(channelId) { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var isLoadingMore by remember { mutableStateOf(false) }
+    var isRefreshing by remember { mutableStateOf(false) }
+    var isSubscribed by remember(channelId) { mutableStateOf(false) }
+    var isSubscribing by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var selectedTab by rememberSaveable { mutableIntStateOf(ChannelTab.Videos.ordinal) }
+
+    val pullRefreshState = rememberPullToRefreshState()
+    val scope = rememberCoroutineScope()
 
     suspend fun loadFirstPage(tab: ChannelTab) {
         isLoading = true
@@ -188,6 +198,29 @@ fun ChannelScreen(
         isLoadingMore = false
     }
 
+    suspend fun refreshChannel() {
+        if (isLoading) {
+            isRefreshing = false
+            return
+        }
+        // Reload the currently visible tab's first page; the generic spinner left
+        // in place by the old content until the fresh page replaces it.
+        loadFirstPage(ChannelTab.entries[selectedTab])
+        isRefreshing = false
+    }
+
+    fun toggleSubscribe() {
+        if (isSubscribing) return
+        val newSubscribed = !isSubscribed
+        isSubscribing = true
+        scope.launch {
+            YouTube.subscribeChannel(channelId, newSubscribed).onSuccess {
+                isSubscribed = newSubscribed
+            }
+            isSubscribing = false
+        }
+    }
+
     LaunchedEffect(channelId, selectedTab) {
         loadFirstPage(ChannelTab.entries[selectedTab])
     }
@@ -204,7 +237,18 @@ fun ChannelScreen(
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
         state = gridState,
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .pullToRefresh(
+                state = pullRefreshState,
+                isRefreshing = isRefreshing,
+                onRefresh = {
+                    isRefreshing = true
+                    scope.launch {
+                        refreshChannel()
+                    }
+                },
+            ),
         contentPadding = PaddingValues(bottom = insets.calculateBottomPadding() + 16.dp),
     ) {
         item(
@@ -214,7 +258,10 @@ fun ChannelScreen(
             ChannelHeaderSection(
                 header = header,
                 isLoading = isLoading,
+                isSubscribed = isSubscribed,
+                isSubscribing = isSubscribing,
                 onBackClick = { navController.navigateUp() },
+                onSubscribeClick = { toggleSubscribe() },
             )
         }
 
@@ -400,7 +447,10 @@ fun ChannelScreen(
 private fun ChannelHeaderSection(
     header: ChannelHeader?,
     isLoading: Boolean,
+    isSubscribed: Boolean,
+    isSubscribing: Boolean,
     onBackClick: () -> Unit,
+    onSubscribeClick: () -> Unit,
 ) {
     Column {
         Box(
@@ -553,6 +603,44 @@ private fun ChannelHeaderSection(
                             )
                         }
                     }
+                }
+            }
+            Surface(
+                onClick = onSubscribeClick,
+                enabled = !isSubscribing,
+                shape = RoundedCornerShape(22.dp),
+                color = if (isSubscribed) MaterialTheme.colorScheme.surfaceContainerHighest
+                else MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp).height(38.dp),
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                ) {
+                    if (isSubscribing) {
+                        CircularProgressIndicator(
+                            color = if (isSubscribed) MaterialTheme.colorScheme.onSurface
+                            else MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                        )
+                    } else {
+                        Icon(
+                            painter = painterResource(if (isSubscribed) R.drawable.subscribed else R.drawable.subscribe),
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = if (isSubscribed) MaterialTheme.colorScheme.onSurface
+                            else MaterialTheme.colorScheme.onPrimary,
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = stringResource(if (isSubscribed) R.string.subscribed else R.string.subscribe),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (isSubscribed) MaterialTheme.colorScheme.onSurface
+                        else MaterialTheme.colorScheme.onPrimary,
+                    )
                 }
             }
         }
