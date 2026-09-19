@@ -51,7 +51,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
@@ -67,6 +69,16 @@ class VideoPlaybackService : MediaSessionService() {
     private var latestMediaNotification: Notification? = null
     private var scope = CoroutineScope(Dispatchers.Main + Job())
     private val mainHandler = Handler(Looper.getMainLooper())
+
+    /**
+     * Periodic re-pin of the foreground media notification while a video session
+     * exists. Media3 rebuilds the notification on its own schedule, but various
+     * lifecycle quirks (session active/inactive flaps, FGS restart restrictions,
+     * OEM killers) can drop or freeze the shade entry. Re-posting from inside the
+     * already-foreground service is cheap and makes the video notification stay
+     * put for the whole watch session, exactly like the music player does.
+     */
+    private var keepAliveJob: Job? = null
 
     /** Whether the service has successfully reached the foreground state. */
     private var enteredForeground = false
@@ -266,6 +278,22 @@ class VideoPlaybackService : MediaSessionService() {
                 }
             }
         }
+
+        // Persistence: while a video is loaded, periodically re-pin the foreground
+        // state and re-render the notification so it can never silently vanish or
+        // stay stale mid-playback (media3's auto-update path can briefly drop the
+        // shade entry during buffering/transition/restart edge cases).
+        keepAliveJob = scope.launch {
+            while (isActive) {
+                delay(NOTIFICATION_KEEP_ALIVE_MS)
+                if (mediaSession != null &&
+                    VideoPlaybackManager.uiState.value.session != null
+                ) {
+                    rebuildMediaNotification()
+                    promoteToForegroundWithLatestNotification()
+                }
+            }
+        }
     }
 
     private fun buildSession(exo: ExoPlayer, sessionId: String): MediaSession {
@@ -375,16 +403,15 @@ class VideoPlaybackService : MediaSessionService() {
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_REFRESH_NOTIFICATION) {
-            // Explicit rebuild request (e.g. after VideoPlaybackManager enriched
-            // the session metadata): re-promote to keep a valid foreground state,
-            // then rebuild the notification from the session's latest metadata.
-            promoteToForegroundWithLatestNotification()
-            rebuildMediaNotification()
-            updateMediaButtonPreferences()
-        } else {
-            promoteToForegroundWithLatestNotification()
-        }
+        // Always re-promote to the foreground AND rebuild the notification from the
+        // session's CURRENT metadata (never the cached one). Every start path — a
+        // fresh video (VideoPlaybackManager.playWithDetails), resume, media-button
+        // delivery, or the explicit refresh action after metadata enrichment — must
+        // re-seed the shade from live state, otherwise the notification can linger
+        // on the previous video's title/artwork or fail to (re)appear at all.
+        promoteToForegroundWithLatestNotification()
+        rebuildMediaNotification()
+        updateMediaButtonPreferences()
         return super.onStartCommand(intent, flags, startId)
     }
 
@@ -409,6 +436,8 @@ class VideoPlaybackService : MediaSessionService() {
     override fun onDestroy() {
         // Stop state collectors before tearing down the session so they can't race it.
         scope.cancel()
+        keepAliveJob?.cancel()
+        keepAliveJob = null
         // Detach the player listener to prevent leaked callbacks after teardown.
         VideoPlaybackManager.playerOrNull()?.removeListener(playerNotificationListener)
         // Explicitly remove the foreground notification before releasing the session.
@@ -582,6 +611,9 @@ class VideoPlaybackService : MediaSessionService() {
         const val SESSION_ID = "aura_video_playback"
         const val CHANNEL_ID = "video_channel_01"
         const val NOTIFICATION_ID = 889
+
+        /** How often the service re-pins the foreground notification while a video session exists. */
+        private const val NOTIFICATION_KEEP_ALIVE_MS = 10_000L
 
         fun start(context: Context) {
             ContextCompat.startForegroundService(

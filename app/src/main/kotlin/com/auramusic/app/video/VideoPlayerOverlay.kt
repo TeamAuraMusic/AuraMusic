@@ -1251,9 +1251,11 @@ private fun ChannelRow(
                 .background(MaterialTheme.colorScheme.primaryContainer)
                 .clickable { session.channelId?.let(onChannelClick) }
         ) {
-            if (!session.channelThumbnail.isNullOrBlank()) {
+            // The real channel avatar (not the video's thumbnail/artwork, which is
+            // what channelThumbnail holds for the media notification artwork).
+            if (!session.channelAvatarUrl.isNullOrBlank()) {
                 AsyncImage(
-                    model = session.channelThumbnail,
+                    model = session.channelAvatarUrl,
                     contentDescription = session.channelName,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,

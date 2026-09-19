@@ -22,6 +22,7 @@ data class YouTubeChannelPage(
     val description: String?,
     val videos: List<YouTubeVideoItem>,
     val continuation: String? = null,
+    val isSubscribed: Boolean? = null,
 ) {
     companion object {
         // Tab params from youtube.com channel tabs.
@@ -43,6 +44,7 @@ data class YouTubeChannelPage(
             var bannerUrl: String? = null
             var subscriberCountText: String? = null
             var videosCountText: String? = null
+            var isSubscribed: Boolean? = null
 
             header?.get("pageHeaderRenderer")?.jsonObject?.let { pageHeader ->
                 val content = pageHeader["content"]?.jsonObject
@@ -73,6 +75,18 @@ data class YouTubeChannelPage(
                     ?.get("sources")?.jsonArray
                     ?.mapNotNull { it.jsonObject["url"]?.jsonPrimitive?.content }
                 avatarUrl = image?.lastOrNull()
+                // 2024+ headers put the subscription toggle in the header actions;
+                // read its toggled state leniently (unknown if the shape changes).
+                isSubscribed = content?.get("actions")?.jsonArray
+                    ?.mapNotNull { action ->
+                        action.jsonObject["contentActionButtonViewModel"]?.jsonObject
+                            ?.get("buttonViewModel")?.jsonObject
+                            ?.get("isToggled")?.jsonPrimitive?.content
+                            ?: action.jsonObject["subscriptionNotificationToggleButtonRenderer"]
+                                ?.jsonObject?.get("isSubscribed")?.jsonPrimitive?.content
+                    }
+                    ?.firstOrNull { it == "true" || it == "false" }
+                    ?.let { it == "true" }
             }
             header?.get("c4TabbedHeaderRenderer")?.jsonObject?.let { c4 ->
                 title = c4["title"]?.jsonObject?.get("simpleText")?.jsonPrimitive?.content
@@ -85,6 +99,13 @@ data class YouTubeChannelPage(
                 videosCountText = c4["videosCountText"]?.jsonObject
                     ?.get("runs")?.jsonArray
                     ?.firstOrNull()?.jsonObject?.get("text")?.jsonPrimitive?.content
+                // Legacy headers carry the subscribe state on the subscribe button.
+                if (isSubscribed == null) {
+                    isSubscribed = c4["subscribeButton"]?.jsonObject
+                        ?.get("subscribeButtonRenderer")?.jsonObject
+                        ?.get("subscribed")?.jsonPrimitive?.content
+                        ?.let { it == "true" }
+                }
             }
 
             metadata?.let { meta ->
@@ -168,6 +189,7 @@ data class YouTubeChannelPage(
                 description = description,
                 videos = videos,
                 continuation = continuation,
+                isSubscribed = isSubscribed,
             )
         }
 

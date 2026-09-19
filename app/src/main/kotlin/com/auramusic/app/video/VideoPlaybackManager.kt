@@ -24,6 +24,7 @@ import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import androidx.datastore.preferences.core.edit
 import com.auramusic.app.R
+import com.auramusic.app.constants.SavedVideoIdsKey
 import com.auramusic.app.constants.VideoAutoplayEnabledKey
 import com.auramusic.app.constants.VideoQuality
 import com.auramusic.app.constants.VideoQualityKey
@@ -46,11 +47,13 @@ import com.auramusic.innertube.models.response.commentsContinuation
 import com.auramusic.innertube.models.response.dateText
 import com.auramusic.innertube.models.response.description
 import com.auramusic.innertube.models.response.likeCountText
+import com.auramusic.innertube.models.response.likeState
 import com.auramusic.innertube.models.response.relatedContinuation
 import com.auramusic.innertube.models.response.relatedVideos
 import com.auramusic.innertube.models.response.subscriberCountText
 import com.auramusic.innertube.models.response.title
 import com.auramusic.innertube.models.response.viewCountText
+import com.auramusic.innertube.models.response.WatchLikeState
 import com.auramusic.innertube.models.response.YoutubeComment
 import com.google.common.util.concurrent.ListenableFuture
 import timber.log.Timber
@@ -76,6 +79,7 @@ object VideoPlaybackManager {
         val channelName: String = "",
         val channelId: String? = null,
         val channelThumbnail: String? = null,
+        val channelAvatarUrl: String? = null,
         val description: String? = null,
         val viewCountText: String? = null,
         val publishedTimeText: String? = null,
@@ -282,6 +286,12 @@ object VideoPlaybackManager {
             videoQuality = currentQuality,
             autoplayEnabled = currentAutoplay,
         )
+        // Rebuild the media notification immediately with the NEW video's metadata.
+        // This closes the window where the shade would otherwise keep showing the
+        // previous video (or a placeholder) until the stream resolves and
+        // loadMediaSourceInto triggers its own rebuild — the cause of the media
+        // notification feeling non-persistent / out of sync when switching videos.
+        context.applicationContext.let { VideoPlaybackService.notifySessionChanged(it) }
         scope.launch {
             val source = withContext(Dispatchers.IO) {
                 AuraPlayerUtils.getVideoStreamSource(videoId).getOrNull()
@@ -302,30 +312,41 @@ object VideoPlaybackManager {
 
     /**
      * Fills missing session fields from the WEB watch page. Known metadata from the
-     * list item the user tapped wins; only blank fields get overwritten.
+     * list item the user tapped wins; only blank fields get overwritten. Also seeds
+     * the real channel avatar (separate from the video artwork), the current
+     * like/dislike state from the watch button icon, and the locally-saved state.
      */
     private suspend fun enrichSessionMetadata(videoId: String) {
         if (_uiState.value.session?.videoId != videoId) return
         val metadata = withContext(Dispatchers.IO) {
             YouTube.watchMetadata(videoId).getOrNull()
-        } ?: return
+        }
+        val savedIds = withContext(Dispatchers.IO) {
+            currentContext?.let { it.dataStore[SavedVideoIdsKey] }.orEmpty()
+        }
         if (_uiState.value.session?.videoId != videoId) return
+        val likeState = metadata?.likeState() ?: WatchLikeState.NONE
         _uiState.update { state ->
             val session = state.session?.takeIf { it.videoId == videoId } ?: return@update state
             state.copy(
                 session = session.copy(
-                    title = session.title.ifBlank { metadata.title().orEmpty() },
-                    channelName = session.channelName.ifBlank { metadata.channelName().orEmpty() },
-                    channelId = session.channelId ?: metadata.channelId(),
-                    channelThumbnail = session.channelThumbnail ?: metadata.channelAvatarUrl(),
+                    title = session.title.ifBlank { metadata?.title().orEmpty() },
+                    channelName = session.channelName.ifBlank { metadata?.channelName().orEmpty() },
+                    channelId = session.channelId ?: metadata?.channelId(),
+                    // The real channel avatar; session.channelThumbnail stays as the
+                    // video artwork used by the media notification.
+                    channelAvatarUrl = session.channelAvatarUrl ?: metadata?.channelAvatarUrl(),
                     description = session.description?.takeIf { it.isNotBlank() }
-                        ?: metadata.description(),
-                    viewCountText = session.viewCountText ?: metadata.viewCountText(),
-                    publishedTimeText = session.publishedTimeText ?: metadata.dateText(),
-                    subscriberCountText = metadata.subscriberCountText(),
-                    commentCountText = metadata.commentCountText(),
-                    likeCountText = session.likeCountText ?: metadata.likeCountText(),
+                        ?: metadata?.description(),
+                    viewCountText = session.viewCountText ?: metadata?.viewCountText(),
+                    publishedTimeText = session.publishedTimeText ?: metadata?.dateText(),
+                    subscriberCountText = metadata?.subscriberCountText(),
+                    commentCountText = metadata?.commentCountText(),
+                    likeCountText = session.likeCountText ?: metadata?.likeCountText(),
                 ),
+                isLiked = likeState == WatchLikeState.LIKE,
+                isDisliked = likeState == WatchLikeState.DISLIKE,
+                isSaved = videoId in savedIds,
             )
         }
         // Notify the service that session metadata has been enriched (artwork URL,
@@ -596,11 +617,16 @@ object VideoPlaybackManager {
     fun toggleSave() {
         val session = _uiState.value.session ?: return
         val newSaved = !_uiState.value.isSaved
+        val ctx = currentContext ?: return
         scope.launch {
-            if (newSaved) {
-                YouTube.addSongToLibrary(session.videoId)
-            } else {
-                YouTube.removeSongFromLibrary(session.videoId)
+            // "Save" for a video is a local watch-later bookmark. The YouTube Music
+            // library add/remove endpoints only apply to songs, not arbitrary YouTube
+            // videos, so calling them here would mutate the music library (or fail).
+            // Persisting to DataStore keeps the toggle instant and consistent.
+            ctx.dataStore.edit { settings ->
+                val saved = settings[SavedVideoIdsKey]?.toMutableSet() ?: mutableSetOf()
+                if (newSaved) saved.add(session.videoId) else saved.remove(session.videoId)
+                settings[SavedVideoIdsKey] = saved
             }
             _uiState.update { it.copy(isSaved = newSaved) }
         }

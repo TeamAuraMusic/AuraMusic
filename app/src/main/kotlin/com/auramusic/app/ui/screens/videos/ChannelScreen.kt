@@ -117,13 +117,15 @@ fun ChannelScreen(
     val pullRefreshState = rememberPullToRefreshState()
     val scope = rememberCoroutineScope()
 
-    suspend fun loadFirstPage(tab: ChannelTab) {
-        isLoading = true
+    suspend fun loadFirstPage(tab: ChannelTab, clear: Boolean = true) {
+        if (clear) {
+            isLoading = true
+            videos = emptyList()
+            continuation = null
+            posts = emptyList()
+            postsContinuation = null
+        }
         error = null
-        videos = emptyList()
-        continuation = null
-        posts = emptyList()
-        postsContinuation = null
         val params = when (tab) {
             ChannelTab.Videos -> YouTubeChannelPage.VIDEOS_PARAMS
             ChannelTab.Shorts -> YouTubeChannelPage.SHORTS_PARAMS
@@ -138,7 +140,7 @@ fun ChannelScreen(
             if (page != null) {
                 posts = page.posts
                 postsContinuation = page.continuation
-            } else {
+            } else if (clear) {
                 error = context.getString(R.string.videos_feed_error)
             }
             isLoading = false
@@ -157,9 +159,10 @@ fun ChannelScreen(
                 videosCountText = result.videosCountText,
                 description = result.description,
             )
+            result.isSubscribed?.let { isSubscribed = it }
             videos = result.videos
             continuation = result.continuation
-        } else {
+        } else if (clear) {
             error = context.getString(R.string.videos_feed_error)
         }
         isLoading = false
@@ -203,9 +206,9 @@ fun ChannelScreen(
             isRefreshing = false
             return
         }
-        // Reload the currently visible tab's first page; the generic spinner left
-        // in place by the old content until the fresh page replaces it.
-        loadFirstPage(ChannelTab.entries[selectedTab])
+        // Reload the currently visible tab's first page while keeping the old
+        // content on screen (clear = false): no skeleton flash, no wipe.
+        loadFirstPage(ChannelTab.entries[selectedTab], clear = false)
         isRefreshing = false
     }
 
