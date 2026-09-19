@@ -26,8 +26,10 @@ import androidx.datastore.preferences.core.edit
 import com.auramusic.app.R
 import com.auramusic.app.constants.SavedVideoIdsKey
 import com.auramusic.app.constants.VideoAutoplayEnabledKey
+import com.auramusic.app.constants.VideoHistoryKey
 import com.auramusic.app.constants.VideoQuality
 import com.auramusic.app.constants.VideoQualityKey
+import com.auramusic.app.constants.VideoSubscribedChannelsKey
 import com.auramusic.app.utils.AuraPlayerUtils
 import com.auramusic.app.utils.VideoThumbnails
 import com.auramusic.app.utils.dataStore
@@ -110,9 +112,30 @@ object VideoPlaybackManager {
         val isPinned: Boolean = false,
     )
 
+    /** One watched-video entry shown in the Library "Recently watched" row. */
+    data class VideoHistoryEntry(
+        val videoId: String,
+        val title: String,
+        val channelName: String,
+        val channelId: String?,
+        val thumbnailUrl: String?,
+        val lastPlayedAt: Long,
+        val positionMs: Long = 0,
+        val durationMs: Long = 0,
+    )
+
+    /** A channel the user subscribed to from a video/channel screen. */
+    data class VideoSubscribedChannel(
+        val channelId: String,
+        val name: String,
+        val avatarUrl: String?,
+        val subscribedAt: Long,
+    )
+
     data class UiState(
         val session: VideoSession? = null,
         val minimized: Boolean = false,
+        val hiddenByMusic: Boolean = false,
         val isPlaying: Boolean = false,
         val isBuffering: Boolean = false,
         val positionMs: Long = 0,
@@ -242,7 +265,7 @@ object VideoPlaybackManager {
             current.error?.let {
                 _uiState.update { s -> s.copy(error = null) }
             }
-            _uiState.update { it.copy(minimized = false) }
+            _uiState.update { it.copy(minimized = false, hiddenByMusic = false) }
             player?.play()
             return
         }
@@ -354,6 +377,9 @@ object VideoPlaybackManager {
         // title, artist, and artwork — the same metadata that the MediaControlsPlayer
         // surfaces via getMediaMetadata().
         currentContext?.let { VideoPlaybackService.notifySessionChanged(it) }
+        // Record the enriched session into the local watch history (dedupes by id
+        // and bumps it to the top so the Library mirrors YouTube's ordering).
+        recordCurrentToHistory()
     }
 
     private suspend fun loadRecommendations(videoId: String) {
@@ -606,9 +632,16 @@ object VideoPlaybackManager {
     }
 
     fun toggleSubscribe() {
-        val channelId = _uiState.value.session?.channelId ?: return
+        val session = _uiState.value.session ?: return
+        val channelId = session.channelId ?: return
         val newSubscribed = !_uiState.value.isSubscribed
         scope.launch {
+            persistChannelSubscription(
+                channelId = channelId,
+                name = session.channelName,
+                avatarUrl = session.channelAvatarUrl ?: session.channelThumbnail,
+                subscribe = newSubscribed,
+            )
             YouTube.subscribeChannel(channelId, newSubscribed)
             _uiState.update { it.copy(isSubscribed = newSubscribed) }
         }
@@ -680,7 +713,7 @@ object VideoPlaybackManager {
         } catch (e: Exception) {
             Timber.tag("VideoPlaybackManager").w(e, "giveWayToMusic: pause failed")
         }
-        _uiState.update { it.copy(isPlaying = false, minimized = true) }
+        _uiState.update { it.copy(isPlaying = false, minimized = true, hiddenByMusic = true) }
         val ctx = context.applicationContext
         // Remove the video notification and drop the connected controller (mirroring
         // close()) so a later resume reconnects and brings the notification back.
@@ -842,7 +875,7 @@ object VideoPlaybackManager {
     }
 
     fun expand() {
-        _uiState.update { it.copy(minimized = false) }
+        _uiState.update { it.copy(minimized = false, hiddenByMusic = false) }
     }
 
     fun toggleMinimized() {
@@ -850,6 +883,9 @@ object VideoPlaybackManager {
     }
 
     fun close() {
+        // Persist the final watch position before tearing the session down so the
+        // Library's "Recently watched" history reflects exactly where it stopped.
+        recordCurrentToHistory()
         player?.let { exo ->
             exo.removeListener(playerListener)
             exo.stop()
@@ -975,14 +1011,119 @@ object VideoPlaybackManager {
     private fun startTicker() {
         tickerJob?.cancel()
         tickerJob = scope.launch {
+            var ticks = 0
             while (isActive) {
                 val exo = player
                 if (exo != null && _uiState.value.session != null) {
                     val pos = exo.currentPosition
                     val dur = if (exo.duration > 0) exo.duration else 0
                     _uiState.update { it.copy(positionMs = pos, durationMs = dur) }
+                    // Persist watch position to the video history every ~10s while
+                    // actually playing (ticker fires every 250ms).
+                    if (_uiState.value.isPlaying && ++ticks % 40 == 0) {
+                        recordCurrentToHistory()
+                    }
                 }
                 delay(250)
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Video history + channel subscriptions (persisted in DataStore)
+    // ---------------------------------------------------------------------------
+    // JSON layout for history: [{"id","t","c","cid","th","ts","pos","dur"}]
+    // JSON layout for subscriptions: [{"cid","n","a","ts"}]
+
+    suspend fun getVideoHistory(): List<VideoHistoryEntry> =
+        currentContext?.let { readVideoHistory(it) }.orEmpty()
+
+    suspend fun readVideoHistory(context: Context): List<VideoHistoryEntry> =
+        withContext(Dispatchers.IO) {
+            try {
+                parseVideoHistory(context.dataStore[VideoHistoryKey])
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
+
+    suspend fun getSubscribedChannels(): List<VideoSubscribedChannel> =
+        currentContext?.let { readSubscribedChannels(it) }.orEmpty()
+
+    suspend fun readSubscribedChannels(context: Context): List<VideoSubscribedChannel> =
+        withContext(Dispatchers.IO) {
+            try {
+                parseSubscribedChannels(context.dataStore[VideoSubscribedChannelsKey])
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
+
+    private fun recordCurrentToHistory() {
+        val session = _uiState.value.session ?: return
+        recordHistoryEntry(
+            VideoHistoryEntry(
+                videoId = session.videoId,
+                title = session.title,
+                channelName = session.channelName,
+                channelId = session.channelId,
+                thumbnailUrl = session.channelThumbnail,
+                lastPlayedAt = System.currentTimeMillis(),
+                positionMs = _uiState.value.positionMs,
+                durationMs = _uiState.value.durationMs,
+            )
+        )
+    }
+
+    private fun recordHistoryEntry(entry: VideoHistoryEntry) {
+        val ctx = currentContext ?: return
+        scope.launch {
+            withContext(Dispatchers.IO) {
+                try {
+                    val current = parseVideoHistory(ctx.dataStore[VideoHistoryKey]).toMutableList()
+                    current.removeAll { it.videoId == entry.videoId }
+                    current.add(0, entry)
+                    ctx.dataStore.edit {
+                        it[VideoHistoryKey] = buildVideoHistoryJson(current.take(MAX_VIDEO_HISTORY_ENTRIES))
+                    }
+                } catch (e: Exception) {
+                    // History is best-effort; never let persistence break playback.
+                }
+            }
+        }
+    }
+
+    /** Persists a channel subscription change so the Library can list channels. */
+    suspend fun persistChannelSubscription(
+        channelId: String,
+        name: String,
+        avatarUrl: String?,
+        subscribe: Boolean,
+    ) {
+        currentContext?.let {
+            persistChannelSubscription(it, channelId, name, avatarUrl, subscribe)
+        }
+    }
+
+    suspend fun persistChannelSubscription(
+        context: Context,
+        channelId: String,
+        name: String,
+        avatarUrl: String?,
+        subscribe: Boolean,
+    ) {
+        withContext(Dispatchers.IO) {
+            try {
+                val current = parseSubscribedChannels(context.dataStore[VideoSubscribedChannelsKey]).toMutableList()
+                current.removeAll { it.channelId == channelId }
+                if (subscribe) {
+                    current.add(0, VideoSubscribedChannel(channelId, name, avatarUrl, System.currentTimeMillis()))
+                }
+                context.dataStore.edit {
+                    it[VideoSubscribedChannelsKey] = buildSubscribedChannelsJson(current)
+                }
+            } catch (e: Exception) {
+                // Best-effort persistence.
             }
         }
     }
@@ -1041,4 +1182,88 @@ object VideoPlaybackManager {
             }
         }
     }
+}
+
+private const val MAX_VIDEO_HISTORY_ENTRIES = 100
+
+private fun parseVideoHistory(json: String?): List<VideoPlaybackManager.VideoHistoryEntry> {
+    if (json.isNullOrBlank()) return emptyList()
+    val result = mutableListOf<VideoPlaybackManager.VideoHistoryEntry>()
+    try {
+        val array = org.json.JSONArray(json)
+        for (i in 0 until array.length()) {
+            val obj = array.getJSONObject(i)
+            result.add(
+                VideoPlaybackManager.VideoHistoryEntry(
+                    videoId = obj.optString("id"),
+                    title = obj.optString("t"),
+                    channelName = obj.optString("c"),
+                    channelId = obj.optString("cid").takeIf { it.isNotEmpty() },
+                    thumbnailUrl = obj.optString("th").takeIf { it.isNotEmpty() },
+                    lastPlayedAt = obj.optLong("ts"),
+                    positionMs = obj.optLong("pos"),
+                    durationMs = obj.optLong("dur"),
+                )
+            )
+        }
+    } catch (_: Exception) {
+        // Corrupt history is ignored and simply overwritten on the next write.
+    }
+    return result
+}
+
+private fun buildVideoHistoryJson(entries: List<VideoPlaybackManager.VideoHistoryEntry>): String {
+    val array = org.json.JSONArray()
+    entries.forEach { entry ->
+        array.put(
+            org.json.JSONObject().apply {
+                put("id", entry.videoId)
+                put("t", entry.title)
+                put("c", entry.channelName)
+                put("cid", entry.channelId ?: "")
+                put("th", entry.thumbnailUrl ?: "")
+                put("ts", entry.lastPlayedAt)
+                put("pos", entry.positionMs)
+                put("dur", entry.durationMs)
+            }
+        )
+    }
+    return array.toString()
+}
+
+private fun parseSubscribedChannels(json: String?): List<VideoPlaybackManager.VideoSubscribedChannel> {
+    if (json.isNullOrBlank()) return emptyList()
+    val result = mutableListOf<VideoPlaybackManager.VideoSubscribedChannel>()
+    try {
+        val array = org.json.JSONArray(json)
+        for (i in 0 until array.length()) {
+            val obj = array.getJSONObject(i)
+            result.add(
+                VideoPlaybackManager.VideoSubscribedChannel(
+                    channelId = obj.optString("cid"),
+                    name = obj.optString("n"),
+                    avatarUrl = obj.optString("a").takeIf { it.isNotEmpty() },
+                    subscribedAt = obj.optLong("ts"),
+                )
+            )
+        }
+    } catch (_: Exception) {
+        // Corrupt data is ignored and overwritten on the next write.
+    }
+    return result
+}
+
+private fun buildSubscribedChannelsJson(channels: List<VideoPlaybackManager.VideoSubscribedChannel>): String {
+    val array = org.json.JSONArray()
+    channels.forEach { channel ->
+        array.put(
+            org.json.JSONObject().apply {
+                put("cid", channel.channelId)
+                put("n", channel.name)
+                put("a", channel.avatarUrl ?: "")
+                put("ts", channel.subscribedAt)
+            }
+        )
+    }
+    return array.toString()
 }

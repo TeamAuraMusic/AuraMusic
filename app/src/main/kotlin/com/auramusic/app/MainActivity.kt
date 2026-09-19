@@ -769,7 +769,7 @@ class MainActivity : ComponentActivity() {
                 )
 
                 val videoPlaybackState by VideoPlaybackManager.uiState.collectAsState()
-                val videoMiniVisible = videoPlaybackState.minimized
+                val videoMiniVisible = videoPlaybackState.minimized && !videoPlaybackState.hiddenByMusic
 
                 val playerAwareWindowInsets = remember(
                     bottomInset,

@@ -160,6 +160,14 @@ fun ChannelScreen(
                 description = result.description,
             )
             result.isSubscribed?.let { isSubscribed = it }
+            if (result.isSubscribed == null) {
+                // Remote page didn't expose the toggle state; fall back to the
+                // locally-persisted record from a previous subscribe action.
+                val locallySubscribed = VideoPlaybackManager
+                    .readSubscribedChannels(context)
+                    .any { it.channelId == channelId }
+                if (locallySubscribed) isSubscribed = true
+            }
             videos = result.videos
             continuation = result.continuation
         } else if (clear) {
@@ -217,6 +225,15 @@ fun ChannelScreen(
         val newSubscribed = !isSubscribed
         isSubscribing = true
         scope.launch {
+            // Keep a local record of the subscription so the Library's channel
+            // list reflects it even before the remote state round-trips.
+            VideoPlaybackManager.persistChannelSubscription(
+                context = context,
+                channelId = channelId,
+                name = header?.title.orEmpty(),
+                avatarUrl = header?.avatarUrl,
+                subscribe = newSubscribed,
+            )
             YouTube.subscribeChannel(channelId, newSubscribed).onSuccess {
                 isSubscribed = newSubscribed
             }

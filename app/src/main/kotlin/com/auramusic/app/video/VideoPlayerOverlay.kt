@@ -9,6 +9,7 @@ import android.media.AudioManager
 import android.view.ViewGroup
 import android.view.WindowManager
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -124,6 +125,11 @@ fun VideoPlayerOverlay(
 ) {
     val state by VideoPlaybackManager.uiState.collectAsState()
     val session = state.session ?: return
+    // When a music session takes over (video paused via giveWayToMusic), the video
+    // player and its mini tile fully disappear — mirror of video playback hiding the
+    // music mini player. The video session stays alive underneath so a later play
+    // (or history reselect) can start it again.
+    if (state.hiddenByMusic) return
 
     val context = LocalContext.current
     val player = VideoPlaybackManager.playerOrNull() ?: return
@@ -411,6 +417,68 @@ private fun VideoExpandedPlayer(
             .background(Color.Black)
     ) {
         if (isLandscape && isWideScreen) {
+            Row(modifier = Modifier.fillMaxSize()) {
+                VideoSurfaceWithControls(
+                    player = player,
+                    session = session,
+                    uiState = uiState,
+                    showControls = showControls,
+                    onToggleControls = { showControls = !showControls },
+                    onCollapse = onCollapse,
+                    onClose = onClose,
+                    modifier = Modifier
+                        .weight(0.62f)
+                        .fillMaxHeight(),
+                    useFullHeight = true,
+                    onChannelClick = onChannelClick,
+                )
+                VideoDetailPane(
+                    session = session,
+                    uiState = uiState,
+                    modifier = Modifier
+                        .weight(0.38f)
+                        .fillMaxHeight()
+                        .background(MaterialTheme.colorScheme.surface),
+                    onChannelClick = onChannelClick ?: {},
+                )
+            }
+        } else if (isLandscape) {
+            // Phone landscape: the screen height is small, so a 16:9 video at full
+            // width would overflow it. Play the surface full-screen (the player's
+            // RESIZE_MODE_FIT letterboxes it) and overlay a compact title + actions
+            // bar that appears together with the controls.
+            Box(modifier = Modifier.fillMaxSize()) {
+                VideoSurfaceWithControls(
+                    player = player,
+                    session = session,
+                    uiState = uiState,
+                    showControls = showControls,
+                    onToggleControls = { showControls = !showControls },
+                    onCollapse = onCollapse,
+                    onClose = onClose,
+                    modifier = Modifier.fillMaxSize(),
+                    useFullHeight = true,
+                    onChannelClick = onChannelClick,
+                )
+                AnimatedVisibility(
+                    visible = showControls,
+                    enter = fadeIn(tween(200)),
+                    exit = fadeOut(tween(200)),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                ) {
+                    CompactLandscapeBar(
+                        session = session,
+                        uiState = uiState,
+                        onChannelClick = onChannelClick ?: {},
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+        } else if (isWideScreen) {
+            // Tablet portrait: split video | details across the width so the tall
+            // 16:9 surface doesn't eat the whole screen and squash the details.
             Row(modifier = Modifier.fillMaxSize()) {
                 VideoSurfaceWithControls(
                     player = player,
@@ -988,8 +1056,12 @@ private fun SlimSeekBar(
         )
         Box(
             modifier = Modifier
-                .offset(x = (maxWidth * progress) - (thumbSize / 2))
-                .align(Alignment.Center)
+                .align(Alignment.CenterStart)
+                // Thumb-center tracks the fill edge; subtracting the thumb size
+                // keeps it fully on the track from 0% to 100% instead of being
+                // parked mid-bar (Center + progress offset was off by half the
+                // bar width) or sliding off either end.
+                .offset(x = (maxWidth - thumbSize) * progress)
                 .size(thumbSize)
                 .clip(CircleShape)
                 .background(Color.White)
@@ -1229,6 +1301,143 @@ private fun VideoInfoSection(
                 )
                 Spacer(modifier = Modifier.height(12.dp))
             }
+        }
+    }
+}
+
+/**
+ * Compact title + actions bar overlaid at the bottom of the phone-landscape
+ * player, where there's no room for the full detail pane next to the video.
+ */
+@Composable
+private fun CompactLandscapeBar(
+    session: VideoPlaybackManager.VideoSession,
+    uiState: VideoPlaybackManager.UiState,
+    onChannelClick: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        color = Color.Black.copy(alpha = 0.78f),
+        modifier = modifier,
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = session.title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+            ) {
+                CompactActionChip(
+                    icon = R.drawable.ic_thumb_up,
+                    selected = uiState.isLiked,
+                    contentDescription = stringResource(R.string.video_player_like),
+                    onClick = { VideoPlaybackManager.toggleLike() },
+                )
+                CompactActionChip(
+                    icon = R.drawable.ic_thumb_down,
+                    selected = uiState.isDisliked,
+                    contentDescription = stringResource(R.string.video_player_dislike),
+                    onClick = { VideoPlaybackManager.toggleDislike() },
+                )
+                CompactActionChip(
+                    icon = if (uiState.isSaved) R.drawable.library_add_check else R.drawable.library_add,
+                    selected = uiState.isSaved,
+                    contentDescription = stringResource(if (uiState.isSaved) R.string.video_player_saved else R.string.video_player_save),
+                    onClick = { VideoPlaybackManager.toggleSave() },
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Surface(
+                    onClick = { VideoPlaybackManager.toggleSubscribe() },
+                    shape = RoundedCornerShape(20.dp),
+                    color = if (uiState.isSubscribed) Color.White.copy(alpha = 0.22f) else MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.height(40.dp)
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.padding(horizontal = 14.dp)
+                    ) {
+                        Text(
+                            text = stringResource(if (uiState.isSubscribed) R.string.subscribed else R.string.subscribe),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (uiState.isSubscribed) Color.White else MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                }
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp, bottom = 10.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer)
+                        .clickable { session.channelId?.let(onChannelClick) }
+                ) {
+                    if (!session.channelAvatarUrl.isNullOrBlank()) {
+                        AsyncImage(
+                            model = session.channelAvatarUrl,
+                            contentDescription = session.channelName,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = listOfNotNull(
+                        session.channelName.takeIf { it.isNotEmpty() },
+                        session.viewCountText,
+                        session.publishedTimeText,
+                    ).joinToString(" • "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.7f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(4.dp))
+                        .clickable { session.channelId?.let(onChannelClick) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CompactActionChip(
+    icon: Int,
+    selected: Boolean,
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(20.dp),
+        color = if (selected) Color.White.copy(alpha = 0.32f) else Color.White.copy(alpha = 0.14f),
+        modifier = Modifier.size(40.dp)
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                painter = painterResource(icon),
+                contentDescription = contentDescription,
+                tint = Color.White,
+                modifier = Modifier.size(20.dp)
+            )
         }
     }
 }

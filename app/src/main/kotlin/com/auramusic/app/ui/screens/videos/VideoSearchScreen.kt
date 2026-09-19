@@ -1211,9 +1211,10 @@ private fun SearchHeroVideoCard(
             overflow = TextOverflow.Ellipsis,
         )
         Spacer(modifier = Modifier.height(4.dp))
+        // Views • published at only — the channel name lives in the row below
+        // next to its avatar, so it isn't shown twice on the same card.
         Text(
             text = listOfNotNull(
-                video.channelName.takeIf { it.isNotEmpty() },
                 video.viewCountText?.let { compactViewCount(it) },
                 video.publishedTimeText
             ).joinToString(" • "),
