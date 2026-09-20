@@ -1089,6 +1089,7 @@
     <string name="video_player_show_more">Show more</string>
     <string name="video_player_show_less">Show less</string>
     <string name="video_player_comments_unavailable">Comments are unavailable for this video</string>
+    <string name="video_player_retry">Retry</string>
     <string name="video_player_no_recommendations">No recommendations available</string>
     <string name="video_player_loading_recommendations">Loading recommendations…</string>
     <string name="video_player_subscribe_count">%s subscribers</string>

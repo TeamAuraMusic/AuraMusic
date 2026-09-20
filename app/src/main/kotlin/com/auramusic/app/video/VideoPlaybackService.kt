@@ -14,6 +14,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -22,6 +23,12 @@ import android.os.Looper
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.annotation.OptIn
+import coil3.imageLoader
+import coil3.request.ErrorResult
+import coil3.request.ImageRequest
+import coil3.request.SuccessResult
+import coil3.request.allowHardware
+import coil3.toBitmap
 import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
@@ -55,6 +62,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 
 /**
@@ -67,6 +75,9 @@ class VideoPlaybackService : MediaSessionService() {
     private var mediaSession: MediaSession? = null
     private var notificationProvider: DefaultMediaNotificationProvider? = null
     private var latestMediaNotification: Notification? = null
+    private var artworkBitmap: Bitmap? = null
+    private var artworkUrlLoaded: String? = null
+    private var artworkLoading = false
     private var scope = CoroutineScope(Dispatchers.Main + Job())
     private val mainHandler = Handler(Looper.getMainLooper())
 
@@ -221,21 +232,22 @@ class VideoPlaybackService : MediaSessionService() {
                     actionFactory: MediaNotification.ActionFactory,
                     onNotificationChangedCallback: MediaNotification.Provider.Callback,
                 ): MediaNotification {
+                    // The shade shows OUR notification (artwork + transport like
+                    // controls), not media3's internally-rendered card. Media3 still
+                    // drives session semantics (commands, lockscreen) through the
+                    // MediaStyle hooks, but the visible card is built here so a
+                    // thumb-only render decision in the provider can never strip the
+                    // artwork or playback buttons.
                     val trackingCallback = MediaNotification.Provider.Callback { notification ->
                         latestMediaNotification = notification.notification
                         onNotificationChangedCallback.onNotificationChanged(notification)
                     }
-                    return notificationProvider
-                        ?.createNotification(
-                            mediaSession,
-                            mediaButtonPreferences,
-                            actionFactory,
-                            trackingCallback,
-                        )
-                        ?: MediaNotification(
-                            NOTIFICATION_ID,
-                            buildPlaceholderNotification(),
-                        )
+                    val mediaNotification = MediaNotification(
+                        NOTIFICATION_ID,
+                        buildRichNotification(mediaSession),
+                    )
+                    trackingCallback.onNotificationChanged(mediaNotification)
+                    return mediaNotification
                 }
 
                 override fun handleCustomCommand(
@@ -403,6 +415,16 @@ class VideoPlaybackService : MediaSessionService() {
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // Notification action buttons (and media3's media-button delivery path)
+        // come here as explicit action intents. Perform the transport operation
+        // first so the rebuild below renders the button's new state (play/pause
+        // icon, liked heart) immediately.
+        when (intent?.action) {
+            ACTION_COMMAND_TOGGLE_PLAY_PAUSE -> VideoPlaybackManager.togglePlayPause()
+            ACTION_COMMAND_PLAY_PREVIOUS -> VideoPlaybackManager.playPrevious()
+            ACTION_COMMAND_PLAY_NEXT -> VideoPlaybackManager.playNext()
+            ACTION_COMMAND_TOGGLE_LIKE -> VideoPlaybackManager.toggleLike()
+        }
         // Always re-promote to the foreground AND rebuild the notification from the
         // session's CURRENT metadata (never the cached one). Every start path — a
         // fresh video (VideoPlaybackManager.playWithDetails), resume, media-button
@@ -467,10 +489,42 @@ class VideoPlaybackService : MediaSessionService() {
      */
     private fun rebuildMediaNotification() {
         val session = mediaSession ?: return
+        maybeLoadArtwork()
         try {
             onUpdateNotification(session, true)
         } catch (e: Exception) {
             Timber.tag(TAG).w(e, "rebuildMediaNotification failed")
+        }
+    }
+
+    /**
+     * Loads the session's thumbnail through Coil exactly once per artwork URL and
+     * re-renders the notification once the bitmap lands. Failure (bad URL, offline)
+     * is stored so we never enter a retry loop; the notification just shows without
+     * a large icon until the artwork URL changes.
+     */
+    private fun maybeLoadArtwork() {
+        val url = VideoPlaybackManager.uiState.value.session?.channelThumbnail
+            ?.takeIf { it.isNotBlank() }
+        if (url == null || artworkLoading || url == artworkUrlLoaded) return
+        artworkLoading = true
+        scope.launch {
+            val bitmap = withContext(Dispatchers.IO) {
+                runCatching {
+                    val request = ImageRequest.Builder(this@VideoPlaybackService)
+                        .data(url)
+                        .allowHardware(false)
+                        .build()
+                    when (val result = this@VideoPlaybackService.imageLoader.execute(request)) {
+                        is SuccessResult -> result.image.toBitmap()
+                        is ErrorResult -> null
+                    }
+                }.getOrNull()
+            }
+            artworkLoading = false
+            artworkUrlLoaded = url
+            artworkBitmap = bitmap
+            runOnMain { rebuildMediaNotification() }
         }
     }
 
@@ -569,6 +623,67 @@ class VideoPlaybackService : MediaSessionService() {
         }
     }
 
+    /**
+     * Builds the video session's notification card: the video thumbnail as the
+     * large icon, three transport actions (previous / play-pause / next) and a
+     * like toggle. The actions route through the service's onStartCommand, which
+     * performs the operation and rebuilds the card, so the notification works even
+     * while the app is backgrounded. The artwork is the channel/video thumbnail
+     * whose URL lives on the session (set by playWithDetails / enrichment).
+     */
+    private fun buildRichNotification(mediaSession: MediaSession): Notification {
+        val state = VideoPlaybackManager.uiState.value
+        val video = state.session
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_notification_icon)
+            .setContentTitle(video?.title?.ifBlank { null } ?: getString(R.string.video_player))
+            .setContentText(video?.channelName.orEmpty())
+            .setSubText(getString(R.string.video_player))
+            .setContentIntent(
+                PendingIntent.getActivity(
+                    this,
+                    1,
+                    Intent(this, MainActivity::class.java),
+                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+                )
+            )
+            .setCategory(NotificationCompat.CATEGORY_TRANSPORT)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setOngoing(true)
+            .setShowWhen(false)
+            .setOnlyAlertOnce(true)
+        artworkBitmap?.let(builder::setLargeIcon)
+        builder.addAction(
+            R.drawable.ic_skip_previous,
+            getString(R.string.previous),
+            transportPendingIntent(ACTION_COMMAND_PLAY_PREVIOUS, 100),
+        )
+        builder.addAction(
+            if (state.isPlaying) R.drawable.ic_pause else R.drawable.ic_play,
+            getString(if (state.isPlaying) R.string.pause else R.string.play),
+            transportPendingIntent(ACTION_COMMAND_TOGGLE_PLAY_PAUSE, 101),
+        )
+        builder.addAction(
+            R.drawable.ic_skip_next,
+            getString(R.string.next),
+            transportPendingIntent(ACTION_COMMAND_PLAY_NEXT, 102),
+        )
+        builder.addAction(
+            if (state.isLiked) R.drawable.ic_heart else R.drawable.ic_heart_outline,
+            getString(if (state.isLiked) R.string.action_remove_like else R.string.action_like),
+            transportPendingIntent(ACTION_COMMAND_TOGGLE_LIKE, 103),
+        )
+        return builder.build()
+    }
+
+    private fun transportPendingIntent(action: String, requestCode: Int): PendingIntent =
+        PendingIntent.getService(
+            this,
+            requestCode,
+            Intent(this, VideoPlaybackService::class.java).setAction(action),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+
     private fun buildPlaceholderNotification(): Notification {
         val session = VideoPlaybackManager.uiState.value.session
         return NotificationCompat.Builder(this, CHANNEL_ID)
@@ -608,6 +723,10 @@ class VideoPlaybackService : MediaSessionService() {
         }
         private const val TAG = "VideoPlaybackService"
         const val ACTION_REFRESH_NOTIFICATION = "com.auramusic.app.video.REFRESH_NOTIFICATION"
+        const val ACTION_COMMAND_TOGGLE_PLAY_PAUSE = "com.auramusic.app.video.CMD_TOGGLE_PLAY_PAUSE"
+        const val ACTION_COMMAND_PLAY_PREVIOUS = "com.auramusic.app.video.CMD_PLAY_PREVIOUS"
+        const val ACTION_COMMAND_PLAY_NEXT = "com.auramusic.app.video.CMD_PLAY_NEXT"
+        const val ACTION_COMMAND_TOGGLE_LIKE = "com.auramusic.app.video.CMD_TOGGLE_LIKE"
         const val SESSION_ID = "aura_video_playback"
         const val CHANNEL_ID = "video_channel_01"
         const val NOTIFICATION_ID = 889

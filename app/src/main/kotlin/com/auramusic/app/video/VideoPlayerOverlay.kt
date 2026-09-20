@@ -1830,17 +1830,23 @@ private fun CommentsSection(uiState: VideoPlaybackManager.UiState) {
             }
         }
         uiState.commentsError != null && uiState.comments.isEmpty() -> {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 24.dp),
-                contentAlignment = Alignment.Center
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
                     text = uiState.commentsError.orEmpty(),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
                 )
+                TextButton(onClick = { VideoPlaybackManager.retryLoadingComments() }) {
+                    Text(
+                        text = stringResource(R.string.video_player_retry),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
             }
         }
         else -> {

@@ -173,6 +173,16 @@ object VideoPlaybackManager {
 
     private var player: ExoPlayer? = null
     private var tickerJob: Job? = null
+
+    /**
+     * The last successful WEB watch-page response, keyed by video id. Shipped to
+     * enrichSessionMetadata / loadRecommendations / loadComments so the three
+     * loaders share ONE /next request instead of firing three near-identical calls,
+     * which on flaky networks is how comments or recommendations silently end up
+     * blank. Cleared whenever a new video starts.
+     */
+    private var watchMetadataCache: WatchMetadataResponse? = null
+    private var watchMetadataCacheVideoId: String? = null
     private var currentContext: Context? = null
     private var videoControllerFuture: ListenableFuture<MediaController>? = null
     private val playedVideoIds = mutableSetOf<String>()
@@ -271,6 +281,9 @@ object VideoPlaybackManager {
         }
 
         playedVideoIds.add(videoId)
+        // A new video invalidates the previous one's cached watch page.
+        watchMetadataCache = null
+        watchMetadataCacheVideoId = null
         val bestThumbnail = thumbnails.maxByOrNull { it.width ?: 0 }?.url
 
         val exo = getOrCreatePlayer(context)
@@ -334,6 +347,22 @@ object VideoPlaybackManager {
     }
 
     /**
+     * Fetches the WEB watch page for a video exactly once and caches it, so the
+     * enrichment, recommendations and comments loaders all read the SAME response
+     * (one /next round-trip per video instead of up to three).
+     */
+    private suspend fun fetchWatchMetadata(videoId: String): WatchMetadataResponse? {
+        val cached = watchMetadataCache.takeIf { watchMetadataCacheVideoId == videoId }
+        if (cached != null) return cached
+        val metadata = withContext(Dispatchers.IO) {
+            YouTube.watchMetadata(videoId).getOrNull()
+        }
+        watchMetadataCache = metadata
+        watchMetadataCacheVideoId = videoId
+        return metadata
+    }
+
+    /**
      * Fills missing session fields from the WEB watch page. Known metadata from the
      * list item the user tapped wins; only blank fields get overwritten. Also seeds
      * the real channel avatar (separate from the video artwork), the current
@@ -341,9 +370,7 @@ object VideoPlaybackManager {
      */
     private suspend fun enrichSessionMetadata(videoId: String) {
         if (_uiState.value.session?.videoId != videoId) return
-        val metadata = withContext(Dispatchers.IO) {
-            YouTube.watchMetadata(videoId).getOrNull()
-        }
+        val metadata = fetchWatchMetadata(videoId)
         val savedIds = withContext(Dispatchers.IO) {
             currentContext?.let { it.dataStore[SavedVideoIdsKey] }.orEmpty()
         }
@@ -388,9 +415,7 @@ object VideoPlaybackManager {
         }
 
         // Primary source: WEB watch page related videos (works for all YouTube videos).
-        val metadata = withContext(Dispatchers.IO) {
-            YouTube.watchMetadata(videoId).getOrNull()
-        }
+        val metadata = fetchWatchMetadata(videoId)
         val related = metadata?.relatedVideos().orEmpty()
         if (related.isNotEmpty()) {
             if (_uiState.value.session?.videoId != videoId) return
@@ -495,8 +520,9 @@ object VideoPlaybackManager {
         _uiState.update { it.copy(isLoadingComments = true, comments = emptyList(), commentsError = null, commentsContinuation = null) }
         val result = withContext(Dispatchers.IO) {
             // The WEB comment feed is only reachable through the watch page's comments
-            // continuation token, so resolve it first.
-            val token = YouTube.watchMetadata(videoId).getOrNull()?.commentsContinuation()
+            // continuation token, so resolve it first (reusing the cached watch page
+            // fetched during metadata enrichment where possible).
+            val token = fetchWatchMetadata(videoId)?.commentsContinuation()
             token?.let { YouTube.videoComments(videoId, it).getOrNull() }
         }
         if (_uiState.value.session?.videoId != videoId) return
@@ -513,6 +539,12 @@ object VideoPlaybackManager {
                 commentsError = if (comments.isEmpty()) "Comments are unavailable for this video" else null,
             )
         }
+    }
+
+    /** Re-runs the comments fetch for the current video (drives the Retry button). */
+    fun retryLoadingComments() {
+        val videoId = _uiState.value.session?.videoId ?: return
+        scope.launch { loadComments(videoId) }
     }
 
     /** Infinite scroll for the comments list. */

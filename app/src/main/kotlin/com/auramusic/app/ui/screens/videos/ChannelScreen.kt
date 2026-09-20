@@ -147,7 +147,19 @@ fun ChannelScreen(
             return
         }
         val result = withContext(Dispatchers.IO) {
-            YouTube.youtubeChannel(channelId, params).getOrNull()
+            var id = channelId
+            var page = YouTube.youtubeChannel(id, params).getOrNull()
+            // Handle-based channels (e.g. "@SomeChannel") are not valid browse ids,
+            // so WEB browse fails until the real channel id is resolved; retry once
+            // with the id if the first attempt came up empty.
+            if (page == null && id.startsWith("@")) {
+                val resolved = YouTube.getChannelId(id).ifBlank { id }
+                if (resolved != id) {
+                    id = resolved
+                    page = YouTube.youtubeChannel(id, params).getOrNull()
+                }
+            }
+            page
         }
         if (result != null) {
             header = ChannelHeader(
