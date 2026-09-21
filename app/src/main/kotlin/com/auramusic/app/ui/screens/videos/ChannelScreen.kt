@@ -100,6 +100,7 @@ fun ChannelScreen(
     val gridState = rememberLazyGridState()
 
     val channelId = remember(channelIdOrUrl) { extractChannelId(channelIdOrUrl) }
+    var resolvedChannelId by remember(channelId) { mutableStateOf(channelId) }
 
     var header by remember { mutableStateOf<ChannelHeader?>(null) }
     var videos by remember(channelId) { mutableStateOf<List<YouTubeVideoItem>>(emptyList()) }
@@ -126,6 +127,13 @@ fun ChannelScreen(
             postsContinuation = null
         }
         error = null
+        val requestChannelId = withContext(Dispatchers.IO) {
+            if (resolvedChannelId.startsWith("@")) {
+                YouTube.getChannelId(resolvedChannelId).ifBlank { resolvedChannelId }
+            } else {
+                resolvedChannelId
+            }
+        }
         val params = when (tab) {
             ChannelTab.Videos -> YouTubeChannelPage.VIDEOS_PARAMS
             ChannelTab.Shorts -> YouTubeChannelPage.SHORTS_PARAMS
@@ -135,9 +143,10 @@ fun ChannelScreen(
         }
         if (tab == ChannelTab.Posts) {
             val page = withContext(Dispatchers.IO) {
-                YouTube.youtubeChannelPosts(channelId).getOrNull()
+                YouTube.youtubeChannelPosts(requestChannelId).getOrNull()
             }
             if (page != null) {
+                resolvedChannelId = requestChannelId
                 posts = page.posts
                 postsContinuation = page.continuation
             } else if (clear) {
@@ -147,23 +156,12 @@ fun ChannelScreen(
             return
         }
         val result = withContext(Dispatchers.IO) {
-            var id = channelId
-            var page = YouTube.youtubeChannel(id, params).getOrNull()
-            // Handle-based channels (e.g. "@SomeChannel") are not valid browse ids,
-            // so WEB browse fails until the real channel id is resolved; retry once
-            // with the id if the first attempt came up empty.
-            if (page == null && id.startsWith("@")) {
-                val resolved = YouTube.getChannelId(id).ifBlank { id }
-                if (resolved != id) {
-                    id = resolved
-                    page = YouTube.youtubeChannel(id, params).getOrNull()
-                }
-            }
-            page
+            YouTube.youtubeChannel(requestChannelId, params).getOrNull()
         }
         if (result != null) {
+            resolvedChannelId = result.channelId
             header = ChannelHeader(
-                channelId = channelId,
+                channelId = result.channelId,
                 title = result.title,
                 avatarUrl = result.avatarUrl,
                 bannerUrl = result.bannerUrl,
@@ -177,7 +175,7 @@ fun ChannelScreen(
                 // locally-persisted record from a previous subscribe action.
                 val locallySubscribed = VideoPlaybackManager
                     .readSubscribedChannels(context)
-                    .any { it.channelId == channelId }
+                    .any { it.channelId == resolvedChannelId }
                 if (locallySubscribed) isSubscribed = true
             }
             videos = result.videos
@@ -195,7 +193,7 @@ fun ChannelScreen(
             val cont = postsContinuation
             if (cont != null) {
                 val page = withContext(Dispatchers.IO) {
-                    YouTube.youtubeChannelPosts(channelId, cont).getOrNull()
+                    YouTube.youtubeChannelPosts(resolvedChannelId, cont).getOrNull()
                 }
                 page?.let {
                     val existing = posts.map { it.postId }.toSet()
@@ -211,7 +209,7 @@ fun ChannelScreen(
             return
         }
         val result = withContext(Dispatchers.IO) {
-            YouTube.youtubeChannelContinuation(channelId, cont).getOrNull()
+            YouTube.youtubeChannelContinuation(resolvedChannelId, cont).getOrNull()
         }
         result?.let {
             val existing = videos.map { it.videoId }.toSet()
@@ -241,12 +239,12 @@ fun ChannelScreen(
             // list reflects it even before the remote state round-trips.
             VideoPlaybackManager.persistChannelSubscription(
                 context = context,
-                channelId = channelId,
+                channelId = resolvedChannelId,
                 name = header?.title.orEmpty(),
                 avatarUrl = header?.avatarUrl,
                 subscribe = newSubscribed,
             )
-            YouTube.subscribeChannel(channelId, newSubscribed).onSuccess {
+            YouTube.subscribeChannel(resolvedChannelId, newSubscribed).onSuccess {
                 isSubscribed = newSubscribed
             }
             isSubscribing = false

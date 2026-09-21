@@ -71,6 +71,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 object VideoPlaybackManager {
@@ -183,6 +185,7 @@ object VideoPlaybackManager {
      */
     private var watchMetadataCache: WatchMetadataResponse? = null
     private var watchMetadataCacheVideoId: String? = null
+    private val watchMetadataMutex = Mutex()
     private var currentContext: Context? = null
     private var videoControllerFuture: ListenableFuture<MediaController>? = null
     private val playedVideoIds = mutableSetOf<String>()
@@ -352,14 +355,20 @@ object VideoPlaybackManager {
      * (one /next round-trip per video instead of up to three).
      */
     private suspend fun fetchWatchMetadata(videoId: String): WatchMetadataResponse? {
-        val cached = watchMetadataCache.takeIf { watchMetadataCacheVideoId == videoId }
-        if (cached != null) return cached
-        val metadata = withContext(Dispatchers.IO) {
-            YouTube.watchMetadata(videoId).getOrNull()
+        return watchMetadataMutex.withLock {
+            val cached = watchMetadataCache.takeIf { watchMetadataCacheVideoId == videoId }
+            if (cached != null) return@withLock cached
+            val metadata = withContext(Dispatchers.IO) {
+                YouTube.watchMetadata(videoId).getOrNull()
+            }
+            // Do not cache failures. A transient /next failure would otherwise
+            // permanently disable comments and channel enrichment for this session.
+            if (metadata != null) {
+                watchMetadataCache = metadata
+                watchMetadataCacheVideoId = videoId
+            }
+            metadata
         }
-        watchMetadataCache = metadata
-        watchMetadataCacheVideoId = videoId
-        return metadata
     }
 
     /**

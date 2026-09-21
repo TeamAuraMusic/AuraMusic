@@ -263,9 +263,10 @@ private fun HeroCarouselCard(
                     contentDescription = null,
                     modifier = Modifier.size(playIconSize),
                 )
-}
+            }
+        }
 
-            Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         Text(
             text = item.title,
