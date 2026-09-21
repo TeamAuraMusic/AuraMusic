@@ -105,16 +105,13 @@ import okhttp3.Request
 import com.auramusic.app.constants.AutoDownloadOnLikeKey
 import com.auramusic.app.constants.AutoLoadMoreKey
 import com.auramusic.app.constants.AutoSkipNextOnErrorKey
-import com.auramusic.app.constants.CrossfadeDurationKey
-import com.auramusic.app.constants.VideoQuality
-import com.auramusic.app.constants.VideoQualityKey
-import com.auramusic.app.constants.CrossfadeEnabledKey
-import com.auramusic.app.constants.AutomixEnabledKey
-import com.auramusic.app.constants.AutomixBlendPercentKey
-import com.auramusic.app.constants.CrossfadeGaplessKey
 import com.auramusic.app.constants.DisableLoadMoreWhenRepeatAllKey
 import com.auramusic.app.constants.DiscordUseDetailsKey
 import com.auramusic.app.constants.EnableDiscordRPCKey
+import com.auramusic.app.constants.VideoQuality
+import com.auramusic.app.constants.VideoQualityKey
+import com.auramusic.app.constants.AutomixEnabledKey
+import com.auramusic.app.constants.AutomixBlendPercentKey
 import com.auramusic.app.discord.DiscordActivity
 import com.auramusic.app.discord.DiscordActivityBuilder
 import com.auramusic.app.discord.DiscordDefaults
@@ -327,12 +324,10 @@ class MusicService :
     @Volatile
     private var videoTakeoverActive = false
 
-    private var crossfadeEnabled = false
-    private var crossfadeDuration = 5000f
-    private var crossfadeGapless = true
-    private var crossfadeTriggerJob: Job? = null
     private var automixEnabled = false
     private var automixBlendPercent = 90f
+    
+    private var automixTriggerJob: Job? = null
     
     private val secondaryPlayerListener = object : Player.Listener {
         override fun onPlayerError(error: PlaybackException) {
@@ -472,9 +467,9 @@ class MusicService :
     lateinit var player: ExoPlayer
         private set
     private var secondaryPlayer: ExoPlayer? = null
-    private var fadingPlayer: ExoPlayer? = null
-    private var isCrossfading = false
-    private var crossfadeJob: Job? = null
+    private var outgoingPlayer: ExoPlayer? = null
+    private var isAutomixing = false
+    private var automixJob: Job? = null
 
     private lateinit var mediaSession: MediaLibrarySession
     
@@ -713,7 +708,7 @@ class MusicService :
                 // 250ms tick re-checks, so the segment is still skipped right after the
                 // switch completes.
                 if (sponsorBlockManager.enabled.value && player.isPlaying &&
-                    !_isVideoSwitching.value && !isCrossfading && secondaryPlayer == null
+                    !_isVideoSwitching.value && !isAutomixing && secondaryPlayer == null
                 ) {
                     val skipTo = sponsorBlockManager.findSkipTarget(player.currentPosition)
                     if (skipTo != null && skipTo > player.currentPosition) {
@@ -916,14 +911,12 @@ class MusicService :
             format to normalizeAudio
         }.collectLatest(scope) { (format, normalizeAudio) -> setupLoudnessEnhancer()}
 
-        combine(
+    combine(
             dataStore.data.map { it[AudioOffload] ?: false },
-            dataStore.data.map {
-                (it[CrossfadeEnabledKey] ?: false) || (it[AutomixEnabledKey] ?: false)
-            }
-        ) { offloadPref, effectiveCrossfadeEnabled ->
-             // Force disable offload if crossfade is enabled to prevent volume ramp issues
-             if (effectiveCrossfadeEnabled) false else offloadPref
+            dataStore.data.map { it[AutomixEnabledKey] ?: false }
+        ) { offloadPref, effectiveAutomixEnabled ->
+             // Force disable offload if automix is enabled to prevent volume ramp issues
+             if (effectiveAutomixEnabled) false else offloadPref
         }.distinctUntilChanged()
         .collectLatest(scope) { useOffload ->
              player.setOffloadEnabled(useOffload)
@@ -1055,51 +1048,20 @@ class MusicService :
                 }
             }
 
+        // Automix: configure automix settings
         dataStore.data
             .map { prefs ->
-                Triple(
-                    prefs[CrossfadeEnabledKey] ?: false,
-                    prefs[CrossfadeDurationKey] ?: 5f,
-                    prefs[CrossfadeGaplessKey] ?: true
-                )
-            }
-            .distinctUntilChanged()
-            .collect(scope) { (enabled, duration, gapless) ->
-                if (!automixEnabled) {
-                    crossfadeEnabled = enabled
-                    crossfadeDuration = duration * 1000f // Convert to ms
-                    crossfadeGapless = gapless
-                }
-            }
-
-        // Automix: when enabled, force crossfade on with DJ-optimized settings
-        dataStore.data
-            .map { prefs ->
-                Triple(
+                Pair(
                     prefs[AutomixEnabledKey] ?: false,
-                    Triple(
-                        prefs[CrossfadeEnabledKey] ?: false,
-                        prefs[CrossfadeDurationKey] ?: 5f,
-                        prefs[CrossfadeGaplessKey] ?: true,
-                    ),
                     prefs[AutomixBlendPercentKey] ?: 90f,
                 )
             }
             .distinctUntilChanged()
-            .collect(scope) { (enabled, crossfadePreferences, blendPercent) ->
+            .collect(scope) { (enabled, blendPercent) ->
                 automixEnabled = enabled
                 automixBlendPercent = blendPercent.coerceIn(10f, 100f)
-                if (enabled) {
-                    crossfadeEnabled = true
-                    crossfadeDuration = 4000f // 4 second DJ-style crossfade
-                    crossfadeGapless = false  // Always crossfade in automix mode
-                    Timber.tag(TAG).i("Automix enabled: crossfade=4s, gapless=false, blend=$automixBlendPercent%")
-                } else {
-                    crossfadeEnabled = crossfadePreferences.first
-                    crossfadeDuration = crossfadePreferences.second * 1000f
-                    crossfadeGapless = crossfadePreferences.third
-                }
-                scheduleCrossfade()
+                Timber.tag(TAG).i("Automix enabled=$automixEnabled, blend=$automixBlendPercent%")
+                scheduleAutomix()
             }
 
         dataStore.data
@@ -1311,9 +1273,7 @@ class MusicService :
         player.apply {
                 runBlocking {
                     val offload = dataStore.get(AudioOffload, false)
-                    val crossfade = dataStore.get(CrossfadeEnabledKey, false) ||
-                        dataStore.get(AutomixEnabledKey, false)
-                    setOffloadEnabled(if (crossfade) false else offload)
+                    setOffloadEnabled(if (automixEnabled) false else offload)
                     skipSilenceEnabled = dataStore.get(SkipSilenceKey, false)
                 }
                 
@@ -2395,7 +2355,7 @@ class MusicService :
                 resetRetryCount(mediaId)
                 Timber.tag(TAG).d("Playback successful for $mediaId, reset retry count")
             }
-            scheduleCrossfade()
+            scheduleAutomix()
         }
 
         if (playbackState == Player.STATE_IDLE || playbackState == Player.STATE_ENDED) {
@@ -2459,7 +2419,7 @@ class MusicService :
                 Player.EVENT_PLAY_WHEN_READY_CHANGED
             )
         ) {
-            scheduleCrossfade()
+            scheduleAutomix()
             val isBufferingOrReady =
                 player.playbackState == Player.STATE_BUFFERING || player.playbackState == Player.STATE_READY
             if (isBufferingOrReady && player.playWhenReady) {
@@ -2545,7 +2505,7 @@ class MusicService :
 
     override fun onRepeatModeChanged(repeatMode: Int) {
         updateNotification()
-        scheduleCrossfade()
+        scheduleAutomix()
         scope.launch {
             dataStore.edit { settings ->
                 settings[RepeatModeKey] = repeatMode
@@ -3593,15 +3553,15 @@ class MusicService :
         releaseLoudnessEnhancer()
         playerInitialized.value = false
         _playerFlow.value = null
-        crossfadeTriggerJob?.cancel()
-        crossfadeJob?.cancel()
+        automixTriggerJob?.cancel()
+        automixJob?.cancel()
         retryJob?.cancel()
         videoSwitchJob?.cancel()
         widgetUpdateJob?.cancel()
         discordUpdateJob?.cancel()
         scope.cancel()
         mediaSession.release()
-        listOfNotNull(secondaryPlayer, fadingPlayer, player).distinct().forEach { playerToRelease ->
+        listOfNotNull(secondaryPlayer, outgoingPlayer, player).distinct().forEach { playerToRelease ->
             playerToRelease.removeListener(this)
             playerToRelease.removeListener(sleepTimer)
             playerSilenceProcessors.remove(playerToRelease)
@@ -3609,8 +3569,8 @@ class MusicService :
             playerToRelease.release()
         }
         secondaryPlayer = null
-        fadingPlayer = null
-        isCrossfading = false
+        outgoingPlayer = null
+        isAutomixing = false
         super.onDestroy()
     }
 
@@ -4458,84 +4418,72 @@ class MusicService :
         reason: Int
     ) {
         if (reason == Player.DISCONTINUITY_REASON_SEEK) {
-            scheduleCrossfade()
+            scheduleAutomix()
         }
     }
     
-    private fun scheduleCrossfade() {
-        crossfadeTriggerJob?.cancel()
-        crossfadeTriggerJob = null
-        if (!crossfadeEnabled) return
+    private fun scheduleAutomix() {
+        automixTriggerJob?.cancel()
+        automixTriggerJob = null
+        if (!automixEnabled) return
+        // Ensure the next automix item is in the queue before scheduling
+        runCatching { enqueueNextAutomixItemIfNeeded() }
         // Never automix/crossfade into a video-backed song: the secondary player
         // copies the whole queue (including the injected video sources), which
         // tears down video mode and can crash the app or leave a black video
         // surface on the phone. Video songs finish naturally and let
         // onMediaItemTransition handle the switch so SponsorBlock keeps working.
         if (isVideoMode) {
-            Timber.d("scheduleCrossfade: Skipping crossfade while in video mode")
+            Timber.d("scheduleAutomix: Skipping automix while in video mode")
             return
         }
         // Repeat-one must finish naturally and restart the same item; blending into another
         // item would violate the user's explicit repeat command.
         if (player.repeatMode == REPEAT_MODE_ONE) return
-        if (player.duration == C.TIME_UNSET || player.duration <= crossfadeDuration) {
+        if (player.duration == C.TIME_UNSET || player.duration <= 4000) {
             // Duration not yet known — retry after a short delay
             if (automixEnabled && player.duration == C.TIME_UNSET && player.isPlaying) {
-                crossfadeTriggerJob = scope.launch {
+                automixTriggerJob = scope.launch {
                     delay(500)
                     if (player.isPlaying && player.currentMediaItem != null) {
-                        scheduleCrossfade()
+                        scheduleAutomix()
                     }
                 }
             }
             return
         }
-        if (crossfadeGapless && isNextItemGapless()) return
-        val nextCrossfadeIndex = nextCrossfadeMediaItemIndex()
-        if (nextCrossfadeIndex == C.INDEX_UNSET) return
+        val nextIndex = nextAutomixMediaItemIndex()
+        if (nextIndex == C.INDEX_UNSET) return
         // Never crossfade/automix into a video-backed song: it must play natively so
         // onMediaItemTransition routes it through video mode and SponsorBlock works.
-        if (player.getMediaItemAt(nextCrossfadeIndex).metadata?.isVideoSong == true) {
-            Timber.d("scheduleCrossfade: Skipping crossfade into video song")
+        if (player.getMediaItemAt(nextIndex).metadata?.isVideoSong == true) {
+            Timber.d("scheduleAutomix: Skipping automix into video song")
             return
         }
         
         // Automix starts the blend once the configured % of the current song has
         // played (default 90%). Uses a linear fade for a DJ-style mix.
-        val triggerPercent = if (automixEnabled) automixBlendPercent / 100f else 0f
-        val triggerOffset = if (automixEnabled) {
-            (player.duration * triggerPercent).toLong()
-        } else {
-            player.duration - crossfadeDuration.toLong()
-        }
-        val triggerTime = if (automixEnabled) {
-            // Leave enough time for the full fade even on short tracks.
-            minOf(triggerOffset, player.duration - crossfadeDuration.toLong())
-        } else {
-            triggerOffset
-        }
+        val triggerPercent = automixBlendPercent / 100f
+        val triggerOffset = (player.duration * triggerPercent).toLong()
+        val triggerTime = minOf(triggerOffset, player.duration - 4000)
         val delayMs = triggerTime - player.currentPosition
         if (delayMs <= 0) return
         
         val targetMediaId = player.currentMediaItem?.mediaId
         
-        crossfadeTriggerJob = scope.launch {
+        automixTriggerJob = scope.launch {
             delay(delayMs)
             if (isActive && player.isPlaying && player.currentMediaItem?.mediaId == targetMediaId) {
-                startCrossfade()
+                startAutomix()
             }
         }
     }
     
     private fun isNextItemGapless(): Boolean {
-        val current = player.currentMediaItem?.mediaMetadata ?: return false
-        val nextIndex = nextCrossfadeMediaItemIndex()
-        if (nextIndex == C.INDEX_UNSET) return false
-        val next = player.getMediaItemAt(nextIndex).mediaMetadata
-        return current.albumTitle != null && current.albumTitle == next.albumTitle
+        return false
     }
 
-    private fun nextCrossfadeMediaItemIndex(): Int {
+    private fun nextAutomixMediaItemIndex(): Int {
         if (player.repeatMode == REPEAT_MODE_ONE || player.mediaItemCount < 2) return C.INDEX_UNSET
         val nextIndex = player.nextMediaItemIndex
         if (nextIndex != C.INDEX_UNSET) return nextIndex
@@ -4543,7 +4491,7 @@ class MusicService :
     }
     
     /**
-     * Records the current song to history before crossfade completes.
+     * Records the current song to history before automix swap completes.
      * This ensures the song is tracked even though playback doesn't end naturally.
      */
     private fun recordCurrentSongToHistory() {
@@ -4583,19 +4531,19 @@ class MusicService :
         }
     }
     
-    private fun startCrossfade() {
-        if (isCrossfading) return
+    private fun startAutomix() {
+        if (isAutomixing) return
         // Same guard as scheduleCrossfade: never crossfade a video-backed song —
         // the swap tears down video mode and leaves a black video surface.
         if (isVideoMode) {
-            Timber.d("startCrossfade: Skipping crossfade while in video mode")
+            Timber.d("startAutomix: Skipping automix while in video mode")
             return
         }
-        val nextIndex = nextCrossfadeMediaItemIndex()
+        val nextIndex = nextAutomixMediaItemIndex()
         if (nextIndex == C.INDEX_UNSET) return
         val outgoingMediaId = player.currentMediaItem?.mediaId ?: return
         
-        // Record current song to history before crossfade
+        // Record current song to history before automix swap
         recordCurrentSongToHistory()
         
         secondaryPlayer = createExoPlayer(publishPlayer = false)
@@ -4625,7 +4573,7 @@ class MusicService :
                 // Stream resolution can take longer than a cache hit. If playback moved while
                 // waiting, discard this stale player rather than swapping to the wrong song.
                 if (player.currentMediaItem?.mediaId != outgoingMediaId ||
-                    player.repeatMode == REPEAT_MODE_ONE || !crossfadeEnabled
+                    player.repeatMode == REPEAT_MODE_ONE || !automixEnabled
                 ) {
                     secPlayer.removeListener(secondaryPlayerListener)
                     secPlayer.stop()
@@ -4633,10 +4581,10 @@ class MusicService :
                     playerSilenceProcessors.remove(secPlayer)
                     secPlayer.release()
                     if (secondaryPlayer === secPlayer) secondaryPlayer = null
-                    scheduleCrossfade()
+                    scheduleAutomix()
                     return
                 }
-                performCrossfadeSwap()
+                performAutomixSwap()
             }
         }
         secPlayer.addListener(readyListener)
@@ -4644,7 +4592,7 @@ class MusicService :
         secPlayer.playWhenReady = true
     }
     
-    private fun performCrossfadeSwap() {
+    private fun performAutomixSwap() {
         if (sleepTimer.pauseWhenSongEnd) {
             sleepTimer.notifySongTransition()
             secondaryPlayer?.let { pendingPlayer ->
@@ -4660,7 +4608,7 @@ class MusicService :
 
         val nextPlayer = secondaryPlayer ?: return
         val oldPlayer = player
-        isCrossfading = true
+        isAutomixing = true
 
         nextPlayer.removeListener(secondaryPlayerListener)
         nextPlayer.addListener(this)
@@ -4680,12 +4628,12 @@ class MusicService :
             playerSilenceProcessors.remove(nextPlayer)
             nextPlayer.release()
             secondaryPlayer = null
-            isCrossfading = false
-            scheduleCrossfade()
+            isAutomixing = false
+            scheduleAutomix()
             return
         }
 
-        fadingPlayer = oldPlayer
+        outgoingPlayer = oldPlayer
         player = nextPlayer
         secondaryPlayer = null
         sleepTimer.player = nextPlayer
@@ -4696,7 +4644,7 @@ class MusicService :
         // Add listener to sync play/pause state
         val playbackBridge = object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
-                if (isCrossfading && fadingPlayer === oldPlayer) {
+                if (isAutomixing && outgoingPlayer === oldPlayer) {
                     if (isPlaying) {
                         oldPlayer.play()
                     } else {
@@ -4712,13 +4660,13 @@ class MusicService :
         // Publish only after the service, session, and listeners agree on the active player.
         _playerFlow.value = nextPlayer
         
-        crossfadeJob = scope.launch {
-            val duration = crossfadeDuration.toLong()
-            val steps = 20
-            val stepTime = duration / steps
-            val targetVolume = if (isMuted.value) 0f else playerVolume.value
-            val outgoingStartVolume = oldPlayer.volume
-            nextPlayer.volume = 0f
+         automixJob = scope.launch {
+             val duration = 4000L
+             val steps = 20
+             val stepTime = duration / steps
+             val targetVolume = if (isMuted.value) 0f else playerVolume.value
+             val outgoingStartVolume = oldPlayer.volume
+             nextPlayer.volume = 0f
             
             for (i in 1..steps) {
                 if (!isActive) break
@@ -4731,11 +4679,11 @@ class MusicService :
                 val fadeIn: Float
                 val fadeOut: Float
                 if (automixEnabled) {
-                    // Linear crossfade for DJ-style mixing
+                    // Linear fade for DJ-style mixing
                     fadeIn = progress
                     fadeOut = 1.0f - progress
                 } else {
-                    // Quadratic crossfade for smooth transitions
+                    // Quadratic fade for smooth transitions
                     fadeIn = 1.0f - (1.0f - progress) * (1.0f - progress)
                     fadeOut = (1.0f - progress) * (1.0f - progress)
                 }
@@ -4755,21 +4703,21 @@ class MusicService :
                 // Let the TV AudioTrack drain its final silent buffer before releasing it.
                 delay(100)
                 closeAudioEffectSession()
-                cleanupCrossfade()
+                cleanupAutomix()
                 openAudioEffectSession()
             } catch (e: Exception) { }
         }
     }
     
-    private fun cleanupCrossfade() {
-        fadingPlayer?.let { oldPlayer ->
+    private fun cleanupAutomix() {
+        outgoingPlayer?.let { oldPlayer ->
             oldPlayer.stop()
             oldPlayer.clearMediaItems()
             playerSilenceProcessors.remove(oldPlayer)
             oldPlayer.release()
         }
-        fadingPlayer = null
-        isCrossfading = false
+        outgoingPlayer = null
+        isAutomixing = false
     }
 
     /**

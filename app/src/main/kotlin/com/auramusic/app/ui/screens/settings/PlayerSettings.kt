@@ -55,11 +55,8 @@ import com.auramusic.app.constants.AudioOffload
 import com.auramusic.app.constants.AudioQuality
 import com.auramusic.app.constants.AudioQualityKey
 import com.auramusic.app.constants.AutoDownloadOnLikeKey
-import com.auramusic.app.constants.CrossfadeDurationKey
-import com.auramusic.app.constants.CrossfadeEnabledKey
 import com.auramusic.app.constants.AutomixEnabledKey
 import com.auramusic.app.constants.AutomixBlendPercentKey
-import com.auramusic.app.constants.CrossfadeGaplessKey
 import com.auramusic.app.constants.AutoLoadMoreKey
 import com.auramusic.app.constants.AutoSkipNextOnErrorKey
 import com.auramusic.app.constants.DisableLoadMoreWhenRepeatAllKey
@@ -113,18 +110,6 @@ fun PlayerSettings(
     val (audioQuality, onAudioQualityChange) = rememberEnumPreference(
         AudioQualityKey,
         defaultValue = AudioQuality.AUTO
-    )
-    val (crossfadeEnabled, onCrossfadeEnabledChange) = rememberPreference(
-        CrossfadeEnabledKey,
-        defaultValue = false
-    )
-    val (crossfadeDuration, onCrossfadeDurationChange) = rememberPreference(
-        CrossfadeDurationKey,
-        defaultValue = 5f
-    )
-    val (crossfadeGapless, onCrossfadeGaplessChange) = rememberPreference(
-        CrossfadeGaplessKey,
-        defaultValue = true
     )
     val (automixEnabled, onAutomixEnabledChange) = rememberPreference(
         AutomixEnabledKey,
@@ -287,25 +272,25 @@ fun PlayerSettings(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp)
     ) {
-        var showCrossfadeBetaDialog by remember { mutableStateOf(false) }
+        var showAutomixBetaDialog by remember { mutableStateOf(false) }
 
-        if (showCrossfadeBetaDialog) {
+        if (showAutomixBetaDialog) {
             DefaultDialog(
-                onDismiss = { showCrossfadeBetaDialog = false },
-                title = { Text(stringResource(R.string.crossfade_beta_title)) },
+                onDismiss = { showAutomixBetaDialog = false },
+                title = { Text("Automix") },
                 buttons = {
-                    TextButton(onClick = { showCrossfadeBetaDialog = false }) {
+                    TextButton(onClick = { showAutomixBetaDialog = false }) {
                         Text(stringResource(R.string.cancel))
                     }
                     TextButton(onClick = {
-                        showCrossfadeBetaDialog = false
-                        onCrossfadeEnabledChange(true)
+                        showAutomixBetaDialog = false
+                        onAutomixEnabledChange(true)
                     }) {
                         Text(stringResource(R.string.enable))
                     }
                 }
             ) {
-                Text(stringResource(R.string.crossfade_beta_message))
+                Text("Automix is in beta. If you encounter issues, please report them.")
             }
         }
 
@@ -348,95 +333,22 @@ fun PlayerSettings(
                     },
                     onClick = { showAudioQualityDialog = true }
                 ))
-                add(Material3SettingsItem(
-                    icon = painterResource(R.drawable.linear_scale),
-                    title = { Text(stringResource(R.string.crossfade)) },
-                    description = {
-                        Text(
-                            if (crossfadeEnabled) {
-                                "${pluralStringResource(R.plurals.seconds, crossfadeDuration.toInt(), crossfadeDuration.toInt())} • ${stringResource(R.string.crossfade_desc)}"
-                            } else {
-                                stringResource(R.string.crossfade_desc)
-                            }
-                        )
-                    },
-                    showBadge = true,
-                    trailingContent = {
-                        Switch(
-                            checked = crossfadeEnabled,
-                            onCheckedChange = {
-                                if (!crossfadeEnabled) {
-                                    showCrossfadeBetaDialog = true
-                                } else {
-                                    onCrossfadeEnabledChange(false)
-                                }
-                            },
-                            thumbContent = {
-                                Icon(
-                                    painter = painterResource(
-                                        id = if (crossfadeEnabled) R.drawable.check else R.drawable.close
-                                    ),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(SwitchDefaults.IconSize)
-                                )
-                            }
-                        )
-                    },
-                    onClick = {
-                        if (!crossfadeEnabled) {
-                            showCrossfadeBetaDialog = true
-                        } else {
-                            onCrossfadeEnabledChange(false)
-                        }
-                    }
-                ))
-                if (crossfadeEnabled) {
-                    add(Material3SettingsItem(
-                        icon = painterResource(R.drawable.timer),
-                        title = { Text(stringResource(R.string.crossfade_duration)) },
-                        description = {
-                            Column {
-                                Text(pluralStringResource(R.plurals.seconds, crossfadeDuration.toInt(), crossfadeDuration.toInt()))
-                                Slider(
-                                    value = crossfadeDuration,
-                                    onValueChange = onCrossfadeDurationChange,
-                                    valueRange = 1f..12f,
-                                    steps = 11
-                                )
-                            }
-                        }
-                    ))
-                    add(Material3SettingsItem(
-                        icon = painterResource(R.drawable.album),
-                        title = { Text(stringResource(R.string.crossfade_gapless)) },
-                        description = { Text(stringResource(R.string.crossfade_gapless_desc)) },
-                        trailingContent = {
-                            Switch(
-                                checked = crossfadeGapless,
-                                onCheckedChange = onCrossfadeGaplessChange,
-                                thumbContent = {
-                                    Icon(
-                                        painter = painterResource(
-                                            id = if (crossfadeGapless) R.drawable.check else R.drawable.close
-                                        ),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(SwitchDefaults.IconSize)
-                                    )
-                                }
-                            )
-                        },
-                        onClick = { onCrossfadeGaplessChange(!crossfadeGapless) }
-                    ))
-                }
                 // Automix toggle
                 add(Material3SettingsItem(
                     icon = painterResource(R.drawable.music_note),
                     title = { Text("Automix") },
-                    description = { Text("DJ-style crossfade — automatically mixes songs with a smooth 4-second linear fade, starting earlier in each track") },
+                    description = { Text("Automatically mixes songs with a smooth 4-second linear fade, starting earlier in each track") },
+                    showBadge = true,
                     trailingContent = {
                         Switch(
                             checked = automixEnabled,
-                            onCheckedChange = onAutomixEnabledChange,
+                            onCheckedChange = {
+                                if (!automixEnabled) {
+                                    showAutomixBetaDialog = true
+                                } else {
+                                    onAutomixEnabledChange(false)
+                                }
+                            },
                             thumbContent = {
                                 Icon(
                                     painter = painterResource(
@@ -448,7 +360,13 @@ fun PlayerSettings(
                             }
                         )
                     },
-                    onClick = { onAutomixEnabledChange(!automixEnabled) }
+                    onClick = {
+                        if (!automixEnabled) {
+                            showAutomixBetaDialog = true
+                        } else {
+                            onAutomixEnabledChange(false)
+                        }
+                    }
                 ))
                 if (automixEnabled) {
                     add(Material3SettingsItem(
@@ -565,24 +483,18 @@ fun PlayerSettings(
                     },
                     onClick = { onLateNightModeChange(!lateNightMode) }
                 ))
-                add(Material3SettingsItem(
+                 add(Material3SettingsItem(
                     icon = painterResource(R.drawable.graphic_eq),
                     title = { Text(stringResource(R.string.audio_offload)) },
-                    description = {
-                        Text(
-                            if (crossfadeEnabled) stringResource(R.string.audio_offload_disabled_by_crossfade)
-                            else stringResource(R.string.audio_offload_description)
-                        )
-                    },
+                    description = { Text(stringResource(R.string.audio_offload_description)) },
                     trailingContent = {
                         Switch(
-                            checked = if (crossfadeEnabled) false else audioOffload,
+                            checked = audioOffload,
                             onCheckedChange = onAudioOffloadChange,
-                            enabled = !crossfadeEnabled,
                             thumbContent = {
                                 Icon(
                                     painter = painterResource(
-                                        id = if (!crossfadeEnabled && audioOffload) R.drawable.check else R.drawable.close
+                                        id = if (audioOffload) R.drawable.check else R.drawable.close
                                     ),
                                     contentDescription = null,
                                     modifier = Modifier.size(SwitchDefaults.IconSize)
@@ -590,7 +502,7 @@ fun PlayerSettings(
                             }
                         )
                     },
-                    onClick = { if (!crossfadeEnabled) onAudioOffloadChange(!audioOffload) }
+                    onClick = { onAudioOffloadChange(!audioOffload) }
                 ))
                 add(Material3SettingsItem(
                     icon = painterResource(R.drawable.slow_motion_video),

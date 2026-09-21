@@ -93,12 +93,9 @@ import com.auramusic.app.constants.AccountChannelHandleKey
 import com.auramusic.app.constants.AccountEmailKey
 import com.auramusic.app.constants.AccountNameKey
 import com.auramusic.app.constants.AudioNormalizationKey
-import com.auramusic.app.constants.AutomixEnabledKey
 import com.auramusic.app.constants.AutomixBlendPercentKey
 import com.auramusic.app.constants.AudioQuality
 import com.auramusic.app.constants.AudioQualityKey
-import com.auramusic.app.constants.CrossfadeDurationKey
-import com.auramusic.app.constants.CrossfadeEnabledKey
 import com.auramusic.app.constants.DataSyncIdKey
 import com.auramusic.app.constants.EnableLastFMScrobblingKey
 import com.auramusic.app.constants.InnerTubeCookieKey
@@ -1171,12 +1168,6 @@ fun TvPlaybackSettingsScreen(
     val (lateNightMode, onLateNightModeChange) = rememberPreference(
         com.auramusic.app.constants.LateNightModeKey, false,
     )
-    val (crossfadeEnabled, onCrossfadeEnabledChange) = rememberPreference(
-        com.auramusic.app.constants.CrossfadeEnabledKey, false,
-    )
-    val (crossfadeDuration, onCrossfadeDurationChange) = rememberPreference(
-        com.auramusic.app.constants.CrossfadeDurationKey, 5f,
-    )
     val (automixEnabled, onAutomixEnabledChange) = rememberPreference(
         AutomixEnabledKey,
         defaultValue = false,
@@ -1281,39 +1272,6 @@ fun TvPlaybackSettingsScreen(
                 onCheckedChange = onLateNightModeChange,
                 icon = Icons.Filled.DarkMode,
             )
-        }
-
-        item {
-            Text(
-                text = "CROSSFADE",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 8.dp).padding(top = 12.dp, bottom = 4.dp),
-            )
-        }
-
-        item {
-            TvContentToggleRow(
-                title = "Crossfade",
-                subtitle = "Smooth transitions between songs",
-                checked = crossfadeEnabled,
-                onCheckedChange = onCrossfadeEnabledChange,
-                icon = Icons.Filled.Tune,
-            )
-        }
-
-        if (crossfadeEnabled) {
-            item {
-                TvSliderRow(
-                    title = "Crossfade Duration",
-                    subtitle = "${crossfadeDuration.toInt()} seconds",
-                    value = crossfadeDuration,
-                    valueRange = 1f..12f,
-                    steps = 10,
-                    onValueChange = onCrossfadeDurationChange,
-                )
-            }
         }
 
         // Automix toggle
