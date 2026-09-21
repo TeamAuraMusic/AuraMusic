@@ -161,7 +161,6 @@ import com.auramusic.app.constants.SliderStyleKey
 import com.auramusic.app.constants.SquigglySliderKey
 import com.auramusic.app.constants.ThumbnailCornerRadius
 import com.auramusic.app.constants.UseNewPlayerDesignKey
-import com.auramusic.app.constants.VideoModeEnabledKey
 import com.auramusic.app.constants.ShowLyricsKey
 import com.auramusic.app.db.entities.LyricsEntity
 import com.auramusic.app.ui.player.Thumbnail
@@ -307,27 +306,7 @@ fun BottomSheetPlayer(
 
     val sliderStyle by rememberEnumPreference(SliderStyleKey, SliderStyle.DEFAULT)
     val squigglySlider by rememberPreference(SquigglySliderKey, defaultValue = false)
-    val videoModeToggleEnabled by rememberPreference(VideoModeEnabledKey, defaultValue = true)
     
-    // Video mode state
-    val videoModeEnabled by playerConnection.videoModeEnabled.collectAsState()
-    val isVideoSwitching by playerConnection.isVideoSwitching.collectAsState()
-    val isVideoAvailable by playerConnection.isVideoAvailable.collectAsState()
-    val videoFetchError by playerConnection.videoFetchError.collectAsState()
-    val videoModeMessage by playerConnection.videoModeMessage.collectAsState()
-
-    // Show error toast when video fetch fails
-    LaunchedEffect(videoFetchError, videoModeMessage) {
-        videoFetchError?.let { error ->
-            Toast.makeText(context, error, Toast.LENGTH_LONG).show()
-            playerConnection.clearVideoError()
-        }
-        videoModeMessage?.let { message ->
-            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-            playerConnection.clearVideoModeMessage()
-        }
-    }
-
     // Listen Together state (reactive)
     val listenTogetherManager = LocalListenTogetherManager.current
     val listenTogetherRoleState = listenTogetherManager?.role?.collectAsState(initial = RoomRole.NONE)
@@ -738,7 +717,7 @@ fun BottomSheetPlayer(
     var auraCanvasUrl by remember { mutableStateOf<String?>(null) }
     
     LaunchedEffect(auraCanvasEnabled, state.isExpanded, mediaMetadata) {
-        if (auraCanvasEnabled && state.isExpanded && mediaMetadata?.isVideoSong != true && !videoModeEnabled) {
+        if (auraCanvasEnabled && state.isExpanded && mediaMetadata?.isVideoSong != true) {
             auraCanvasUrl = runCatching {
                 AuraCanvasRepository.findCanvasUrl(
                     title = mediaMetadata?.title,
@@ -933,36 +912,6 @@ fun BottomSheetPlayer(
                 Column(
                     modifier = Modifier.weight(1f)
                 ) {
-                    // Video indicator
-                    val isVideoSong = mediaMetadata.isVideoSong
-                    if (isVideoSong) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(bottom = 4.dp)
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.slow_motion_video),
-                                contentDescription = null,
-                                tint = if (videoModeEnabled) MaterialTheme.colorScheme.primary else TextBackgroundColor.copy(alpha = 0.7f),
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            val videoText = when {
-                                videoModeEnabled -> "VIDEO"
-                                isVideoSong && !isVideoAvailable -> "VIDEO UNAVAILABLE"
-                                isVideoSong -> "VIDEO SONG"
-                                else -> "AUDIO ONLY"
-                            }
-                            Text(
-                                text = videoText,
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = if (videoModeEnabled) FontWeight.Bold else FontWeight.Normal
-                                ),
-                                color = if (videoModeEnabled) MaterialTheme.colorScheme.primary else TextBackgroundColor.copy(alpha = 0.7f)
-                            )
-                        }
-                    }
-
                     AnimatedContent(
                         targetState = mediaMetadata.title,
                         transitionSpec = { fadeIn() togetherWith fadeOut() },
@@ -1145,49 +1094,6 @@ fun BottomSheetPlayer(
                             }
                         }
 
-                        // Video mode toggle button. Only show this for actual
-                        // video songs; regular songs should remain audio-only.
-                        if (videoModeToggleEnabled && mediaMetadata?.isVideoSong == true) {
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier.size(42.dp)
-                            ) {
-                                if (isVideoSwitching) {
-                                    ContainedLoadingIndicator(
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                } else {
-                                    FilledIconButton(
-                                        onClick = {
-                                            // Toggle video mode - video plays in thumbnail area
-                                            playerConnection.toggleVideoMode()
-                                        },
-                                        shape = middleShape,
-                                        colors = IconButtonDefaults.filledIconButtonColors(
-                                            containerColor = if (videoModeEnabled)
-                                                MaterialTheme.colorScheme.primary
-                                            else
-                                                textButtonColor,
-                                            contentColor = if (videoModeEnabled)
-                                                MaterialTheme.colorScheme.onPrimary
-                                            else
-                                                iconButtonColor,
-                                        ),
-                                        modifier = Modifier.size(42.dp),
-                                    ) {
-                                        Icon(
-                                            painter = painterResource(R.drawable.slow_motion_video),
-                                            contentDescription = if (videoModeEnabled)
-                                                stringResource(R.string.switch_to_audio)
-                                            else
-                                                stringResource(R.string.switch_to_video),
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
                         AnimatedContent(targetState = showInlineLyrics, label = "LikeButton") { showLyrics ->
                             if (showLyrics) {
                                 val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
@@ -1353,43 +1259,6 @@ fun BottomSheetPlayer(
                                 .align(Alignment.Center)
                                 .size(24.dp),
                         )
-                    }
-
-                    Spacer(modifier = Modifier.size(12.dp))
-
-                    AnimatedContent(
-                        targetState = videoModeToggleEnabled && mediaMetadata?.isVideoSong == true,
-                        label = "VideoToggle"
-                    ) { enabled ->
-                        if (enabled) {
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(RoundedCornerShape(24.dp))
-                                    .background(
-                                        if (videoModeEnabled) 
-                                            MaterialTheme.colorScheme.primary 
-                                        else 
-                                            textButtonColor
-                                    )
-                                    .clickable { playerConnection.toggleVideoMode() },
-                            ) {
-                                Icon(
-                                    painter = painterResource(R.drawable.slow_motion_video),
-                                    contentDescription = if (videoModeEnabled) 
-                                        stringResource(R.string.switch_to_audio) 
-                                    else 
-                                        stringResource(R.string.switch_to_video),
-                                    tint = if (videoModeEnabled) 
-                                        MaterialTheme.colorScheme.onPrimary 
-                                    else 
-                                        iconButtonColor,
-                                    modifier = Modifier
-                                        .align(Alignment.Center)
-                                        .size(24.dp),
-                                )
-                            }
-                        }
                     }
 
                 }

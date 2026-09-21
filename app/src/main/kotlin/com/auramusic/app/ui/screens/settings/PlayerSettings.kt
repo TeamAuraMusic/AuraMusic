@@ -92,7 +92,6 @@ import com.auramusic.app.constants.StopMusicOnTaskClearKey
 import com.auramusic.app.constants.SubtitlesEnabledKey
 import com.auramusic.app.constants.SubtitleFontSizeKey
 import com.auramusic.app.constants.SubtitleLanguageKey
-import com.auramusic.app.constants.VideoModeEnabledKey
 import com.auramusic.app.constants.VoiceWakeWordKey
 import com.auramusic.app.ui.component.DefaultDialog
 import com.auramusic.app.ui.component.EnumDialog
@@ -218,10 +217,6 @@ fun PlayerSettings(
     val (stopMusicOnTaskClear, onStopMusicOnTaskClearChange) = rememberPreference(
         StopMusicOnTaskClearKey,
         defaultValue = false
-    )
-    val (videoModeEnabled, onVideoModeEnabledChange) = rememberPreference(
-        VideoModeEnabledKey,
-        defaultValue = true
     )
     val (auraCanvasEnabled, onAuraCanvasEnabledChange) = rememberPreference(
         AuraCanvasEnabledKey,
@@ -596,27 +591,6 @@ fun PlayerSettings(
                         )
                     },
                     onClick = { if (!crossfadeEnabled) onAudioOffloadChange(!audioOffload) }
-                ))
-                add(Material3SettingsItem(
-                    icon = painterResource(R.drawable.slow_motion_video),
-                    title = { Text(stringResource(R.string.enable_video_mode)) },
-                    description = { Text(stringResource(R.string.enable_video_mode_desc)) },
-                    trailingContent = {
-                        Switch(
-                            checked = videoModeEnabled,
-                            onCheckedChange = onVideoModeEnabledChange,
-                            thumbContent = {
-                                Icon(
-                                    painter = painterResource(
-                                        id = if (videoModeEnabled) R.drawable.check else R.drawable.close
-                                    ),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(SwitchDefaults.IconSize)
-                                )
-                            }
-                        )
-                    },
-                    onClick = { onVideoModeEnabledChange(!videoModeEnabled) }
                 ))
                 add(Material3SettingsItem(
                     icon = painterResource(R.drawable.slow_motion_video),

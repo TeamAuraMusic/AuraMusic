@@ -134,27 +134,6 @@ fun SpeedDialGridItem(
                 }
             }
 
-            // Video song indicator
-            if (item is SongItem && item.isVideoSong) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(6.dp)
-                        .background(
-                            Color.Black.copy(alpha = 0.6f),
-                            RoundedCornerShape(4.dp)
-                        )
-                        .padding(horizontal = 4.dp, vertical = 1.dp)
-                ) {
-                    Text(
-                        text = "VIDEO",
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontSize = 8.sp,
-                    )
-                }
-            }
-
             // Title overlay at bottom
             Box(
                 modifier = Modifier

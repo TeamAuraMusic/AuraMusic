@@ -263,31 +263,9 @@ private fun HeroCarouselCard(
                     contentDescription = null,
                     modifier = Modifier.size(playIconSize),
                 )
-            }
+}
 
-            // Video song indicator
-            if (item is com.auramusic.innertube.models.SongItem && item.isVideoSong) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(8.dp)
-                        .background(
-                            Color.Black.copy(alpha = 0.6f),
-                            RoundedCornerShape(4.dp)
-                        )
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                ) {
-                    Text(
-                        text = "VIDEO",
-                        color = Color.White,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
         Text(
             text = item.title,
