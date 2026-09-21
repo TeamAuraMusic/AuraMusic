@@ -1074,4 +1074,7 @@
     <string name="video_player_queue_empty">Aucune playlist trouvée</string>
     <string name="video_player_brightness">Luminosité</string>
     <string name="video_player_volume">Volume</string>
+    <string name="video_recently_watched">Récemment visionnés</string>
+    <string name="video_subscriptions">Chaînes abonnées</string>
+    <string name="video_player_retry">Réessayer</string>
 </resources>
