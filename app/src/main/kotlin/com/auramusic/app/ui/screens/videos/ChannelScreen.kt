@@ -101,6 +101,7 @@ fun ChannelScreen(
 
     val channelId = remember(channelIdOrUrl) { extractChannelId(channelIdOrUrl) }
     var resolvedChannelId by remember(channelId) { mutableStateOf(channelId) }
+    var channelReloadKey by remember { mutableStateOf(0) }
 
     var header by remember { mutableStateOf<ChannelHeader?>(null) }
     var videos by remember(channelId) { mutableStateOf<List<YouTubeVideoItem>>(emptyList()) }
@@ -186,8 +187,8 @@ fun ChannelScreen(
         isLoading = false
     }
 
-    suspend fun loadMore() {
-        if (isLoadingMore || isLoading || selectedTab == ChannelTab.About.ordinal) return
+     suspend fun loadMore() {
+        if (isLoadingMore || selectedTab == ChannelTab.About.ordinal) return
         isLoadingMore = true
         if (selectedTab == ChannelTab.Posts.ordinal) {
             val cont = postsContinuation
@@ -219,13 +220,8 @@ fun ChannelScreen(
         isLoadingMore = false
     }
 
-    suspend fun refreshChannel() {
-        if (isLoading) {
-            isRefreshing = false
-            return
-        }
-        // Reload the currently visible tab's first page while keeping the old
-        // content on screen (clear = false): no skeleton flash, no wipe.
+     suspend fun refreshChannel() {
+        isRefreshing = true
         loadFirstPage(ChannelTab.entries[selectedTab], clear = false)
         isRefreshing = false
     }
@@ -251,10 +247,16 @@ fun ChannelScreen(
         }
     }
 
-    LaunchedEffect(channelId, selectedTab) {
+    LaunchedEffect(channelId, selectedTab, channelReloadKey) {
         loadFirstPage(ChannelTab.entries[selectedTab])
     }
 
+    LaunchedEffect(isLoading) {
+        if (!isLoading && !isLoadingMore) {
+            val nearEnd = gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            if (nearEnd >= gridState.layoutInfo.totalItemsCount - 4) loadMore()
+        }
+    }
     LaunchedEffect(gridState, selectedTab) {
         snapshotFlow {
             val last = gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
@@ -1117,14 +1119,15 @@ private data class ChannelHeader(
 
 /** Accepts raw UC ids, @handles, /c/ and /user/ URLs. */
 internal fun extractChannelId(raw: String): String {
-    val decoded = URLDecoder.decode(raw, "UTF-8")
-    return when {
-        decoded.startsWith("UC") -> decoded
-        decoded.startsWith("@") -> decoded
-        decoded.contains("/channel/") -> decoded.substringAfter("/channel/")
-        decoded.contains("/@") -> "@" + decoded.substringAfter("/@").substringBefore("/")
-        decoded.contains("/c/") -> decoded.substringAfter("/c/").substringBefore("/")
-        decoded.contains("/user/") -> decoded.substringAfter("/user/").substringBefore("/")
-        else -> decoded
-    }
-}
+     val decoded = URLDecoder.decode(raw, "UTF-8")
+     val clean = decoded.substringBefore("?")
+     return when {
+         clean.startsWith("UC") -> clean
+         clean.startsWith("@") -> clean
+         clean.contains("/channel/") -> clean.substringAfter("/channel/")
+         clean.contains("/@") -> "@" + clean.substringAfter("/@").substringBefore("/")
+         clean.contains("/c/") -> clean.substringAfter("/c/").substringBefore("/")
+         clean.contains("/user/") -> clean.substringAfter("/user/").substringBefore("/")
+         else -> clean
+     }
+ }

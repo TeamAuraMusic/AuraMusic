@@ -361,12 +361,8 @@ object VideoPlaybackManager {
             val metadata = withContext(Dispatchers.IO) {
                 YouTube.watchMetadata(videoId).getOrNull()
             }
-            // Do not cache failures. A transient /next failure would otherwise
-            // permanently disable comments and channel enrichment for this session.
-            if (metadata != null) {
-                watchMetadataCache = metadata
-                watchMetadataCacheVideoId = videoId
-            }
+            watchMetadataCache = metadata
+            watchMetadataCacheVideoId = videoId
             metadata
         }
     }

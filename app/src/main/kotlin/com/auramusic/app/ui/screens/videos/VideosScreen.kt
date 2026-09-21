@@ -161,19 +161,14 @@ fun VideosScreen(
         fetchFeed()
     }
 
-    suspend fun refreshFeed() {
-        if (isLoading) {
-            isRefreshing = false
-            return
-        }
-        // Keep the current feed on screen while a fresh first page loads; only
-        // swap in the new content on success so the refresh is actually visible.
+     suspend fun refreshFeed() {
+        isRefreshing = true
         fetchFeed(showError = false)
         isRefreshing = false
     }
 
-    suspend fun loadMore() {
-        if (isLoadingMore || isLoading) return
+     suspend fun loadMore() {
+        if (isLoadingMore) return
         val cont = continuation ?: return
         isLoadingMore = true
         withContext(Dispatchers.IO) {
@@ -247,7 +242,7 @@ fun VideosScreen(
     // After a page finishes loading, re-check the end so pagination keeps
     // fetching when the user is already sitting at the bottom of the list.
     LaunchedEffect(isLoadingMore) {
-        if (!isLoadingMore && !isLoading) {
+        if (!isLoadingMore) {
             val nearEnd = if (gridView) {
                 val last = gridListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
                 last >= gridListState.layoutInfo.totalItemsCount - 8
@@ -292,7 +287,7 @@ fun VideosScreen(
             contentAlignment = Alignment.TopStart
         ) {
             when {
-                isLoading && feed.isEmpty() -> SkeletonFeed(columns = columns, gridView = gridView)
+                isLoading -> SkeletonFeed(columns = columns, gridView = gridView)
                 error != null && feed.isEmpty() -> {
                     Column(
                         modifier = Modifier.fillMaxSize(),
@@ -329,9 +324,9 @@ fun VideosScreen(
                             thumbnails = video.thumbnails,
                         )
                     }
-                    val openChannel: (String) -> Unit = { channelId ->
-                        navController.navigate("youtube_channel/$channelId")
-                    }
+                     val openChannel: (String) -> Unit = { channelId ->
+                         navController.navigate("youtube_channel/$channelId?ts=${System.currentTimeMillis()}")
+                     }
                     if (gridView) {
                         LazyVerticalGrid(
                             columns = GridCells.Fixed(columns),

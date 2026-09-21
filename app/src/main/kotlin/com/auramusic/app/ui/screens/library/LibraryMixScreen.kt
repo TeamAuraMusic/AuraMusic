@@ -156,9 +156,9 @@ fun LibraryMixScreen(
             channelName = entry.channelName,
         )
     }
-    val openVideoChannel: (String) -> Unit = { channelId ->
-        navController.navigate("youtube_channel/$channelId")
-    }
+     val openVideoChannel: (String) -> Unit = { channelId ->
+         navController.navigate("youtube_channel/$channelId?ts=${System.currentTimeMillis()}")
+     }
 
     val topSize by viewModel.topValue.collectAsState(initial = 50)
     val likedPlaylist =
