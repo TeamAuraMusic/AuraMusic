@@ -3663,6 +3663,7 @@ class MusicService :
      */
     private fun clearVideoTakeover() {
         videoTakeoverActive = false
+        latestMediaNotification = null
         try {
             // Force media3 to re-render the music notification from the current
             // playback state/metadata right away, instead of letting the user keep

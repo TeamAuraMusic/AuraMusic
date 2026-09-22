@@ -5,6 +5,7 @@
 
 package com.auramusic.app.ui.screens.videos
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -48,6 +49,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
@@ -286,6 +288,21 @@ fun VideosScreen(
                 ),
             contentAlignment = Alignment.TopStart
         ) {
+            // Refresh progress indicator at the top of the feed
+            AnimatedVisibility(
+                visible = isRefreshing && !isLoading,
+                enter = androidx.compose.animation.fadeIn(),
+                exit = androidx.compose.animation.fadeOut()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    ContainedLoadingIndicator()
+                }
+            }
             when {
                 isLoading -> SkeletonFeed(columns = columns, gridView = gridView)
                 error != null && feed.isEmpty() -> {

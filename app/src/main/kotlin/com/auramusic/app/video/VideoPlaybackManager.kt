@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.widget.Toast
 import androidx.annotation.OptIn
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
@@ -14,12 +15,12 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.LoadControl
 import androidx.media3.exoplayer.source.MergingMediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.extractor.ExtractorsFactory
 import androidx.media3.extractor.mkv.MatroskaExtractor
 import androidx.media3.extractor.mp4.FragmentedMp4Extractor
-import androidx.media3.extractor.mp4.Mp4Extractor
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import androidx.datastore.preferences.core.edit
@@ -169,7 +170,7 @@ object VideoPlaybackManager {
             get() = if (durationMs <= 0) 0f else (positionMs.toFloat() / durationMs).coerceIn(0f, 1f)
     }
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val _uiState = MutableStateFlow(UiState())
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
@@ -994,7 +995,16 @@ object VideoPlaybackManager {
         // Apply the quality + autoplay preference chosen in Settings/settings-overlay
         // so freshly created players start with them.
         applyStoredPreferences(context)
-        return ExoPlayer.Builder(context).build().also {
+        return ExoPlayer.Builder(context)
+            .setLoadControl(
+                DefaultLoadControl.Builder()
+                    .setBufferDurationsMs(
+                        2000, 5000, 1500, 3000
+                    )
+                    .build()
+            )
+            .setWakeMode(C.WAKE_MODE_NETWORK)
+            .build().also {
             it.addListener(playerListener)
             it.playWhenReady = true
             player = it
@@ -1061,7 +1071,7 @@ object VideoPlaybackManager {
                         recordCurrentToHistory()
                     }
                 }
-                delay(250)
+                delay(500)
             }
         }
     }
