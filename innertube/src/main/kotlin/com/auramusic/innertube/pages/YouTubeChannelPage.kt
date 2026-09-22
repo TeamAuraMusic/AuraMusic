@@ -123,7 +123,11 @@ data class YouTubeChannelPage(
                 }
             }
 
-            val description = metadata?.get("description")?.jsonPrimitive?.content
+            val description = metadata?.get("description")?.let { desc ->
+                desc.jsonPrimitive?.content ?: desc.jsonObject?.get("runs")?.jsonArray
+                    ?.joinToString("") { it.jsonObject.get("text")?.jsonPrimitive?.content.orEmpty() }
+                    ?: desc.toString().takeIf { it.isNotBlank() }
+            }
 
             // Videos live under either tabRenderer or richGridRenderer.
             val videos = mutableListOf<YouTubeVideoItem>()
