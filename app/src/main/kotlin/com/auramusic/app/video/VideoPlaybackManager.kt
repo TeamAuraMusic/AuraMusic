@@ -165,6 +165,7 @@ object VideoPlaybackManager {
         val resizeMode: Int = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT,
         val videoQuality: VideoQuality = VideoQuality.QUALITY_720P,
         val autoplayEnabled: Boolean = true,
+        val isFullScreen: Boolean = false,
     ) {
         val isEmpty: Boolean get() = session == null
         val progress: Float
@@ -177,6 +178,10 @@ object VideoPlaybackManager {
 
     private var player: ExoPlayer? = null
     private var tickerJob: Job? = null
+
+    // SponsorBlock integration for video playback
+    var sponsorBlockManager: com.auramusic.app.sponsorblock.SponsorBlockManager? = null
+        private set
 
     /**
      * The last successful WEB watch-page response, keyed by video id. Shipped to
@@ -348,6 +353,19 @@ object VideoPlaybackManager {
             enrichSessionMetadata(videoId)
             loadRecommendations(videoId)
             loadComments(videoId)
+            // Load SponsorBlock segments for this video
+            try {
+                if (sponsorBlockManager == null) {
+                    sponsorBlockManager = com.auramusic.app.sponsorblock.SponsorBlockManager(
+                        context.applicationContext, scope
+                    )
+                    sponsorBlockManager?.loadPreferences()
+                }
+                val durationMs = player?.duration?.takeIf { it > 0 }?.toLong() ?: 0L
+                sponsorBlockManager?.loadSegments(videoId, durationMs)
+            } catch (e: Exception) {
+                // SponsorBlock is optional - don't break video playback
+            }
         }
     }
 
@@ -909,6 +927,19 @@ object VideoPlaybackManager {
         _uiState.update { it.copy(showSettings = !it.showSettings) }
     }
 
+    fun toggleFullScreen() {
+        val newFullScreen = !_uiState.value.isFullScreen
+        _uiState.update { it.copy(isFullScreen = newFullScreen) }
+        val ctx = currentContext ?: return
+        val activity = ctx as? android.app.Activity
+            ?: return
+        activity.requestedOrientation = if (newFullScreen) {
+            android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        } else {
+            android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
+    }
+
     fun collapse() {
         _uiState.update { it.copy(minimized = true) }
     }
@@ -925,6 +956,7 @@ object VideoPlaybackManager {
         // Persist the final watch position before tearing the session down so the
         // Library's "Recently watched" history reflects exactly where it stopped.
         recordCurrentToHistory()
+        sponsorBlockManager?.reset()
         player?.let { exo ->
             exo.removeListener(playerListener)
             exo.stop()
@@ -1067,9 +1099,16 @@ object VideoPlaybackManager {
                     val dur = if (exo.duration > 0) exo.duration else 0
                     _uiState.update { it.copy(positionMs = pos, durationMs = dur) }
                     // Persist watch position to the video history every ~10s while
-                    // actually playing (ticker fires every 250ms).
-                    if (_uiState.value.isPlaying && ++ticks % 40 == 0) {
+                    // actually playing (ticker fires every 500ms).
+                    if (_uiState.value.isPlaying && ++ticks % 20 == 0) {
                         recordCurrentToHistory()
+                    }
+                    // SponsorBlock: auto-skip segments during video playback
+                    if (_uiState.value.isPlaying && dur > 0) {
+                        val skipTo = sponsorBlockManager?.findSkipTarget(pos, exo.playbackParameters.speed)
+                        if (skipTo != null && skipTo > pos) {
+                            exo.seekTo(skipTo)
+                        }
                     }
                 }
                 delay(500)

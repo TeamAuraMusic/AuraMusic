@@ -501,7 +501,7 @@ private fun VideoExpandedPlayer(
                     onClose = onClose,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .aspectRatio(16f / 9f),
+                        .aspectRatio(16f / 12f),
                     useFullHeight = false,
                     onChannelClick = onChannelClick,
                 )
@@ -959,6 +959,26 @@ private fun PlayerBottomControls(
                 color = Color.White.copy(alpha = 0.85f)
             )
             Spacer(modifier = Modifier.weight(1f))
+            // Fullscreen toggle
+            Surface(
+                onClick = { VideoPlaybackManager.toggleFullScreen() },
+                shape = CircleShape,
+                color = Color.Transparent,
+                modifier = Modifier.size(32.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        painter = painterResource(
+                            if (uiState.isFullScreen) R.drawable.fullscreen_exit
+                            else R.drawable.fullscreen
+                        ),
+                        contentDescription = stringResource(R.string.close),
+                        modifier = Modifier.size(20.dp),
+                        tint = Color.White.copy(alpha = 0.85f)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = formatTime(uiState.durationMs),
                 style = MaterialTheme.typography.labelMedium,

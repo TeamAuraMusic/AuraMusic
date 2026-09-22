@@ -53,6 +53,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -924,6 +925,10 @@ private fun VideoHistoryThumb(
     entry: VideoPlaybackManager.VideoHistoryEntry,
     onClick: () -> Unit,
 ) {
+    val watchProgress = if (entry.durationMs > 0) {
+        (entry.positionMs.toFloat() / entry.durationMs.toFloat()).coerceIn(0f, 1f)
+    } else 0f
+
     Column(
         modifier = Modifier
             .width(170.dp)
@@ -953,6 +958,23 @@ private fun VideoHistoryThumb(
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+            // Watch progress bar at bottom of thumbnail (like YouTube)
+            if (watchProgress > 0f) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(3.dp)
+                        .align(Alignment.BottomCenter)
+                        .background(Color.Black.copy(alpha = 0.4f))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(watchProgress)
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.primary)
+                    )
+                }
             }
         }
         Spacer(modifier = Modifier.height(6.dp))
