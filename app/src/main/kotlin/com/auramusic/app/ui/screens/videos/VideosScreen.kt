@@ -160,6 +160,7 @@ fun VideosScreen(
                 VideoCategory.Music -> YouTube.youtubeCategoryFeed(context.getString(R.string.video_category_music_query)).getOrNull()
                 VideoCategory.New -> YouTube.youtubeNewFeed(context.getString(R.string.video_category_new_query)).getOrNull()
                 VideoCategory.Gaming -> YouTube.youtubeCategoryFeed(context.getString(R.string.video_category_gaming_query)).getOrNull()
+                VideoCategory.Personal -> null
             }
             if (result != null && result.items.isNotEmpty()) {
                 feed = result.items
@@ -199,6 +200,7 @@ fun VideosScreen(
                 VideoCategory.Music -> YouTube.youtubeCategoryFeed(context.getString(R.string.video_category_music_query), cont).getOrNull()
                 VideoCategory.New -> YouTube.youtubeNewFeed(context.getString(R.string.video_category_new_query), cont).getOrNull()
                 VideoCategory.Gaming -> YouTube.youtubeCategoryFeed(context.getString(R.string.video_category_gaming_query), cont).getOrNull()
+                VideoCategory.Personal -> null
             }
             result?.takeIf { it.items.isNotEmpty() }?.let {
                 // Continuation pages can repeat videos; dedupe so the lazy list

@@ -120,7 +120,7 @@ class VideoRecommendationManager(private val context: Context) {
                 channelId = entry.channelId,
                 thumbnails = listOfNotNull(
                     entry.thumbnailUrl?.let { url ->
-                        com.auramusic.innertube.models.Thumbnail(url = url)
+                        com.auramusic.innertube.models.Thumbnail(url = url, width = null, height = null)
                     }
                 ),
             )
@@ -223,9 +223,9 @@ class VideoRecommendationManager(private val context: Context) {
     private suspend fun buildSubscriptionsFeed(): List<com.auramusic.innertube.models.YouTubeVideoItem> {
         val subs = try {
             val subsJson = context.dataStore.data.first()[com.auramusic.app.constants.VideoSubscribedChannelsKey]
-            VideoPlaybackManager.parseSubscribedChannelsPublic(subsJson)
+            parseSubscribedChannelsPublic(subsJson)
         } catch (_: Exception) {
-            emptyList()
+            emptyList<VideoPlaybackManager.VideoSubscribedChannel>()
         }
 
         if (subs.isEmpty()) return emptyList()
@@ -263,7 +263,7 @@ class VideoRecommendationManager(private val context: Context) {
     private suspend fun readHistory(): List<VideoPlaybackManager.VideoHistoryEntry> {
         return try {
             val json = context.dataStore.data.first()[com.auramusic.app.constants.VideoHistoryKey]
-            VideoPlaybackManager.parseVideoHistoryPublic(json)
+            parseVideoHistoryPublic(json)
         } catch (_: Exception) {
             emptyList()
         }
