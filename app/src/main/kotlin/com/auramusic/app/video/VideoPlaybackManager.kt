@@ -14,9 +14,7 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
-import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.LoadControl
 import androidx.media3.exoplayer.source.MergingMediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.extractor.ExtractorsFactory
@@ -1029,13 +1027,6 @@ object VideoPlaybackManager {
         // so freshly created players start with them.
         applyStoredPreferences(context)
         return ExoPlayer.Builder(context)
-            .setLoadControl(
-                DefaultLoadControl.Builder()
-                    .setBufferDurationsMs(
-                        2000, 5000, 1500, 3000
-                    )
-                    .build()
-            )
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .build().also {
             it.addListener(playerListener)
