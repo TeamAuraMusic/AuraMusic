@@ -1077,4 +1077,5 @@
     <string name="video_recently_watched">Récemment visionnés</string>
     <string name="video_subscriptions">Chaînes abonnées</string>
     <string name="video_player_retry">Réessayer</string>
+    <string name="video_category_personal">Pour Vous</string>
 </resources>
