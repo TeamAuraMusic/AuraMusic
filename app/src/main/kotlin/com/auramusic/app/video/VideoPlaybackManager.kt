@@ -198,6 +198,9 @@ object VideoPlaybackManager {
     private var currentQuality: VideoQuality = VideoQuality.QUALITY_720P
     private var currentAutoplay: Boolean = true
 
+    // Callback for VideoRecommendationManager to track watches
+    var onVideoPlayed: (() -> Unit)? = null
+
     fun playerOrNull(): ExoPlayer? = player
 
     private val playerListener = object : Player.Listener {
@@ -336,6 +339,8 @@ object VideoPlaybackManager {
         // loadMediaSourceInto triggers its own rebuild — the cause of the media
         // notification feeling non-persistent / out of sync when switching videos.
         context.applicationContext.let { VideoPlaybackService.notifySessionChanged(it) }
+        // Notify recommendation manager that a video was played
+        onVideoPlayed?.invoke()
         scope.launch {
             val source = withContext(Dispatchers.IO) {
                 AuraPlayerUtils.getVideoStreamSource(videoId).getOrNull()
@@ -1344,3 +1349,10 @@ private fun buildSubscribedChannelsJson(channels: List<VideoPlaybackManager.Vide
     }
     return array.toString()
 }
+
+// Public wrappers for VideoRecommendationManager
+fun parseVideoHistoryPublic(json: String?): List<VideoPlaybackManager.VideoHistoryEntry> =
+    parseVideoHistory(json)
+
+fun parseSubscribedChannelsPublic(json: String?): List<VideoPlaybackManager.VideoSubscribedChannel> =
+    parseSubscribedChannels(json)

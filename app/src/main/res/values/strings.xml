@@ -47,6 +47,7 @@
     <string name="playback_error">Playback error</string>
     <string name="video_category_gaming">Gaming</string>
     <string name="video_category_new">New</string>
+    <string name="video_category_personal">For You</string>
     <string name="video_category_music_query">music videos</string>
     <string name="video_category_gaming_query">gaming</string>
     <string name="video_category_new_query">new videos</string>

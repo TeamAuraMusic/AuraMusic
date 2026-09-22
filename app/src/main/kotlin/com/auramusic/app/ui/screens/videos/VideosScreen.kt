@@ -66,6 +66,7 @@ import androidx.compose.material3.pulltorefresh.pullToRefresh
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -112,6 +113,7 @@ private enum class VideoCategory(
     Trending(R.string.trending),
     New(R.string.video_category_new),
     Gaming(R.string.video_category_gaming),
+    Personal(R.string.video_category_personal),
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -126,6 +128,15 @@ fun VideosScreen(
     val insets = LocalPlayerAwareWindowInsets.current.asPaddingValues()
     val configuration = LocalConfiguration.current
 
+    // Personalised video recommendations
+    val recommendationManager = remember {
+        com.auramusic.app.video.VideoRecommendationManager(context).also {
+            com.auramusic.app.video.VideoPlaybackManager.onVideoPlayed = { it.onVideoWatched() }
+        }
+    }
+    val personalSections by recommendationManager.sections.collectAsState()
+    val isLoadingPersonal by recommendationManager.isLoading.collectAsState()
+
     var feed by remember { mutableStateOf<List<YouTubeVideoItem>>(emptyList()) }
     var continuation by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(true) }
@@ -138,6 +149,11 @@ fun VideosScreen(
 
     suspend fun fetchFeed(showError: Boolean = true) {
         withContext(Dispatchers.IO) {
+            if (selectedCategory == VideoCategory.Personal) {
+                recommendationManager.refresh()
+                isLoading = false
+                return@withContext
+            }
             val result = when (selectedCategory) {
                 VideoCategory.ForYou -> YouTube.youtubeHomeFeed().getOrNull()
                 VideoCategory.Trending -> YouTube.youtubeTrending().getOrNull()
@@ -227,6 +243,16 @@ fun VideosScreen(
     }
     LaunchedEffect(isLoading) {
         if (!isLoading && feed.isNotEmpty()) hasLoadedOnce = true
+    }
+
+    // Auto-refresh personalised feed after watching 2-3 videos
+    LaunchedEffect(Unit) {
+        snapshotFlow { recommendationManager.shouldRefresh }
+            .collect { shouldRefresh ->
+                if (shouldRefresh && selectedCategory == VideoCategory.Personal) {
+                    scope.launch { recommendationManager.refresh() }
+                }
+            }
     }
 
     val gridListState = rememberLazyGridState()
@@ -334,7 +360,7 @@ fun VideosScreen(
                         )
                     }
                 }
-                else -> {
+else -> {
                     val playVideo: (YouTubeVideoItem) -> Unit = { video ->
                         VideoPlaybackManager.playWithDetails(
                             context = context,
@@ -351,7 +377,74 @@ fun VideosScreen(
                      val openChannel: (String) -> Unit = { channelId ->
                          navController.navigate("youtube_channel/$channelId?ts=${System.currentTimeMillis()}")
                      }
-                    if (gridView) {
+                    // Personalised sections view for "For You" category
+                    if (selectedCategory == VideoCategory.Personal) {
+                        if (personalSections.isEmpty() && !isLoadingPersonal) {
+                            // Empty state
+                            Column(
+                                modifier = Modifier.fillMaxSize(),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.slow_motion_video),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(72.dp),
+                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
+                                )
+                                Spacer(modifier = Modifier.height(14.dp))
+                                Text(
+                                    text = "Watch some videos to get personalised recommendations",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                    modifier = Modifier.padding(horizontal = 32.dp),
+                                )
+                            }
+                        } else {
+                            LazyColumn(
+                                state = listListState,
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(vertical = 4.dp)
+                            ) {
+                                personalSections.forEach { section ->
+                                    item(key = "section_${section.title}") {
+                                        Column(modifier = Modifier.padding(top = 8.dp)) {
+                                            Text(
+                                                text = section.title,
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                            )
+                                        }
+                                    }
+                                    items(
+                                        items = section.videos,
+                                        key = { "video_${it.videoId}" }
+                                    ) { video ->
+                                        FeedVideoListRow(
+                                            video = video,
+                                            isNowPlaying = isCurrentlyPlaying(video.videoId),
+                                            onClick = { playVideo(video) },
+                                            onChannelClick = openChannel,
+                                        )
+                                    }
+                                }
+                                item(key = "personal_footer") {
+                                    if (isLoadingPersonal) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(16.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            LinearProgressIndicator(modifier = Modifier.height(3.dp))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } else if (gridView) {
                         LazyVerticalGrid(
                             columns = GridCells.Fixed(columns),
                             state = gridListState,
