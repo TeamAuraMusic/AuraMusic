@@ -14,6 +14,7 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.LoadControl
 import androidx.media3.exoplayer.source.MergingMediaSource
@@ -1188,8 +1189,7 @@ object VideoPlaybackManager {
             ExtractorsFactory {
                 arrayOf(
                     MatroskaExtractor(),
-                    FragmentedMp4Extractor(),
-                    Mp4Extractor()
+                    FragmentedMp4Extractor()
                 )
             }
         )
