@@ -203,6 +203,9 @@ private fun VideoMinimizedTile(
     onChannelClick: ((String) -> Unit)?,
 ) {
     val state by VideoPlaybackManager.uiState.collectAsState()
+    val positionPair by VideoPlaybackManager.positionState.collectAsState()
+    val posMs = positionPair.first
+    val durMs = positionPair.second
     val density = LocalDensity.current
 
     var dragPx by remember { mutableFloatStateOf(0f) }
@@ -214,153 +217,170 @@ private fun VideoMinimizedTile(
     val dismissProgress = (dragPx / 360f).coerceIn(0f, 1f)
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Row(
+        Surface(
+            onClick = onExpand,
             modifier = Modifier
-                .fillMaxSize()
-                .padding(10.dp),
-            verticalAlignment = Alignment.CenterVertically,
+                .align(Alignment.BottomCenter)
+                .offset(y = with(density) { animatedDragPx.toDp() })
+                .graphicsLayer {
+                    scaleX = 1f - 0.06f * dismissProgress
+                    scaleY = 1f - 0.06f * dismissProgress
+                    alpha = 1f - 0.45f * dismissProgress
+                }
+                .padding(horizontal = 10.dp)
+                .padding(bottom = LocalVideoMiniPlayerBottomPadding.current)
+                .fillMaxWidth()
+                .height(128.dp)
+                .shadow(24.dp, RoundedCornerShape(26.dp)),
+            shape = RoundedCornerShape(26.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            tonalElevation = 6.dp,
         ) {
-            Box(
+            Row(
                 modifier = Modifier
-                    .width(148.dp)
-                    .fillMaxHeight()
-                    .clip(RoundedCornerShape(14.dp))
-                    .pointerInput(Unit) {
-                        detectVerticalDragGestures(
-                            onDragEnd = {
-                                if (dragPx > with(density) { 130.dp.toPx() }) {
-                                    onClose()
-                                } else {
-                                    dragPx = 0f
+                    .fillMaxSize()
+                    .padding(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .width(184.dp)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(18.dp))
+                        .pointerInput(Unit) {
+                            detectVerticalDragGestures(
+                                onDragEnd = {
+                                    if (dragPx > with(density) { 130.dp.toPx() }) {
+                                        onClose()
+                                    } else {
+                                        dragPx = 0f
+                                    }
+                                },
+                                onDragCancel = { dragPx = 0f },
+                            ) { change, dragAmount ->
+                                if (dragAmount > 0f) {
+                                    dragPx = (dragPx + dragAmount).coerceIn(0f, 460f)
+                                    change.consume()
                                 }
-                            },
-                            onDragCancel = { dragPx = 0f },
-                        ) { change, dragAmount ->
-                            if (dragAmount > 0f) {
-                                dragPx = (dragPx + dragAmount).coerceIn(0f, 460f)
-                                change.consume()
+                            }
+                        }
+                ) {
+                    AndroidVideoSurface(player, resizeModeOverride = state.resizeMode)
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .padding(vertical = 2.dp),
+                ) {
+                    Row {
+                        Text(
+                            text = state.session?.title.orEmpty(),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    if (!state.session?.channelName.isNullOrBlank() && onChannelClick != null) {
+                        Text(
+                            text = state.session?.channelName.orEmpty(),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.clickable {
+                                state.session?.channelId?.let(onChannelClick)
+                            }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    // Progress line + times.
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(3.dp)
+                            .clip(RoundedCornerShape(1.5f))
+                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f))
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth((if (durMs > 0) (posMs.toFloat() / durMs.toFloat()).coerceIn(0f, 1f) else 0f))
+                                .height(3.dp)
+                                .background(
+                                    Brush.horizontalGradient(
+                                        listOf(
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                            MaterialTheme.colorScheme.primary
+                                        )
+                                    )
+                                )
+                        )
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 6.dp),
+                    ) {
+                        Text(
+                            text = "${formatTime(posMs)} / ${formatTime(durMs)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        // Play/Pause button
+                        Surface(
+                            onClick = { VideoPlaybackManager.togglePlayPause() },
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(36.dp),
+                            tonalElevation = 3.dp,
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                if (state.isBuffering) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(18.dp),
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Icon(
+                                        painter = painterResource(if (state.isPlaying) R.drawable.pause else R.drawable.play),
+                                        contentDescription = stringResource(
+                                            if (state.isPlaying) R.string.pause else R.string.play
+                                        ),
+                                        modifier = Modifier.size(18.dp),
+                                        tint = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                }
                             }
                         }
                     }
-            ) {
-                AndroidVideoSurface(player, resizeModeOverride = state.resizeMode)
-            }
-
-            Spacer(modifier = Modifier.width(10.dp))
-
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .padding(vertical = 2.dp),
-            ) {
-                Row {
-                    Text(
-                        text = state.session?.title.orEmpty(),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-                if (!state.session?.channelName.isNullOrBlank() && onChannelClick != null) {
-                    Text(
-                        text = state.session?.channelName.orEmpty(),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.clickable {
-                            state.session?.channelId?.let(onChannelClick)
-                        }
-                    )
                 }
 
-                Spacer(modifier = Modifier.weight(1f))
-
-                // Progress line + times.
-                Box(
+                // Close button
+                IconButton(
+                    onClick = onClose,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(3.dp)
-                        .clip(RoundedCornerShape(1.5f))
-                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f))
+                        .align(Alignment.CenterVertically)
+                        .padding(start = 4.dp)
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(state.progress.coerceIn(0f, 1f))
-                            .height(3.dp)
-                            .background(
-                                Brush.horizontalGradient(
-                                    listOf(
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                                        MaterialTheme.colorScheme.primary
-                                    )
-                                )
-                            )
-                    )
-                }
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 6.dp),
-                ) {
-                    Text(
-                        text = "${formatTime(state.positionMs)} / ${formatTime(state.durationMs)}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-                    )
-                }
-            }
-        }
-
-        // Close button at top-right
-        IconButton(
-            onClick = onClose,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(4.dp)
-                .size(24.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.close),
-                contentDescription = stringResource(R.string.close),
-                modifier = Modifier.size(14.dp),
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-            )
-        }
-
-        // Play/Pause button at top-right, next to close
-        Surface(
-            onClick = { VideoPlaybackManager.togglePlayPause() },
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(4.dp, 32.dp)
-                .size(32.dp),
-            tonalElevation = 2.dp,
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                if (state.isBuffering) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(14.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp
-                    )
-                } else {
                     Icon(
-                        painter = painterResource(if (state.isPlaying) R.drawable.pause else R.drawable.play),
-                        contentDescription = stringResource(
-                            if (state.isPlaying) R.string.pause else R.string.play
-                        ),
+                        painter = painterResource(R.drawable.close),
+                        contentDescription = stringResource(R.string.close),
                         modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.onPrimary
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
                 }
             }
@@ -386,6 +406,9 @@ private fun VideoExpandedPlayer(
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     val isWideScreen = configuration.screenWidthDp >= 600
     val context = LocalContext.current
+    val positionPair by VideoPlaybackManager.positionState.collectAsState()
+    val posMs = positionPair.first
+    val durMs = positionPair.second
 
     var showControls by remember { mutableStateOf(true) }
 
@@ -549,6 +572,9 @@ private fun VideoSurfaceWithControls(
     val context = LocalContext.current
     val audioManager = context.getSystemService(AudioManager::class.java)
     val activity = context as? android.app.Activity
+    val positionPair by VideoPlaybackManager.positionState.collectAsState()
+    val posMs = positionPair.first
+    val durMs = positionPair.second
 
     val defaultBrightness: Float = runCatching {
         val value = android.provider.Settings.System.getInt(
@@ -699,7 +725,7 @@ private fun VideoSurfaceWithControls(
                     }
                 }
             }
-            .pointerInput(uiState.durationMs) {
+            .pointerInput(durMs) {
                 var dragBaseMs = 0L
                 detectHorizontalDragGestures(
                     onDragStart = {
@@ -717,7 +743,7 @@ private fun VideoSurfaceWithControls(
                     val deltaMs = dragAmount.toDp().value * 50f
                     isForward = dragAmount > 0
                     scrubPreviewMs = (dragBaseMs + deltaMs.toLong())
-                        .coerceIn(0L, uiState.durationMs)
+                        .coerceIn(0L, durMs)
                 }
             }
     ) {
@@ -735,6 +761,8 @@ private fun VideoSurfaceWithControls(
             )
             PlayerBottomControls(
                 uiState = uiState,
+                posMs = posMs,
+                durMs = durMs,
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
         }
@@ -750,7 +778,7 @@ private fun VideoSurfaceWithControls(
         scrubPreviewMs?.let { preview ->
             SeekPreviewBadge(
                 previewMs = preview,
-                positionMs = uiState.positionMs,
+                positionMs = posMs,
                 isForward = isForward,
                 modifier = Modifier.align(Alignment.Center),
             )
@@ -868,6 +896,8 @@ private fun PlayerTopBar(
 @Composable
 private fun PlayerBottomControls(
     uiState: VideoPlaybackManager.UiState,
+    posMs: Long = uiState.positionMs,
+    durMs: Long = uiState.durationMs,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -954,7 +984,7 @@ private fun PlayerBottomControls(
                 .padding(horizontal = 12.dp),
         ) {
             Text(
-                text = formatTime(uiState.positionMs),
+                text = formatTime(posMs),
                 style = MaterialTheme.typography.labelMedium,
                 color = Color.White.copy(alpha = 0.85f)
             )
@@ -980,15 +1010,15 @@ private fun PlayerBottomControls(
             }
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = formatTime(uiState.durationMs),
+                text = formatTime(durMs),
                 style = MaterialTheme.typography.labelMedium,
                 color = Color.White.copy(alpha = 0.55f)
             )
         }
 
         SlimSeekBar(
-            positionMs = uiState.positionMs,
-            durationMs = uiState.durationMs,
+            positionMs = posMs,
+            durationMs = durMs,
             onSeek = { VideoPlaybackManager.seekTo(it) },
             modifier = Modifier
                 .fillMaxWidth()

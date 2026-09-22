@@ -174,6 +174,11 @@ object VideoPlaybackManager {
     private val _uiState = MutableStateFlow(UiState())
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
+    /** Separate flow for position updates — only the progress UI observes this,
+     *  so the rest of the overlay doesn't recompose every 500ms. */
+    private val _positionState = MutableStateFlow(0L to 0L)
+    val positionState: StateFlow<Pair<Long, Long>> = _positionState.asStateFlow()
+
     private var player: ExoPlayer? = null
     private var tickerJob: Job? = null
 
@@ -1093,7 +1098,13 @@ object VideoPlaybackManager {
                 if (exo != null && _uiState.value.session != null) {
                     val pos = exo.currentPosition
                     val dur = if (exo.duration > 0) exo.duration else 0
-                    _uiState.update { it.copy(positionMs = pos, durationMs = dur) }
+                    _positionState.value = pos to dur
+                    // Sync position into uiState less frequently (every ~2s) for
+                    // media notification / service consumers — the separate
+                    // _positionState is what the Compose UI reads for smooth updates.
+                    if (ticks % 4 == 0) {
+                        _uiState.update { it.copy(positionMs = pos, durationMs = dur) }
+                    }
                     // Persist watch position to the video history every ~10s while
                     // actually playing (ticker fires every 500ms).
                     if (_uiState.value.isPlaying && ++ticks % 20 == 0) {
@@ -1224,7 +1235,8 @@ object VideoPlaybackManager {
             ExtractorsFactory {
                 arrayOf(
                     MatroskaExtractor(),
-                    FragmentedMp4Extractor()
+                    FragmentedMp4Extractor(),
+                    androidx.media3.extractor.mp4.Mp4Extractor()
                 )
             }
         )
