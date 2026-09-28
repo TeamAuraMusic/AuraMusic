@@ -100,6 +100,8 @@ fun ChannelScreen(
     val gridState = rememberLazyGridState()
 
     val channelId = remember(channelIdOrUrl) { extractChannelId(channelIdOrUrl) }
+    var resolvedChannelId by remember(channelId) { mutableStateOf(channelId) }
+    var channelReloadKey by remember { mutableStateOf(0) }
 
     var header by remember { mutableStateOf<ChannelHeader?>(null) }
     var videos by remember(channelId) { mutableStateOf<List<YouTubeVideoItem>>(emptyList()) }
@@ -118,13 +120,22 @@ fun ChannelScreen(
     val pullRefreshState = rememberPullToRefreshState()
     val scope = rememberCoroutineScope()
 
-    suspend fun loadFirstPage(tab: ChannelTab) {
-        isLoading = true
+    suspend fun loadFirstPage(tab: ChannelTab, clear: Boolean = true) {
+        if (clear) {
+            isLoading = true
+            videos = emptyList()
+            continuation = null
+            posts = emptyList()
+            postsContinuation = null
+        }
         error = null
-        videos = emptyList()
-        continuation = null
-        posts = emptyList()
-        postsContinuation = null
+        val requestChannelId = withContext(Dispatchers.IO) {
+            if (resolvedChannelId.startsWith("@")) {
+                YouTube.getChannelId(resolvedChannelId).ifBlank { resolvedChannelId }
+            } else {
+                resolvedChannelId
+            }
+        }
         val params = when (tab) {
             ChannelTab.Videos -> YouTubeChannelPage.VIDEOS_PARAMS
             ChannelTab.Shorts -> YouTubeChannelPage.SHORTS_PARAMS
@@ -134,23 +145,25 @@ fun ChannelScreen(
         }
         if (tab == ChannelTab.Posts) {
             val page = withContext(Dispatchers.IO) {
-                YouTube.youtubeChannelPosts(channelId).getOrNull()
+                YouTube.youtubeChannelPosts(requestChannelId).getOrNull()
             }
             if (page != null) {
+                resolvedChannelId = requestChannelId
                 posts = page.posts
                 postsContinuation = page.continuation
-            } else {
+            } else if (clear) {
                 error = context.getString(R.string.videos_feed_error)
             }
             isLoading = false
             return
         }
         val result = withContext(Dispatchers.IO) {
-            YouTube.youtubeChannel(channelId, params).getOrNull()
+            YouTube.youtubeChannel(requestChannelId, params).getOrNull()
         }
         if (result != null) {
+            resolvedChannelId = result.channelId
             header = ChannelHeader(
-                channelId = channelId,
+                channelId = result.channelId,
                 title = result.title,
                 avatarUrl = result.avatarUrl,
                 bannerUrl = result.bannerUrl,
@@ -158,22 +171,31 @@ fun ChannelScreen(
                 videosCountText = result.videosCountText,
                 description = result.description,
             )
+            result.isSubscribed?.let { isSubscribed = it }
+            if (result.isSubscribed == null) {
+                // Remote page didn't expose the toggle state; fall back to the
+                // locally-persisted record from a previous subscribe action.
+                val locallySubscribed = VideoPlaybackManager
+                    .readSubscribedChannels(context)
+                    .any { it.channelId == resolvedChannelId }
+                if (locallySubscribed) isSubscribed = true
+            }
             videos = result.videos
             continuation = result.continuation
-        } else {
+        } else if (clear) {
             error = context.getString(R.string.videos_feed_error)
         }
         isLoading = false
     }
 
-    suspend fun loadMore() {
-        if (isLoadingMore || isLoading || selectedTab == ChannelTab.About.ordinal) return
+     suspend fun loadMore() {
+        if (isLoadingMore || selectedTab == ChannelTab.About.ordinal) return
         isLoadingMore = true
         if (selectedTab == ChannelTab.Posts.ordinal) {
             val cont = postsContinuation
             if (cont != null) {
                 val page = withContext(Dispatchers.IO) {
-                    YouTube.youtubeChannelPosts(channelId, cont).getOrNull()
+                    YouTube.youtubeChannelPosts(resolvedChannelId, cont).getOrNull()
                 }
                 page?.let {
                     val existing = posts.map { it.postId }.toSet()
@@ -189,7 +211,7 @@ fun ChannelScreen(
             return
         }
         val result = withContext(Dispatchers.IO) {
-            YouTube.youtubeChannelContinuation(channelId, cont).getOrNull()
+            YouTube.youtubeChannelContinuation(resolvedChannelId, cont).getOrNull()
         }
         result?.let {
             val existing = videos.map { it.videoId }.toSet()
@@ -199,14 +221,9 @@ fun ChannelScreen(
         isLoadingMore = false
     }
 
-    suspend fun refreshChannel() {
-        if (isLoading) {
-            isRefreshing = false
-            return
-        }
-        // Reload the currently visible tab's first page; the generic spinner left
-        // in place by the old content until the fresh page replaces it.
-        loadFirstPage(ChannelTab.entries[selectedTab])
+     suspend fun refreshChannel() {
+        isRefreshing = true
+        loadFirstPage(ChannelTab.entries[selectedTab], clear = false)
         isRefreshing = false
     }
 
@@ -215,17 +232,32 @@ fun ChannelScreen(
         val newSubscribed = !isSubscribed
         isSubscribing = true
         scope.launch {
-            YouTube.subscribeChannel(channelId, newSubscribed).onSuccess {
+            // Keep a local record of the subscription so the Library's channel
+            // list reflects it even before the remote state round-trips.
+            VideoPlaybackManager.persistChannelSubscription(
+                context = context,
+                channelId = resolvedChannelId,
+                name = header?.title.orEmpty(),
+                avatarUrl = header?.avatarUrl,
+                subscribe = newSubscribed,
+            )
+            YouTube.subscribeChannel(resolvedChannelId, newSubscribed).onSuccess {
                 isSubscribed = newSubscribed
             }
             isSubscribing = false
         }
     }
 
-    LaunchedEffect(channelId, selectedTab) {
+    LaunchedEffect(channelId, selectedTab, channelReloadKey) {
         loadFirstPage(ChannelTab.entries[selectedTab])
     }
 
+    LaunchedEffect(isLoading) {
+        if (!isLoading && !isLoadingMore) {
+            val nearEnd = gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            if (nearEnd >= gridState.layoutInfo.totalItemsCount - 4) loadMore()
+        }
+    }
     LaunchedEffect(gridState, selectedTab) {
         snapshotFlow {
             val last = gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
@@ -1092,14 +1124,15 @@ private data class ChannelHeader(
 
 /** Accepts raw UC ids, @handles, /c/ and /user/ URLs. */
 internal fun extractChannelId(raw: String): String {
-    val decoded = URLDecoder.decode(raw, "UTF-8")
-    return when {
-        decoded.startsWith("UC") -> decoded
-        decoded.startsWith("@") -> decoded
-        decoded.contains("/channel/") -> decoded.substringAfter("/channel/")
-        decoded.contains("/@") -> "@" + decoded.substringAfter("/@").substringBefore("/")
-        decoded.contains("/c/") -> decoded.substringAfter("/c/").substringBefore("/")
-        decoded.contains("/user/") -> decoded.substringAfter("/user/").substringBefore("/")
-        else -> decoded
-    }
-}
+     val decoded = URLDecoder.decode(raw, "UTF-8")
+     val clean = decoded.substringBefore("?")
+     return when {
+         clean.startsWith("UC") -> clean
+         clean.startsWith("@") -> clean
+         clean.contains("/channel/") -> clean.substringAfter("/channel/")
+         clean.contains("/@") -> "@" + clean.substringAfter("/@").substringBefore("/")
+         clean.contains("/c/") -> clean.substringAfter("/c/").substringBefore("/")
+         clean.contains("/user/") -> clean.substringAfter("/user/").substringBefore("/")
+         else -> clean
+     }
+ }

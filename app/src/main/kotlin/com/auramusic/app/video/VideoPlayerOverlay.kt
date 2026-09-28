@@ -9,6 +9,7 @@ import android.media.AudioManager
 import android.view.ViewGroup
 import android.view.WindowManager
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -128,6 +129,11 @@ fun VideoPlayerOverlay(
     // overlay (expanded player + mini tile) must stay out of the way while it is open.
     if (state.suppressOverlay) return
     val session = state.session ?: return
+    // When a music session takes over (video paused via giveWayToMusic), the video
+    // player and its mini tile fully disappear — mirror of video playback hiding the
+    // music mini player. The video session stays alive underneath so a later play
+    // (or history reselect) can start it again.
+    if (state.hiddenByMusic) return
 
     val context = LocalContext.current
     val player = VideoPlaybackManager.playerOrNull() ?: return
@@ -201,6 +207,9 @@ private fun VideoMinimizedTile(
     onChannelClick: ((String) -> Unit)?,
 ) {
     val state by VideoPlaybackManager.uiState.collectAsState()
+    val positionPair by VideoPlaybackManager.positionState.collectAsState()
+    val posMs = positionPair.first
+    val durMs = positionPair.second
     val density = LocalDensity.current
 
     // Tile position on screen (px). 0 = resting on the bottom edge; negative
@@ -321,7 +330,7 @@ private fun VideoMinimizedTile(
                     ) {
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth(state.progress.coerceIn(0f, 1f))
+                                .fillMaxWidth((if (durMs > 0) (posMs.toFloat() / durMs.toFloat()).coerceIn(0f, 1f) else 0f))
                                 .height(3.dp)
                                 .background(
                                     Brush.horizontalGradient(
@@ -340,22 +349,23 @@ private fun VideoMinimizedTile(
                             .padding(top = 6.dp),
                     ) {
                         Text(
-                            text = "${formatTime(state.positionMs)} / ${formatTime(state.durationMs)}",
+                            text = "${formatTime(posMs)} / ${formatTime(durMs)}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
                         )
                         Spacer(modifier = Modifier.weight(1f))
+                        // Play/Pause button
                         Surface(
                             onClick = { VideoPlaybackManager.togglePlayPause() },
                             shape = CircleShape,
                             color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(44.dp),
+                            modifier = Modifier.size(36.dp),
                             tonalElevation = 3.dp,
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 if (state.isBuffering) {
                                     CircularProgressIndicator(
-                                        modifier = Modifier.size(20.dp),
+                                        modifier = Modifier.size(18.dp),
                                         color = MaterialTheme.colorScheme.onPrimary,
                                         strokeWidth = 2.dp
                                     )
@@ -365,7 +375,7 @@ private fun VideoMinimizedTile(
                                         contentDescription = stringResource(
                                             if (state.isPlaying) R.string.pause else R.string.play
                                         ),
-                                        modifier = Modifier.size(22.dp),
+                                        modifier = Modifier.size(18.dp),
                                         tint = MaterialTheme.colorScheme.onPrimary
                                     )
                                 }
@@ -374,19 +384,20 @@ private fun VideoMinimizedTile(
                     }
                 }
 
+                // Close button
                 IconButton(
                     onClick = onClose,
                     modifier = Modifier
                         .align(Alignment.CenterVertically)
                         .padding(start = 4.dp)
-                        .size(26.dp)
+                        .size(24.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.close),
                         contentDescription = stringResource(R.string.close),
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(14.dp),
                         tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
                 }
@@ -413,6 +424,9 @@ private fun VideoExpandedPlayer(
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     val isWideScreen = configuration.screenWidthDp >= 600
     val context = LocalContext.current
+    val positionPair by VideoPlaybackManager.positionState.collectAsState()
+    val posMs = positionPair.first
+    val durMs = positionPair.second
 
     var showControls by remember { mutableStateOf(true) }
 
@@ -454,6 +468,68 @@ private fun VideoExpandedPlayer(
                     onChannelClick = onChannelClick ?: {},
                 )
             }
+        } else if (isLandscape) {
+            // Phone landscape: the screen height is small, so a 16:9 video at full
+            // width would overflow it. Play the surface full-screen (the player's
+            // RESIZE_MODE_FIT letterboxes it) and overlay a compact title + actions
+            // bar that appears together with the controls.
+            Box(modifier = Modifier.fillMaxSize()) {
+                VideoSurfaceWithControls(
+                    player = player,
+                    session = session,
+                    uiState = uiState,
+                    showControls = showControls,
+                    onToggleControls = { showControls = !showControls },
+                    onCollapse = onCollapse,
+                    onClose = onClose,
+                    modifier = Modifier.fillMaxSize(),
+                    useFullHeight = true,
+                    onChannelClick = onChannelClick,
+                )
+                AnimatedVisibility(
+                    visible = showControls,
+                    enter = fadeIn(tween(200)),
+                    exit = fadeOut(tween(200)),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                ) {
+                    CompactLandscapeBar(
+                        session = session,
+                        uiState = uiState,
+                        onChannelClick = onChannelClick ?: {},
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+        } else if (isWideScreen) {
+            // Tablet portrait: split video | details across the width so the tall
+            // 16:9 surface doesn't eat the whole screen and squash the details.
+            Row(modifier = Modifier.fillMaxSize()) {
+                VideoSurfaceWithControls(
+                    player = player,
+                    session = session,
+                    uiState = uiState,
+                    showControls = showControls,
+                    onToggleControls = { showControls = !showControls },
+                    onCollapse = onCollapse,
+                    onClose = onClose,
+                    modifier = Modifier
+                        .weight(0.62f)
+                        .fillMaxHeight(),
+                    useFullHeight = true,
+                    onChannelClick = onChannelClick,
+                )
+                VideoDetailPane(
+                    session = session,
+                    uiState = uiState,
+                    modifier = Modifier
+                        .weight(0.38f)
+                        .fillMaxHeight()
+                        .background(MaterialTheme.colorScheme.surface),
+                    onChannelClick = onChannelClick ?: {},
+                )
+            }
         } else {
             Column(modifier = Modifier.fillMaxSize()) {
                 VideoSurfaceWithControls(
@@ -466,7 +542,7 @@ private fun VideoExpandedPlayer(
                     onClose = onClose,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .aspectRatio(16f / 9f),
+                        .aspectRatio(16f / 12f),
                     useFullHeight = false,
                     onChannelClick = onChannelClick,
                 )
@@ -514,6 +590,9 @@ private fun VideoSurfaceWithControls(
     val context = LocalContext.current
     val audioManager = context.getSystemService(AudioManager::class.java)
     val activity = context as? android.app.Activity
+    val positionPair by VideoPlaybackManager.positionState.collectAsState()
+    val posMs = positionPair.first
+    val durMs = positionPair.second
 
     val defaultBrightness: Float = runCatching {
         val value = android.provider.Settings.System.getInt(
@@ -664,7 +743,7 @@ private fun VideoSurfaceWithControls(
                     }
                 }
             }
-            .pointerInput(uiState.durationMs) {
+            .pointerInput(durMs) {
                 var dragBaseMs = 0L
                 detectHorizontalDragGestures(
                     onDragStart = {
@@ -682,7 +761,7 @@ private fun VideoSurfaceWithControls(
                     val deltaMs = dragAmount.toDp().value * 50f
                     isForward = dragAmount > 0
                     scrubPreviewMs = (dragBaseMs + deltaMs.toLong())
-                        .coerceIn(0L, uiState.durationMs)
+                        .coerceIn(0L, durMs)
                 }
             }
     ) {
@@ -700,6 +779,8 @@ private fun VideoSurfaceWithControls(
             )
             PlayerBottomControls(
                 uiState = uiState,
+                posMs = posMs,
+                durMs = durMs,
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
         }
@@ -715,7 +796,7 @@ private fun VideoSurfaceWithControls(
         scrubPreviewMs?.let { preview ->
             SeekPreviewBadge(
                 previewMs = preview,
-                positionMs = uiState.positionMs,
+                positionMs = posMs,
                 isForward = isForward,
                 modifier = Modifier.align(Alignment.Center),
             )
@@ -833,6 +914,8 @@ private fun PlayerTopBar(
 @Composable
 private fun PlayerBottomControls(
     uiState: VideoPlaybackManager.UiState,
+    posMs: Long = uiState.positionMs,
+    durMs: Long = uiState.durationMs,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -919,21 +1002,41 @@ private fun PlayerBottomControls(
                 .padding(horizontal = 12.dp),
         ) {
             Text(
-                text = formatTime(uiState.positionMs),
+                text = formatTime(posMs),
                 style = MaterialTheme.typography.labelMedium,
                 color = Color.White.copy(alpha = 0.85f)
             )
             Spacer(modifier = Modifier.weight(1f))
+            // Fullscreen toggle
+            Surface(
+                onClick = { VideoPlaybackManager.toggleFullScreen() },
+                shape = CircleShape,
+                color = Color.Transparent,
+                modifier = Modifier.size(32.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        painter = painterResource(
+                            if (uiState.isFullScreen) R.drawable.fullscreen_exit
+                            else R.drawable.fullscreen
+                        ),
+                        contentDescription = stringResource(R.string.close),
+                        modifier = Modifier.size(20.dp),
+                        tint = Color.White.copy(alpha = 0.85f)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = formatTime(uiState.durationMs),
+                text = formatTime(durMs),
                 style = MaterialTheme.typography.labelMedium,
                 color = Color.White.copy(alpha = 0.55f)
             )
         }
 
         SlimSeekBar(
-            positionMs = uiState.positionMs,
-            durationMs = uiState.durationMs,
+            positionMs = posMs,
+            durationMs = durMs,
             onSeek = { VideoPlaybackManager.seekTo(it) },
             modifier = Modifier
                 .fillMaxWidth()
@@ -1006,8 +1109,12 @@ private fun SlimSeekBar(
         )
         Box(
             modifier = Modifier
-                .offset(x = (maxWidth * progress) - (thumbSize / 2))
-                .align(Alignment.Center)
+                .align(Alignment.CenterStart)
+                // Thumb-center tracks the fill edge; subtracting the thumb size
+                // keeps it fully on the track from 0% to 100% instead of being
+                // parked mid-bar (Center + progress offset was off by half the
+                // bar width) or sliding off either end.
+                .offset(x = (maxWidth - thumbSize) * progress)
                 .size(thumbSize)
                 .clip(CircleShape)
                 .background(Color.White)
@@ -1251,6 +1358,143 @@ private fun VideoInfoSection(
     }
 }
 
+/**
+ * Compact title + actions bar overlaid at the bottom of the phone-landscape
+ * player, where there's no room for the full detail pane next to the video.
+ */
+@Composable
+private fun CompactLandscapeBar(
+    session: VideoPlaybackManager.VideoSession,
+    uiState: VideoPlaybackManager.UiState,
+    onChannelClick: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        color = Color.Black.copy(alpha = 0.78f),
+        modifier = modifier,
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = session.title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+            ) {
+                CompactActionChip(
+                    icon = R.drawable.ic_thumb_up,
+                    selected = uiState.isLiked,
+                    contentDescription = stringResource(R.string.video_player_like),
+                    onClick = { VideoPlaybackManager.toggleLike() },
+                )
+                CompactActionChip(
+                    icon = R.drawable.ic_thumb_down,
+                    selected = uiState.isDisliked,
+                    contentDescription = stringResource(R.string.video_player_dislike),
+                    onClick = { VideoPlaybackManager.toggleDislike() },
+                )
+                CompactActionChip(
+                    icon = if (uiState.isSaved) R.drawable.library_add_check else R.drawable.library_add,
+                    selected = uiState.isSaved,
+                    contentDescription = stringResource(if (uiState.isSaved) R.string.video_player_saved else R.string.video_player_save),
+                    onClick = { VideoPlaybackManager.toggleSave() },
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Surface(
+                    onClick = { VideoPlaybackManager.toggleSubscribe() },
+                    shape = RoundedCornerShape(20.dp),
+                    color = if (uiState.isSubscribed) Color.White.copy(alpha = 0.22f) else MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.height(40.dp)
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.padding(horizontal = 14.dp)
+                    ) {
+                        Text(
+                            text = stringResource(if (uiState.isSubscribed) R.string.subscribed else R.string.subscribe),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (uiState.isSubscribed) Color.White else MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                }
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp, bottom = 10.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer)
+                        .clickable { session.channelId?.let(onChannelClick) }
+                ) {
+                    if (!session.channelAvatarUrl.isNullOrBlank()) {
+                        AsyncImage(
+                            model = session.channelAvatarUrl,
+                            contentDescription = session.channelName,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = listOfNotNull(
+                        session.channelName.takeIf { it.isNotEmpty() },
+                        session.viewCountText,
+                        session.publishedTimeText,
+                    ).joinToString(" • "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.7f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(4.dp))
+                        .clickable { session.channelId?.let(onChannelClick) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CompactActionChip(
+    icon: Int,
+    selected: Boolean,
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(20.dp),
+        color = if (selected) Color.White.copy(alpha = 0.32f) else Color.White.copy(alpha = 0.14f),
+        modifier = Modifier.size(40.dp)
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                painter = painterResource(icon),
+                contentDescription = contentDescription,
+                tint = Color.White,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
 @Composable
 private fun ChannelRow(
     session: VideoPlaybackManager.VideoSession,
@@ -1269,9 +1513,11 @@ private fun ChannelRow(
                 .background(MaterialTheme.colorScheme.primaryContainer)
                 .clickable { session.channelId?.let(onChannelClick) }
         ) {
-            if (!session.channelThumbnail.isNullOrBlank()) {
+            // The real channel avatar (not the video's thumbnail/artwork, which is
+            // what channelThumbnail holds for the media notification artwork).
+            if (!session.channelAvatarUrl.isNullOrBlank()) {
                 AsyncImage(
-                    model = session.channelThumbnail,
+                    model = session.channelAvatarUrl,
                     contentDescription = session.channelName,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
@@ -1637,17 +1883,23 @@ private fun CommentsSection(uiState: VideoPlaybackManager.UiState) {
             }
         }
         uiState.commentsError != null && uiState.comments.isEmpty() -> {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 24.dp),
-                contentAlignment = Alignment.Center
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
                     text = uiState.commentsError.orEmpty(),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
                 )
+                TextButton(onClick = { VideoPlaybackManager.retryLoadingComments() }) {
+                    Text(
+                        text = stringResource(R.string.video_player_retry),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
             }
         }
         else -> {

@@ -234,7 +234,7 @@ import timber.log.Timber
 
     init {
         try {
-            // Observe player changes (e.g. crossfade swap)
+            // Observe player changes (e.g. automix swap)
             playerFlowJob = scope.launch {
                 service.playerFlow.collect { newPlayer ->
                     if (!disposed && newPlayer != null && newPlayer != attachedPlayer) {

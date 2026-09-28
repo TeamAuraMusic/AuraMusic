@@ -237,7 +237,7 @@ object YouTube {
      * Search-based video feed. Runs a WEB search restricted to the Videos sp filter
      * and maps the video results to a uniform [YouTubeFeedResult].
      */
-    private suspend fun youtubeSearchFeed(
+    suspend fun youtubeSearchFeed(
         query: String,
         continuation: String? = null,
         sortParams: String? = null,

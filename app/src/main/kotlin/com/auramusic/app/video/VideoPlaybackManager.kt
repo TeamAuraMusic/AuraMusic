@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.widget.Toast
 import androidx.annotation.OptIn
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
@@ -19,14 +20,16 @@ import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.extractor.ExtractorsFactory
 import androidx.media3.extractor.mkv.MatroskaExtractor
 import androidx.media3.extractor.mp4.FragmentedMp4Extractor
-import androidx.media3.extractor.mp4.Mp4Extractor
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import androidx.datastore.preferences.core.edit
 import com.auramusic.app.R
+import com.auramusic.app.constants.SavedVideoIdsKey
 import com.auramusic.app.constants.VideoAutoplayEnabledKey
+import com.auramusic.app.constants.VideoHistoryKey
 import com.auramusic.app.constants.VideoQuality
 import com.auramusic.app.constants.VideoQualityKey
+import com.auramusic.app.constants.VideoSubscribedChannelsKey
 import com.auramusic.app.utils.AuraPlayerUtils
 import com.auramusic.app.utils.VideoThumbnails
 import com.auramusic.app.utils.dataStore
@@ -46,11 +49,13 @@ import com.auramusic.innertube.models.response.commentsContinuation
 import com.auramusic.innertube.models.response.dateText
 import com.auramusic.innertube.models.response.description
 import com.auramusic.innertube.models.response.likeCountText
+import com.auramusic.innertube.models.response.likeState
 import com.auramusic.innertube.models.response.relatedContinuation
 import com.auramusic.innertube.models.response.relatedVideos
 import com.auramusic.innertube.models.response.subscriberCountText
 import com.auramusic.innertube.models.response.title
 import com.auramusic.innertube.models.response.viewCountText
+import com.auramusic.innertube.models.response.WatchLikeState
 import com.auramusic.innertube.models.response.YoutubeComment
 import com.google.common.util.concurrent.ListenableFuture
 import timber.log.Timber
@@ -66,6 +71,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 object VideoPlaybackManager {
@@ -76,6 +83,7 @@ object VideoPlaybackManager {
         val channelName: String = "",
         val channelId: String? = null,
         val channelThumbnail: String? = null,
+        val channelAvatarUrl: String? = null,
         val description: String? = null,
         val viewCountText: String? = null,
         val publishedTimeText: String? = null,
@@ -106,9 +114,30 @@ object VideoPlaybackManager {
         val isPinned: Boolean = false,
     )
 
+    /** One watched-video entry shown in the Library "Recently watched" row. */
+    data class VideoHistoryEntry(
+        val videoId: String,
+        val title: String,
+        val channelName: String,
+        val channelId: String?,
+        val thumbnailUrl: String?,
+        val lastPlayedAt: Long,
+        val positionMs: Long = 0,
+        val durationMs: Long = 0,
+    )
+
+    /** A channel the user subscribed to from a video/channel screen. */
+    data class VideoSubscribedChannel(
+        val channelId: String,
+        val name: String,
+        val avatarUrl: String?,
+        val subscribedAt: Long,
+    )
+
     data class UiState(
         val session: VideoSession? = null,
         val minimized: Boolean = false,
+        val hiddenByMusic: Boolean = false,
         val isPlaying: Boolean = false,
         val isBuffering: Boolean = false,
         val positionMs: Long = 0,
@@ -135,6 +164,7 @@ object VideoPlaybackManager {
         val videoQuality: VideoQuality = VideoQuality.QUALITY_720P,
         val autoplayEnabled: Boolean = true,
         val suppressOverlay: Boolean = false,
+        val isFullScreen: Boolean = false,
     ) {
         val isEmpty: Boolean get() = session == null
         val progress: Float
@@ -145,14 +175,37 @@ object VideoPlaybackManager {
     private val _uiState = MutableStateFlow(UiState())
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
+    /** Separate flow for position updates — only the progress UI observes this,
+     *  so the rest of the overlay doesn't recompose every 500ms. */
+    private val _positionState = MutableStateFlow(0L to 0L)
+    val positionState: StateFlow<Pair<Long, Long>> = _positionState.asStateFlow()
+
     private var player: ExoPlayer? = null
     private var tickerJob: Job? = null
+
+    // SponsorBlock integration for video playback
+    var sponsorBlockManager: com.auramusic.app.sponsorblock.SponsorBlockManager? = null
+        private set
+
+    /**
+     * The last successful WEB watch-page response, keyed by video id. Shipped to
+     * enrichSessionMetadata / loadRecommendations / loadComments so the three
+     * loaders share ONE /next request instead of firing three near-identical calls,
+     * which on flaky networks is how comments or recommendations silently end up
+     * blank. Cleared whenever a new video starts.
+     */
+    private var watchMetadataCache: WatchMetadataResponse? = null
+    private var watchMetadataCacheVideoId: String? = null
+    private val watchMetadataMutex = Mutex()
     private var currentContext: Context? = null
     private var videoControllerFuture: ListenableFuture<MediaController>? = null
     private val playedVideoIds = mutableSetOf<String>()
 
     private var currentQuality: VideoQuality = VideoQuality.QUALITY_720P
     private var currentAutoplay: Boolean = true
+
+    // Callback for VideoRecommendationManager to track watches
+    var onVideoPlayed: (() -> Unit)? = null
 
     fun playerOrNull(): ExoPlayer? = player
 
@@ -239,12 +292,15 @@ object VideoPlaybackManager {
             current.error?.let {
                 _uiState.update { s -> s.copy(error = null) }
             }
-            _uiState.update { it.copy(minimized = false) }
+            _uiState.update { it.copy(minimized = false, hiddenByMusic = false) }
             player?.play()
             return
         }
 
         playedVideoIds.add(videoId)
+        // A new video invalidates the previous one's cached watch page.
+        watchMetadataCache = null
+        watchMetadataCacheVideoId = null
         val bestThumbnail = thumbnails.maxByOrNull { it.width ?: 0 }?.url
 
         val exo = getOrCreatePlayer(context)
@@ -283,6 +339,14 @@ object VideoPlaybackManager {
             videoQuality = currentQuality,
             autoplayEnabled = currentAutoplay,
         )
+        // Rebuild the media notification immediately with the NEW video's metadata.
+        // This closes the window where the shade would otherwise keep showing the
+        // previous video (or a placeholder) until the stream resolves and
+        // loadMediaSourceInto triggers its own rebuild — the cause of the media
+        // notification feeling non-persistent / out of sync when switching videos.
+        context.applicationContext.let { VideoPlaybackService.notifySessionChanged(it) }
+        // Notify recommendation manager that a video was played
+        onVideoPlayed?.invoke()
         scope.launch {
             val source = withContext(Dispatchers.IO) {
                 AuraPlayerUtils.getVideoStreamSource(videoId).getOrNull()
@@ -298,35 +362,75 @@ object VideoPlaybackManager {
             enrichSessionMetadata(videoId)
             loadRecommendations(videoId)
             loadComments(videoId)
+            // Load SponsorBlock segments for this video
+            try {
+                if (sponsorBlockManager == null) {
+                    sponsorBlockManager = com.auramusic.app.sponsorblock.SponsorBlockManager(
+                        context.applicationContext, scope
+                    )
+                    sponsorBlockManager?.loadPreferences()
+                }
+                val durationMs = player?.duration?.takeIf { it > 0 }?.toLong() ?: 0L
+                sponsorBlockManager?.loadSegments(videoId, durationMs)
+            } catch (e: Exception) {
+                // SponsorBlock is optional - don't break video playback
+            }
+        }
+    }
+
+    /**
+     * Fetches the WEB watch page for a video exactly once and caches it, so the
+     * enrichment, recommendations and comments loaders all read the SAME response
+     * (one /next round-trip per video instead of up to three).
+     */
+    private suspend fun fetchWatchMetadata(videoId: String): WatchMetadataResponse? {
+        return watchMetadataMutex.withLock {
+            val cached = watchMetadataCache.takeIf { watchMetadataCacheVideoId == videoId }
+            if (cached != null) return@withLock cached
+            val metadata = withContext(Dispatchers.IO) {
+                YouTube.watchMetadata(videoId).getOrNull()
+            }
+            watchMetadataCache = metadata
+            watchMetadataCacheVideoId = videoId
+            metadata
         }
     }
 
     /**
      * Fills missing session fields from the WEB watch page. Known metadata from the
-     * list item the user tapped wins; only blank fields get overwritten.
+     * list item the user tapped wins; only blank fields get overwritten. Also seeds
+     * the real channel avatar (separate from the video artwork), the current
+     * like/dislike state from the watch button icon, and the locally-saved state.
      */
     private suspend fun enrichSessionMetadata(videoId: String) {
         if (_uiState.value.session?.videoId != videoId) return
-        val metadata = withContext(Dispatchers.IO) {
-            YouTube.watchMetadata(videoId).getOrNull()
-        } ?: return
+        val metadata = fetchWatchMetadata(videoId)
+        val savedIds = withContext(Dispatchers.IO) {
+            currentContext?.let { it.dataStore[SavedVideoIdsKey] }.orEmpty()
+        }
         if (_uiState.value.session?.videoId != videoId) return
+        val likeState = metadata?.likeState() ?: WatchLikeState.NONE
         _uiState.update { state ->
             val session = state.session?.takeIf { it.videoId == videoId } ?: return@update state
             state.copy(
                 session = session.copy(
-                    title = session.title.ifBlank { metadata.title().orEmpty() },
-                    channelName = session.channelName.ifBlank { metadata.channelName().orEmpty() },
-                    channelId = session.channelId ?: metadata.channelId(),
-                    channelThumbnail = session.channelThumbnail ?: metadata.channelAvatarUrl(),
+                    title = session.title.ifBlank { metadata?.title().orEmpty() },
+                    channelName = session.channelName.ifBlank { metadata?.channelName().orEmpty() },
+                    channelId = session.channelId ?: metadata?.channelId(),
+                    // The real channel avatar; session.channelThumbnail stays as the
+                    // video artwork used by the media notification.
+                    channelAvatarUrl = session.channelAvatarUrl ?: metadata?.channelAvatarUrl(),
                     description = session.description?.takeIf { it.isNotBlank() }
-                        ?: metadata.description(),
-                    viewCountText = session.viewCountText ?: metadata.viewCountText(),
-                    publishedTimeText = session.publishedTimeText ?: metadata.dateText(),
-                    subscriberCountText = metadata.subscriberCountText(),
-                    commentCountText = metadata.commentCountText(),
-                    likeCountText = session.likeCountText ?: metadata.likeCountText(),
+                        ?: metadata?.description(),
+                    viewCountText = session.viewCountText ?: metadata?.viewCountText(),
+                    publishedTimeText = session.publishedTimeText ?: metadata?.dateText(),
+                    subscriberCountText = metadata?.subscriberCountText(),
+                    commentCountText = metadata?.commentCountText(),
+                    likeCountText = session.likeCountText ?: metadata?.likeCountText(),
                 ),
+                isLiked = likeState == WatchLikeState.LIKE,
+                isDisliked = likeState == WatchLikeState.DISLIKE,
+                isSaved = videoId in savedIds,
             )
         }
         // Notify the service that session metadata has been enriched (artwork URL,
@@ -334,6 +438,9 @@ object VideoPlaybackManager {
         // title, artist, and artwork — the same metadata that the MediaControlsPlayer
         // surfaces via getMediaMetadata().
         currentContext?.let { VideoPlaybackService.notifySessionChanged(it) }
+        // Record the enriched session into the local watch history (dedupes by id
+        // and bumps it to the top so the Library mirrors YouTube's ordering).
+        recordCurrentToHistory()
     }
 
     private suspend fun loadRecommendations(videoId: String) {
@@ -342,9 +449,7 @@ object VideoPlaybackManager {
         }
 
         // Primary source: WEB watch page related videos (works for all YouTube videos).
-        val metadata = withContext(Dispatchers.IO) {
-            YouTube.watchMetadata(videoId).getOrNull()
-        }
+        val metadata = fetchWatchMetadata(videoId)
         val related = metadata?.relatedVideos().orEmpty()
         if (related.isNotEmpty()) {
             if (_uiState.value.session?.videoId != videoId) return
@@ -449,8 +554,9 @@ object VideoPlaybackManager {
         _uiState.update { it.copy(isLoadingComments = true, comments = emptyList(), commentsError = null, commentsContinuation = null) }
         val result = withContext(Dispatchers.IO) {
             // The WEB comment feed is only reachable through the watch page's comments
-            // continuation token, so resolve it first.
-            val token = YouTube.watchMetadata(videoId).getOrNull()?.commentsContinuation()
+            // continuation token, so resolve it first (reusing the cached watch page
+            // fetched during metadata enrichment where possible).
+            val token = fetchWatchMetadata(videoId)?.commentsContinuation()
             token?.let { YouTube.videoComments(videoId, it).getOrNull() }
         }
         if (_uiState.value.session?.videoId != videoId) return
@@ -467,6 +573,12 @@ object VideoPlaybackManager {
                 commentsError = if (comments.isEmpty()) "Comments are unavailable for this video" else null,
             )
         }
+    }
+
+    /** Re-runs the comments fetch for the current video (drives the Retry button). */
+    fun retryLoadingComments() {
+        val videoId = _uiState.value.session?.videoId ?: return
+        scope.launch { loadComments(videoId) }
     }
 
     /** Infinite scroll for the comments list. */
@@ -586,9 +698,16 @@ object VideoPlaybackManager {
     }
 
     fun toggleSubscribe() {
-        val channelId = _uiState.value.session?.channelId ?: return
+        val session = _uiState.value.session ?: return
+        val channelId = session.channelId ?: return
         val newSubscribed = !_uiState.value.isSubscribed
         scope.launch {
+            persistChannelSubscription(
+                channelId = channelId,
+                name = session.channelName,
+                avatarUrl = session.channelAvatarUrl ?: session.channelThumbnail,
+                subscribe = newSubscribed,
+            )
             YouTube.subscribeChannel(channelId, newSubscribed)
             _uiState.update { it.copy(isSubscribed = newSubscribed) }
         }
@@ -597,11 +716,16 @@ object VideoPlaybackManager {
     fun toggleSave() {
         val session = _uiState.value.session ?: return
         val newSaved = !_uiState.value.isSaved
+        val ctx = currentContext ?: return
         scope.launch {
-            if (newSaved) {
-                YouTube.addSongToLibrary(session.videoId)
-            } else {
-                YouTube.removeSongFromLibrary(session.videoId)
+            // "Save" for a video is a local watch-later bookmark. The YouTube Music
+            // library add/remove endpoints only apply to songs, not arbitrary YouTube
+            // videos, so calling them here would mutate the music library (or fail).
+            // Persisting to DataStore keeps the toggle instant and consistent.
+            ctx.dataStore.edit { settings ->
+                val saved = settings[SavedVideoIdsKey]?.toMutableSet() ?: mutableSetOf()
+                if (newSaved) saved.add(session.videoId) else saved.remove(session.videoId)
+                settings[SavedVideoIdsKey] = saved
             }
             _uiState.update { it.copy(isSaved = newSaved) }
         }
@@ -655,7 +779,7 @@ object VideoPlaybackManager {
         } catch (e: Exception) {
             Timber.tag("VideoPlaybackManager").w(e, "giveWayToMusic: pause failed")
         }
-        _uiState.update { it.copy(isPlaying = false, minimized = true) }
+        _uiState.update { it.copy(isPlaying = false, minimized = true, hiddenByMusic = true) }
         val ctx = context.applicationContext
         // Remove the video notification and drop the connected controller (mirroring
         // close()) so a later resume reconnects and brings the notification back.
@@ -821,12 +945,25 @@ object VideoPlaybackManager {
         _uiState.update { if (it.suppressOverlay == suppressed) it else it.copy(suppressOverlay = suppressed) }
     }
 
+    fun toggleFullScreen() {
+        val newFullScreen = !_uiState.value.isFullScreen
+        _uiState.update { it.copy(isFullScreen = newFullScreen) }
+        val ctx = currentContext ?: return
+        val activity = ctx as? android.app.Activity
+            ?: return
+        activity.requestedOrientation = if (newFullScreen) {
+            android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        } else {
+            android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
+    }
+
     fun collapse() {
         _uiState.update { it.copy(minimized = true) }
     }
 
     fun expand() {
-        _uiState.update { it.copy(minimized = false) }
+        _uiState.update { it.copy(minimized = false, hiddenByMusic = false) }
     }
 
     fun toggleMinimized() {
@@ -834,6 +971,10 @@ object VideoPlaybackManager {
     }
 
     fun close() {
+        // Persist the final watch position before tearing the session down so the
+        // Library's "Recently watched" history reflects exactly where it stopped.
+        recordCurrentToHistory()
+        sponsorBlockManager?.reset()
         player?.let { exo ->
             exo.removeListener(playerListener)
             exo.stop()
@@ -905,7 +1046,9 @@ object VideoPlaybackManager {
         // Apply the quality + autoplay preference chosen in Settings/settings-overlay
         // so freshly created players start with them.
         applyStoredPreferences(context)
-        return ExoPlayer.Builder(context).build().also {
+        return ExoPlayer.Builder(context)
+            .setWakeMode(C.WAKE_MODE_NETWORK)
+            .build().also {
             it.addListener(playerListener)
             it.playWhenReady = true
             player = it
@@ -959,14 +1102,132 @@ object VideoPlaybackManager {
     private fun startTicker() {
         tickerJob?.cancel()
         tickerJob = scope.launch {
+            var ticks = 0
             while (isActive) {
                 val exo = player
                 if (exo != null && _uiState.value.session != null) {
                     val pos = exo.currentPosition
                     val dur = if (exo.duration > 0) exo.duration else 0
-                    _uiState.update { it.copy(positionMs = pos, durationMs = dur) }
+                    _positionState.value = pos to dur
+                    // Sync position into uiState less frequently (every ~2s) for
+                    // media notification / service consumers — the separate
+                    // _positionState is what the Compose UI reads for smooth updates.
+                    if (ticks % 4 == 0) {
+                        _uiState.update { it.copy(positionMs = pos, durationMs = dur) }
+                    }
+                    // Persist watch position to the video history every ~10s while
+                    // actually playing (ticker fires every 500ms).
+                    if (_uiState.value.isPlaying && ++ticks % 20 == 0) {
+                        recordCurrentToHistory()
+                    }
+                    // SponsorBlock: auto-skip segments during video playback
+                    if (_uiState.value.isPlaying && dur > 0) {
+                        val skipTo = sponsorBlockManager?.findSkipTarget(pos, exo.playbackParameters.speed)
+                        if (skipTo != null && skipTo > pos) {
+                            exo.seekTo(skipTo)
+                        }
+                    }
                 }
-                delay(250)
+                delay(500)
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Video history + channel subscriptions (persisted in DataStore)
+    // ---------------------------------------------------------------------------
+    // JSON layout for history: [{"id","t","c","cid","th","ts","pos","dur"}]
+    // JSON layout for subscriptions: [{"cid","n","a","ts"}]
+
+    suspend fun getVideoHistory(): List<VideoHistoryEntry> =
+        currentContext?.let { readVideoHistory(it) }.orEmpty()
+
+    suspend fun readVideoHistory(context: Context): List<VideoHistoryEntry> =
+        withContext(Dispatchers.IO) {
+            try {
+                parseVideoHistory(context.dataStore[VideoHistoryKey])
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
+
+    suspend fun getSubscribedChannels(): List<VideoSubscribedChannel> =
+        currentContext?.let { readSubscribedChannels(it) }.orEmpty()
+
+    suspend fun readSubscribedChannels(context: Context): List<VideoSubscribedChannel> =
+        withContext(Dispatchers.IO) {
+            try {
+                parseSubscribedChannels(context.dataStore[VideoSubscribedChannelsKey])
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
+
+    private fun recordCurrentToHistory() {
+        val session = _uiState.value.session ?: return
+        recordHistoryEntry(
+            VideoHistoryEntry(
+                videoId = session.videoId,
+                title = session.title,
+                channelName = session.channelName,
+                channelId = session.channelId,
+                thumbnailUrl = session.channelThumbnail,
+                lastPlayedAt = System.currentTimeMillis(),
+                positionMs = _uiState.value.positionMs,
+                durationMs = _uiState.value.durationMs,
+            )
+        )
+    }
+
+    private fun recordHistoryEntry(entry: VideoHistoryEntry) {
+        val ctx = currentContext ?: return
+        scope.launch {
+            withContext(Dispatchers.IO) {
+                try {
+                    val current = parseVideoHistory(ctx.dataStore[VideoHistoryKey]).toMutableList()
+                    current.removeAll { it.videoId == entry.videoId }
+                    current.add(0, entry)
+                    ctx.dataStore.edit {
+                        it[VideoHistoryKey] = buildVideoHistoryJson(current.take(MAX_VIDEO_HISTORY_ENTRIES))
+                    }
+                } catch (e: Exception) {
+                    // History is best-effort; never let persistence break playback.
+                }
+            }
+        }
+    }
+
+    /** Persists a channel subscription change so the Library can list channels. */
+    suspend fun persistChannelSubscription(
+        channelId: String,
+        name: String,
+        avatarUrl: String?,
+        subscribe: Boolean,
+    ) {
+        currentContext?.let {
+            persistChannelSubscription(it, channelId, name, avatarUrl, subscribe)
+        }
+    }
+
+    suspend fun persistChannelSubscription(
+        context: Context,
+        channelId: String,
+        name: String,
+        avatarUrl: String?,
+        subscribe: Boolean,
+    ) {
+        withContext(Dispatchers.IO) {
+            try {
+                val current = parseSubscribedChannels(context.dataStore[VideoSubscribedChannelsKey]).toMutableList()
+                current.removeAll { it.channelId == channelId }
+                if (subscribe) {
+                    current.add(0, VideoSubscribedChannel(channelId, name, avatarUrl, System.currentTimeMillis()))
+                }
+                context.dataStore.edit {
+                    it[VideoSubscribedChannelsKey] = buildSubscribedChannelsJson(current)
+                }
+            } catch (e: Exception) {
+                // Best-effort persistence.
             }
         }
     }
@@ -985,7 +1246,7 @@ object VideoPlaybackManager {
                 arrayOf(
                     MatroskaExtractor(),
                     FragmentedMp4Extractor(),
-                    Mp4Extractor()
+                    androidx.media3.extractor.mp4.Mp4Extractor()
                 )
             }
         )
@@ -1026,3 +1287,94 @@ object VideoPlaybackManager {
         }
     }
 }
+
+private const val MAX_VIDEO_HISTORY_ENTRIES = 100
+
+private fun parseVideoHistory(json: String?): List<VideoPlaybackManager.VideoHistoryEntry> {
+    if (json.isNullOrBlank()) return emptyList()
+    val result = mutableListOf<VideoPlaybackManager.VideoHistoryEntry>()
+    try {
+        val array = org.json.JSONArray(json)
+        for (i in 0 until array.length()) {
+            val obj = array.getJSONObject(i)
+            result.add(
+                VideoPlaybackManager.VideoHistoryEntry(
+                    videoId = obj.optString("id"),
+                    title = obj.optString("t"),
+                    channelName = obj.optString("c"),
+                    channelId = obj.optString("cid").takeIf { it.isNotEmpty() },
+                    thumbnailUrl = obj.optString("th").takeIf { it.isNotEmpty() },
+                    lastPlayedAt = obj.optLong("ts"),
+                    positionMs = obj.optLong("pos"),
+                    durationMs = obj.optLong("dur"),
+                )
+            )
+        }
+    } catch (_: Exception) {
+        // Corrupt history is ignored and simply overwritten on the next write.
+    }
+    return result
+}
+
+private fun buildVideoHistoryJson(entries: List<VideoPlaybackManager.VideoHistoryEntry>): String {
+    val array = org.json.JSONArray()
+    entries.forEach { entry ->
+        array.put(
+            org.json.JSONObject().apply {
+                put("id", entry.videoId)
+                put("t", entry.title)
+                put("c", entry.channelName)
+                put("cid", entry.channelId ?: "")
+                put("th", entry.thumbnailUrl ?: "")
+                put("ts", entry.lastPlayedAt)
+                put("pos", entry.positionMs)
+                put("dur", entry.durationMs)
+            }
+        )
+    }
+    return array.toString()
+}
+
+private fun parseSubscribedChannels(json: String?): List<VideoPlaybackManager.VideoSubscribedChannel> {
+    if (json.isNullOrBlank()) return emptyList()
+    val result = mutableListOf<VideoPlaybackManager.VideoSubscribedChannel>()
+    try {
+        val array = org.json.JSONArray(json)
+        for (i in 0 until array.length()) {
+            val obj = array.getJSONObject(i)
+            result.add(
+                VideoPlaybackManager.VideoSubscribedChannel(
+                    channelId = obj.optString("cid"),
+                    name = obj.optString("n"),
+                    avatarUrl = obj.optString("a").takeIf { it.isNotEmpty() },
+                    subscribedAt = obj.optLong("ts"),
+                )
+            )
+        }
+    } catch (_: Exception) {
+        // Corrupt data is ignored and overwritten on the next write.
+    }
+    return result
+}
+
+private fun buildSubscribedChannelsJson(channels: List<VideoPlaybackManager.VideoSubscribedChannel>): String {
+    val array = org.json.JSONArray()
+    channels.forEach { channel ->
+        array.put(
+            org.json.JSONObject().apply {
+                put("cid", channel.channelId)
+                put("n", channel.name)
+                put("a", channel.avatarUrl ?: "")
+                put("ts", channel.subscribedAt)
+            }
+        )
+    }
+    return array.toString()
+}
+
+// Public wrappers for VideoRecommendationManager
+fun parseVideoHistoryPublic(json: String?): List<VideoPlaybackManager.VideoHistoryEntry> =
+    parseVideoHistory(json)
+
+fun parseSubscribedChannelsPublic(json: String?): List<VideoPlaybackManager.VideoSubscribedChannel> =
+    parseSubscribedChannels(json)

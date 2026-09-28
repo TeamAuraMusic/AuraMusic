@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 
@@ -38,6 +39,9 @@ val UseNewMiniPlayerDesignKey = booleanPreferencesKey("useNewMiniPlayerDesign")
 val VideoFeedGridViewKey = booleanPreferencesKey("videoFeedGridView")
 val VideoSearchGridViewKey = booleanPreferencesKey("videoSearchGridView")
 val VideoRecentSearchesKey = stringPreferencesKey("videoRecentSearches")
+val SavedVideoIdsKey = stringSetPreferencesKey("videoSavedIds")
+val VideoHistoryKey = stringPreferencesKey("videoHistoryJson")
+val VideoSubscribedChannelsKey = stringPreferencesKey("videoSubscribedChannelsJson")
 val HidePlayerThumbnailKey = booleanPreferencesKey("hidePlayerThumbnail")
 val CropAlbumArtKey = booleanPreferencesKey("cropAlbumArt")
 val SeekExtraSeconds = booleanPreferencesKey("seekExtraSeconds")
@@ -146,9 +150,6 @@ val SimilarContent = booleanPreferencesKey("similarContent")
 val AutoSkipNextOnErrorKey = booleanPreferencesKey("autoSkipNextOnError")
 val StopMusicOnTaskClearKey = booleanPreferencesKey("stopMusicOnTaskClear")
 val ShufflePlaylistFirstKey = booleanPreferencesKey("shufflePlaylistFirst")
-val CrossfadeEnabledKey = booleanPreferencesKey("crossfadeEnabled")
-val CrossfadeDurationKey = floatPreferencesKey("crossfadeDuration")
-val CrossfadeGaplessKey = booleanPreferencesKey("crossfadeGapless")
 val AutomixEnabledKey = booleanPreferencesKey("automixEnabled")
 val AutomixBlendPercentKey = floatPreferencesKey("automixBlendPercent")
 

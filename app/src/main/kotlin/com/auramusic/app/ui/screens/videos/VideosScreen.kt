@@ -5,6 +5,7 @@
 
 package com.auramusic.app.ui.screens.videos
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -48,20 +49,24 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.pulltorefresh.pullToRefresh
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -108,8 +113,10 @@ private enum class VideoCategory(
     Trending(R.string.trending),
     New(R.string.video_category_new),
     Gaming(R.string.video_category_gaming),
+    Personal(R.string.video_category_personal),
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VideosScreen(
     navController: NavController,
@@ -120,6 +127,15 @@ fun VideosScreen(
 
     val insets = LocalPlayerAwareWindowInsets.current.asPaddingValues()
     val configuration = LocalConfiguration.current
+
+    // Personalised video recommendations
+    val recommendationManager = remember {
+        com.auramusic.app.video.VideoRecommendationManager(context).also {
+            com.auramusic.app.video.VideoPlaybackManager.onVideoPlayed = { it.onVideoWatched() }
+        }
+    }
+    val personalSections by recommendationManager.sections.collectAsState()
+    val isLoadingPersonal by recommendationManager.isLoading.collectAsState()
 
     var feed by remember { mutableStateOf<List<YouTubeVideoItem>>(emptyList()) }
     var continuation by remember { mutableStateOf<String?>(null) }
@@ -133,12 +149,18 @@ fun VideosScreen(
 
     suspend fun fetchFeed(showError: Boolean = true) {
         withContext(Dispatchers.IO) {
+            if (selectedCategory == VideoCategory.Personal) {
+                recommendationManager.refresh()
+                isLoading = false
+                return@withContext
+            }
             val result = when (selectedCategory) {
                 VideoCategory.ForYou -> YouTube.youtubeHomeFeed().getOrNull()
                 VideoCategory.Trending -> YouTube.youtubeTrending().getOrNull()
                 VideoCategory.Music -> YouTube.youtubeCategoryFeed(context.getString(R.string.video_category_music_query)).getOrNull()
                 VideoCategory.New -> YouTube.youtubeNewFeed(context.getString(R.string.video_category_new_query)).getOrNull()
                 VideoCategory.Gaming -> YouTube.youtubeCategoryFeed(context.getString(R.string.video_category_gaming_query)).getOrNull()
+                VideoCategory.Personal -> null
             }
             if (result != null && result.items.isNotEmpty()) {
                 feed = result.items
@@ -161,19 +183,14 @@ fun VideosScreen(
         fetchFeed()
     }
 
-    suspend fun refreshFeed() {
-        if (isLoading) {
-            isRefreshing = false
-            return
-        }
-        // Keep the current feed on screen while a fresh first page loads; only
-        // swap in the new content on success so the refresh is actually visible.
+     suspend fun refreshFeed() {
+        isRefreshing = true
         fetchFeed(showError = false)
         isRefreshing = false
     }
 
-    suspend fun loadMore() {
-        if (isLoadingMore || isLoading) return
+     suspend fun loadMore() {
+        if (isLoadingMore) return
         val cont = continuation ?: return
         isLoadingMore = true
         withContext(Dispatchers.IO) {
@@ -183,6 +200,7 @@ fun VideosScreen(
                 VideoCategory.Music -> YouTube.youtubeCategoryFeed(context.getString(R.string.video_category_music_query), cont).getOrNull()
                 VideoCategory.New -> YouTube.youtubeNewFeed(context.getString(R.string.video_category_new_query), cont).getOrNull()
                 VideoCategory.Gaming -> YouTube.youtubeCategoryFeed(context.getString(R.string.video_category_gaming_query), cont).getOrNull()
+                VideoCategory.Personal -> null
             }
             result?.takeIf { it.items.isNotEmpty() }?.let {
                 // Continuation pages can repeat videos; dedupe so the lazy list
@@ -229,6 +247,16 @@ fun VideosScreen(
         if (!isLoading && feed.isNotEmpty()) hasLoadedOnce = true
     }
 
+    // Auto-refresh personalised feed after watching 2-3 videos
+    LaunchedEffect(Unit) {
+        snapshotFlow { recommendationManager.shouldRefresh }
+            .collect { shouldRefresh ->
+                if (shouldRefresh && selectedCategory == VideoCategory.Personal) {
+                    scope.launch { recommendationManager.refresh() }
+                }
+            }
+    }
+
     val gridListState = rememberLazyGridState()
     val listListState = rememberLazyListState()
 
@@ -247,7 +275,7 @@ fun VideosScreen(
     // After a page finishes loading, re-check the end so pagination keeps
     // fetching when the user is already sitting at the bottom of the list.
     LaunchedEffect(isLoadingMore) {
-        if (!isLoadingMore && !isLoading) {
+        if (!isLoadingMore) {
             val nearEnd = if (gridView) {
                 val last = gridListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
                 last >= gridListState.layoutInfo.totalItemsCount - 8
@@ -291,8 +319,27 @@ fun VideosScreen(
                 ),
             contentAlignment = Alignment.TopStart
         ) {
+            // Refresh progress indicator at the top of the feed
+            Column(modifier = Modifier.fillMaxWidth()) {
+                AnimatedVisibility(
+                    visible = isRefreshing && !isLoading,
+                    enter = androidx.compose.animation.fadeIn(),
+                    exit = androidx.compose.animation.fadeOut()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        LinearProgressIndicator(
+                            modifier = Modifier.height(3.dp)
+                        )
+                    }
+                }
+            }
             when {
-                isLoading && feed.isEmpty() -> SkeletonFeed(columns = columns, gridView = gridView)
+                isLoading -> SkeletonFeed(columns = columns, gridView = gridView)
                 error != null && feed.isEmpty() -> {
                     Column(
                         modifier = Modifier.fillMaxSize(),
@@ -315,7 +362,7 @@ fun VideosScreen(
                         )
                     }
                 }
-                else -> {
+else -> {
                     val playVideo: (YouTubeVideoItem) -> Unit = { video ->
                         VideoPlaybackManager.playWithDetails(
                             context = context,
@@ -329,10 +376,77 @@ fun VideosScreen(
                             thumbnails = video.thumbnails,
                         )
                     }
-                    val openChannel: (String) -> Unit = { channelId ->
-                        navController.navigate("youtube_channel/$channelId")
-                    }
-                    if (gridView) {
+                     val openChannel: (String) -> Unit = { channelId ->
+                         navController.navigate("youtube_channel/$channelId?ts=${System.currentTimeMillis()}")
+                     }
+                    // Personalised sections view for "For You" category
+                    if (selectedCategory == VideoCategory.Personal) {
+                        if (personalSections.isEmpty() && !isLoadingPersonal) {
+                            // Empty state
+                            Column(
+                                modifier = Modifier.fillMaxSize(),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.slow_motion_video),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(72.dp),
+                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
+                                )
+                                Spacer(modifier = Modifier.height(14.dp))
+                                Text(
+                                    text = "Watch some videos to get personalised recommendations",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                    modifier = Modifier.padding(horizontal = 32.dp),
+                                )
+                            }
+                        } else {
+                            LazyColumn(
+                                state = listListState,
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(vertical = 4.dp)
+                            ) {
+                                personalSections.forEach { section ->
+                                    item(key = "section_${section.title}") {
+                                        Column(modifier = Modifier.padding(top = 8.dp)) {
+                                            Text(
+                                                text = section.title,
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                            )
+                                        }
+                                    }
+                                    items(
+                                        items = section.videos,
+                                        key = { "video_${it.videoId}" }
+                                    ) { video ->
+                                        FeedVideoListRow(
+                                            video = video,
+                                            isNowPlaying = isCurrentlyPlaying(video.videoId),
+                                            onClick = { playVideo(video) },
+                                            onChannelClick = openChannel,
+                                        )
+                                    }
+                                }
+                                item(key = "personal_footer") {
+                                    if (isLoadingPersonal) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(16.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            LinearProgressIndicator(modifier = Modifier.height(3.dp))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } else if (gridView) {
                         LazyVerticalGrid(
                             columns = GridCells.Fixed(columns),
                             state = gridListState,

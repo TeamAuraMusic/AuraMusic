@@ -941,4 +941,25 @@
     <string name="ko_fi">Ko-fi</string>
     <string name="ko_fi_desc">开发商一次性咖啡</string>
     <string name="resume_playback">恢复播放</string>
+    <string name="videos">视频</string>
+    <string name="search_youtube">在YouTube上搜索…</string>
+    <string name="filter_music">音乐</string>
+    <string name="music_section">音乐</string>
+    <string name="video_section">视频</string>
+    <string name="no_videos_found">未找到视频</string>
+    <string name="no_posts_found">未找到海报</string>
+    <string name="live">直播</string>
+    <string name="channel_tab_videos">视频</string>
+    <string name="channel_tab_posts">海报</string>
+    <string name="channel_tab_live">直播</string>
+    <string name="channel_tab_about">详情</string>
+    <string name="channel_no_about">没有说明</string>
+    <string name="search_section_top_result">最佳结果</string>
+    <string name="search_section_videos">视频</string>
+    <string name="search_section_channels">频道</string>
+    <string name="search_section_playlists">播放列表</string>
+    <string name="search_section_results">结果</string>
+    <string name="trending_videos">热门视频</string>
+    <string name="for_you">为了你</string>
+    <string name="video_search_title">YouTube 搜索</string>
 </resources>

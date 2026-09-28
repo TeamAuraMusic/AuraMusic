@@ -164,7 +164,7 @@ fun VideoSearchScreen(
     var allResults by remember { mutableStateOf<List<YouTubeSearchResultItem>>(emptyList()) }
     var suggestions by remember { mutableStateOf<List<String>>(emptyList()) }
     var continuation by remember { mutableStateOf<String?>(null) }
-    var isLoading by remember { mutableStateOf(initialQuery.isNotEmpty()) }
+    var isLoading by remember { mutableStateOf(true) }
     var isLoadingMore by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var hasSearched by remember { mutableStateOf(initialQuery.isNotEmpty()) }
@@ -210,8 +210,8 @@ fun VideoSearchScreen(
         }
     }
 
-    suspend fun performLoadMore() {
-        if (isLoadingMore || isLoading) return
+     suspend fun performLoadMore() {
+        if (isLoadingMore) return
         val cont = continuation ?: return
         isLoadingMore = true
         withContext(Dispatchers.IO) {
@@ -572,9 +572,9 @@ fun VideoSearchScreen(
                                                 thumbnails = video.thumbnails,
                                             )
                                         },
-                                        onChannelClick = { channelId ->
-                                            navController.navigate("youtube_channel/$channelId")
-                                        },
+                                         onChannelClick = { channelId ->
+                                             navController.navigate("youtube_channel/$channelId?ts=${System.currentTimeMillis()}")
+                                         },
                                         onPlaylistClick = { playlistId ->
                                             navController.navigate("youtube_browse/$playlistId")
                                         }
@@ -1211,9 +1211,10 @@ private fun SearchHeroVideoCard(
             overflow = TextOverflow.Ellipsis,
         )
         Spacer(modifier = Modifier.height(4.dp))
+        // Views • published at only — the channel name lives in the row below
+        // next to its avatar, so it isn't shown twice on the same card.
         Text(
             text = listOfNotNull(
-                video.channelName.takeIf { it.isNotEmpty() },
                 video.viewCountText?.let { compactViewCount(it) },
                 video.publishedTimeText
             ).joinToString(" • "),

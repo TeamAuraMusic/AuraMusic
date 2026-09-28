@@ -368,6 +368,31 @@ fun WatchMetadataResponse.likeCountText(): String? =
                 }
         }
 
+enum class WatchLikeState { LIKE, DISLIKE, NONE }
+
+/**
+ * The current like/dislike state of a watched video, derived from the icon name
+ * the WEB watch page renders on the like button (filled "LIKE"/"DISLIKE" when the
+ * user has voted, outline variants otherwise). Unknown/parsing-gap states yield
+ * [WatchLikeState.NONE], never crashing.
+ */
+fun WatchMetadataResponse.likeState(): WatchLikeState {
+    val iconName = contents?.twoColumnWatchNextResults?.results?.results?.contents
+        ?.firstNotNullOfOrNull { content ->
+            content?.videoPrimaryInfoRenderer?.videoActions?.menuRenderer?.topLevelButtons
+                ?.firstNotNullOfOrNull { button ->
+                    button?.segmentedLikeDislikeButtonViewModel?.likeButtonViewModel
+                        ?.likeButtonViewModel?.toggleButtonViewModel?.toggleButtonViewModel
+                        ?.defaultButtonViewModel?.buttonViewModel?.iconName
+                }
+        }
+    return when (iconName) {
+        "LIKE" -> WatchLikeState.LIKE
+        "DISLIKE" -> WatchLikeState.DISLIKE
+        else -> WatchLikeState.NONE
+    }
+}
+
 fun WatchMetadataResponse.channelName(): String? =
     contents?.twoColumnWatchNextResults?.results?.results?.contents
         ?.firstNotNullOfOrNull { it?.videoSecondaryInfoRenderer?.owner?.videoOwnerRenderer?.title?.text() }

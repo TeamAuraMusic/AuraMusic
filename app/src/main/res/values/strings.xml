@@ -47,6 +47,7 @@
     <string name="playback_error">Playback error</string>
     <string name="video_category_gaming">Gaming</string>
     <string name="video_category_new">New</string>
+    <string name="video_category_personal">For You</string>
     <string name="video_category_music_query">music videos</string>
     <string name="video_category_gaming_query">gaming</string>
     <string name="video_category_new_query">new videos</string>
@@ -151,6 +152,8 @@
     <string name="about_artist">About artist</string>
     <string name="subscribed">Subscribed</string>
     <string name="subscribe">Subscribe</string>
+    <string name="video_recently_watched">Recently watched</string>
+    <string name="video_subscriptions">Subscribed channels</string>
     <!-- Album screen -->
     <string name="other_versions">Other versions</string>
     <!-- Playlist -->
@@ -1087,6 +1090,7 @@
     <string name="video_player_show_more">Show more</string>
     <string name="video_player_show_less">Show less</string>
     <string name="video_player_comments_unavailable">Comments are unavailable for this video</string>
+    <string name="video_player_retry">Retry</string>
     <string name="video_player_no_recommendations">No recommendations available</string>
     <string name="video_player_loading_recommendations">Loading recommendations…</string>
     <string name="video_player_subscribe_count">%s subscribers</string>
