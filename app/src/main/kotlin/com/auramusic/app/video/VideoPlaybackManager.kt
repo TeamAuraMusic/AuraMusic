@@ -134,6 +134,7 @@ object VideoPlaybackManager {
         val resizeMode: Int = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT,
         val videoQuality: VideoQuality = VideoQuality.QUALITY_720P,
         val autoplayEnabled: Boolean = true,
+        val suppressOverlay: Boolean = false,
     ) {
         val isEmpty: Boolean get() = session == null
         val progress: Float
@@ -809,6 +810,15 @@ object VideoPlaybackManager {
 
     fun toggleSettings() {
         _uiState.update { it.copy(showSettings = !it.showSettings) }
+    }
+
+    /**
+     * While the Shorts pager owns the screen it suppresses the global overlay
+     * (expanded player + mini tile) so it does not render over the pager. The
+     * pager renders [androidx.media3.ui.PlayerView] itself.
+     */
+    fun setOverlaySuppressed(suppressed: Boolean) {
+        _uiState.update { if (it.suppressOverlay == suppressed) it else it.copy(suppressOverlay = suppressed) }
     }
 
     fun collapse() {

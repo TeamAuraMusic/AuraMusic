@@ -99,6 +99,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.util.UnstableApi
@@ -123,6 +124,9 @@ fun VideoPlayerOverlay(
     onChannelClick: ((String) -> Unit)? = null,
 ) {
     val state by VideoPlaybackManager.uiState.collectAsState()
+    // The vertical Shorts pager renders the video surface itself, so the global
+    // overlay (expanded player + mini tile) must stay out of the way while it is open.
+    if (state.suppressOverlay) return
     val session = state.session ?: return
 
     val context = LocalContext.current
@@ -199,24 +203,55 @@ private fun VideoMinimizedTile(
     val state by VideoPlaybackManager.uiState.collectAsState()
     val density = LocalDensity.current
 
-    var dragPx by remember { mutableFloatStateOf(0f) }
-    val animatedDragPx by animateFloatAsState(
-        targetValue = dragPx,
+    // Tile position on screen (px). 0 = resting on the bottom edge; negative
+    // values float the tile upward while keeping it fully on screen; positive
+    // values pull it down toward the dismiss threshold.
+    var dragY by remember { mutableFloatStateOf(0f) }
+    val animatedDragY by animateFloatAsState(
+        targetValue = dragY,
         animationSpec = tween(durationMillis = 220),
-        label = "miniDragPx",
+        label = "miniDragY",
     )
-    val dismissProgress = (dragPx / 360f).coerceIn(0f, 1f)
+    val dismissThreshold = with(density) { 130.dp.toPx() }
+    val dismissProgress = (dragY / dismissThreshold).coerceIn(0f, 1f)
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val tileHeightPx = with(density) { 128.dp.toPx() }
+        val bottomPadPx = with(density) { LocalVideoMiniPlayerBottomPadding.current.toPx() }
+        val floatRangePx = with(density) {
+            (maxHeight.toPx() - tileHeightPx - bottomPadPx).coerceAtLeast(0f)
+        }
+        // dragY is negative when the tile floats upward, so the lower clamp is -floatRangePx
+        // (the highest the tile may travel while staying fully on screen).
+        val minY = -floatRangePx
+        val maxY = with(density) { 460.dp.toPx() }
+
         Surface(
             onClick = onExpand,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .offset(y = with(density) { animatedDragPx.toDp() })
+                .offset { IntOffset(0, animatedDragY.toInt()) }
                 .graphicsLayer {
-                    scaleX = 1f - 0.06f * dismissProgress
-                    scaleY = 1f - 0.06f * dismissProgress
-                    alpha = 1f - 0.45f * dismissProgress
+                    val progress = dismissProgress
+                    scaleX = 1f - 0.06f * progress
+                    scaleY = 1f - 0.06f * progress
+                    alpha = 1f - 0.45f * progress
+                }
+                .pointerInput(minY, maxY, dismissThreshold) {
+                    detectDragGestures(
+                        onDragEnd = {
+                            if (dragY > dismissThreshold) {
+                                onClose()
+                            } else {
+                                dragY = 0f
+                            }
+                        },
+                        onDragCancel = { dragY = 0f },
+                        onDrag = { change, dragAmount ->
+                            dragY = (dragY + dragAmount.y).coerceIn(minY, maxY)
+                            change.consume()
+                        },
+                    )
                 }
                 .padding(horizontal = 10.dp)
                 .padding(bottom = LocalVideoMiniPlayerBottomPadding.current)
@@ -238,23 +273,6 @@ private fun VideoMinimizedTile(
                         .width(184.dp)
                         .fillMaxHeight()
                         .clip(RoundedCornerShape(18.dp))
-                        .pointerInput(Unit) {
-                            detectVerticalDragGestures(
-                                onDragEnd = {
-                                    if (dragPx > with(density) { 130.dp.toPx() }) {
-                                        onClose()
-                                    } else {
-                                        dragPx = 0f
-                                    }
-                                },
-                                onDragCancel = { dragPx = 0f },
-                            ) { change, dragAmount ->
-                                if (dragAmount > 0f) {
-                                    dragPx = (dragPx + dragAmount).coerceIn(0f, 460f)
-                                    change.consume()
-                                }
-                            }
-                        }
                 ) {
                     AndroidVideoSurface(player, resizeModeOverride = state.resizeMode)
                 }

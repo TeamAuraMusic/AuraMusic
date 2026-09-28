@@ -113,6 +113,7 @@ fun ChannelScreen(
     var isSubscribing by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var selectedTab by rememberSaveable { mutableIntStateOf(ChannelTab.Videos.ordinal) }
+    var shortsPagerIndex by remember { mutableIntStateOf(-1) }
 
     val pullRefreshState = rememberPullToRefreshState()
     val scope = rememberCoroutineScope()
@@ -234,8 +235,9 @@ fun ChannelScreen(
 
     val isShorts = ChannelTab.entries[selectedTab] == ChannelTab.Shorts
 
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(2),
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
         state = gridState,
         modifier = Modifier
             .fillMaxSize()
@@ -367,18 +369,7 @@ fun ChannelScreen(
                         ChannelShortsCard(
                             video = video,
                             onClick = {
-                                VideoPlaybackManager.playWithDetails(
-                                    context = context,
-                                    videoId = video.videoId,
-                                    title = video.title,
-                                    channelName = video.channelName.ifBlank { header?.title.orEmpty() },
-                                    channelId = video.channelId ?: header?.channelId,
-                                    channelThumbnail = header?.avatarUrl,
-                                    description = video.description,
-                                    viewCountText = video.viewCountText,
-                                    publishedTimeText = video.publishedTimeText,
-                                    thumbnails = video.thumbnails,
-                                )
+                                shortsPagerIndex = index
                             },
                         )
                     }
@@ -439,6 +430,20 @@ fun ChannelScreen(
                     }
                 }
             }
+        }
+        }
+
+        if (shortsPagerIndex >= 0 && videos.isNotEmpty()) {
+            ShortsVerticalPager(
+                shorts = videos,
+                startIndex = shortsPagerIndex,
+                channelTitle = header?.title,
+                channelAvatarUrl = header?.avatarUrl,
+                onClose = {
+                    shortsPagerIndex = -1
+                    VideoPlaybackManager.collapse()
+                },
+            )
         }
     }
 }
