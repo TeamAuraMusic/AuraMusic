@@ -2701,19 +2701,20 @@ class MusicService :
     }
 
     /**
-     * Checks if the error is caused by AudioTrack write or initialization failures.
-     * These errors indicate the audio renderer is in a corrupted/invalid state.
+     * Checks if the stream handed to the container parser was corrupt (bad byte range),
+     * which cannot be recovered by re-preparing the same item.
      */
-    // Check if this is a stream/audio decoding error (usually indicates corrupted stream)
+    // Check if this is a stream/container corruption error (bad byte range handed to the
+    // container parser). Deliberately does NOT match on "AudioTrack": AudioTrack init/write
+    // failures are renderer problems, and skipping the song on them is wrong — they must fall
+    // through to isAudioRendererError(), which retries the same position instead.
     private fun isStreamDecodingError(error: PlaybackException): Boolean {
         val message = error.message ?: ""
         val causeMessage = error.cause?.message ?: ""
         return message.contains("srcPos=") ||
                 message.contains("src.length") ||
-                message.contains("AudioTrack") ||
                 causeMessage.contains("srcPos=") ||
-                causeMessage.contains("src.length") ||
-                causeMessage.contains("AudioTrack")
+                causeMessage.contains("src.length")
     }
 
     private fun isAudioRendererError(error: PlaybackException): Boolean {
@@ -2760,21 +2761,26 @@ class MusicService :
             return
         }
 
-        // Aggressive cache clearing for all playback errors
+        // Handle specific error types with strict strategies.
+        // Audio renderer errors are checked first and deliberately skip the cache clear below:
+        // a corrupt AudioTrack is a local renderer fault, so re-preparing the same position
+        // fixes it. Dropping the cached URL and re-resolving just adds latency and a new
+        // failure point. Renderer errors must also never reach the skip-on-error path.
+        if (isAudioRendererError(error)) {
+            Timber.tag(TAG).d("AudioTrack error detected (${error.errorCode}), performing safe recovery")
+            handleAudioRendererError(mediaId)
+            return
+        }
+
+        // Aggressive cache clearing for the remaining (stream-level) playback errors
         if (mediaId != null) {
             performAggressiveCacheClear(mediaId)
         }
 
-        // Handle specific error types with strict strategies
         when {
             isStreamDecodingError(error) -> {
                 Timber.tag(TAG).d("Stream decoding error detected, skipping to next track")
                 skipOnError()
-                return
-            }
-            isAudioRendererError(error) -> {
-                Timber.tag(TAG).d("AudioTrack error detected (${error.errorCode}), performing safe recovery")
-                handleAudioRendererError(mediaId)
                 return
             }
             isRangeNotSatisfiableError(error) -> {
@@ -2915,6 +2921,11 @@ class MusicService :
         retryJob?.cancel()
         retryJob = scope.launch {
             try {
+                // Remember whether we were actually playing before we pause. We must not use
+                // wasPlayingBeforeAudioFocusLoss here: that flag is only set when audio focus
+                // is lost, so on a normal error the recovery would pause and never resume.
+                val wasPlayingBeforeError = player.playWhenReady
+
                 // Pause playback immediately to stop the renderer
                 player.pause()
                 Timber.tag(TAG).d("Paused playback due to AudioTrack error")
@@ -2938,9 +2949,13 @@ class MusicService :
                     
                     Timber.tag(TAG).d("Retrying playback for $mediaId after AudioTrack error")
                     
-                    // Resume playback if it wasn't paused by user
-                    if (wasPlayingBeforeAudioFocusLoss) {
-                        delay(500) // Brief delay to allow renderer to be ready
+                    // Resume playback if it wasn't paused by user.
+                    // Restore playWhenReady immediately instead of delaying: a delay here is
+                    // unreliable because onPlaybackStateChanged(STATE_READY) cancels retryJob,
+                    // which would abort the resume and leave the song stuck paused. Setting
+                    // playWhenReady before the renderer is ready is safe — ExoPlayer starts
+                    // playback on its own once preparation completes.
+                    if (wasPlayingBeforeError) {
                         if (hasAudioFocus && playerInitialized.value) {
                             if (castConnectionHandler?.isCasting?.value != true) {
                                 player.play()
