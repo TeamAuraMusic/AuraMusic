@@ -197,7 +197,12 @@ data class YouTubeChannelPage(
             )
         }
 
-        private fun parseVideoRenderer(renderer: JsonObject): YouTubeVideoItem? {
+        /**
+         * Parses a `videoRenderer`. `playlistVideoRenderer` uses the same field layout
+         * (videoId / title / byline / lengthText / thumbnail), so the playlist page
+         * reuses this rather than duplicating it.
+         */
+        internal fun parseVideoRenderer(renderer: JsonObject): YouTubeVideoItem? {
             val videoId = renderer["videoId"]?.jsonPrimitive?.content ?: return null
             val title = renderer["title"]?.jsonObject?.let { textOf(it) } ?: return null
             val byline = renderer["longBylineText"]?.jsonObject

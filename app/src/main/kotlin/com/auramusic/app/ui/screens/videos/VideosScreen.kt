@@ -105,14 +105,16 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/**
+ * Music only. The other YouTube video sections (For You, Trending, New, Gaming) were
+ * removed: they are general YouTube feeds, so they surfaced vlogs, let's-plays and
+ * gaming alongside music, and there is no music equivalent to fall back on. Both
+ * sections left are filtered through [com.auramusic.app.video.MusicContentFilter].
+ */
 private enum class VideoCategory(
     val labelRes: Int,
 ) {
     Music(R.string.filter_music),
-    ForYou(R.string.for_you),
-    Trending(R.string.trending),
-    New(R.string.video_category_new),
-    Gaming(R.string.video_category_gaming),
     Personal(R.string.video_category_personal),
 }
 
@@ -155,15 +157,13 @@ fun VideosScreen(
                 return@withContext
             }
             val result = when (selectedCategory) {
-                VideoCategory.ForYou -> YouTube.youtubeHomeFeed().getOrNull()
-                VideoCategory.Trending -> YouTube.youtubeTrending().getOrNull()
-                VideoCategory.Music -> YouTube.youtubeCategoryFeed(context.getString(R.string.video_category_music_query)).getOrNull()
-                VideoCategory.New -> YouTube.youtubeNewFeed(context.getString(R.string.video_category_new_query)).getOrNull()
-                VideoCategory.Gaming -> YouTube.youtubeCategoryFeed(context.getString(R.string.video_category_gaming_query)).getOrNull()
+                VideoCategory.Music ->
+                    YouTube.youtubeCategoryFeed(context.getString(R.string.video_category_music_query)).getOrNull()
                 VideoCategory.Personal -> null
             }
             if (result != null && result.items.isNotEmpty()) {
-                feed = result.items
+                // Only keep what YouTube itself reports as music.
+                feed = com.auramusic.app.video.MusicContentFilter.filter(result.items)
                 continuation = result.continuation
                 error = null
             } else if (showError) {
@@ -195,20 +195,19 @@ fun VideosScreen(
         isLoadingMore = true
         withContext(Dispatchers.IO) {
             val result = when (selectedCategory) {
-                VideoCategory.ForYou -> YouTube.youtubeHomeFeed(cont).getOrNull()
-                VideoCategory.Trending -> YouTube.youtubeTrending(cont).getOrNull()
-                VideoCategory.Music -> YouTube.youtubeCategoryFeed(context.getString(R.string.video_category_music_query), cont).getOrNull()
-                VideoCategory.New -> YouTube.youtubeNewFeed(context.getString(R.string.video_category_new_query), cont).getOrNull()
-                VideoCategory.Gaming -> YouTube.youtubeCategoryFeed(context.getString(R.string.video_category_gaming_query), cont).getOrNull()
+                VideoCategory.Music ->
+                    YouTube.youtubeCategoryFeed(context.getString(R.string.video_category_music_query), cont).getOrNull()
                 VideoCategory.Personal -> null
             }
             result?.takeIf { it.items.isNotEmpty() }?.let {
                 // Continuation pages can repeat videos; dedupe so the lazy list
                 // never crashes on duplicate keys and pagination terminates.
                 val seen = feed.mapTo(HashSet()) { it.videoId }
-                val newItems = it.items.filter { video -> seen.add(video.videoId) }
-                if (newItems.isNotEmpty()) {
-                    feed = feed + newItems
+                val musicOnly = com.auramusic.app.video.MusicContentFilter
+                    .filter(it.items)
+                    .filter { video -> seen.add(video.videoId) }
+                if (musicOnly.isNotEmpty()) {
+                    feed = feed + musicOnly
                     continuation = it.continuation
                 } else {
                     continuation = null

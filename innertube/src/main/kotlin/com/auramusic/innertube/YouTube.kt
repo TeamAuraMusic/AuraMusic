@@ -36,6 +36,7 @@ import com.auramusic.innertube.models.response.relatedContinuation
 import com.auramusic.innertube.models.response.relatedVideos
 import com.auramusic.innertube.pages.YouTubeChannelPage
 import com.auramusic.innertube.pages.YouTubeChannelPostsPage
+import com.auramusic.innertube.pages.YouTubePlaylistPage
 import com.auramusic.innertube.pages.YouTubeSearchPage
 import com.auramusic.innertube.pages.YouTubeSearchResult
 import com.auramusic.innertube.models.YouTubeLocale
@@ -1298,6 +1299,32 @@ object YouTube {
             innerTube.browseYouTube(WEB, browseId = null, continuation = continuation)
         }
         YouTubeChannelPostsPage.fromJson(Json.parseToJsonElement(response.bodyAsText()))
+    }
+
+    /**
+     * Asks YouTube whether [videoId] is part of the music catalogue.
+     *
+     * The player response carries `videoDetails.musicVideoType`, which YouTube only
+     * populates for tracks it recognises as music (official music video, audio track
+     * video, user upload of a song). A null result means YouTube reported no music
+     * type, i.e. an ordinary YouTube video - vlog, gaming, interview, podcast.
+     *
+     * This is the authoritative signal the whole music-only filtering rests on, so
+     * prefer it over guessing from titles or channel names.
+     */
+    suspend fun musicVideoType(videoId: String): Result<String?> =
+        player(videoId, client = WEB_REMIX).map { it.videoDetails?.musicVideoType }
+
+    /**
+     * First [limit] videos of a public YouTube playlist. Enough to decide whether a
+     * playlist is music without pulling its whole (potentially very long) listing.
+     */
+    suspend fun youtubePlaylist(
+        playlistId: String,
+        limit: Int = 10,
+    ): Result<YouTubePlaylistPage> = runCatching {
+        val response = innerTube.browseYouTube(WEB, browseId = "VL$playlistId")
+        YouTubePlaylistPage.fromJson(playlistId, Json.parseToJsonElement(response.bodyAsText()), limit)
     }
 
     suspend fun next(endpoint: WatchEndpoint, continuation: String? = null): Result<NextResult> = runCatching {

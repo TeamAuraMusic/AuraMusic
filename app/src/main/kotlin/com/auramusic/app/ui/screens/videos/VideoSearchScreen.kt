@@ -88,6 +88,7 @@ import com.auramusic.app.utils.compactViewCount
 import com.auramusic.app.utils.dataStore
 import com.auramusic.app.utils.get
 import com.auramusic.app.utils.rememberPreference
+import com.auramusic.app.video.MusicSearchFilter
 import com.auramusic.app.video.VideoPlaybackManager
 import com.auramusic.innertube.YouTube
 import com.auramusic.innertube.models.YouTubeSearchResultItem
@@ -190,7 +191,7 @@ fun VideoSearchScreen(
         withContext(Dispatchers.IO) {
             YouTube.youtubeSearch(searchQuery, params = params).fold(
                 onSuccess = { result ->
-                    allResults = result.items
+                    allResults = MusicSearchFilter.filter(result.items)
                     continuation = result.continuation
                 },
                 onFailure = {
@@ -217,7 +218,7 @@ fun VideoSearchScreen(
         withContext(Dispatchers.IO) {
             YouTube.youtubeSearchContinuation(cont).fold(
                 onSuccess = { result ->
-                    allResults = allResults + result.items
+                    allResults = allResults + MusicSearchFilter.filter(result.items)
                     continuation = result.continuation
                 },
                 onFailure = { /* keep what we have */ }

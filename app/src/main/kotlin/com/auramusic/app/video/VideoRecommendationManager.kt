@@ -61,6 +61,9 @@ class VideoRecommendationManager(private val context: Context) {
             val sections = withContext(Dispatchers.IO) {
                 val result = mutableListOf<FeedSection>()
 
+                // Every section below is passed through MusicContentFilter: these
+                // searches run on regular YouTube, so without it a "recommended"
+                // section happily fills up with vlogs and let's-plays.
                 // 1. Continue Watching
                 val continueWatching = buildContinueWatching(history)
                 if (continueWatching.isNotEmpty()) {
@@ -112,7 +115,7 @@ class VideoRecommendationManager(private val context: Context) {
         }.sortedByDescending { it.lastPlayedAt }
             .take(10)
 
-        return partial.mapNotNull { entry ->
+        return MusicContentFilter.filter(partial.mapNotNull { entry ->
             com.auramusic.innertube.models.YouTubeVideoItem(
                 videoId = entry.videoId,
                 title = entry.title,
@@ -124,7 +127,7 @@ class VideoRecommendationManager(private val context: Context) {
                     }
                 ),
             )
-        }
+        })
     }
 
     /**
@@ -172,7 +175,7 @@ class VideoRecommendationManager(private val context: Context) {
             if (allVideos.size >= 15) break
         }
 
-        return allVideos.take(15)
+        return MusicContentFilter.filter(allVideos.take(15))
     }
 
     /**
@@ -213,7 +216,7 @@ class VideoRecommendationManager(private val context: Context) {
             if (allVideos.size >= 15) break
         }
 
-        return allVideos.take(15)
+        return MusicContentFilter.filter(allVideos.take(15))
     }
 
     /**
@@ -254,7 +257,7 @@ class VideoRecommendationManager(private val context: Context) {
             if (allVideos.size >= 15) break
         }
 
-        return allVideos.take(15)
+        return MusicContentFilter.filter(allVideos.take(15))
     }
 
     // ------------------------------------------------------------------
