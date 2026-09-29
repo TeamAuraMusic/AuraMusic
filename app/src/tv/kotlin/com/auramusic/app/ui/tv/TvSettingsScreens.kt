@@ -139,9 +139,8 @@ import kotlin.math.roundToInt
     val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
     val context = LocalContext.current
 
-    var webView: WebView? = null
+    var webView by remember { mutableStateOf<WebView?>(null) }
     val backFocus = focusRequester ?: remember { FocusRequester() }
-    var webViewFocused by remember { mutableStateOf(false) }
     val lastAccountInfoFetchSession = remember { AtomicReference<String?>(null) }
     val latestCookie = remember { AtomicReference(innerTubeCookie) }
     val latestVisitorData = remember { AtomicReference(visitorData) }
@@ -186,9 +185,6 @@ import kotlin.math.roundToInt
                     .fillMaxSize()
                     .padding(top = 95.dp)
                     .focusRequester(remember { FocusRequester() })
-                    .onFocusChanged { state ->
-                        webViewFocused = state.isFocused
-                    }
                     .onPreviewKeyEvent { event ->
                         // Forward D-pad events to WebView for form navigation
                         if (event.type == KeyEventType.KeyDown) {
@@ -224,20 +220,7 @@ import kotlin.math.roundToInt
                                 }
                                 Key.DirectionCenter, Key.Enter -> {
                                     webView?.let { wv ->
-                                        wv.evaluateJavascript("""
-                                            (function() {
-                                                var focused = document.activeElement;
-                                                if (!focused) return;
-                                                if (focused.tagName === 'BUTTON' || focused.getAttribute('role') === 'button') {
-                                                    focused.click();
-                                                } else if (focused.tagName === 'INPUT') {
-                                                    var nextBtn = document.querySelector('#identifierNext button, #passwordNext button, button[type="submit"]');
-                                                    if (nextBtn) { nextBtn.click(); } else { focused.form?.submit(); }
-                                                } else if (focused.tagName === 'A') {
-                                                    focused.click();
-                                                }
-                                            })();
-                                        """, null)
+                                        wv.dispatchKeyEvent(event.nativeKeyEvent)
                                         true
                                     } ?: false
                                 }
