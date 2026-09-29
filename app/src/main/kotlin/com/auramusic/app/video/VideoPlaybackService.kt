@@ -283,9 +283,20 @@ class VideoPlaybackService : MediaSessionService() {
         keepAliveJob = scope.launch {
             while (isActive) {
                 delay(NOTIFICATION_KEEP_ALIVE_MS)
-                if (mediaSession != null &&
-                    VideoPlaybackManager.uiState.value.session != null
-                ) {
+                // Keep the notification alive only while video is genuinely playing.
+                // Keying this off "a session exists" meant a paused/finished video
+                // re-promoted itself every 10s forever, and the ongoing notification
+                // could never be dismissed. Give the shade back as soon as music
+                // takes over or playback is no longer active.
+                val state = VideoPlaybackManager.uiState.value
+                if (state.hiddenByMusic) {
+                    stopSelf()
+                    break
+                }
+                if (!state.isPlaying || state.session == null) {
+                    break
+                }
+                if (mediaSession != null) {
                     rebuildMediaNotification()
                     promoteToForegroundWithLatestNotification()
                 }
@@ -400,6 +411,13 @@ class VideoPlaybackService : MediaSessionService() {
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // While music owns the shade this service must stay down. Returning STOP_SELF
+        // stops a stale start (e.g. a metadata load that raced giveWayToMusic) from
+        // re-promoting the video notification and pinning it.
+        if (VideoPlaybackManager.uiState.value.hiddenByMusic) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
         // Notification action buttons (and media3's media-button delivery path)
         // come here as explicit action intents. Perform the transport operation
         // first so the rebuild below renders the button's new state (play/pause
@@ -602,6 +620,14 @@ class VideoPlaybackService : MediaSessionService() {
          * VideoPlaybackManager enriches session metadata with artwork URL).
          */
         fun notifySessionChanged(context: Context) {
+            // If music has taken the shade back, do nothing. giveWayToMusic() sets
+            // hiddenByMusic but intentionally leaves the session alive, so an
+            // in-flight metadata/stream load finishing afterwards would otherwise
+            // restart this service, re-post notification 889 and restart the
+            // keep-alive loop - leaving a pinned video notification that music
+            // never takes back and the user cannot dismiss (the mini tile is
+            // hidden precisely because hiddenByMusic is set).
+            if (VideoPlaybackManager.uiState.value.hiddenByMusic) return
             // An explicit action is required: a bare startForegroundService intent
             // only re-promotes the service with the CACHED notification, it does
             // not rebuild it from the session's latest MediaMetadata.

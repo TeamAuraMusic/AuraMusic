@@ -315,6 +315,14 @@ class MusicService :
     private var latestMediaNotification: Notification? = null
 
     /**
+     * The last media notification we actually rendered. [latestMediaNotification] is
+     * cleared when the video player takes the shade over, so without this a rebuild
+     * that media3 declines to repost would fall back to the control-less bootstrap
+     * card and leave the user with a placeholder they cannot operate.
+     */
+    private var previousMediaNotification: Notification? = null
+
+    /**
      * True while the in-app video player owns the notification shade. While set,
      * the music service suppresses every media3 notification update, otherwise
      * the connected controller (bound by the activity) keeps re-posting the music
@@ -640,6 +648,7 @@ class MusicService :
                     val trackingCallback =
                         MediaNotification.Provider.Callback { notification ->
                             latestMediaNotification = notification.notification
+                            previousMediaNotification = notification.notification
                             onNotificationChangedCallback.onNotificationChanged(notification)
                         }
 
@@ -651,6 +660,7 @@ class MusicService :
                             trackingCallback,
                         ).also { mediaNotification ->
                             latestMediaNotification = mediaNotification.notification
+                            previousMediaNotification = mediaNotification.notification
                         }
                 }
 
@@ -1472,50 +1482,62 @@ class MusicService :
         player.pause()
     }
 
+    /**
+     * Declares the extra buttons the media notification shows (like, repeat,
+     * shuffle, start radio).
+     *
+     * These used to be registered with the deprecated
+     * `MediaSession.setCustomLayout(...)`, which media3 1.10's
+     * `DefaultMediaNotificationProvider` no longer reads at all - the provider
+     * renders only `mediaButtonPreferences`. So none of these four buttons ever
+     * reached the shade. Setting media button preferences is what actually works,
+     * and is the same approach VideoPlaybackService already uses.
+     */
     private fun updateNotification() {
-        mediaSession.setCustomLayout(
-            listOf(
-                CommandButton
-                    .Builder()
+        val liked = currentSong.value?.song?.liked == true
+        mediaSession.setMediaButtonPreferences(
+            ImmutableList.of(
+                CommandButton.Builder()
                     .setDisplayName(
-                        getString(
-                            if (currentSong.value?.song?.liked ==
-                                true
-                            ) {
-                                R.string.action_remove_like
-                            } else {
-                                R.string.action_like
-                            },
-                        ),
+                        getString(if (liked) R.string.action_remove_like else R.string.action_like),
                     )
-                    .setIconResId(if (currentSong.value?.song?.liked == true) R.drawable.ic_heart else R.drawable.ic_heart_outline)
+                    .setIconResId(if (liked) R.drawable.ic_heart else R.drawable.ic_heart_outline)
                     .setSessionCommand(CommandToggleLike)
                     .setEnabled(currentSong.value != null)
                     .build(),
-                CommandButton
-                    .Builder()
+                CommandButton.Builder()
                     .setDisplayName(
                         getString(
                             when (player.repeatMode) {
                                 REPEAT_MODE_OFF -> R.string.repeat_mode_off
                                 REPEAT_MODE_ONE -> R.string.repeat_mode_one
                                 REPEAT_MODE_ALL -> R.string.repeat_mode_all
-                                else -> throw IllegalStateException()
+                                else -> R.string.repeat_mode_off
                             },
                         ),
-                    ).setIconResId(
+                    )
+                    .setIconResId(
                         when (player.repeatMode) {
                             REPEAT_MODE_OFF -> R.drawable.repeat
                             REPEAT_MODE_ONE -> R.drawable.repeat_one_on
                             REPEAT_MODE_ALL -> R.drawable.repeat_on
-                            else -> throw IllegalStateException()
+                            else -> R.drawable.repeat
                         },
-                    ).setSessionCommand(CommandToggleRepeatMode)
+                    )
+                    .setSessionCommand(CommandToggleRepeatMode)
                     .build(),
-                CommandButton
-                    .Builder()
-                    .setDisplayName(getString(if (player.shuffleModeEnabled) R.string.action_shuffle_off else R.string.action_shuffle_on))
-                    .setIconResId(if (player.shuffleModeEnabled) R.drawable.shuffle_on else R.drawable.shuffle)
+                // Was previously wired to CommandToggleStartRadio, so the shuffle
+                // button actually started a radio instead of toggling shuffle.
+                CommandButton.Builder()
+                    .setDisplayName(
+                        getString(
+                            if (player.shuffleModeEnabled) R.string.action_shuffle_off
+                            else R.string.action_shuffle_on,
+                        ),
+                    )
+                    .setIconResId(
+                        if (player.shuffleModeEnabled) R.drawable.shuffle_on else R.drawable.shuffle,
+                    )
                     .setSessionCommand(CommandToggleShuffle)
                     .build(),
                 CommandButton.Builder()
@@ -3631,7 +3653,18 @@ class MusicService :
     }
 
     private fun promoteToForegroundWithLatestNotification() {
-        val notification = latestMediaNotification ?: foregroundNotification
+        // Prefer the live media card; fall back to the last card we actually rendered
+        // rather than straight to the text-only bootstrap notification, which has no
+        // transport controls at all. Only a service that never built a media
+        // notification uses the bootstrap card.
+        val rendered: Notification? = latestMediaNotification ?: previousMediaNotification
+        val bootstrap: Notification? =
+            if (this::foregroundNotification.isInitialized) foregroundNotification else null
+        val notification = rendered ?: bootstrap
+        if (notification == null) {
+            Timber.tag(TAG).w("promoteToForeground: no notification has been built yet")
+            return
+        }
         startForegroundSafely(notification)
     }
 

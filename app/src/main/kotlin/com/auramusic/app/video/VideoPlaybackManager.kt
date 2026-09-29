@@ -197,9 +197,29 @@ object VideoPlaybackManager {
     private var watchMetadataCache: WatchMetadataResponse? = null
     private var watchMetadataCacheVideoId: String? = null
     private val watchMetadataMutex = Mutex()
+    /**
+     * Application context only. This used to hold the Activity, which leaked it for
+     * the life of the process (it was never cleared, and was set before the
+     * "player already exists" early return, so it also went stale across rotation).
+     * Everything that starts/stops a service or reads DataStore is happy with the
+     * application context; use [activityRef] for anything needing an Activity.
+     */
     private var currentContext: Context? = null
+    /**
+     * Weak Activity handle, only needed to flip the requested orientation for
+     * fullscreen. Weak so a configuration change can collect the old Activity.
+     */
+    private var activityRef: java.lang.ref.WeakReference<android.app.Activity>? = null
     private var videoControllerFuture: ListenableFuture<MediaController>? = null
     private val playedVideoIds = mutableSetOf<String>()
+
+    /**
+     * Bumped every time a different video is requested. Stream extraction is async,
+     * so without this a slow load for an older video could land after a newer one and
+     * overwrite the player (and stamp an error on the wrong video). The metadata
+     * loaders already re-check the session; this covers the stream itself.
+     */
+    @Volatile private var loadGeneration = 0
 
     private var currentQuality: VideoQuality = VideoQuality.QUALITY_720P
     private var currentAutoplay: Boolean = true
@@ -275,6 +295,32 @@ object VideoPlaybackManager {
         playWithDetails(context, videoId, title, channelName)
     }
 
+    /**
+     * Puts video playback in charge of the screen: music is told to pause and drop
+     * its notification, the video service is (re)started so the media notification
+     * comes back, and a controller is connected. Shared by the fresh-video path and
+     * the resume-same-video path so neither can skip the handoff.
+     *
+     * MusicService is usually still bound by the activity, so stopping it won't tear
+     * it down - an explicit action removes the notification instead.
+     */
+    private fun handOverFromMusic(context: Context) {
+        val appContext = context.applicationContext
+        if (MusicService.isRunning) {
+            try {
+                appContext.startService(
+                    Intent(appContext, MusicService::class.java)
+                        .setAction(MusicService.ACTION_PAUSE_FOR_VIDEO)
+                )
+            } catch (e: Exception) {
+                // Ignore: music service may not be started.
+            }
+        }
+        VideoPlaybackService.start(appContext)
+        connectServiceController(appContext)
+        applyStoredPreferences(appContext)
+    }
+
     fun playWithDetails(
         context: Context,
         videoId: String,
@@ -292,6 +338,11 @@ object VideoPlaybackManager {
             current.error?.let {
                 _uiState.update { s -> s.copy(error = null) }
             }
+            // Resuming the same video still has to take the screen back from music.
+            // This path used to just player?.play(), so if music had reclaimed the
+            // shade (giveWayToMusic) the music kept playing and video played on top
+            // of it - two players audible at once, with no video notification.
+            handOverFromMusic(context)
             _uiState.update { it.copy(minimized = false, hiddenByMusic = false) }
             player?.play()
             return
@@ -302,26 +353,11 @@ object VideoPlaybackManager {
         watchMetadataCache = null
         watchMetadataCacheVideoId = null
         val bestThumbnail = thumbnails.maxByOrNull { it.width ?: 0 }?.url
+        // Claim a generation for this load; older in-flight loads become no-ops.
+        val generation = ++loadGeneration
 
         val exo = getOrCreatePlayer(context)
-        // The video mini player takes over from the music player: tell the music
-        // service to pause and drop its miniplayer notification so the video
-        // notification (artwork + controls) becomes the one shown in the shade.
-        // MusicService is usually still bound by the activity, so stopping it won't
-        // tear it down - an explicit action removes the notification instead.
-        if (MusicService.isRunning) {
-            try {
-                context.applicationContext.startService(
-                    Intent(context.applicationContext, MusicService::class.java)
-                        .setAction(MusicService.ACTION_PAUSE_FOR_VIDEO)
-                )
-            } catch (e: Exception) {
-                // Ignore: music service may not be started.
-            }
-        }
-        VideoPlaybackService.start(context.applicationContext)
-        connectServiceController(context.applicationContext)
-        applyStoredPreferences(context.applicationContext)
+        handOverFromMusic(context)
         _uiState.value = UiState(
             session = VideoSession(
                 videoId = videoId,
@@ -350,6 +386,10 @@ object VideoPlaybackManager {
         scope.launch {
             val source = withContext(Dispatchers.IO) {
                 AuraPlayerUtils.getVideoStreamSource(videoId).getOrNull()
+            }
+            // Drop this result if the user moved on while we were extracting.
+            if (generation != loadGeneration || _uiState.value.session?.videoId != videoId) {
+                return@launch
             }
             if (source == null) {
                 _uiState.update { it.copy(isBuffering = false, error = "Could not load video") }
@@ -826,6 +866,12 @@ object VideoPlaybackManager {
                 val source = withContext(Dispatchers.IO) {
                     AuraPlayerUtils.getVideoStreamSource(session.videoId).getOrNull()
                 }
+                // The user may have switched video (or quality) while we resolved.
+                if (_uiState.value.session?.videoId != session.videoId ||
+                    _uiState.value.videoQuality != quality
+                ) {
+                    return@launch
+                }
                 if (source == null) {
                     // Keep old stream playing if the new quality can't be resolved.
                     return@launch
@@ -945,20 +991,34 @@ object VideoPlaybackManager {
         _uiState.update { if (it.suppressOverlay == suppressed) it else it.copy(suppressOverlay = suppressed) }
     }
 
-    fun toggleFullScreen() {
-        val newFullScreen = !_uiState.value.isFullScreen
-        _uiState.update { it.copy(isFullScreen = newFullScreen) }
-        val ctx = currentContext ?: return
-        val activity = ctx as? android.app.Activity
-            ?: return
-        activity.requestedOrientation = if (newFullScreen) {
+    /**
+     * Applies the requested orientation for the current fullscreen state. Kept as
+     * its own function so collapse()/close() can put the Activity back the way they
+     * found it - previously nothing ever restored the orientation, so backing out
+     * of a fullscreen video left the whole app stuck in landscape.
+     */
+    private fun applyOrientation(isFullScreen: Boolean) {
+        val activity = activityRef?.get() ?: return
+        activity.requestedOrientation = if (isFullScreen) {
             android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         } else {
             android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         }
     }
 
+    fun toggleFullScreen() {
+        val newFullScreen = !_uiState.value.isFullScreen
+        _uiState.update { it.copy(isFullScreen = newFullScreen) }
+        applyOrientation(newFullScreen)
+    }
+
     fun collapse() {
+        // Leaving fullscreen must also hand the orientation back to the system,
+        // otherwise the Activity stays locked to landscape after the player hides.
+        if (_uiState.value.isFullScreen) {
+            _uiState.update { it.copy(isFullScreen = false) }
+            applyOrientation(false)
+        }
         _uiState.update { it.copy(minimized = true) }
     }
 
@@ -975,6 +1035,9 @@ object VideoPlaybackManager {
         // Library's "Recently watched" history reflects exactly where it stopped.
         recordCurrentToHistory()
         sponsorBlockManager?.reset()
+        // Hand the orientation back before the player goes away, otherwise a
+        // fullscreen video leaves the Activity locked in landscape.
+        if (_uiState.value.isFullScreen) applyOrientation(false)
         player?.let { exo ->
             exo.removeListener(playerListener)
             exo.stop()
@@ -991,6 +1054,9 @@ object VideoPlaybackManager {
             // notification can return once music resumes.
             if (MusicService.isRunning) MusicService.resumeFromVideo(ctx)
         }
+        // Drop our handles so we aren't pinning a Context/Activity any longer.
+        currentContext = null
+        activityRef = null
         _uiState.value = UiState()
     }
 
@@ -1041,7 +1107,12 @@ object VideoPlaybackManager {
     }
 
     private fun getOrCreatePlayer(context: Context): ExoPlayer {
-        currentContext = context
+        // Always refresh both handles, even when the player already exists: the
+        // Activity may have been recreated by a configuration change, and the old
+        // code returned early without updating them, leaving a dead Activity behind
+        // for the fullscreen/orientation path.
+        currentContext = context.applicationContext
+        (context as? android.app.Activity)?.let { activityRef = java.lang.ref.WeakReference(it) }
         player?.let { return it }
         // Apply the quality + autoplay preference chosen in Settings/settings-overlay
         // so freshly created players start with them.

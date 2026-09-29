@@ -25,6 +25,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -67,7 +70,14 @@ fun ShortsVerticalPager(
     onClose: () -> Unit,
 ) {
     val context = LocalContext.current
-    val player = VideoPlaybackManager.playerOrNull()
+    // Observe the manager so the surface re-reads the player once it exists.
+    // Reading playerOrNull() on its own is a one-shot snapshot taken before
+    // playWithDetails() creates the player, which left this pager permanently
+    // black whenever no video was already loaded.
+    val state by VideoPlaybackManager.uiState.collectAsState()
+    val player = remember(state.session?.videoId, state.error) {
+        VideoPlaybackManager.playerOrNull()
+    }
     val pagerState = rememberPagerState(
         initialPage = startIndex.coerceIn(0, (shorts.size - 1).coerceAtLeast(0)),
         pageCount = { shorts.size },
@@ -264,6 +274,12 @@ private fun ShortsPlayerSurface(player: ExoPlayer) {
         },
         update = { view ->
             view.player = player
+        },
+        onRelease = { view ->
+            // Detach from the player. media3's PlayerView registers itself as a
+            // component listener and never unregisters on detach, so without this
+            // every pager open/close leaks a PlayerView + SurfaceView on the player.
+            view.player = null
         },
         modifier = Modifier.fillMaxSize(),
     )

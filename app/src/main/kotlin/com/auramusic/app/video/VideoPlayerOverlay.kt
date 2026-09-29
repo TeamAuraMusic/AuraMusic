@@ -2435,6 +2435,12 @@ private fun AndroidVideoSurface(player: ExoPlayer, resizeModeOverride: Int) {
                 view.resizeMode = resizeModeOverride
             }
         },
+        onRelease = { view ->
+            // Detach from the player: media3's PlayerView registers a component
+            // listener it never unregisters, so every expand/collapse cycle leaked
+            // a PlayerView + SurfaceView onto the shared player.
+            view.player = null
+        },
         modifier = Modifier.fillMaxSize()
     )
 }
