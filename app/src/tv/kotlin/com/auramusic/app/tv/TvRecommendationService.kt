@@ -115,6 +115,7 @@ class TvRecommendationService : android.app.Service() {
 
                 val program = PreviewProgram.Builder()
                     .setChannelId(channelId)
+                    .setType(TvContractCompat.PreviewProgramColumns.TYPE_TRACK)
                     .setTitle(title)
                     .setDescription("$artist • $queueTitle")
                     .setLongDescription("Continue listening from $queueTitle")
@@ -159,13 +160,19 @@ class TvRecommendationService : android.app.Service() {
         // Look for existing channel for this package
         ctx.contentResolver.query(
             TvContractCompat.Channels.CONTENT_URI,
-            arrayOf(TvContractCompat.Channels._ID),
-            "${TvContractCompat.Channels.COLUMN_PACKAGE_NAME} = ?",
-            arrayOf(ctx.packageName),
+            arrayOf(
+                TvContractCompat.Channels._ID,
+                TvContractCompat.Channels.COLUMN_PACKAGE_NAME,
+            ),
+            null,
+            null,
             null
         )?.use { cursor ->
-            if (cursor.moveToFirst()) {
-                return cursor.getLong(0).also { requestChannelVisibility(ctx, it) }
+            val packageNameColumn = cursor.getColumnIndexOrThrow(TvContractCompat.Channels.COLUMN_PACKAGE_NAME)
+            while (cursor.moveToNext()) {
+                if (cursor.getString(packageNameColumn) == ctx.packageName) {
+                    return cursor.getLong(0).also { requestChannelVisibility(ctx, it) }
+                }
             }
         }
 
@@ -173,6 +180,7 @@ class TvRecommendationService : android.app.Service() {
         val channel = PreviewChannel.Builder()
             .setDisplayName("AuraMusic")
             .setDescription("Continue listening recommendations")
+            .setAppLinkIntent(Intent(ctx, com.auramusic.app.TvMainActivity::class.java))
             .build()
 
         val channelUri = ctx.contentResolver.insert(
