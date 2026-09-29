@@ -85,7 +85,8 @@ fun PlaylistMenu(
     val playerConnection = LocalPlayerConnection.current ?: return
     val listenTogetherManager = LocalListenTogetherManager.current
     val isGuest = listenTogetherManager?.isInRoom == true && !listenTogetherManager.isHost
-    val dbPlaylist by database.playlist(playlist.id).collectAsState(initial = playlist)
+    val playlistFlow = remember(playlist.id) { database.playlist(playlist.id) }
+    val dbPlaylist by playlistFlow.collectAsState(initial = playlist)
     var songs by remember {
         mutableStateOf(emptyList<Song>())
     }

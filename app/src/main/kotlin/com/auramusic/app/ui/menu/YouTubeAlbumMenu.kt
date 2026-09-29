@@ -95,7 +95,8 @@ fun YouTubeAlbumMenu(
     val playerConnection = LocalPlayerConnection.current ?: return
     val listenTogetherManager = LocalListenTogetherManager.current
     val isGuest = listenTogetherManager?.isInRoom == true && !listenTogetherManager.isHost
-    val album by database.albumWithSongs(albumItem.id).collectAsState(initial = null)
+    val albumFlow = remember(albumItem.id) { database.albumWithSongs(albumItem.id) }
+    val album by albumFlow.collectAsState(initial = null)
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {

@@ -102,8 +102,11 @@ fun YouTubeSongMenu(
     val context = LocalContext.current
     val database = LocalDatabase.current
     val playerConnection = LocalPlayerConnection.current ?: return
-    val librarySong by database.song(song.id).collectAsState(initial = null)
-    val download by LocalDownloadUtil.current.getDownload(song.id).collectAsState(initial = null)
+    val librarySongFlow = remember(song.id) { database.song(song.id) }
+    val librarySong by librarySongFlow.collectAsState(initial = null)
+    val downloadUtil = LocalDownloadUtil.current
+    val downloadFlow = remember(song.id) { downloadUtil.getDownload(song.id) }
+    val download by downloadFlow.collectAsState(initial = null)
     val coroutineScope = rememberCoroutineScope()
     val syncUtils = LocalSyncUtils.current
     val listenTogetherManager = LocalListenTogetherManager.current

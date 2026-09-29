@@ -96,9 +96,11 @@ fun QueueMenu(
     val coroutineScope = rememberCoroutineScope()
     val syncUtils = LocalSyncUtils.current
 
-    val librarySong by database.song(mediaMetadata.id).collectAsState(initial = null)
-    val download by LocalDownloadUtil.current.getDownload(mediaMetadata.id)
-        .collectAsState(initial = null)
+    val librarySongFlow = remember(mediaMetadata.id) { database.song(mediaMetadata.id) }
+    val librarySong by librarySongFlow.collectAsState(initial = null)
+    val downloadUtil = LocalDownloadUtil.current
+    val downloadFlow = remember(mediaMetadata.id) { downloadUtil.getDownload(mediaMetadata.id) }
+    val download by downloadFlow.collectAsState(initial = null)
 
     var refetchIconDegree by remember { mutableFloatStateOf(0f) }
     val rotationAnimation by animateFloatAsState(

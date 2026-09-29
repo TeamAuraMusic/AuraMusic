@@ -22,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -58,7 +59,8 @@ fun ArtistMenu(
     val playerConnection = LocalPlayerConnection.current ?: return
     val listenTogetherManager = LocalListenTogetherManager.current
     val isGuest = listenTogetherManager?.isInRoom == true && !listenTogetherManager.isHost
-    val artistState = database.artist(originalArtist.id).collectAsState(initial = originalArtist)
+    val artistFlow = remember(originalArtist.id) { database.artist(originalArtist.id) }
+    val artistState = artistFlow.collectAsState(initial = originalArtist)
     val artist = artistState.value ?: originalArtist
 
     ArtistListItem(

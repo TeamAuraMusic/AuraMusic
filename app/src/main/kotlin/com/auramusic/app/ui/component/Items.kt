@@ -449,7 +449,8 @@ fun SongListItem(
             Icon.Library()
         }
         if (showDownloadIcon) {
-            val download by LocalDownloadUtil.current.getDownload(song.id)
+            val downloadUtil = LocalDownloadUtil.current
+            val download by remember(song.id) { downloadUtil.getDownload(song.id) }
                 .collectAsState(initial = null)
             Icon.Download(download?.state)
         }
@@ -515,7 +516,9 @@ fun SongGridItem(
             Icon.Library()
         }
         if (showDownloadIcon) {
-            val download by LocalDownloadUtil.current.getDownload(song.id).collectAsState(initial = null)
+            val downloadUtil = LocalDownloadUtil.current
+            val download by remember(song.id) { downloadUtil.getDownload(song.id) }
+                .collectAsState(initial = null)
             Icon.Download(download?.state)
         }
     },
@@ -1060,7 +1063,9 @@ fun YouTubeListItem(
         //     Icon.Library()
         // }
         if (item is SongItem) {
-            val download by LocalDownloadUtil.current.getDownload(item.id).collectAsState(null)
+            val downloadUtil = LocalDownloadUtil.current
+            val download by remember(item.id) { downloadUtil.getDownload(item.id) }
+                .collectAsState(null)
             Icon.Download(download?.state)
         }
     },
@@ -1130,7 +1135,9 @@ fun YouTubeGridItem(
         if (item.explicit) Icon.Explicit()
         // if (item is SongItem && song?.song?.inLibrary != null) Icon.Library()
         if (item is SongItem) {
-            val download by LocalDownloadUtil.current.getDownload(item.id).collectAsState(null)
+            val downloadUtil = LocalDownloadUtil.current
+            val download by remember(item.id) { downloadUtil.getDownload(item.id) }
+                .collectAsState(null)
             Icon.Download(download?.state)
         }
     },

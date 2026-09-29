@@ -907,7 +907,8 @@ private fun SubscribeButton(
     metadata: MediaMetadata
 ) {
     val database = LocalDatabase.current
-    val libraryArtist by database.artist(artistId).collectAsState(initial = null)
+    val artistFlow = remember(artistId) { database.artist(artistId) }
+    val libraryArtist by artistFlow.collectAsState(initial = null)
     val isSubscribed = libraryArtist?.artist?.bookmarkedAt != null
     
     val primaryColor = MaterialTheme.colorScheme.primary
@@ -1006,7 +1007,8 @@ private fun HardwareIntegrationButton(
 private fun FavoriteButton(songId: String) {
     val database = LocalDatabase.current
     val playerConnection = LocalPlayerConnection.current ?: return
-    val librarySong by database.song(songId).collectAsState(initial = null)
+    val librarySongFlow = remember(songId) { database.song(songId) }
+    val librarySong by librarySongFlow.collectAsState(initial = null)
     val isLiked = librarySong?.song?.liked == true
 
     val errorColor = MaterialTheme.colorScheme.error

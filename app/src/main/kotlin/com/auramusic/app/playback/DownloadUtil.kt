@@ -36,6 +36,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -206,7 +207,16 @@ constructor(
         downloads.value = result
     }
 
-    fun getDownload(songId: String): Flow<Download?> = downloads.map { it[songId] }
+    /**
+     * Download state of a single song.
+     *
+     * `downloads` changes whenever *any* download progresses, which is often. The
+     * `distinctUntilChanged` is what keeps that from being a general source of lag:
+     * without it, every song row on screen re-emits and recomposes on every progress
+     * tick of an unrelated download.
+     */
+    fun getDownload(songId: String): Flow<Download?> =
+        downloads.map { it[songId] }.distinctUntilChanged()
 
     fun release() {
         scope.cancel()

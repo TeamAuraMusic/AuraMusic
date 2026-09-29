@@ -1032,7 +1032,10 @@ item(key = "speed_dial_shuffle") {
                                 items = speedDialItemsList,
                                 key = { it.id }
                             ) { item ->
-                                val isPinned by database.speedDialDao.isPinned(item.id).collectAsState(initial = false)
+                                val isPinnedFlow = remember(item.id) {
+                                    database.speedDialDao.isPinned(item.id)
+                                }
+                                val isPinned by isPinnedFlow.collectAsState(initial = false)
 
                                 Box(
                                     modifier = Modifier
@@ -1093,8 +1096,10 @@ item(key = "speed_dial_shuffle") {
                                     .animateItem()
                             ) {
                                 quickPicks.distinctBy { it.id }.take(10).forEach { originalSong ->
-                                    val song by database.song(originalSong.id)
-                                        .collectAsState(initial = originalSong)
+                                    val songFlow = remember(originalSong.id) {
+                                        database.song(originalSong.id)
+                                    }
+                                    val song by songFlow.collectAsState(initial = originalSong)
 
                                     SongListItem(
                                         song = song!!,
@@ -1165,8 +1170,10 @@ item(key = "speed_dial_shuffle") {
                                     key = { it.id }
                                 ) { originalSong ->
                                     // fetch song from database to keep updated
-                                    val song by database.song(originalSong.id)
-                                        .collectAsState(initial = originalSong)
+                                    val songFlow = remember(originalSong.id) {
+                                        database.song(originalSong.id)
+                                    }
+                                    val song by songFlow.collectAsState(initial = originalSong)
 
                                     SongListItem(
                                         song = song!!,
@@ -1391,8 +1398,10 @@ item(key = "speed_dial_shuffle") {
                                 items = forgottenFavorites.distinctBy { it.id },
                                 key = { it.id }
                             ) { originalSong ->
-                                val song by database.song(originalSong.id)
-                                    .collectAsState(initial = originalSong)
+                                val songFlow = remember(originalSong.id) {
+                                    database.song(originalSong.id)
+                                }
+                                val song by songFlow.collectAsState(initial = originalSong)
 
                                 SongListItem(
                                     song = song!!,

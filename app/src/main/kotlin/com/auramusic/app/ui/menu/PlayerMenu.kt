@@ -126,11 +126,13 @@ fun PlayerMenu(
     val castVolume by castHandler?.castVolume?.collectAsState() ?: remember { mutableFloatStateOf(1f) }
     val castDeviceName by castHandler?.castDeviceName?.collectAsState() ?: remember { mutableStateOf<String?>(null) }
     
-    val librarySong by database.song(mediaMetadata.id).collectAsState(initial = null)
+    val librarySongFlow = remember(mediaMetadata.id) { database.song(mediaMetadata.id) }
+    val librarySong by librarySongFlow.collectAsState(initial = null)
     val coroutineScope = rememberCoroutineScope()
 
-    val download by LocalDownloadUtil.current.getDownload(mediaMetadata.id)
-        .collectAsState(initial = null)
+    val downloadUtil = LocalDownloadUtil.current
+    val downloadFlow = remember(mediaMetadata.id) { downloadUtil.getDownload(mediaMetadata.id) }
+    val download by downloadFlow.collectAsState(initial = null)
 
     val artists =
         remember(mediaMetadata.artists) {
