@@ -66,8 +66,12 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -179,6 +183,19 @@ object VideoPlaybackManager {
      *  so the rest of the overlay doesn't recompose every 500ms. */
     private val _positionState = MutableStateFlow(0L to 0L)
     val positionState: StateFlow<Pair<Long, Long>> = _positionState.asStateFlow()
+
+    /**
+     * Whether the video mini player should be on screen.
+     *
+     * Derived and distinct so MainActivity can observe this one boolean instead of
+     * [uiState]. MainActivity sits above every screen, so collecting the whole state
+     * there meant any field change - including the playback progress tick - recomposed
+     * the entire activity.
+     */
+    val isMiniPlayerVisible: StateFlow<Boolean> = _uiState
+        .map { it.minimized && !it.hiddenByMusic }
+        .distinctUntilChanged()
+        .stateIn(scope, SharingStarted.Eagerly, false)
 
     private var player: ExoPlayer? = null
     private var tickerJob: Job? = null
@@ -1179,13 +1196,14 @@ object VideoPlaybackManager {
                 if (exo != null && _uiState.value.session != null) {
                     val pos = exo.currentPosition
                     val dur = if (exo.duration > 0) exo.duration else 0
+                    // Progress is published through _positionState only. It used to be
+                    // copied into uiState every ~2s as well, but uiState is collected
+                    // wholesale by MainActivity, the video overlay and the shorts
+                    // pager, so every copy invalidated the entire composition while a
+                    // video was playing - that is what made scrolling the pager and
+                    // moving between screens stutter. _positionState is the
+                    // high-frequency channel the UI reads for smooth progress.
                     _positionState.value = pos to dur
-                    // Sync position into uiState less frequently (every ~2s) for
-                    // media notification / service consumers — the separate
-                    // _positionState is what the Compose UI reads for smooth updates.
-                    if (ticks % 4 == 0) {
-                        _uiState.update { it.copy(positionMs = pos, durationMs = dur) }
-                    }
                     // Persist watch position to the video history every ~10s while
                     // actually playing (ticker fires every 500ms).
                     if (_uiState.value.isPlaying && ++ticks % 20 == 0) {
@@ -1244,8 +1262,8 @@ object VideoPlaybackManager {
                 channelId = session.channelId,
                 thumbnailUrl = session.channelThumbnail,
                 lastPlayedAt = System.currentTimeMillis(),
-                positionMs = _uiState.value.positionMs,
-                durationMs = _uiState.value.durationMs,
+                positionMs = _positionState.value.first,
+                durationMs = _positionState.value.second,
             )
         )
     }

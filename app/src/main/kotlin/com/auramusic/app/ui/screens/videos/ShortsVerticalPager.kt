@@ -52,6 +52,8 @@ import com.auramusic.app.utils.compactViewCount
 import com.auramusic.app.video.VideoPlaybackManager
 import com.auramusic.innertube.models.YouTubeVideoItem
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
 /**
@@ -70,14 +72,17 @@ fun ShortsVerticalPager(
     onClose: () -> Unit,
 ) {
     val context = LocalContext.current
-    // Observe the manager so the surface re-reads the player once it exists.
-    // Reading playerOrNull() on its own is a one-shot snapshot taken before
-    // playWithDetails() creates the player, which left this pager permanently
-    // black whenever no video was already loaded.
-    val state by VideoPlaybackManager.uiState.collectAsState()
-    val player = remember(state.session?.videoId, state.error) {
-        VideoPlaybackManager.playerOrNull()
-    }
+    // Observe the player instance itself, not the whole uiState. Reading
+    // playerOrNull() once during composition found no player (playWithDetails
+    // creates it later) and left the pager black; collecting all of uiState fixed
+    // that but recomposed every page on every state change, which showed up as
+    // stutter while scrolling. distinctUntilChanged limits recomposition to the
+    // moments the player is actually swapped.
+    val player by remember {
+        VideoPlaybackManager.uiState
+            .map { VideoPlaybackManager.playerOrNull() }
+            .distinctUntilChanged()
+    }.collectAsState(initial = VideoPlaybackManager.playerOrNull())
     val pagerState = rememberPagerState(
         initialPage = startIndex.coerceIn(0, (shorts.size - 1).coerceAtLeast(0)),
         pageCount = { shorts.size },

@@ -665,8 +665,9 @@ private fun VideoSurfaceWithControls(
                         if (side == 0) {
                             onToggleControls()
                         } else {
-                            val target = (VideoPlaybackManager.uiState.value.positionMs + side * 10_000L)
-                                .coerceIn(0L, VideoPlaybackManager.uiState.value.durationMs)
+                            val (currentPos, currentDur) = VideoPlaybackManager.positionState.value
+                            val target = (currentPos + side * 10_000L)
+                                .coerceIn(0L, currentDur)
                             VideoPlaybackManager.seekTo(target)
                             isForward = side > 0
                             seekHint = if (side > 0) seekForwardLabel else seekBackwardLabel
@@ -747,7 +748,7 @@ private fun VideoSurfaceWithControls(
                 var dragBaseMs = 0L
                 detectHorizontalDragGestures(
                     onDragStart = {
-                        dragBaseMs = VideoPlaybackManager.uiState.value.positionMs
+                        dragBaseMs = VideoPlaybackManager.positionState.value.first
                     },
                     onDragEnd = {
                         scrubPreviewMs?.let { VideoPlaybackManager.seekTo(it) }
@@ -914,8 +915,8 @@ private fun PlayerTopBar(
 @Composable
 private fun PlayerBottomControls(
     uiState: VideoPlaybackManager.UiState,
-    posMs: Long = uiState.positionMs,
-    durMs: Long = uiState.durationMs,
+    posMs: Long = VideoPlaybackManager.positionState.value.first,
+    durMs: Long = VideoPlaybackManager.positionState.value.second,
     modifier: Modifier = Modifier,
 ) {
     Column(

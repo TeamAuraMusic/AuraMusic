@@ -768,8 +768,10 @@ class MainActivity : ComponentActivity() {
                     expandedBound = maxHeight,
                 )
 
-                val videoPlaybackState by VideoPlaybackManager.uiState.collectAsState()
-                val videoMiniVisible = videoPlaybackState.minimized && !videoPlaybackState.hiddenByMusic
+                // Observe only this derived boolean. This used to collect the whole
+                // VideoPlaybackManager.uiState, which sits above every screen, so the
+                // video player's progress tick recomposed the entire activity.
+                val videoMiniVisible by VideoPlaybackManager.isMiniPlayerVisible.collectAsState()
 
                 val playerAwareWindowInsets = remember(
                     bottomInset,
@@ -877,8 +879,15 @@ class MainActivity : ComponentActivity() {
                 // When a video starts, the music miniplayer must exit so the video
                 // miniplayer can take its place at the bottom of the screen. Pause the
                 // music player too so both states don't keep producing audio at once.
-                LaunchedEffect(videoPlaybackState.session) {
-                    if (videoPlaybackState.session != null) {
+                // Keyed on the video id, not the whole session object, so progress
+                // ticks cannot re-trigger this.
+                val activeVideoId by remember {
+                    VideoPlaybackManager.uiState
+                        .map { it.session?.videoId }
+                        .distinctUntilChanged()
+                }.collectAsState(initial = VideoPlaybackManager.uiState.value.session?.videoId)
+                LaunchedEffect(activeVideoId) {
+                    if (activeVideoId != null) {
                         playerConnection?.player?.pause()
                         if (!playerBottomSheetState.isDismissed) {
                             playerBottomSheetState.dismiss()
