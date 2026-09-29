@@ -89,7 +89,7 @@ class TvRecommendationService : android.app.Service() {
         // Remove old programs for this channel
         try {
             ctx.contentResolver.delete(
-                TvContractCompat.buildProgramsUriForChannel(channelId),
+                TvContractCompat.buildPreviewProgramsUriForChannel(channelId),
                 null, null
             )
         } catch (e: Exception) {
