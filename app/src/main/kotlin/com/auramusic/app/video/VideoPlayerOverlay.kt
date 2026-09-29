@@ -23,6 +23,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -30,7 +31,6 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -83,9 +83,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -224,12 +224,16 @@ private fun VideoMinimizedTile(
     val dismissThreshold = with(density) { 130.dp.toPx() }
     val dismissProgress = (dragY / dismissThreshold).coerceIn(0f, 1f)
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Window height, cached off the configuration rather than read from
+        // BoxWithConstraints. This tile is drawn above every screen in the app,
+        // so a subcomposing layout wrapped around the whole window made every
+        // screen pay to re-subcompose it while a video was playing - which is
+        // what made scrolling feel like it was dragging.
+        val windowHeightPx = with(density) { LocalConfiguration.current.screenHeightDp.dp.toPx() }
         val tileHeightPx = with(density) { 128.dp.toPx() }
         val bottomPadPx = with(density) { LocalVideoMiniPlayerBottomPadding.current.toPx() }
-        val floatRangePx = with(density) {
-            (maxHeight.toPx() - tileHeightPx - bottomPadPx).coerceAtLeast(0f)
-        }
+        val floatRangePx = (windowHeightPx - tileHeightPx - bottomPadPx).coerceAtLeast(0f)
         // dragY is negative when the tile floats upward, so the lower clamp is -floatRangePx
         // (the highest the tile may travel while staying fully on screen).
         val minY = -floatRangePx
@@ -266,7 +270,11 @@ private fun VideoMinimizedTile(
                 .padding(bottom = LocalVideoMiniPlayerBottomPadding.current)
                 .fillMaxWidth()
                 .height(128.dp)
-                .shadow(24.dp, RoundedCornerShape(26.dp)),
+                // A 24dp blur here meant a large offscreen bitmap being blurred and
+                // composited back over whatever the user was scrolling, on the main
+                // thread, for as long as a video was playing. A hairline border reads
+                // the same against the video beneath it and costs nothing.
+                .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f), RoundedCornerShape(26.dp)),
             shape = RoundedCornerShape(26.dp),
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
             tonalElevation = 6.dp,
@@ -442,8 +450,17 @@ private fun VideoExpandedPlayer(
             .fillMaxSize()
             .background(Color.Black)
     ) {
-        if (isLandscape && isWideScreen) {
-            Row(modifier = Modifier.fillMaxSize()) {
+        if (isWideScreen) {
+            // Tablets and other large screens: the video spans the full width at a
+            // true 16:9, and everything else - title, channel, action buttons,
+            // description, recommendations - sits underneath it.
+            //
+            // This used to be a side-by-side Row (video 62% | details 38%). On a
+            // tablet that pushed the like/share/download buttons into a narrow
+            // right-hand column, far from the video they act on, and squeezed the
+            // text into a column too narrow to read. One column is both simpler
+            // and the shape a wide screen actually wants.
+            Column(modifier = Modifier.fillMaxSize()) {
                 VideoSurfaceWithControls(
                     player = player,
                     session = session,
@@ -453,17 +470,17 @@ private fun VideoExpandedPlayer(
                     onCollapse = onCollapse,
                     onClose = onClose,
                     modifier = Modifier
-                        .weight(0.62f)
-                        .fillMaxHeight(),
-                    useFullHeight = true,
+                        .fillMaxWidth()
+                        .aspectRatio(16f / 9f),
+                    useFullHeight = false,
                     onChannelClick = onChannelClick,
                 )
                 VideoDetailPane(
                     session = session,
                     uiState = uiState,
                     modifier = Modifier
-                        .weight(0.38f)
-                        .fillMaxHeight()
+                        .fillMaxWidth()
+                        .weight(1f)
                         .background(MaterialTheme.colorScheme.surface),
                     onChannelClick = onChannelClick ?: {},
                 )
@@ -501,34 +518,6 @@ private fun VideoExpandedPlayer(
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
-            }
-        } else if (isWideScreen) {
-            // Tablet portrait: split video | details across the width so the tall
-            // 16:9 surface doesn't eat the whole screen and squash the details.
-            Row(modifier = Modifier.fillMaxSize()) {
-                VideoSurfaceWithControls(
-                    player = player,
-                    session = session,
-                    uiState = uiState,
-                    showControls = showControls,
-                    onToggleControls = { showControls = !showControls },
-                    onCollapse = onCollapse,
-                    onClose = onClose,
-                    modifier = Modifier
-                        .weight(0.62f)
-                        .fillMaxHeight(),
-                    useFullHeight = true,
-                    onChannelClick = onChannelClick,
-                )
-                VideoDetailPane(
-                    session = session,
-                    uiState = uiState,
-                    modifier = Modifier
-                        .weight(0.38f)
-                        .fillMaxHeight()
-                        .background(MaterialTheme.colorScheme.surface),
-                    onChannelClick = onChannelClick ?: {},
-                )
             }
         } else {
             Column(modifier = Modifier.fillMaxSize()) {
@@ -1059,15 +1048,17 @@ private fun SlimSeekBar(
 ) {
     val durationSeconds = durationMs.toFloat().coerceAtLeast(1f)
     var scrub by remember { mutableFloatStateOf(-1f) }
+    var trackWidthPx by remember { mutableIntStateOf(0) }
     val effective = if (scrub >= 0f) scrub else positionMs.toFloat()
     val progress = (effective / durationSeconds).coerceIn(0f, 1f)
 
     val trackHeight = 3.dp
     val thumbSize = 13.dp
 
-    BoxWithConstraints(
+    Box(
         modifier = modifier
             .height(20.dp)
+            .onSizeChanged { trackWidthPx = it.width }
             .pointerInput(durationSeconds) {
                 detectDragGestures(
                     onDragStart = { offset ->
@@ -1115,11 +1106,15 @@ private fun SlimSeekBar(
                 // keeps it fully on the track from 0% to 100% instead of being
                 // parked mid-bar (Center + progress offset was off by half the
                 // bar width) or sliding off either end.
-                .offset(x = (maxWidth - thumbSize) * progress)
+                //
+                // Translated in the layer rather than laid out with .offset(), and
+                // without the blur shadow: this moves on every progress tick, and
+                // re-measuring plus re-blurring a shadow at 2Hz for a 13dp dot is
+                // not a good trade.
+                .graphicsLayer { translationX = ((trackWidthPx - thumbSize.toPx()) * progress) }
                 .size(thumbSize)
                 .clip(CircleShape)
                 .background(Color.White)
-                .shadow(3.dp, CircleShape)
         )
     }
 }
