@@ -54,8 +54,10 @@ import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.datasource.okhttp.OkHttpDataSource
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.LoadControl
 import androidx.media3.exoplayer.Renderer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.analytics.PlaybackStats
@@ -336,6 +338,12 @@ class MusicService :
     private var automixBlendPercent = 90f
     
     private var automixTriggerJob: Job? = null
+
+    /** Builds and prepares the secondary player ahead of the blend. */
+    private var automixWarmupJob: Job? = null
+
+    /** Abandons a blend whose incoming track never reached READY. */
+    private var automixDeadlineJob: Job? = null
     
     private val secondaryPlayerListener = object : Player.Listener {
         override fun onPlayerError(error: PlaybackException) {
@@ -1258,6 +1266,7 @@ class MusicService :
         val player = ExoPlayer.Builder(this)
             .setMediaSourceFactory(createMediaSourceFactory())
             .setRenderersFactory(createRenderersFactory(eqProcessor, vocalSuppressionProcessor, dynamicRangeCompressionProcessor, silenceProcessor))
+            .setLoadControl(createAutomixLoadControl())
             .setHandleAudioBecomingNoisy(true)
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .setAudioAttributes(
@@ -1273,6 +1282,17 @@ class MusicService :
             .build()
         
         playerSilenceProcessors[player] = silenceProcessor
+
+        // Warm the upcoming track well before a blend begins. This is what removes the
+        // "cached blends fine, streamed blends late" asymmetry: the next item's extractor and
+        // decoder are already open at the swap point. Set on the player rather than the builder
+        // because PreloadConfiguration has no builder overload in 1.10.1.
+        //
+        // This only pays off alongside a custom LoadControl, since the default implementation
+        // declines to preload when the app supplies its own — see createAutomixLoadControl.
+        player.setPreloadConfiguration(
+            ExoPlayer.PreloadConfiguration(AUTOMIX_PRELOAD_TARGET_US)
+        )
 
         // Set default track selection to enable subtitles by default like SmartTube
         player.trackSelectionParameters = player.trackSelectionParameters
@@ -1294,6 +1314,38 @@ class MusicService :
         if (publishPlayer) _playerFlow.value = player
         return player
     }
+
+    /**
+     * Load control tuned so an automix blend can actually start on time.
+     *
+     * Every MediaItem carries a bare song id as its URI (see [toMediaItem]), which a
+     * [ResolvingDataSource] later rewrites into a googlevideo URL. Media3 therefore classifies
+     * both cached and uncached tracks as streaming, and applies the streaming defaults:
+     * `DEFAULT_PRIORITIZE_TIME_OVER_SIZE_THRESHOLDS` is false, so for a high-bitrate track the
+     * byte target is reached before the time target and the player stops loading with only a few
+     * seconds buffered. A fresh stream must then accumulate
+     * `DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS` (2000ms) before the transition to the next
+     * item will go READY, which is longer than the blend window — the fade starts late, or the
+     * outgoing track simply ends first.
+     *
+     * Cached tracks do not suffer this: a [CacheDataSource] hit makes the loader fully buffered,
+     * which bypasses the buffering thresholds entirely. That asymmetry is exactly why blending
+     * sounds clean from cache and glitchy on the network.
+     *
+     * Enabling time-priority for streaming and trimming the rebuffer threshold keeps the
+     * incoming track decodable by the time the ramp begins. Local thresholds are left alone:
+     * the fully-cached path already ignores them and shorter local values are correct there.
+     */
+    private fun createAutomixLoadControl(): LoadControl =
+        DefaultLoadControl.Builder()
+            .setBufferDurationsMsForStreaming(
+                /* minBufferMs= */ AUTOMIX_MIN_BUFFER_MS,
+                /* maxBufferMs= */ AUTOMIX_MAX_BUFFER_MS,
+                /* bufferForPlaybackMs= */ 1000,
+                /* bufferForPlaybackAfterRebufferMs= */ 1_500,
+            )
+            .setPrioritizeTimeOverSizeThresholdsForStreaming(true)
+            .build()
 
     private fun setupAudioFocusRequest() {
         audioFocusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
@@ -3591,6 +3643,8 @@ class MusicService :
         playerInitialized.value = false
         _playerFlow.value = null
         automixTriggerJob?.cancel()
+        automixWarmupJob?.cancel()
+        automixDeadlineJob?.cancel()
         automixJob?.cancel()
         retryJob?.cancel()
         videoSwitchJob?.cancel()
@@ -4474,6 +4528,8 @@ class MusicService :
     private fun scheduleAutomix() {
         automixTriggerJob?.cancel()
         automixTriggerJob = null
+        automixWarmupJob?.cancel()
+        automixWarmupJob = null
         if (!automixEnabled) return
         // Ensure the next automix item is in the queue before scheduling
         runCatching { enqueueNextAutomixItemIfNeeded() }
@@ -4510,26 +4566,111 @@ class MusicService :
             return
         }
         
-        // Automix starts the blend once the configured % of the current song has
-        // played (default 90%). Uses a linear fade for a DJ-style mix.
+        // If the incoming track is already fully available, a native gapless transition is
+        // strictly better than a volume ramp: one AudioTrack, no overlap, no encoder-delay
+        // mismatch. Fall through to the normal auto-transition instead of building a second
+        // player, and skip the warmup entirely.
+        if (isNextItemGapless()) {
+            Timber.d("scheduleAutomix: Next item is fully buffered, using native gapless")
+            return
+        }
+
+        val blendMs = resolveBlendDurationMs()
+
+        // Automix starts the blend once the configured % of the current song has played
+        // (default 90%), clamped so the whole blend fits before the track ends.
         val triggerPercent = automixBlendPercent / 100f
         val triggerOffset = (player.duration * triggerPercent).toLong()
-        val triggerTime = minOf(triggerOffset, player.duration - 4000)
-        val delayMs = triggerTime - player.currentPosition
-        if (delayMs <= 0) return
-        
+        val triggerTime = minOf(triggerOffset, player.duration - blendMs)
+        val triggerDelayMs = triggerTime - player.currentPosition
+        if (triggerDelayMs <= 0) return
+
         val targetMediaId = player.currentMediaItem?.mediaId
-        
+
+        // Build and prepare the secondary player well before the trigger so a streamed track
+        // has resolved its URL and buffered. Creating it at the trigger point instead is what
+        // made uncached blends start late: resolution plus buffering outran the remaining track.
+        val warmupDelayMs = (triggerDelayMs - AUTOMIX_WARMUP_LEAD_MS).coerceAtLeast(0L)
+        if (warmupDelayMs < triggerDelayMs) {
+            automixWarmupJob?.cancel()
+            automixWarmupJob = scope.launch {
+                delay(warmupDelayMs)
+                if (isActive && player.currentMediaItem?.mediaId == targetMediaId) {
+                    warmUpAutomixPlayer(nextIndex)
+                }
+            }
+        }
+
         automixTriggerJob = scope.launch {
-            delay(delayMs)
+            delay(triggerDelayMs)
             if (isActive && player.isPlaying && player.currentMediaItem?.mediaId == targetMediaId) {
                 startAutomix()
             }
         }
     }
-    
+
+    /**
+     * Blend length for the upcoming transition.
+     *
+     * The blend cannot outlast the incoming track's own start-up cost, and Media3 will not
+     * begin decoding the next period until playback is within 10s of it
+     * (`DURATION_TO_ADVANCE_READING_THRESHOLD_US` in ExoPlayerImplInternal). So the useful
+     * length is the runway left in the current track, capped to stay inside that window.
+     */
+    private fun resolveBlendDurationMs(): Long {
+        val duration = player.duration
+        val remaining =
+            if (duration == C.TIME_UNSET || duration <= 0) Long.MAX_VALUE
+            else duration - player.currentPosition
+        // Never longer than the reading window, otherwise the incoming decoder cannot be warm.
+        val capped = minOf(remaining, AUTOMIX_MAX_BLEND_MS)
+        // A track nearly over gets whatever runway it has, down to a floor; one with plenty of
+        // room uses the default rather than an arbitrarily long overlap.
+        return if (capped <= AUTOMIX_DEFAULT_BLEND_MS) {
+            capped.coerceAtLeast(AUTOMIX_MIN_BLEND_MS)
+        } else {
+            AUTOMIX_DEFAULT_BLEND_MS
+        }
+    }
+
+    /**
+     * True when the next item is already fully buffered, so ExoPlayer can transition to it
+     * natively and gaplessly.
+     *
+     * Requires both signals, and deliberately reports false whenever either is unknown — a
+     * wrong true silently drops a blend the user asked for, while a wrong false only costs a
+     * perfectly good fade.
+     *
+     * Note there is no public per-next-period buffered-position API on Player, so an uncached
+     * track cannot be proven fully buffered from outside. Cached tracks are the case worth
+     * detecting: they are also the case that sounds noticeably better without a fade.
+     */
     private fun isNextItemGapless(): Boolean {
-        return false
+        val nextIndex = nextAutomixMediaItemIndex()
+        if (nextIndex == C.INDEX_UNSET) return false
+
+        val nextItem = runCatching { player.getMediaItemAt(nextIndex) }.getOrNull() ?: return false
+        val mediaId = nextItem.mediaId.removeSuffix("_video")
+        if (mediaId.isEmpty()) return false
+
+        // The track's own length is unknown, so isCached(mediaId, 0, 1) would only prove the
+        // first byte. Check the downloaded and playback caches with the chunk length actually
+        // written, which is what createDataSourceFactory probes.
+        val isCached = runCatching {
+            downloadCache.isCached(mediaId, 0, CHUNK_LENGTH) ||
+                playerCache.isCached(mediaId, 0, CHUNK_LENGTH)
+        }.getOrDefault(false)
+        if (!isCached) return false
+
+        // A known duration is what lets ExoPlayer trim encoder delay and keep one AudioTrack
+        // across the boundary. Unknown duration means it cannot do that, so the native path
+        // would not actually be gapless.
+        val timeline = runCatching { player.currentTimeline }.getOrNull() ?: return false
+        if (timeline.isEmpty) return false
+        val window = runCatching { timeline.getWindow(nextIndex, Timeline.Window()) }.getOrNull()
+            ?: return false
+        if (window.isPlaceholder) return false
+        return window.durationUs != C.TIME_UNSET && window.durationUs > 0
     }
 
     private fun nextAutomixMediaItemIndex(): Int {
@@ -4580,6 +4721,60 @@ class MusicService :
         }
     }
     
+    /**
+     * Builds and prepares the secondary player ahead of the trigger, muted and paused at the
+     * incoming track, so [startAutomix] only has to swap and ramp. Re-entrant: a no-op if a
+     * secondary player already exists.
+     */
+    private fun warmUpAutomixPlayer(nextIndex: Int) {
+        if (secondaryPlayer != null || isAutomixing || isVideoMode) return
+        if (!automixEnabled || player.repeatMode == REPEAT_MODE_ONE) return
+
+        val outgoingMediaId = player.currentMediaItem?.mediaId ?: return
+        if (player.getMediaItemAt(nextIndex).metadata?.isVideoSong == true) return
+
+        val warmedPlayer = createExoPlayer(publishPlayer = false)
+        val items = ArrayList<MediaItem>(player.mediaItemCount)
+        for (i in 0 until player.mediaItemCount) {
+            items.add(player.getMediaItemAt(i))
+        }
+        warmedPlayer.setMediaItems(items)
+        warmedPlayer.repeatMode = player.repeatMode
+        warmedPlayer.shuffleModeEnabled = player.shuffleModeEnabled
+        warmedPlayer.seekTo(nextIndex, 0)
+        // Stay silent and paused: this only resolves the stream and fills the buffer.
+        warmedPlayer.volume = 0f
+        warmedPlayer.playWhenReady = false
+        warmedPlayer.prepare()
+
+        warmedPlayer.addListener(object : Player.Listener {
+            override fun onPlayerError(error: PlaybackException) {
+                Timber.tag(TAG).w(error, "Automix warmup failed, will fall back to a cold blend")
+                releaseAutomixWarmup(warmedPlayer)
+            }
+        })
+
+        // The queue may have moved on during the lead-in; discard rather than swap to the wrong song.
+        if (player.currentMediaItem?.mediaId != outgoingMediaId) {
+            releaseAutomixWarmup(warmedPlayer)
+            return
+        }
+        secondaryPlayer = warmedPlayer
+        warmedPlayer.addListener(secondaryPlayerListener)
+        Timber.tag(TAG).d("Automix warmup ready for index $nextIndex")
+    }
+
+    private fun releaseAutomixWarmup(warmedPlayer: ExoPlayer) {
+        warmedPlayer.removeListener(secondaryPlayerListener)
+        playerSilenceProcessors.remove(warmedPlayer)
+        runCatching {
+            warmedPlayer.stop()
+            warmedPlayer.clearMediaItems()
+            warmedPlayer.release()
+        }
+        if (secondaryPlayer === warmedPlayer) secondaryPlayer = null
+    }
+
     private fun startAutomix() {
         if (isAutomixing) return
         // Same guard as scheduleCrossfade: never crossfade a video-backed song —
@@ -4591,32 +4786,75 @@ class MusicService :
         val nextIndex = nextAutomixMediaItemIndex()
         if (nextIndex == C.INDEX_UNSET) return
         val outgoingMediaId = player.currentMediaItem?.mediaId ?: return
-        
+
         // Record current song to history before automix swap
         recordCurrentSongToHistory()
-        
-        secondaryPlayer = createExoPlayer(publishPlayer = false)
-        val secPlayer = secondaryPlayer!!
-        secPlayer.addListener(secondaryPlayerListener)
-        
-        val itemCount = player.mediaItemCount
-        val items = mutableListOf<MediaItem>()
-        // Copy entire queue history + future
-        for (i in 0 until itemCount) {
-            items.add(player.getMediaItemAt(i))
+
+        val blendMs = resolveBlendDurationMs()
+
+        // Reuse the player prepared during warmup so the blend starts on time. Fall back to
+        // building it here if warmup did not run or already failed. Either way the player is
+        // published as [secondaryPlayer] first: the ready listener below identifies its own
+        // player by identity against that field.
+        val warmed = secondaryPlayer
+        if (warmed != null && warmed.playbackState != Player.STATE_IDLE) {
+            beginAutomixSwap(warmed, nextIndex, outgoingMediaId, blendMs, isWarmed = true)
+        } else {
+            warmed?.let { releaseAutomixWarmup(it) }
+            val fresh = createExoPlayer(publishPlayer = false)
+            secondaryPlayer = fresh
+            fresh.addListener(secondaryPlayerListener)
+            beginAutomixSwap(fresh, nextIndex, outgoingMediaId, blendMs, isWarmed = false)
         }
-        
-        secPlayer.setMediaItems(items)
+    }
+
+    private fun beginAutomixSwap(
+        secPlayer: ExoPlayer,
+        nextIndex: Int,
+        outgoingMediaId: String,
+        blendMs: Long,
+        isWarmed: Boolean,
+    ) {
+        if (secondaryPlayer !== secPlayer) {
+            // A different player won the race; don't drive it.
+            return
+        }
+        secPlayer.volume = 0f
+
+        if (!isWarmed) {
+            val itemCount = player.mediaItemCount
+            val items = mutableListOf<MediaItem>()
+            // Copy entire queue history + future
+            for (i in 0 until itemCount) {
+                items.add(player.getMediaItemAt(i))
+            }
+            secPlayer.setMediaItems(items)
+            // The replacement player defaults repeat to OFF. Preserve the user's command before
+            // attaching MusicService as a listener, otherwise the swap persists the wrong mode.
+            secPlayer.repeatMode = player.repeatMode
+            secPlayer.shuffleModeEnabled = player.shuffleModeEnabled
+            // Seek to next track (the one we are fading into)
+            secPlayer.seekTo(nextIndex, 0)
+        }
+        // A warmed player already holds this queue and is parked on nextIndex with its buffer
+        // filled. Re-setting media items here would throw that buffer away and defeat the
+        // warmup, so only the volume and play state are touched.
+
         // The replacement player defaults repeat to OFF. Preserve the user's command before
         // attaching MusicService as a listener, otherwise the swap persists the wrong mode.
         secPlayer.repeatMode = player.repeatMode
         secPlayer.shuffleModeEnabled = player.shuffleModeEnabled
-        // Seek to next track (the one we are fading into)
-        secPlayer.seekTo(nextIndex, 0)
         secPlayer.volume = 0f
+        // Deadline for the incoming track to become playable. Without one, a stream that
+        // resolves slowly leaves the outgoing track to end first and the blend never happens.
+        // Measured from the trigger, so warmup time counts against it.
+        val deadline = System.currentTimeMillis() + AUTOMIX_BLEND_DEADLINE_MS
         val readyListener = object : Player.Listener {
+            private var settled = false
+
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (playbackState != Player.STATE_READY || secondaryPlayer !== secPlayer) return
+                settled = true
                 secPlayer.removeListener(this)
 
                 // Stream resolution can take longer than a cache hit. If playback moved while
@@ -4633,15 +4871,60 @@ class MusicService :
                     scheduleAutomix()
                     return
                 }
-                performAutomixSwap()
+                performAutomixSwap(blendMs)
+            }
+
+            override fun onPlayerError(error: PlaybackException) {
+                if (settled) return
+                settled = true
+                secPlayer.removeListener(this)
+                secPlayer.removeListener(secondaryPlayerListener)
+                playerSilenceProcessors.remove(secPlayer)
+                runCatching {
+                    secPlayer.stop()
+                    secPlayer.clearMediaItems()
+                    secPlayer.release()
+                }
+                if (secondaryPlayer === secPlayer) secondaryPlayer = null
+                Timber.tag(TAG).w(error, "Automix blend aborted, incoming track failed to start")
             }
         }
         secPlayer.addListener(readyListener)
-        secPlayer.prepare()
+        if (!isWarmed) {
+            secPlayer.prepare()
+        }
         secPlayer.playWhenReady = true
+
+        // A warmed player is often already READY, in which case no further state change arrives
+        // and the listener above would never fire. Settle immediately in that case.
+        if (secPlayer.playbackState == Player.STATE_READY) {
+            secPlayer.removeListener(readyListener)
+            readyListener.onPlaybackStateChanged(Player.STATE_READY)
+        }
+
+        automixDeadlineJob?.cancel()
+        automixDeadlineJob = scope.launch {
+            while (isActive && System.currentTimeMillis() < deadline) {
+                delay(200)
+            }
+            // Nothing to do if the player became ready first; it removes itself via the listener.
+            if (!isActive || secondaryPlayer !== secPlayer) return@launch
+            if (secPlayer.playbackState == Player.STATE_READY) return@launch
+            // Give up on the blend. Restore secondaryPlayer bookkeeping so the next song
+            // transitions naturally instead of leaving a dangling player.
+            Timber.tag(TAG).w("Automix blend timed out after ${AUTOMIX_BLEND_DEADLINE_MS}ms")
+            secPlayer.removeListener(secondaryPlayerListener)
+            playerSilenceProcessors.remove(secPlayer)
+            runCatching {
+                secPlayer.stop()
+                secPlayer.clearMediaItems()
+                secPlayer.release()
+            }
+            if (secondaryPlayer === secPlayer) secondaryPlayer = null
+        }
     }
-    
-    private fun performAutomixSwap() {
+
+    private fun performAutomixSwap(blendMs: Long = AUTOMIX_DEFAULT_BLEND_MS) {
         if (sleepTimer.pauseWhenSongEnd) {
             sleepTimer.notifySongTransition()
             secondaryPlayer?.let { pendingPlayer ->
@@ -4709,20 +4992,33 @@ class MusicService :
         // Publish only after the service, session, and listeners agree on the active player.
         _playerFlow.value = nextPlayer
         
+automixDeadlineJob?.cancel()
+         automixDeadlineJob = null
          automixJob = scope.launch {
-             val duration = 4000L
-             val steps = 20
-             val stepTime = duration / steps
+             // Blend length is derived from the runway left in the outgoing track and capped to
+             // the window in which Media3 starts decoding the incoming one. See
+             // resolveBlendDurationMs.
+             val duration = blendMs.coerceIn(AUTOMIX_MIN_BLEND_MS, AUTOMIX_MAX_BLEND_MS)
+             val steps = AUTOMIX_BLEND_STEPS
+             val stepTime = (duration / steps).coerceAtLeast(1L)
              val targetVolume = if (isMuted.value) 0f else playerVolume.value
              val outgoingStartVolume = oldPlayer.volume
              nextPlayer.volume = 0f
-            
-            for (i in 1..steps) {
-                if (!isActive) break
-                // Pause volume ramp if player is paused
-                while (!nextPlayer.isPlaying && isActive) {
-                    delay(100)
-                }
+
+             for (i in 1..steps) {
+                 if (!isActive) break
+                 // Pause volume ramp if player is paused, but do not spin forever: if the incoming
+                 // track never starts, stop waiting so cleanup still runs.
+                 var waitedMs = 0L
+                 while (!nextPlayer.isPlaying && isActive && waitedMs < AUTOMIX_PLAYBACK_WAIT_MS) {
+                     delay(100)
+                     waitedMs += 100
+                 }
+                 if (!isActive) break
+                 if (!nextPlayer.isPlaying) {
+                     Timber.tag(TAG).w("Incoming track never started, ending blend early")
+                     break
+                 }
                 
                 val progress = i / steps.toFloat()
                 val fadeIn: Float
@@ -4864,6 +5160,55 @@ class MusicService :
 
         /** Hard deadline for TV/mobile video-mode stream search before falling back to audio. */
         private const val VIDEO_SEARCH_TIMEOUT_MS = 20_000L
+
+        /**
+         * Streaming buffer profile for the automix load control. Generous enough that a freshly
+         * streamed track is decodable by the time the volume ramp starts, without holding an
+         * unbounded amount of audio in memory. See [createAutomixLoadControl].
+         */
+        private const val AUTOMIX_MIN_BUFFER_MS = 30_000
+        private const val AUTOMIX_MAX_BUFFER_MS = 60_000
+
+        /**
+         * How much of an upcoming track to buffer ahead of time. Must be at least the blend
+         * length, since that is what has to be ready when the ramp starts.
+         */
+        private const val AUTOMIX_PRELOAD_TARGET_US = 12_000_000L
+
+        /**
+         * Longest automix blend. Media3 does not begin decoding the next period until playback
+         * is within `DURATION_TO_ADVANCE_READING_THRESHOLD_US` (10s) of it, so a blend longer
+         * than this cannot have the incoming track warm and will rebuffer mid-fade.
+         */
+        private const val AUTOMIX_MAX_BLEND_MS = 8_000L
+
+        /** Shortest blend worth fading; below this the overlap reads as a click, not a mix. */
+        private const val AUTOMIX_MIN_BLEND_MS = 1_500L
+
+        /**
+         * How long before the trigger point the secondary player is built and prepared, giving a
+         * streamed track time to resolve and buffer. Comfortably inside the 10s reading window.
+         */
+        private const val AUTOMIX_WARMUP_LEAD_MS = 20_000L
+
+        /** Default blend when nothing better can be derived from the remaining runway. */
+        private const val AUTOMIX_DEFAULT_BLEND_MS = 4_000L
+
+        /** Steps in the volume ramp. ~20 gives a smooth curve without a visible step change. */
+        private const val AUTOMIX_BLEND_STEPS = 20
+
+        /**
+         * How long after the trigger the incoming track has to reach READY before the blend is
+         * abandoned. Past this the outgoing track has ended and a crossfade is no longer
+         * meaningful; letting the track transition naturally is the better outcome.
+         */
+        private const val AUTOMIX_BLEND_DEADLINE_MS = 6_000L
+
+/**
+         * Longest the ramp will wait for the incoming player to actually start playing. Bounded
+         * so a track that is buffering (or was starved of focus) cannot wedge cleanup.
+         */
+        private const val AUTOMIX_PLAYBACK_WAIT_MS = 3_000L
         const val MIN_GAIN_MB = -1500 // Minimum gain in millibels (-15 dB)
 
         const val TAG = "MusicService"
