@@ -4,6 +4,7 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import android.content.ContentProviderOperation
 import android.content.Intent
 import android.net.Uri
 import androidx.core.app.NotificationCompat
@@ -86,25 +87,14 @@ class TvRecommendationService : android.app.Service() {
 
         val channelId = ensureChannel(ctx)
 
-        // Remove old programs for this channel
-        try {
-            ctx.contentResolver.delete(
-                TvContractCompat.buildPreviewProgramsUriForChannel(channelId),
-                null, null
-            )
-        } catch (e: Exception) {
-            Timber.w(e, "Failed to clean old programs")
-        }
-
-        var count = 0
-        for (mediaMeta in items) {
+        val programValues = items.mapNotNull { mediaMeta ->
             val title = mediaMeta.title.ifBlank { "Unknown song" }
             val artist = mediaMeta.artists.firstOrNull()?.name.orEmpty()
             val artworkUri = mediaMeta.thumbnailUrl.orEmpty()
             val durationMs = mediaMeta.duration.coerceAtLeast(0)
             val mediaId = mediaMeta.id
 
-            if (mediaId.isBlank()) continue
+            if (mediaId.isBlank()) return@mapNotNull null
 
             try {
                 val launchIntent = Intent(Intent.ACTION_VIEW).apply {
@@ -131,15 +121,31 @@ class TvRecommendationService : android.app.Service() {
                     }
                     .build()
 
-                ctx.contentResolver.insert(
-                    TvContractCompat.PreviewPrograms.CONTENT_URI,
-                    program.toContentValues()
-                )
-                count++
+                program.toContentValues()
             } catch (e: Exception) {
                 Timber.w(e, "Failed to insert recommendation for $title")
+                null
             }
         }
+
+        if (programValues.isEmpty()) {
+            Timber.w("No valid TV recommendations to publish; keeping existing cards")
+            return
+        }
+
+        // Replace the row in one provider transaction so launchers don't observe
+        // the channel after deletion or while only part of the new set is inserted.
+        val operations = ArrayList<ContentProviderOperation>(programValues.size + 1)
+        operations += ContentProviderOperation.newDelete(
+            TvContractCompat.buildPreviewProgramsUriForChannel(channelId)
+        ).build()
+        programValues.forEach { values ->
+            operations += ContentProviderOperation.newInsert(
+                TvContractCompat.PreviewPrograms.CONTENT_URI
+            ).withValues(values).build()
+        }
+        val results = ctx.contentResolver.applyBatch(TvContractCompat.AUTHORITY, operations)
+        val count = results.size - 1
 
         Timber.d("Published $count TV recommendations for '$queueTitle'")
 
@@ -218,7 +224,7 @@ class TvRecommendationService : android.app.Service() {
     companion object {
         private const val NOTIFICATION_CHANNEL_ID = "tv_recommendations"
         private const val NOTIFICATION_ID = 9999
-        private const val MAX_RECOMMENDATIONS = 5
+        private const val MAX_RECOMMENDATIONS = 10
 
         fun start(context: Context) {
             val intent = Intent(context, TvRecommendationService::class.java)
