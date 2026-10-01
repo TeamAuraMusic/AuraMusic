@@ -22,6 +22,7 @@ object TvRecommendationHelper {
      * Schedule a recommendation update. Multiple rapid calls are debounced —
      * only the last one within the debounce window actually fires.
      */
+    @JvmStatic
     fun scheduleUpdate(context: Context) {
         pendingJob?.cancel()
         pendingJob = scope.launch {

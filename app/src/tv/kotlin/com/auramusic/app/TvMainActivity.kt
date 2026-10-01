@@ -38,9 +38,11 @@ import com.auramusic.app.constants.CountryCodeToName
 import com.auramusic.app.constants.SYSTEM_DEFAULT
  import com.auramusic.app.db.MusicDatabase
  import com.auramusic.app.listentogether.ListenTogetherManager
+import com.auramusic.app.models.toMediaMetadata
  import com.auramusic.app.playback.MusicService
  import com.auramusic.app.playback.MusicService.MusicBinder
  import com.auramusic.app.playback.PlayerConnection
+import com.auramusic.app.playback.queues.YouTubeQueue
  import com.auramusic.app.ui.component.LocalMenuState
  import com.auramusic.app.ui.theme.AuraMusicTheme
 import com.auramusic.app.ui.theme.DefaultThemeColor
@@ -51,11 +53,14 @@ import com.auramusic.app.utils.dataStore
 import com.auramusic.app.utils.rememberEnumPreference
 import com.auramusic.app.utils.rememberPreference
 import com.auramusic.innertube.YouTube
+import com.auramusic.innertube.models.WatchEndpoint
 import com.auramusic.innertube.models.YouTubeLocale
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.util.Locale
 import javax.inject.Inject
@@ -119,6 +124,7 @@ class TvMainActivity : ComponentActivity() {
 
     private val playerConnectionFlow = MutableStateFlow<PlayerConnection?>(null)
     private var serviceBound = false
+    private var handledMediaId: String? = null
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -138,6 +144,7 @@ class TvMainActivity : ComponentActivity() {
                 )
                 listenTogetherManager.setPlayerConnection(connection)
                 playerConnectionFlow.value = connection
+                handleProgramIntent(this@TvMainActivity.intent, connection)
                 Timber.tag("TvMainActivity").d("PlayerConnection created successfully")
             } catch (e: Exception) {
                 Timber.tag("TvMainActivity").e(e, "Failed to create PlayerConnection")
@@ -225,6 +232,35 @@ class TvMainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         bindMusicService()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handledMediaId = null
+        playerConnectionFlow.value?.let { handleProgramIntent(intent, it) }
+    }
+
+    private fun handleProgramIntent(intent: Intent, connection: PlayerConnection) {
+        val mediaId = intent.getStringExtra("media_id") ?: return
+        if (handledMediaId == mediaId) return
+        handledMediaId = mediaId
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            YouTube.queue(listOf(mediaId), null)
+                .onSuccess { items ->
+                    val item = items.firstOrNull() ?: return@onSuccess
+                    withContext(Dispatchers.Main) {
+                        connection.playQueue(
+                            YouTubeQueue(
+                                WatchEndpoint(videoId = item.id),
+                                item.toMediaMetadata(),
+                            ),
+                        )
+                    }
+                }
+                .onFailure { Timber.tag("TvMainActivity").w(it, "Failed to open TV recommendation $mediaId") }
+        }
     }
 
     override fun onStop() {
