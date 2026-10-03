@@ -1,1 +1,1 @@
-Aura 音乐——YouTube音乐的开源播放器
+Aura Music —— 面向 YouTube Music 的开源音乐播放器
