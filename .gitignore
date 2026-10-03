@@ -113,3 +113,7 @@ app/signing-config.gradle.kts
 app/build.gradle.kts
 
 .kilo
+
+# Local translation review tables
+/docs/zh-CN-translation-review.md
+/docs/zh-CN-translation-review.csv
