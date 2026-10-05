@@ -57,6 +57,12 @@
         android:supportsRtl="false"
         android:theme="@style/Theme.AuraMusic"
         tools:targetApi="tiramisu">
+
+        <!-- Lets the system honour the video's own aspect ratio when it sizes the
+             picture-in-picture window, instead of forcing the app's requested ratio. -->
+        <property
+            android:name="android.window.PROPERTY_COMPAT_ALLOW_MIN_ASPECT_RATIO_OVERRIDE"
+            android:value="true" />
         <uses-library
             android:name="org.apache.http.legacy"
             android:required="false" />
@@ -73,6 +79,8 @@
             android:exported="true"
             android:launchMode="singleTask"
             android:resizeableActivity="true"
+            android:supportsPictureInPicture="true"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|uiMode"
             android:theme="@style/Theme.AuraMusic"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>

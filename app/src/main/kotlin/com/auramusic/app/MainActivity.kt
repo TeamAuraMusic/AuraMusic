@@ -199,6 +199,7 @@ import com.auramusic.app.viewmodels.HomeViewModel
 import com.auramusic.app.voice.LocalVoiceCommandController
 import com.auramusic.app.voice.VoiceCommandController
 import com.auramusic.app.voice.VoiceCommandOverlay
+import com.auramusic.app.video.VideoPictureInPicture
 import com.auramusic.app.video.VideoPlaybackManager
 import com.auramusic.app.video.VideoPlayerOverlay
 import com.auramusic.app.voice.VoiceCommandViewModel
@@ -294,6 +295,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
+        VideoPictureInPicture.attach(this)
         // Request notification permission on Android 13+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
@@ -311,7 +313,36 @@ class MainActivity : ComponentActivity() {
         )
     }
 
+    override fun onUserLeaveHint() {
+        // Called when the user leaves via Home or Recents. Entering PiP here is what keeps the
+        // video playing in a floating window instead of stopping at the last frame.
+        super.onUserLeaveHint()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && VideoPictureInPicture.isSupported()) {
+            val manager = VideoPlaybackManager
+            if (manager.isPictureInPictureEligible()) {
+                val ratio = manager.uiState.value.videoAspectRatio
+                VideoPictureInPicture.enter(this, ratio, manager.uiState.value.isPlaying)
+            }
+        }
+    }
+
+    override fun onPictureInPictureModeChanged(
+        isInPictureInPictureMode: Boolean,
+        newConfig: android.content.res.Configuration,
+    ) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        if (isInPictureInPictureMode) {
+            // The in-app overlay must go away: the platform is already drawing the video into
+            // the PiP window, and a second PlayerView on the same player fights it for frames.
+            VideoPlaybackManager.setPictureInPicture(true)
+        } else {
+            VideoPictureInPicture.clearSourceRectHint()
+            VideoPlaybackManager.exitPictureInPicture()
+        }
+    }
+
     override fun onStop() {
+        VideoPictureInPicture.attach(null)
         unbindService(serviceConnection)
         super.onStop()
     }

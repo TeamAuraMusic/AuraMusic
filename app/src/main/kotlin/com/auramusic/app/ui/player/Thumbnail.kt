@@ -789,9 +789,16 @@ private fun ThumbnailImage(
                 },
                 modifier = Modifier.fillMaxSize(),
                 update = { playerView ->
-                    playerView.player = player
-                    playerView.resizeMode = resizeMode
-                    playerView.requestLayout()
+                    if (playerView.player !== player) {
+                        playerView.player = player
+                    }
+                    // Every assignment to resizeMode marks the view dirty and requests a layout
+                    // pass. This block runs on each recomposition, so setting it unconditionally
+                    // re-measured the PlayerView — and its SurfaceView — twice a second while a
+                    // video played, which showed up as visible jank in the surface.
+                    if (playerView.resizeMode != resizeMode) {
+                        playerView.resizeMode = resizeMode
+                    }
                 }
             )
             

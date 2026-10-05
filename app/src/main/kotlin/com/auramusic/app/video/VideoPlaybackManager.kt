@@ -12,6 +12,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
@@ -169,6 +170,11 @@ object VideoPlaybackManager {
         val autoplayEnabled: Boolean = true,
         val suppressOverlay: Boolean = false,
         val isFullScreen: Boolean = false,
+        // Display aspect ratio of the playing video, used to size the picture-in-picture
+        // window. Null until the decoder reports it.
+        val videoAspectRatio: Float? = null,
+        // True while the Activity is showing the video in picture-in-picture.
+        val inPictureInPicture: Boolean = false,
     ) {
         val isEmpty: Boolean get() = session == null
         val progress: Float
@@ -262,6 +268,7 @@ object VideoPlaybackManager {
                         durationMs = exo.duration.takeIf { d -> d > 0 } ?: 0,
                         isBuffering = false,
                         error = null,
+                        videoAspectRatio = exo.videoSize.toDisplayAspectRatioOrNull(),
                     )
                 }
             }
@@ -272,6 +279,15 @@ object VideoPlaybackManager {
 
         override fun onPlayerError(error: PlaybackException) {
             _uiState.update { it.copy(isBuffering = false, error = error.message ?: "Playback error") }
+        }
+
+        override fun onVideoSizeChanged(videoSize: VideoSize) {
+            // The PiP window is sized from this, and a stale ratio makes the window letterbox
+            // the next video until it is re-entered.
+            val ratio = videoSize.toDisplayAspectRatioOrNull()
+            if (ratio != null) {
+                _uiState.update { it.copy(videoAspectRatio = ratio) }
+            }
         }
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
@@ -1045,6 +1061,39 @@ object VideoPlaybackManager {
 
     fun toggleMinimized() {
         _uiState.update { it.copy(minimized = !it.minimized) }
+    }
+
+    /**
+     * Drops the floating tile back into the Activity. Called when picture-in-picture ends, since
+     * the overlay is hidden while the window is a PiP and would otherwise come back minimised.
+     */
+    /**
+     * Records that the Activity has entered or left picture-in-picture.
+     *
+     * While set, the in-app overlay unmounts: the platform is already drawing the video into the
+     * PiP window, and a second PlayerView attached to the same player competes for frames.
+     */
+    fun setPictureInPicture(active: Boolean) {
+        _uiState.update {
+            if (it.inPictureInPicture == active) it
+            else it.copy(inPictureInPicture = active)
+        }
+    }
+
+    fun exitPictureInPicture() {
+        _uiState.update {
+            if (!it.inPictureInPicture && !it.minimized) it
+            else it.copy(inPictureInPicture = false, minimized = false, hiddenByMusic = false)
+        }
+    }
+
+    /** True while a video session is live and eligible to be shown in picture-in-picture. */
+    fun isPictureInPictureEligible(): Boolean {
+        val state = _uiState.value
+        return state.session != null &&
+            !state.hiddenByMusic &&
+            !state.suppressOverlay &&
+            playerOrNull()?.isPlaying == true
     }
 
     fun close() {

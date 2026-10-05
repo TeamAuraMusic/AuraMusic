@@ -73,6 +73,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -83,8 +84,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -128,6 +133,10 @@ fun VideoPlayerOverlay(
     // The vertical Shorts pager renders the video surface itself, so the global
     // overlay (expanded player + mini tile) must stay out of the way while it is open.
     if (state.suppressOverlay) return
+    // While the Activity is in picture-in-picture the system is already drawing the video into
+    // the PiP window. Keeping the in-app overlay alive underneath would leave a second
+    // PlayerView attached to the same player, so it is torn down entirely for the duration.
+    if (state.inPictureInPicture) return
     val session = state.session ?: return
     // When a music session takes over (video paused via giveWayToMusic), the video
     // player and its mini tile fully disappear — mirror of video playback hiding the
@@ -150,9 +159,19 @@ fun VideoPlayerOverlay(
         }
     }
 
-    BackHandler(enabled = !state.minimized) {
-        VideoPlaybackManager.collapse()
+    // Collapsing hands the video to a picture-in-picture window instead of dropping it into the
+    // floating tile, so leaving the expanded player keeps playback visible. Devices without PiP
+    // fall back to the tile. Whether PiP is available cannot change while the overlay is
+    // composed, so it is captured once rather than recomputed per keystroke.
+    val pipAvailable = remember { VideoPictureInPicture.isSupported() }
+    val onCollapseRequest: () -> Unit = {
+        val entered = pipAvailable && activity?.let {
+            VideoPictureInPicture.enter(it, state.videoAspectRatio, state.isPlaying)
+        } == true
+        if (!entered) VideoPlaybackManager.collapse()
     }
+
+    BackHandler(enabled = !state.minimized, onBack = onCollapseRequest)
 
     AnimatedContent(
         targetState = state.minimized,
@@ -178,6 +197,8 @@ fun VideoPlayerOverlay(
             // screen is actually visible.
             val expandedChannelClick: ((String) -> Unit)? = onChannelClick?.let { click ->
                 { channelId ->
+                    // Collapse fully to the tile: the channel screen has to be reachable behind
+                    // the video, and a PiP window would keep floating over it.
                     VideoPlaybackManager.collapse()
                     click(channelId)
                 }
@@ -186,7 +207,7 @@ fun VideoPlayerOverlay(
                 player = player,
                 session = session,
                 uiState = state,
-                onCollapse = { VideoPlaybackManager.collapse() },
+                onCollapse = onCollapseRequest,
                 onClose = { VideoPlaybackManager.close() },
                 onChannelClick = expandedChannelClick,
             )
@@ -207,9 +228,11 @@ private fun VideoMinimizedTile(
     onChannelClick: ((String) -> Unit)?,
 ) {
     val state by VideoPlaybackManager.uiState.collectAsState()
-    val positionPair by VideoPlaybackManager.positionState.collectAsState()
-    val posMs = positionPair.first
-    val durMs = positionPair.second
+    // Read position lazily and in whole seconds. This tile is drawn above every screen in the
+    // app, so collecting the half-second position state here invalidated the whole overlay —
+    // video surface included — twice a second for a 3dp progress line and a timestamp.
+    val posMs by remember { derivedStateOf { VideoPlaybackManager.positionState.value.first / 1000L * 1000L } }
+    val durMs by remember { derivedStateOf { VideoPlaybackManager.positionState.value.second } }
     val density = LocalDensity.current
 
     // Tile position on screen (px). 0 = resting on the bottom edge; negative
@@ -285,13 +308,45 @@ private fun VideoMinimizedTile(
                     .padding(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                // The video surface is a SurfaceView, composited by SurfaceFlinger rather than by the
+                // View hierarchy. Rounding or clipping an ancestor forces SurfaceFlinger to
+                // composite the video through an offscreen render target on every frame, so
+                // the shape is drawn as an overlay on top instead.
                 Box(
                     modifier = Modifier
                         .width(184.dp)
                         .fillMaxHeight()
-                        .clip(RoundedCornerShape(18.dp))
+                        .onGloballyPositioned { coordinates ->
+                            // Kept current so the picture-in-picture window animates out of the
+                            // video's position rather than from the screen corner.
+                            coordinates.boundsInWindow().let { rect ->
+                                VideoPictureInPicture.updateSourceRectHint(
+                                    android.graphics.Rect(
+                                        rect.left.toInt(),
+                                        rect.top.toInt(),
+                                        rect.right.toInt(),
+                                        rect.bottom.toInt(),
+                                    )
+                                )
+                            }
+                        }
                 ) {
                     AndroidVideoSurface(player, resizeModeOverride = state.resizeMode)
+                    // Overlay carries the rounded outline only. It clips its own drawing —
+                    // not the video layer beneath — so SurfaceFlinger keeps compositing the
+                    // SurfaceView directly.
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .clip(RoundedCornerShape(18.dp))
+                            .drawBehind {
+                                drawRoundRect(
+                                    color = Color.White.copy(alpha = 0.10f),
+                                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(18.dp.toPx()),
+                                    style = Stroke(width = 1.dp.toPx()),
+                                )
+                            }
+                    )
                 }
 
                 Spacer(modifier = Modifier.width(12.dp))
@@ -432,9 +487,6 @@ private fun VideoExpandedPlayer(
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     val isWideScreen = configuration.screenWidthDp >= 600
     val context = LocalContext.current
-    val positionPair by VideoPlaybackManager.positionState.collectAsState()
-    val posMs = positionPair.first
-    val durMs = positionPair.second
 
     var showControls by remember { mutableStateOf(true) }
 
@@ -579,9 +631,12 @@ private fun VideoSurfaceWithControls(
     val context = LocalContext.current
     val audioManager = context.getSystemService(AudioManager::class.java)
     val activity = context as? android.app.Activity
-    val positionPair by VideoPlaybackManager.positionState.collectAsState()
-    val posMs = positionPair.first
-    val durMs = positionPair.second
+
+    // Duration is stable for the length of a track, so it is read once per track rather than
+    // every half second. Position is not read here at all: this composable holds the video
+    // surface, and any position state read in its scope would recompose the surface along with
+    // it. Consumers read position at draw time instead.
+    val durMs = VideoPlaybackManager.positionState.value.second
 
     val defaultBrightness: Float = runCatching {
         val value = android.provider.Settings.System.getInt(
@@ -632,11 +687,21 @@ private fun VideoSurfaceWithControls(
     val collapseFraction = if (useFullHeight) 0f else (collapseDragPx / 900f).coerceIn(0f, 0.75f)
 
     Box(
+        // A graphicsLayer directly above the video surface forces the whole subtree,
+        // SurfaceView included, through an offscreen render target for every frame. It is
+        // only needed while a collapse drag is in flight, so it is applied conditionally:
+        // at rest the layer is absent and SurfaceFlinger composites the surface directly.
         modifier = modifier
-            .graphicsLayer {
-                translationY = collapseDragPx
-                alpha = 1f - collapseFraction
-            }
+            .then(
+                if (collapseDragPx != 0f || collapseFraction != 0f) {
+                    Modifier.graphicsLayer {
+                        translationY = collapseDragPx
+                        alpha = 1f - collapseFraction
+                    }
+                } else {
+                    Modifier
+                }
+            )
             .pointerInput(Unit) {
                 detectTapGestures(
                     onTap = {
@@ -754,6 +819,9 @@ private fun VideoSurfaceWithControls(
                         .coerceIn(0L, durMs)
                 }
             }
+            // The surface is placed before the controls so it is drawn underneath. Controls
+            // overlay it with translucent gradients; the video surface itself is never wrapped
+            // in a clipping or transforming container.
     ) {
         AndroidVideoSurface(player, resizeModeOverride = uiState.resizeMode)
 
@@ -769,8 +837,6 @@ private fun VideoSurfaceWithControls(
             )
             PlayerBottomControls(
                 uiState = uiState,
-                posMs = posMs,
-                durMs = durMs,
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
         }
@@ -786,7 +852,7 @@ private fun VideoSurfaceWithControls(
         scrubPreviewMs?.let { preview ->
             SeekPreviewBadge(
                 previewMs = preview,
-                positionMs = posMs,
+                positionMs = VideoPlaybackManager.positionState.value.first,
                 isForward = isForward,
                 modifier = Modifier.align(Alignment.Center),
             )
@@ -904,10 +970,16 @@ private fun PlayerTopBar(
 @Composable
 private fun PlayerBottomControls(
     uiState: VideoPlaybackManager.UiState,
-    posMs: Long = VideoPlaybackManager.positionState.value.first,
-    durMs: Long = VideoPlaybackManager.positionState.value.second,
     modifier: Modifier = Modifier,
 ) {
+    // Position and duration arrive as getters rather than values. The manager publishes a
+    // fresh pair twice a second, and reading that state in composition would invalidate this
+    // whole controls subtree — including the video surface above it — on every tick. Reading
+    // through a getter at draw time confines the update to the two numbers that actually
+    // change: the elapsed label and the seek bar.
+    val posMs: () -> Long = { VideoPlaybackManager.positionState.value.first }
+    val durMs: () -> Long = { VideoPlaybackManager.positionState.value.second }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -992,7 +1064,7 @@ private fun PlayerBottomControls(
                 .padding(horizontal = 12.dp),
         ) {
             Text(
-                text = formatTime(posMs),
+                text = formatTime(posMs()),
                 style = MaterialTheme.typography.labelMedium,
                 color = Color.White.copy(alpha = 0.85f)
             )
@@ -1018,7 +1090,7 @@ private fun PlayerBottomControls(
             }
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = formatTime(durMs),
+                text = formatTime(durMs()),
                 style = MaterialTheme.typography.labelMedium,
                 color = Color.White.copy(alpha = 0.55f)
             )
@@ -1041,16 +1113,22 @@ private fun PlayerBottomControls(
  */
 @Composable
 private fun SlimSeekBar(
-    positionMs: Long,
-    durationMs: Long,
+    positionMs: () -> Long,
+    durationMs: () -> Long,
     onSeek: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val durationSeconds = durationMs.toFloat().coerceAtLeast(1f)
     var scrub by remember { mutableFloatStateOf(-1f) }
-    var trackWidthPx by remember { mutableIntStateOf(0) }
-    val effective = if (scrub >= 0f) scrub else positionMs.toFloat()
-    val progress = (effective / durationSeconds).coerceIn(0f, 1f)
+    val trackWidthPx = remember { mutableIntStateOf(0) }
+    // Sized off the composition: the track width only changes on rotation or resize, and the
+    // thumb reads it in the draw phase rather than recomposing on every progress tick.
+    // Rounded to whole seconds so a second-long position tick does not invalidate this bar on
+    // every publish. At a visible thumb size the sub-second movement is not perceptible, and
+    // the thumb still tracks smoothly because scrubbing overrides with a continuous value.
+    val positionSeconds = remember { derivedStateOf { positionMs() / 1000L } }.value
+    val durationSeconds = remember { derivedStateOf { (durationMs() / 1000L).toFloat().coerceAtLeast(1f) } }.value
+    val effective = if (scrub >= 0f) scrub else positionSeconds * 1000f
+    val progress = (effective / (durationSeconds * 1000f)).coerceIn(0f, 1f)
 
     val trackHeight = 3.dp
     val thumbSize = 13.dp
@@ -1058,7 +1136,7 @@ private fun SlimSeekBar(
     Box(
         modifier = modifier
             .height(20.dp)
-            .onSizeChanged { trackWidthPx = it.width }
+            .onSizeChanged { trackWidthPx.intValue = it.width }
             .pointerInput(durationSeconds) {
                 detectDragGestures(
                     onDragStart = { offset ->
@@ -1111,7 +1189,7 @@ private fun SlimSeekBar(
                 // without the blur shadow: this moves on every progress tick, and
                 // re-measuring plus re-blurring a shadow at 2Hz for a 13dp dot is
                 // not a good trade.
-                .graphicsLayer { translationX = ((trackWidthPx - thumbSize.toPx()) * progress) }
+                .graphicsLayer { translationX = ((trackWidthPx.intValue - thumbSize.toPx()) * progress) }
                 .size(thumbSize)
                 .clip(CircleShape)
                 .background(Color.White)
