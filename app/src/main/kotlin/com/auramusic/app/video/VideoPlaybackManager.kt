@@ -428,6 +428,11 @@ object VideoPlaybackManager {
             isBuffering = true,
             videoQuality = currentQuality,
             autoplayEnabled = currentAutoplay,
+            // Pre-set loading states so the UI shows spinners immediately. The async loaders
+            // (loadRecommendations, loadComments) skip their own redundant initial-state writes
+            // and go straight to writing final results, cutting two extra recompositions per load.
+            isLoadingRecommendations = true,
+            isLoadingComments = true,
         )
         // Rebuild the media notification immediately with the NEW video's metadata.
         // This closes the window where the shade would otherwise keep showing the
@@ -453,8 +458,11 @@ object VideoPlaybackManager {
         }
         scope.launch {
             // Enrich metadata (fills gaps for views/description/channel avatar), then load content.
-            enrichSessionMetadata(videoId)
-            loadRecommendations(videoId)
+            // enrichSessionMetadata returns the fetched watch page so loadRecommendations can
+            // reuse the already-cached response without locking the mutex a second time —
+            // this removes one extra _uiState.update recomposition at the start of every load.
+            val watchMetadata = enrichSessionMetadata(videoId)
+            loadRecommendations(videoId, prefetchedMetadata = watchMetadata)
             loadComments(videoId)
             // Load SponsorBlock segments for this video
             try {
@@ -495,14 +503,18 @@ object VideoPlaybackManager {
      * list item the user tapped wins; only blank fields get overwritten. Also seeds
      * the real channel avatar (separate from the video artwork), the current
      * like/dislike state from the watch button icon, and the locally-saved state.
+     *
+     * Returns the fetched WatchMetadataResponse so callers that also need it (e.g.
+     * loadRecommendations, which must run next) can reuse the already-cached value
+     * instead of locking the mutex again.
      */
-    private suspend fun enrichSessionMetadata(videoId: String) {
-        if (_uiState.value.session?.videoId != videoId) return
+    private suspend fun enrichSessionMetadata(videoId: String): WatchMetadataResponse? {
+        if (_uiState.value.session?.videoId != videoId) return null
         val metadata = fetchWatchMetadata(videoId)
         val savedIds = withContext(Dispatchers.IO) {
             currentContext?.let { it.dataStore[SavedVideoIdsKey] }.orEmpty()
         }
-        if (_uiState.value.session?.videoId != videoId) return
+        if (_uiState.value.session?.videoId != videoId) return metadata
         val likeState = metadata?.likeState() ?: WatchLikeState.NONE
         _uiState.update { state ->
             val session = state.session?.takeIf { it.videoId == videoId } ?: return@update state
@@ -535,15 +547,17 @@ object VideoPlaybackManager {
         // Record the enriched session into the local watch history (dedupes by id
         // and bumps it to the top so the Library mirrors YouTube's ordering).
         recordCurrentToHistory()
+        return metadata
     }
 
-    private suspend fun loadRecommendations(videoId: String) {
-        _uiState.update {
-            it.copy(isLoadingRecommendations = true, recommendations = emptyList(), queue = emptyList(), recommendationsContinuation = null)
-        }
+    private suspend fun loadRecommendations(videoId: String, prefetchedMetadata: WatchMetadataResponse? = null) {
+        // The isLoadingRecommendations=true + empty list state is already written by
+        // playWithDetails at the point it resets UiState, so skipping a redundant update
+        // here removes one spurious recomposition at the start of every video load.
 
         // Primary source: WEB watch page related videos (works for all YouTube videos).
-        val metadata = fetchWatchMetadata(videoId)
+        // Accept prefetched metadata from enrichSessionMetadata to avoid a second mutex lock.
+        val metadata = prefetchedMetadata ?: fetchWatchMetadata(videoId)
         val related = metadata?.relatedVideos().orEmpty()
         if (related.isNotEmpty()) {
             if (_uiState.value.session?.videoId != videoId) return
@@ -644,8 +658,14 @@ object VideoPlaybackManager {
         }
     }
 
-    private suspend fun loadComments(videoId: String) {
-        _uiState.update { it.copy(isLoadingComments = true, comments = emptyList(), commentsError = null, commentsContinuation = null) }
+    private suspend fun loadComments(videoId: String, resetState: Boolean = false) {
+        // When called from playWithDetails the UiState was already reset to empty comments /
+        // isLoadingComments=true, so a redundant update here causes a no-op recomposition.
+        // retryLoadingComments passes resetState=true to re-show the spinner when the user
+        // explicitly retries after an error.
+        if (resetState) {
+            _uiState.update { it.copy(isLoadingComments = true, comments = emptyList(), commentsError = null, commentsContinuation = null) }
+        }
         val result = withContext(Dispatchers.IO) {
             // The WEB comment feed is only reachable through the watch page's comments
             // continuation token, so resolve it first (reusing the cached watch page
@@ -672,7 +692,7 @@ object VideoPlaybackManager {
     /** Re-runs the comments fetch for the current video (drives the Retry button). */
     fun retryLoadingComments() {
         val videoId = _uiState.value.session?.videoId ?: return
-        scope.launch { loadComments(videoId) }
+        scope.launch { loadComments(videoId, resetState = true) }
     }
 
     /** Infinite scroll for the comments list. */
@@ -1131,6 +1151,19 @@ object VideoPlaybackManager {
     }
 
     /**
+     * Marks the overlay as minimized without opening the floating popup window or entering
+     * system PiP. Used when the PiP button fires: the caller handles the PiP transition
+     * directly, so all VideoPlaybackManager needs to do is drop the in-app expanded overlay.
+     */
+    fun minimizeForPictureInPicture() {
+        if (_uiState.value.isFullScreen) {
+            _uiState.update { it.copy(isFullScreen = false) }
+            applyOrientation(false)
+        }
+        _uiState.update { it.copy(minimized = true) }
+    }
+
+    /**
      * Records that the Activity has entered or left picture-in-picture.
      *
      * While set, the in-app overlay unmounts: the platform is already drawing the video into the
@@ -1173,14 +1206,22 @@ object VideoPlaybackManager {
         // Hand the orientation back before the player goes away, otherwise a
         // fullscreen video leaves the Activity locked in landscape.
         if (_uiState.value.isFullScreen) applyOrientation(false)
+        // Cancel the ticker first: it holds a reference to the player and reschedules
+        // itself every 500 ms, so releasing the player while it is mid-tick can produce
+        // a brief use-after-release on ExoPlayer's internal thread.
+        tickerJob?.cancel()
+        tickerJob = null
         player?.let { exo ->
             exo.removeListener(playerListener)
             exo.stop()
             exo.release()
         }
         player = null
-        tickerJob?.cancel()
-        tickerJob = null
+        // Ensure the display-on flag is cleared even when the composable tree is not
+        // recomposed (e.g. close() called from a notification action while the overlay
+        // is off-screen). The DisposableEffect in VideoPlayerOverlay handles it when the
+        // composable is alive; this is the safety net for every other code path.
+        activityRef?.get()?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         playedVideoIds.clear()
         releaseServiceController()
         currentContext?.applicationContext?.let { ctx ->

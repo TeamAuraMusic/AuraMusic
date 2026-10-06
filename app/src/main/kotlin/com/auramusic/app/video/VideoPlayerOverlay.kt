@@ -179,23 +179,39 @@ fun VideoPlayerOverlay(
     // tile is gone: it used to live in this window, right above the music bar.
     val onCollapseRequest: () -> Unit = { VideoPlaybackManager.collapse() }
 
-    // The top bar button floats the video over the app instead: the Activity keeps its full
-    // screen and stays usable while the video sits in a window on top. That window needs the
-    // "display over other apps" grant, so the first tap sends the user to the system toggle
-    // rather than failing silently.
+    // The PiP button enters the system picture-in-picture window directly, YouTube-style:
+    // the Activity shrinks into a floating overlay so the user can keep watching while using
+    // other apps. On Android 12+ setAutoEnterEnabled(true) covers the Home/Recents gesture
+    // automatically; this button is the explicit in-app trigger. If the device does not
+    // support system PiP the button falls back to the floating overlay window (requires the
+    // "draw over other apps" permission), and ultimately to collapse() as a last resort.
     val onPictureInPictureRequest: () -> Unit = {
         activity?.let { current ->
-            if (!VideoPopupWindow.isPermissionGranted(current)) {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O &&
+                VideoPictureInPicture.isSupported()
+            ) {
+                // Drop the in-app overlay first so the system PiP window is the only
+                // rendering surface. minimizeForPictureInPicture() sets minimized=true
+                // without opening the floating popup window — the PiP transition itself
+                // is started below. onPictureInPictureModeChanged will set
+                // inPictureInPicture=true once the system animation completes.
+                VideoPlaybackManager.minimizeForPictureInPicture()
+                VideoPictureInPicture.enter(
+                    current,
+                    state.videoAspectRatio,
+                    state.isPlaying,
+                )
+            } else if (VideoPopupWindow.isPermissionGranted(current)) {
+                VideoPopupWindow.show(current, player, state.videoAspectRatio)
+            } else {
                 VideoPopupWindow.requestPermission(current)
                 android.widget.Toast.makeText(
                     current,
                     R.string.video_player_float_permission,
                     android.widget.Toast.LENGTH_LONG,
                 ).show()
-            } else {
-                VideoPopupWindow.show(current, player, state.videoAspectRatio)
             }
-        }
+        } ?: VideoPlaybackManager.collapse()
     }
 
     BackHandler(

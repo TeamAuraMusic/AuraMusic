@@ -204,6 +204,9 @@ object VideoPopupWindow {
 
     private fun detach() {
         val view = root ?: return
+        // Null the player first: this releases the video surface so the next PlayerView
+        // to attach (e.g. the in-app overlay on expand) gets the surface immediately
+        // without competing with the popup's lingering SurfaceView.
         playerView?.player = null
         runCatching { windowManager?.removeView(view) }
         root = null
