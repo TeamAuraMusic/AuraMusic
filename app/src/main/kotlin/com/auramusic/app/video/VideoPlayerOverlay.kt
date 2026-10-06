@@ -80,6 +80,8 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -138,19 +140,22 @@ fun VideoPlayerOverlay(
     // PlayerView attached to the same player, so it is torn down entirely for the duration.
     if (state.inPictureInPicture) return
     val session = state.session ?: return
-    // When a music session takes over (video paused via giveWayToMusic), the video
-    // player and its mini tile fully disappear — mirror of video playback hiding the
-    // music mini player. The video session stays alive underneath so a later play
-    // (or history reselect) can start it again.
-    if (state.hiddenByMusic) return
+    // When music takes over the video is paused and its tile has to go. Returning here used to
+    // be the whole handoff: the surface, the player view and the expanded player were all
+    // disposed in the same frame that the audio switch, two notifications and the queue save
+    // were already running in. The subtree now fades out first, which both looks intentional
+    // and moves surface teardown off the frame where music starts.
 
     val context = LocalContext.current
     val player = VideoPlaybackManager.playerOrNull() ?: return
     val activity = context as? android.app.Activity
 
-    DisposableEffect(activity, state.minimized) {
-        if (activity != null && !state.minimized) {
-            activity.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    // The overlay covers the whole screen while expanded, so it must not keep the display
+    // awake or swallow the back gesture once music has taken over.
+    DisposableEffect(activity, state.minimized, state.hiddenByMusic) {
+        val keepScreenOn = activity != null && !state.minimized && !state.hiddenByMusic
+        if (keepScreenOn) {
+            activity!!.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         } else {
             activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
@@ -159,58 +164,74 @@ fun VideoPlayerOverlay(
         }
     }
 
-    // Collapsing hands the video to a picture-in-picture window instead of dropping it into the
-    // floating tile, so leaving the expanded player keeps playback visible. Devices without PiP
-    // fall back to the tile. Whether PiP is available cannot change while the overlay is
-    // composed, so it is captured once rather than recomputed per keystroke.
+    // Minimising collapses into the floating tile that lives inside this app's own window, so
+    // the app stays full screen underneath it. It deliberately does not hand the video to the
+    // system: entering picture-in-picture shrinks the *whole Activity*, launcher and all, which
+    // is a very different gesture. The system window is only asked for when the user actually
+    // leaves the app (MainActivity.onUserLeaveHint) or presses the PiP button in the top bar.
     val pipAvailable = remember { VideoPictureInPicture.isSupported() }
-    val onCollapseRequest: () -> Unit = {
-        val entered = pipAvailable && activity?.let {
-            VideoPictureInPicture.enter(it, state.videoAspectRatio, state.isPlaying)
-        } == true
-        if (!entered) VideoPlaybackManager.collapse()
+    val onCollapseRequest: () -> Unit = { VideoPlaybackManager.collapse() }
+    val onPictureInPictureRequest: () -> Unit = {
+        if (pipAvailable) {
+            activity?.let {
+                VideoPictureInPicture.enter(it, state.videoAspectRatio, state.isPlaying)
+            }
+        }
     }
 
-    BackHandler(enabled = !state.minimized, onBack = onCollapseRequest)
+    BackHandler(
+        enabled = !state.minimized && !state.hiddenByMusic,
+        onBack = onCollapseRequest,
+    )
 
-    AnimatedContent(
-        targetState = state.minimized,
-        transitionSpec = {
-            if (targetState) {
-                (fadeIn(tween(200)) + scaleIn(tween(260))).togetherWith(fadeOut(tween(140)) + scaleOut(tween(200)))
-            } else {
-                (fadeIn(tween(220)) + scaleIn(tween(300))).togetherWith(fadeOut(tween(160)))
-            }
-        },
-        label = "videoPlayerState"
-    ) { minimized ->
-        if (minimized) {
-            VideoMinimizedTile(
-                player = player,
-                onExpand = { VideoPlaybackManager.expand() },
-                onClose = { VideoPlaybackManager.close() },
-                onChannelClick = onChannelClick,
-            )
-        } else {
-            // Navigating to a channel while expanded would leave the full-screen
-            // overlay covering it, so minimize the player first so the channel
-            // screen is actually visible.
-            val expandedChannelClick: ((String) -> Unit)? = onChannelClick?.let { click ->
-                { channelId ->
-                    // Collapse fully to the tile: the channel screen has to be reachable behind
-                    // the video, and a PiP window would keep floating over it.
-                    VideoPlaybackManager.collapse()
-                    click(channelId)
+    AnimatedVisibility(
+        visible = !state.hiddenByMusic,
+        enter = fadeIn(tween(220)) + scaleIn(tween(300)),
+        exit = fadeOut(tween(200)) + scaleOut(tween(200)),
+        label = "videoOverlayVisible",
+    ) {
+        AnimatedContent(
+            // Held on "expanded" while the overlay is on its way out so the fade does not
+            // also cross-fade to the mini tile.
+            targetState = state.minimized && !state.hiddenByMusic,
+            transitionSpec = {
+                if (targetState) {
+                    (fadeIn(tween(200)) + scaleIn(tween(260))).togetherWith(fadeOut(tween(140)) + scaleOut(tween(200)))
+                } else {
+                    (fadeIn(tween(220)) + scaleIn(tween(300))).togetherWith(fadeOut(tween(160)))
                 }
+            },
+            label = "videoPlayerState"
+        ) { minimized ->
+            if (minimized) {
+                VideoMinimizedTile(
+                    player = player,
+                    onExpand = { VideoPlaybackManager.expand() },
+                    onClose = { VideoPlaybackManager.close() },
+                    onChannelClick = onChannelClick,
+                )
+            } else {
+                // Navigating to a channel while expanded would leave the full-screen
+                // overlay covering it, so minimize the player first so the channel
+                // screen is actually visible.
+                val expandedChannelClick: ((String) -> Unit)? = onChannelClick?.let { click ->
+                    { channelId ->
+                        // Collapse fully to the tile: the channel screen has to be reachable behind
+                        // the video, and a PiP window would keep floating over it.
+                        VideoPlaybackManager.collapse()
+                        click(channelId)
+                    }
+                }
+                VideoExpandedPlayer(
+                    player = player,
+                    session = session,
+                    uiState = state,
+                    onCollapse = onCollapseRequest,
+                    onClose = { VideoPlaybackManager.close() },
+                    onChannelClick = expandedChannelClick,
+                    onPictureInPicture = if (pipAvailable) onPictureInPictureRequest else null,
+                )
             }
-            VideoExpandedPlayer(
-                player = player,
-                session = session,
-                uiState = state,
-                onCollapse = onCollapseRequest,
-                onClose = { VideoPlaybackManager.close() },
-                onChannelClick = expandedChannelClick,
-            )
         }
     }
 }
@@ -482,6 +503,7 @@ private fun VideoExpandedPlayer(
     onCollapse: () -> Unit,
     onClose: () -> Unit,
     onChannelClick: ((String) -> Unit)?,
+    onPictureInPicture: (() -> Unit)? = null,
 ) {
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
@@ -489,13 +511,6 @@ private fun VideoExpandedPlayer(
     val context = LocalContext.current
 
     var showControls by remember { mutableStateOf(true) }
-
-    LaunchedEffect(uiState.isPlaying, showControls) {
-        if (uiState.isPlaying && showControls) {
-            delay(3000)
-            showControls = false
-        }
-    }
 
     Box(
         modifier = Modifier
@@ -518,9 +533,10 @@ private fun VideoExpandedPlayer(
                     session = session,
                     uiState = uiState,
                     showControls = showControls,
-                    onToggleControls = { showControls = !showControls },
+                    onControlsChange = { showControls = it },
                     onCollapse = onCollapse,
                     onClose = onClose,
+                    onPictureInPicture = onPictureInPicture,
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(16f / 9f),
@@ -548,9 +564,10 @@ private fun VideoExpandedPlayer(
                     session = session,
                     uiState = uiState,
                     showControls = showControls,
-                    onToggleControls = { showControls = !showControls },
+                    onControlsChange = { showControls = it },
                     onCollapse = onCollapse,
                     onClose = onClose,
+                    onPictureInPicture = onPictureInPicture,
                     modifier = Modifier.fillMaxSize(),
                     useFullHeight = true,
                     onChannelClick = onChannelClick,
@@ -578,9 +595,10 @@ private fun VideoExpandedPlayer(
                     session = session,
                     uiState = uiState,
                     showControls = showControls,
-                    onToggleControls = { showControls = !showControls },
+                    onControlsChange = { showControls = it },
                     onCollapse = onCollapse,
                     onClose = onClose,
+                    onPictureInPicture = onPictureInPicture,
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(16f / 12f),
@@ -619,12 +637,13 @@ private fun VideoSurfaceWithControls(
     session: VideoPlaybackManager.VideoSession,
     uiState: VideoPlaybackManager.UiState,
     showControls: Boolean,
-    onToggleControls: () -> Unit,
+    onControlsChange: (Boolean) -> Unit,
     onCollapse: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
     useFullHeight: Boolean,
     onChannelClick: ((String) -> Unit)? = null,
+    onPictureInPicture: (() -> Unit)? = null,
 ) {
     val haptic = LocalHapticFeedback.current
     val density = LocalDensity.current
@@ -655,6 +674,33 @@ private fun VideoSurfaceWithControls(
     }
     val seekForwardLabel = stringResource(R.string.seek_forward_dynamic)
     val seekBackwardLabel = stringResource(R.string.seek_backward_dynamic)
+
+    // When the controls were last touched. Keying the auto-hide timer on this means every
+    // interaction restarts the window declaratively; a plain "delay then hide" effect would
+    // keep counting from whenever the controls were revealed and could fire mid-gesture.
+    var lastInteractionMs by remember {
+        mutableLongStateOf(android.os.SystemClock.elapsedRealtime())
+    }
+    // Held through rememberUpdatedState because pointerInput's keys do not include them: the
+    // gesture lambdas run once and would otherwise keep calling the first composition's
+    // closures, so a second tap would consult a stale visibility.
+    val noteInteraction by rememberUpdatedState(
+        { lastInteractionMs = android.os.SystemClock.elapsedRealtime() },
+    )
+    val currentShowControls by rememberUpdatedState(showControls)
+    val currentOnControlsChange by rememberUpdatedState(onControlsChange)
+
+    // A scrub or a brightness/volume drag is in progress. The controls must not vanish
+    // underneath the user's finger, so the auto-hide timer stands down for its duration.
+    val isInteracting = scrubPreviewMs != null || adjustPreview != null
+
+    LaunchedEffect(showControls, uiState.isPlaying, isInteracting, lastInteractionMs) {
+        if (!showControls || !uiState.isPlaying || isInteracting) return@LaunchedEffect
+        val remaining = AUTO_HIDE_CONTROLS_MS -
+            (android.os.SystemClock.elapsedRealtime() - lastInteractionMs)
+        if (remaining > 0) delay(remaining)
+        currentOnControlsChange(false)
+    }
 
     // Restore system brightness when leaving the expanded player so the window
     // brightness override set by the vertical gesture doesn't persist.
@@ -705,19 +751,21 @@ private fun VideoSurfaceWithControls(
             .pointerInput(Unit) {
                 detectTapGestures(
                     onTap = {
-                        onToggleControls()
-                        if (!showControls) {
+                        noteInteraction()
+                        onControlsChange(!currentShowControls)
+                        if (!currentShowControls) {
                             haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                         }
                     },
                     onDoubleTap = { offset ->
+                        noteInteraction()
                         val side = when {
                             offset.x < size.width / 3 -> -1
                             offset.x > size.width * 2 / 3 -> 1
                             else -> 0
                         }
                         if (side == 0) {
-                            onToggleControls()
+                            onControlsChange(!currentShowControls)
                         } else {
                             val (currentPos, currentDur) = VideoPlaybackManager.positionState.value
                             val target = (currentPos + side * 10_000L)
@@ -734,6 +782,7 @@ private fun VideoSurfaceWithControls(
                 var dragMode = DragMode.NONE
                 detectVerticalDragGestures(
                     onDragStart = { offset ->
+                        noteInteraction()
                         dragMode = when {
                             offset.x < size.width / 3f -> DragMode.BRIGHTNESS
                             offset.x > size.width * 2f / 3f -> DragMode.VOLUME
@@ -742,6 +791,7 @@ private fun VideoSurfaceWithControls(
                         }
                     },
                     onDragEnd = {
+                        noteInteraction()
                         when (dragMode) {
                             DragMode.COLLAPSE -> {
                                 if (collapseDragPx > with(density) { 120.dp.toPx() }) onCollapse() else collapseDragPx = 0f
@@ -751,6 +801,7 @@ private fun VideoSurfaceWithControls(
                         dragMode = DragMode.NONE
                     },
                     onDragCancel = {
+                        noteInteraction()
                         collapseDragPx = 0f
                         dragMode = DragMode.NONE
                     },
@@ -802,13 +853,16 @@ private fun VideoSurfaceWithControls(
                 var dragBaseMs = 0L
                 detectHorizontalDragGestures(
                     onDragStart = {
+                        noteInteraction()
                         dragBaseMs = VideoPlaybackManager.positionState.value.first
                     },
                     onDragEnd = {
+                        noteInteraction()
                         scrubPreviewMs?.let { VideoPlaybackManager.seekTo(it) }
                         scrubPreviewMs = null
                     },
                     onDragCancel = {
+                        noteInteraction()
                         scrubPreviewMs = null
                     },
                 ) { change, dragAmount ->
@@ -829,6 +883,7 @@ private fun VideoSurfaceWithControls(
             PlayerTopBar(
                 onCollapse = onCollapse,
                 onClose = onClose,
+                onPictureInPicture = onPictureInPicture,
                 title = session.title,
                 channelName = session.channelName,
                 channelId = session.channelId,
@@ -877,6 +932,7 @@ private fun PlayerTopBar(
     channelName: String,
     channelId: String? = null,
     modifier: Modifier = Modifier,
+    onPictureInPicture: (() -> Unit)? = null,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -946,6 +1002,24 @@ private fun PlayerTopBar(
                     modifier = Modifier.size(20.dp),
                     tint = Color.White
                 )
+            }
+        }
+        Spacer(modifier = Modifier.width(8.dp))
+        if (onPictureInPicture != null) {
+            Surface(
+                onClick = onPictureInPicture,
+                shape = CircleShape,
+                color = Color.Black.copy(alpha = 0.45f),
+                modifier = Modifier.size(40.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        painter = painterResource(R.drawable.picture_in_picture),
+                        contentDescription = stringResource(R.string.video_player_pip),
+                        modifier = Modifier.size(20.dp),
+                        tint = Color.White
+                    )
+                }
             }
         }
         Spacer(modifier = Modifier.width(8.dp))
@@ -1266,6 +1340,9 @@ private fun SeekPreviewBadge(
         }
     }
 }
+
+/** How long the controls stay up after the last touch on the video. */
+private const val AUTO_HIDE_CONTROLS_MS = 3_000L
 
 private enum class DragMode { NONE, BRIGHTNESS, VOLUME, COLLAPSE }
 
@@ -2504,7 +2581,12 @@ private fun AndroidVideoSurface(player: ExoPlayer, resizeModeOverride: Int) {
             }
         },
         update = { view ->
-            view.player = player
+            // Only rebind when something actually changed. Handing PlayerView the same player
+            // again makes it rebuild its component listeners and surface plumbing, which is
+            // pure work: this update runs on every recomposition of the surface.
+            if (view.player !== player) {
+                view.player = player
+            }
             if (view.resizeMode != resizeModeOverride) {
                 view.resizeMode = resizeModeOverride
             }

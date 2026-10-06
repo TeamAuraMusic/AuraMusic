@@ -5,6 +5,8 @@ import android.content.ClipboardManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.os.Handler
+import android.os.Looper
 import android.widget.Toast
 import androidx.annotation.OptIn
 import androidx.media3.common.C
@@ -60,6 +62,7 @@ import com.auramusic.innertube.models.response.WatchLikeState
 import com.auramusic.innertube.models.response.YoutubeComment
 import com.google.common.util.concurrent.ListenableFuture
 import timber.log.Timber
+import java.util.concurrent.atomic.AtomicLong
 import com.google.common.util.concurrent.MoreExecutors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -203,8 +206,35 @@ object VideoPlaybackManager {
         .distinctUntilChanged()
         .stateIn(scope, SharingStarted.Eagerly, false)
 
+    /**
+     * Whether the video overlay is on screen at all - mini tile or expanded player.
+     *
+     * [isMiniPlayerVisible] alone is not enough for layout: while a video is expanded it covers
+     * the whole screen, so the music mini player stays out of the way even though no tile is
+     * showing. Both are derived and distinct so a transition produces exactly one layout pass
+     * instead of the tile and the music bar each moving the bottom inset in its own frame.
+     */
+    val isOverlayVisible: StateFlow<Boolean> = _uiState
+        .map { it.session != null && !it.hiddenByMusic }
+        .distinctUntilChanged()
+        .stateIn(scope, SharingStarted.Eagerly, false)
+
     private var player: ExoPlayer? = null
     private var tickerJob: Job? = null
+
+    /**
+     * Bumped whenever video takes the screen back from music.
+     *
+     * [giveWayToMusic] defers its service teardown by a frame so the visible state change gets to
+     * draw first. If playback is restarted before that runs, the queued teardown would kill the
+     * service the new playback just brought up, so the deferred block checks this first.
+     */
+    private val handoffGeneration = AtomicLong()
+
+    /** Runs [block] on the main thread after the message currently being handled. */
+    private fun afterCurrentMessage(block: () -> Unit) {
+        Handler(Looper.getMainLooper()).post { block() }
+    }
 
     // SponsorBlock integration for video playback
     var sponsorBlockManager: com.auramusic.app.sponsorblock.SponsorBlockManager? = null
@@ -338,6 +368,9 @@ object VideoPlaybackManager {
      * it down - an explicit action removes the notification instead.
      */
     private fun handOverFromMusic(context: Context) {
+        // Video is taking the screen back, so any teardown queued by an earlier giveWayToMusic
+        // is now stale and must not run against the service this function is about to start.
+        handoffGeneration.incrementAndGet()
         val appContext = context.applicationContext
         if (MusicService.isRunning) {
             try {
@@ -854,12 +887,22 @@ object VideoPlaybackManager {
         }
         _uiState.update { it.copy(isPlaying = false, minimized = true, hiddenByMusic = true) }
         val ctx = context.applicationContext
-        // Remove the video notification and drop the connected controller (mirroring
-        // close()) so a later resume reconnects and brings the notification back.
-        VideoPlaybackService.stop(ctx)
-        releaseServiceController()
-        // Lift the music service's takeover guard so it can post its notification.
-        if (MusicService.isRunning) MusicService.resumeFromVideo(ctx)
+
+        // Everything above is what the user actually sees, and it is done. The teardown below
+        // cancels one foreground service, releases its media session and starts another one,
+        // each of which queues more main-thread work; doing that inside the music player's
+        // listener callback is what made this handoff hitch. Deferring it a message lets the
+        // state change reach the screen first.
+        val generation = handoffGeneration.incrementAndGet()
+        afterCurrentMessage {
+            if (generation != handoffGeneration.get()) return@afterCurrentMessage
+            // Remove the video notification and drop the connected controller (mirroring
+            // close()) so a later resume reconnects and brings the notification back.
+            VideoPlaybackService.stop(ctx)
+            releaseServiceController()
+            // Lift the music service's takeover guard so it can post its notification.
+            if (MusicService.isRunning) MusicService.resumeFromVideo(ctx)
+        }
     }
 
     fun seekTo(positionMs: Long) {
@@ -1242,31 +1285,50 @@ object VideoPlaybackManager {
             var ticks = 0
             while (isActive) {
                 val exo = player
-                if (exo != null && _uiState.value.session != null) {
-                    val pos = exo.currentPosition
-                    val dur = if (exo.duration > 0) exo.duration else 0
-                    // Progress is published through _positionState only. It used to be
-                    // copied into uiState every ~2s as well, but uiState is collected
-                    // wholesale by MainActivity, the video overlay and the shorts
-                    // pager, so every copy invalidated the entire composition while a
-                    // video was playing - that is what made scrolling the pager and
-                    // moving between screens stutter. _positionState is the
-                    // high-frequency channel the UI reads for smooth progress.
-                    _positionState.value = pos to dur
+                val state = _uiState.value
+                if (exo == null || state.session == null) {
+                    delay(IDLE_TICK_MS)
+                    continue
+                }
+                // While music owns the screen the overlay is unmounted, so nobody reads
+                // progress, and the video is paused so the playhead is not moving. Polling
+                // here would only wake the main thread for a value nobody observes.
+                if (state.hiddenByMusic) {
+                    delay(IDLE_TICK_MS)
+                    continue
+                }
+
+                val pos = exo.currentPosition
+                val dur = if (exo.duration > 0) exo.duration else 0
+                // Progress is published through _positionState only. It used to be
+                // copied into uiState every ~2s as well, but uiState is collected
+                // wholesale by MainActivity, the video overlay and the shorts
+                // pager, so every copy invalidated the entire composition while a
+                // video was playing - that is what made scrolling the pager and
+                // moving between screens stutter. _positionState is the
+                // high-frequency channel the UI reads for smooth progress.
+                _positionState.value = pos to dur
+
+                if (state.isPlaying) {
                     // Persist watch position to the video history every ~10s while
                     // actually playing (ticker fires every 500ms).
-                    if (_uiState.value.isPlaying && ++ticks % 20 == 0) {
+                    if (++ticks % 20 == 0) {
                         recordCurrentToHistory()
                     }
                     // SponsorBlock: auto-skip segments during video playback
-                    if (_uiState.value.isPlaying && dur > 0) {
-                        val skipTo = sponsorBlockManager?.findSkipTarget(pos, exo.playbackParameters.speed)
+                    if (dur > 0) {
+                        val skipTo =
+                            sponsorBlockManager?.findSkipTarget(pos, exo.playbackParameters.speed)
                         if (skipTo != null && skipTo > pos) {
                             exo.seekTo(skipTo)
                         }
                     }
+                    delay(ACTIVE_TICK_MS)
+                } else {
+                    // Paused: the playhead is not moving, so there is nothing to redraw
+                    // faster than once a second.
+                    delay(IDLE_TICK_MS)
                 }
-                delay(500)
             }
         }
     }
@@ -1427,6 +1489,12 @@ object VideoPlaybackManager {
 }
 
 private const val MAX_VIDEO_HISTORY_ENTRIES = 100
+
+/** How often playback progress is published while the playhead is actually moving. */
+private const val ACTIVE_TICK_MS = 500L
+
+/** How often the ticker wakes when there is nothing on screen to redraw for it. */
+private const val IDLE_TICK_MS = 1_000L
 
 private fun parseVideoHistory(json: String?): List<VideoPlaybackManager.VideoHistoryEntry> {
     if (json.isNullOrBlank()) return emptyList()

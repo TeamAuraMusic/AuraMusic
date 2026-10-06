@@ -278,7 +278,12 @@ private fun ShortsPlayerSurface(player: ExoPlayer) {
             }
         },
         update = { view ->
-            view.player = player
+            // Only rebind when the player actually changed; handing PlayerView the same
+            // instance rebuilds its component listeners for nothing, and this block runs on
+            // every recomposition of the page.
+            if (view.player !== player) {
+                view.player = player
+            }
         },
         onRelease = { view ->
             // Detach from the player. media3's PlayerView registers itself as a

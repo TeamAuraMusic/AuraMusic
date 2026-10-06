@@ -102,6 +102,8 @@ import com.auramusic.app.video.VideoPlaybackManager
 import com.auramusic.innertube.YouTube
 import com.auramusic.innertube.models.YouTubeVideoItem
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -139,6 +141,16 @@ fun VideosScreen(
     val personalSections by recommendationManager.sections.collectAsState()
     val isLoadingPersonal by recommendationManager.isLoading.collectAsState()
 
+    // Read once here rather than per row: reading uiState.value inside the items lambdas is
+    // not a snapshot read, so the "now playing" highlight never updated until something else
+    // happened to recompose the list.
+    val nowPlayingVideoId by remember {
+        VideoPlaybackManager.uiState
+            .map { it.session?.videoId }
+            .distinctUntilChanged()
+    }.collectAsState(initial = VideoPlaybackManager.uiState.value.session?.videoId)
+    val isCurrentlyPlaying: (String) -> Boolean = { it == nowPlayingVideoId }
+
     var feed by remember { mutableStateOf<List<YouTubeVideoItem>>(emptyList()) }
     var continuation by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(true) }
@@ -162,8 +174,10 @@ fun VideosScreen(
                 VideoCategory.Personal -> null
             }
             if (result != null && result.items.isNotEmpty()) {
-                // Only keep what YouTube itself reports as music.
+                // Only keep what YouTube itself reports as music, and drop repeats within the
+                // page: the grid keys rows by video id and a duplicate throws at runtime.
                 feed = com.auramusic.app.video.MusicContentFilter.filter(result.items)
+                    .distinctBy { it.videoId }
                 continuation = result.continuation
                 error = null
             } else if (showError) {
@@ -407,8 +421,8 @@ else -> {
                                 modifier = Modifier.fillMaxSize(),
                                 contentPadding = PaddingValues(vertical = 4.dp)
                             ) {
-                                personalSections.forEach { section ->
-                                    item(key = "section_${section.title}") {
+                                personalSections.forEachIndexed { sectionIndex, section ->
+                                    item(key = "section_${sectionIndex}_${section.title}") {
                                         Column(modifier = Modifier.padding(top = 8.dp)) {
                                             Text(
                                                 text = section.title,
@@ -421,7 +435,7 @@ else -> {
                                     }
                                     items(
                                         items = section.videos,
-                                        key = { "video_${it.videoId}" }
+                                        key = { "section${sectionIndex}_video_${it.videoId}" }
                                     ) { video ->
                                         FeedVideoListRow(
                                             video = video,
@@ -856,10 +870,6 @@ internal fun NowPlayingBars(color: Color, modifier: Modifier = Modifier) {
     }
 }
 
-private fun isCurrentlyPlaying(videoId: String): Boolean {
-    val state = VideoPlaybackManager.uiState.value
-    return state.session?.videoId == videoId
-}
 
 @Composable
 internal fun ChannelAvatar(

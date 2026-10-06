@@ -213,6 +213,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import androidx.datastore.preferences.core.edit
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -799,24 +800,42 @@ class MainActivity : ComponentActivity() {
                     expandedBound = maxHeight,
                 )
 
-                // Observe only this derived boolean. This used to collect the whole
+                // Observe only these derived booleans. This used to collect the whole
                 // VideoPlaybackManager.uiState, which sits above every screen, so the
                 // video player's progress tick recomposed the entire activity.
-                val videoMiniVisible by VideoPlaybackManager.isMiniPlayerVisible.collectAsState()
+                val videoTileVisible by VideoPlaybackManager.isMiniPlayerVisible.collectAsState()
+                val videoOverlayVisible by VideoPlaybackManager.isOverlayVisible.collectAsState()
+
+                // Whether music has anything to show. Read from the track itself rather than
+                // from the sheet's anchor so the bottom inset can flip in the same frame as the
+                // video overlay instead of waiting a frame for an effect to move the sheet.
+                val musicHasTrack by remember(playerConnection) {
+                    playerConnection?.mediaMetadata
+                        ?.map { it != null }
+                        ?.distinctUntilChanged()
+                        ?: MutableStateFlow(false)
+                }.collectAsState(initial = false)
 
                 val playerAwareWindowInsets = remember(
                     bottomInset,
                     shouldShowNavigationBar,
-                    playerBottomSheetState.isDismissed,
                     showRail,
-                    videoMiniVisible,
+                    videoTileVisible,
+                    videoOverlayVisible,
+                    musicHasTrack,
                 ) {
                     var bottom = bottomInset
                     if (shouldShowNavigationBar && !showRail) {
                         bottom += NavigationBarHeight
                     }
-                    if (!playerBottomSheetState.isDismissed) bottom += MiniPlayerHeight
-                    if (videoMiniVisible) bottom += VideoMiniPlayerHeight + MiniPlayerBottomSpacing
+                    when {
+                        // The video tile sits on top of everything at the bottom of the screen.
+                        videoTileVisible ->
+                            bottom += VideoMiniPlayerHeight + MiniPlayerBottomSpacing
+                        // An expanded video covers the screen and hides the music bar entirely.
+                        videoOverlayVisible -> Unit
+                        musicHasTrack -> bottom += MiniPlayerHeight
+                    }
                     windowsInsets
                         .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)
                         .add(WindowInsets(top = AppBarHeight, bottom = bottom))
@@ -873,20 +892,31 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                LaunchedEffect(playerConnection) {
-                    val player = playerConnection?.player ?: return@LaunchedEffect
-                    if (player.currentMediaItem == null) {
-                        if (!playerBottomSheetState.isDismissed) {
-                            playerBottomSheetState.dismiss()
+                // The video overlay and the music mini player take turns owning the bottom of
+                // the screen. Both directions are handled by one effect keyed on that single
+                // flag: the bar used to be dismissed when a video started but restored from an
+                // unrelated path, so it sometimes never came back after video handed over to
+                // music, and the two state changes landed in different frames.
+                LaunchedEffect(playerConnection, videoOverlayVisible) {
+                    val musicPlayer = playerConnection?.player
+                    when {
+                        videoOverlayVisible -> {
+                            musicPlayer?.pause()
+                            if (!playerBottomSheetState.isDismissed) {
+                                playerBottomSheetState.dismiss()
+                            }
                         }
-                    } else {
-                        if (playerBottomSheetState.isDismissed) {
-                            playerBottomSheetState.collapseSoft()
+                        musicPlayer == null -> Unit
+                        musicPlayer.currentMediaItem == null -> {
+                            if (!playerBottomSheetState.isDismissed) {
+                                playerBottomSheetState.dismiss()
+                            }
                         }
+                        playerBottomSheetState.isDismissed -> playerBottomSheetState.collapseSoft()
                     }
                 }
 
-                DisposableEffect(playerConnection, playerBottomSheetState) {
+                DisposableEffect(playerConnection, playerBottomSheetState, videoOverlayVisible) {
                     val player = playerConnection?.player ?: return@DisposableEffect onDispose { }
                     val listener = object : Player.Listener {
                         override fun onMediaItemTransition(
@@ -895,6 +925,7 @@ class MainActivity : ComponentActivity() {
                         ) {
                             if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED &&
                                 mediaItem != null &&
+                                !videoOverlayVisible &&
                                 playerBottomSheetState.isDismissed
                             ) {
                                 playerBottomSheetState.collapseSoft()
@@ -904,25 +935,6 @@ class MainActivity : ComponentActivity() {
                     player.addListener(listener)
                     onDispose {
                         player.removeListener(listener)
-                    }
-                }
-
-                // When a video starts, the music miniplayer must exit so the video
-                // miniplayer can take its place at the bottom of the screen. Pause the
-                // music player too so both states don't keep producing audio at once.
-                // Keyed on the video id, not the whole session object, so progress
-                // ticks cannot re-trigger this.
-                val activeVideoId by remember {
-                    VideoPlaybackManager.uiState
-                        .map { it.session?.videoId }
-                        .distinctUntilChanged()
-                }.collectAsState(initial = VideoPlaybackManager.uiState.value.session?.videoId)
-                LaunchedEffect(activeVideoId) {
-                    if (activeVideoId != null) {
-                        playerConnection?.player?.pause()
-                        if (!playerBottomSheetState.isDismissed) {
-                            playerBottomSheetState.dismiss()
-                        }
                     }
                 }
 

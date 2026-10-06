@@ -51,6 +51,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -96,6 +97,8 @@ import com.auramusic.innertube.models.YouTubeVideoItem
 import com.valentinilk.shimmer.shimmer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.URLDecoder
@@ -165,7 +168,19 @@ fun VideoSearchScreen(
     var allResults by remember { mutableStateOf<List<YouTubeSearchResultItem>>(emptyList()) }
     var suggestions by remember { mutableStateOf<List<String>>(emptyList()) }
     var continuation by remember { mutableStateOf<String?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
+    // Only start in the loading state when there is actually a query to run. With no query
+    // the shimmer branch would otherwise be taken forever, so recents and suggestions - which
+    // are the whole point of the empty search screen - could never be reached.
+    var isLoading by remember { mutableStateOf(initialQuery.isNotEmpty()) }
+    // Read once here rather than inside each row: reading uiState.value during composition
+    // is not a snapshot read, so the "now playing" highlight would only update on the next
+    // unrelated recomposition - i.e. when the list happened to scroll.
+    val nowPlayingVideoId by remember {
+        VideoPlaybackManager.uiState
+            .map { it.session?.videoId }
+            .distinctUntilChanged()
+    }.collectAsState(initial = VideoPlaybackManager.uiState.value.session?.videoId)
+    val isCurrentVideoPlaying: (String?) -> Boolean = { it != null && it == nowPlayingVideoId }
     var isLoadingMore by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var hasSearched by remember { mutableStateOf(initialQuery.isNotEmpty()) }
@@ -218,8 +233,14 @@ fun VideoSearchScreen(
         withContext(Dispatchers.IO) {
             YouTube.youtubeSearchContinuation(cont).fold(
                 onSuccess = { result ->
-                    allResults = allResults + MusicSearchFilter.filter(result.items)
-                    continuation = result.continuation
+                    // Continuation pages repeat items. Dedupe on the same keys the grid
+                    // uses: duplicates throw in LazyVerticalGrid, and a page made up
+                    // entirely of repeats would otherwise loop forever.
+                    val seen = allResults.mapTo(HashSet(), YouTubeSearchResultItem::key)
+                    val fresh = MusicSearchFilter.filter(result.items)
+                        .filter { seen.add(it.key()) }
+                    allResults = allResults + fresh
+                    continuation = if (fresh.isEmpty()) null else result.continuation
                 },
                 onFailure = { /* keep what we have */ }
             )
@@ -532,11 +553,11 @@ fun VideoSearchScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                     ) {
-                        grouped.forEach { section ->
+                        grouped.forEachIndexed { sectionIndex, section ->
                             val isHero = section.titleRes == R.string.search_section_top_result
                             if (!isHero) {
                                 item(
-                                    key = "section_${section.titleRes}",
+                                    key = "section_${sectionIndex}_${section.titleRes}",
                                     span = { GridItemSpan(maxLineSpan) },
                                 ) {
                                     SearchSectionHeader(titleRes = section.titleRes)
@@ -546,7 +567,7 @@ fun VideoSearchScreen(
                                 val isGridVideo = result is YouTubeSearchResultItem.Video && !isHero && gridView
                                 val isListVideo = result is YouTubeSearchResultItem.Video && !isHero && !gridView
                                 item(
-                                    key = result.key() + (if (isHero) "_${index}" else ""),
+                                    key = "s${sectionIndex}:" + result.key() + (if (isHero) "_${index}" else ""),
                                     span = {
                                         if (isGridVideo) GridItemSpan(1)
                                         else if (isListVideo) GridItemSpan(maxLineSpan)
@@ -1063,11 +1084,6 @@ private fun RecentSearchRow(
     }
 }
 
-private fun isCurrentVideoPlaying(videoId: String?): Boolean {
-    if (videoId == null) return false
-    val state = VideoPlaybackManager.uiState.value
-    return state.session?.videoId == videoId
-}
 
 @Composable
 private fun SearchResultRow(
