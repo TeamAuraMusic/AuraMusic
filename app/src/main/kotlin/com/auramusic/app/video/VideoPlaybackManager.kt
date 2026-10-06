@@ -510,42 +510,43 @@ object VideoPlaybackManager {
      */
     private suspend fun enrichSessionMetadata(videoId: String): WatchMetadataResponse? {
         if (_uiState.value.session?.videoId != videoId) return null
-        val metadata = fetchWatchMetadata(videoId)
+        val maxAttempts = 3
+        var attempt = 0
+        var metadata: WatchMetadataResponse? = null
+        while (attempt < maxAttempts) {
+            attempt++
+            metadata = fetchWatchMetadata(videoId)
+            if (metadata != null) break
+            delay(1000L * attempt)
+        }
+        if (metadata == null) return null
         val savedIds = withContext(Dispatchers.IO) {
             currentContext?.let { it.dataStore[SavedVideoIdsKey] }.orEmpty()
         }
         if (_uiState.value.session?.videoId != videoId) return metadata
-        val likeState = metadata?.likeState() ?: WatchLikeState.NONE
+        val likeState = metadata.likeState() ?: WatchLikeState.NONE
         _uiState.update { state ->
             val session = state.session?.takeIf { it.videoId == videoId } ?: return@update state
             state.copy(
                 session = session.copy(
-                    title = session.title.ifBlank { metadata?.title().orEmpty() },
-                    channelName = session.channelName.ifBlank { metadata?.channelName().orEmpty() },
-                    channelId = session.channelId ?: metadata?.channelId(),
-                    // The real channel avatar; session.channelThumbnail stays as the
-                    // video artwork used by the media notification.
-                    channelAvatarUrl = session.channelAvatarUrl ?: metadata?.channelAvatarUrl(),
+                    title = session.title.ifBlank { metadata.title().orEmpty() },
+                    channelName = session.channelName.ifBlank { metadata.channelName().orEmpty() },
+                    channelId = session.channelId ?: metadata.channelId(),
+                    channelAvatarUrl = session.channelAvatarUrl ?: metadata.channelAvatarUrl(),
                     description = session.description?.takeIf { it.isNotBlank() }
-                        ?: metadata?.description(),
-                    viewCountText = session.viewCountText ?: metadata?.viewCountText(),
-                    publishedTimeText = session.publishedTimeText ?: metadata?.dateText(),
-                    subscriberCountText = metadata?.subscriberCountText(),
-                    commentCountText = metadata?.commentCountText(),
-                    likeCountText = session.likeCountText ?: metadata?.likeCountText(),
+                        ?: metadata.description(),
+                    viewCountText = session.viewCountText ?: metadata.viewCountText(),
+                    publishedTimeText = session.publishedTimeText ?: metadata.dateText(),
+                    subscriberCountText = metadata.subscriberCountText(),
+                    commentCountText = metadata.commentCountText(),
+                    likeCountText = session.likeCountText ?: metadata.likeCountText(),
                 ),
                 isLiked = likeState == WatchLikeState.LIKE,
                 isDisliked = likeState == WatchLikeState.DISLIKE,
                 isSaved = videoId in savedIds,
             )
         }
-        // Notify the service that session metadata has been enriched (artwork URL,
-        // channel name etc.) so the media notification is rebuilt with the updated
-        // title, artist, and artwork — the same metadata that the MediaControlsPlayer
-        // surfaces via getMediaMetadata().
         currentContext?.let { VideoPlaybackService.notifySessionChanged(it) }
-        // Record the enriched session into the local watch history (dedupes by id
-        // and bumps it to the top so the Library mirrors YouTube's ordering).
         recordCurrentToHistory()
         return metadata
     }
@@ -659,34 +660,47 @@ object VideoPlaybackManager {
     }
 
     private suspend fun loadComments(videoId: String, resetState: Boolean = false) {
-        // When called from playWithDetails the UiState was already reset to empty comments /
-        // isLoadingComments=true, so a redundant update here causes a no-op recomposition.
-        // retryLoadingComments passes resetState=true to re-show the spinner when the user
-        // explicitly retries after an error.
+        if (_uiState.value.session?.videoId != videoId) return
         if (resetState) {
             _uiState.update { it.copy(isLoadingComments = true, comments = emptyList(), commentsError = null, commentsContinuation = null) }
         }
-        val result = withContext(Dispatchers.IO) {
-            // The WEB comment feed is only reachable through the watch page's comments
-            // continuation token, so resolve it first (reusing the cached watch page
-            // fetched during metadata enrichment where possible).
-            val token = fetchWatchMetadata(videoId)?.commentsContinuation()
-            token?.let { YouTube.videoComments(videoId, it).getOrNull() }
+        val maxAttempts = 3
+        var attempt = 0
+        var lastError: String? = null
+        while (attempt < maxAttempts) {
+            attempt++
+            val result = withContext(Dispatchers.IO) {
+                try {
+                    val token = fetchWatchMetadata(videoId)?.commentsContinuation()
+                    if (token != null) {
+                        YouTube.videoComments(videoId, token).getOrNull()
+                    } else {
+                        null
+                    }
+                } catch (e: Exception) {
+                    Timber.tag("VideoPlaybackManager").w(e, "loadComments attempt $attempt failed")
+                    null
+                }
+            }
+            if (_uiState.value.session?.videoId != videoId) return
+            if (result != null) {
+                val comments = result.comments().map { it.toCommentItem() }
+                _uiState.update {
+                    it.copy(
+                        comments = comments,
+                        isLoadingComments = false,
+                        commentsContinuation = result.commentsContinuation(),
+                        commentsError = if (comments.isEmpty()) "Comments are unavailable for this video" else null,
+                    )
+                }
+                return
+            }
+            lastError = "Could not load comments"
+            if (attempt < maxAttempts) {
+                delay(1000L * attempt)
+            }
         }
-        if (_uiState.value.session?.videoId != videoId) return
-        if (result == null) {
-            _uiState.update { it.copy(isLoadingComments = false, commentsError = "Could not load comments") }
-            return
-        }
-        val comments = result.comments().map { it.toCommentItem() }
-        _uiState.update {
-            it.copy(
-                comments = comments,
-                isLoadingComments = false,
-                commentsContinuation = result.commentsContinuation(),
-                commentsError = if (comments.isEmpty()) "Comments are unavailable for this video" else null,
-            )
-        }
+        _uiState.update { it.copy(isLoadingComments = false, commentsError = lastError ?: "Could not load comments") }
     }
 
     /** Re-runs the comments fetch for the current video (drives the Retry button). */

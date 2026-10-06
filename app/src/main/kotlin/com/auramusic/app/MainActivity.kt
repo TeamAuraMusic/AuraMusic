@@ -71,6 +71,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.collectAsStateWithLifecycle
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -347,8 +348,13 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onStop() {
+        val wasInPip = VideoPictureInPicture.isSupported() && isInPictureInPictureMode
+        val hasActiveVideo = VideoPlaybackManager.uiState.value.session != null &&
+            VideoPlaybackManager.uiState.value.isPlaying
         VideoPictureInPicture.attach(null)
-        unbindService(serviceConnection)
+        if (!wasInPip && !hasActiveVideo) {
+            unbindService(serviceConnection)
+        }
         super.onStop()
     }
 
@@ -807,7 +813,7 @@ class MainActivity : ComponentActivity() {
                 // Observe only these derived booleans. This used to collect the whole
                 // VideoPlaybackManager.uiState, which sits above every screen, so the
                 // video player's progress tick recomposed the entire activity.
-                val videoOverlayVisible by VideoPlaybackManager.isOverlayVisible.collectAsState()
+                val videoOverlayVisible by VideoPlaybackManager.isOverlayVisible.collectAsStateWithLifecycle()
 
                 // Whether music has anything to show. Read from the track itself rather than
                 // from the sheet's anchor so the bottom inset can flip in the same frame as the

@@ -71,7 +71,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.collectAsStateWithLifecycle
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -133,7 +133,7 @@ import kotlinx.coroutines.withContext
 fun VideoPlayerOverlay(
     onChannelClick: ((String) -> Unit)? = null,
 ) {
-    val state by VideoPlaybackManager.uiState.collectAsState()
+    val state by VideoPlaybackManager.uiState.collectAsStateWithLifecycle()
     // The vertical Shorts pager renders the video surface itself, so the global
     // overlay (expanded player + mini tile) must stay out of the way while it is open.
     if (state.suppressOverlay) return
@@ -143,7 +143,7 @@ fun VideoPlayerOverlay(
     if (state.inPictureInPicture) return
     // The floating window owns the video surface while it is up, so the in-app overlay drops
     // out completely - its PlayerView would otherwise compete for the same single surface.
-    val floatingWindow by VideoPopupWindow.active.collectAsState()
+    val floatingWindow by VideoPopupWindow.active.collectAsStateWithLifecycle()
     if (floatingWindow) return
     // There is no in-app mini tile any more: once the player is minimised the video is either
     // floating in its own window or playing behind the app, so this overlay has nothing to draw.
