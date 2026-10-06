@@ -58,6 +58,7 @@ compose-reorderable = { module = "sh.calvin.reorderable:reorderable", version.re
 
 viewmodel = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycle" }
 viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
 
 material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
 
