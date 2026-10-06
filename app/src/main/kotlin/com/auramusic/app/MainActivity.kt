@@ -94,7 +94,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.window.Dialog
@@ -145,7 +144,6 @@ import com.auramusic.app.constants.PureBlackKey
 import com.auramusic.app.constants.SYSTEM_DEFAULT
 import com.auramusic.app.constants.SelectedThemeColorKey
 import com.auramusic.app.constants.SlimNavBarHeight
-import com.auramusic.app.constants.VideoMiniPlayerHeight
 import com.auramusic.app.constants.SlimNavBarKey
 import com.auramusic.app.constants.StopMusicOnTaskClearKey
 import com.auramusic.app.constants.UpdateNotificationsEnabledKey
@@ -202,6 +200,7 @@ import com.auramusic.app.voice.VoiceCommandOverlay
 import com.auramusic.app.video.VideoPictureInPicture
 import com.auramusic.app.video.VideoPlaybackManager
 import com.auramusic.app.video.VideoPlayerOverlay
+import com.auramusic.app.video.VideoPopupWindow
 import com.auramusic.app.voice.VoiceCommandViewModel
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -318,6 +317,9 @@ class MainActivity : ComponentActivity() {
         // Called when the user leaves via Home or Recents. Entering PiP here is what keeps the
         // video playing in a floating window instead of stopping at the last frame.
         super.onUserLeaveHint()
+        // Already floating over the app: shrinking the Activity would take away everything the
+        // video was floating over, and there would be two floating windows for one video.
+        if (VideoPopupWindow.active.value) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && VideoPictureInPicture.isSupported()) {
             val manager = VideoPlaybackManager
             if (manager.isPictureInPictureEligible()) {
@@ -335,6 +337,8 @@ class MainActivity : ComponentActivity() {
         if (isInPictureInPictureMode) {
             // The in-app overlay must go away: the platform is already drawing the video into
             // the PiP window, and a second PlayerView on the same player fights it for frames.
+            // A floating window is a second view on that same player, so it goes too.
+            VideoPopupWindow.hide()
             VideoPlaybackManager.setPictureInPicture(true)
         } else {
             VideoPictureInPicture.clearSourceRectHint()
@@ -803,7 +807,6 @@ class MainActivity : ComponentActivity() {
                 // Observe only these derived booleans. This used to collect the whole
                 // VideoPlaybackManager.uiState, which sits above every screen, so the
                 // video player's progress tick recomposed the entire activity.
-                val videoTileVisible by VideoPlaybackManager.isMiniPlayerVisible.collectAsState()
                 val videoOverlayVisible by VideoPlaybackManager.isOverlayVisible.collectAsState()
 
                 // Whether music has anything to show. Read from the track itself rather than
@@ -820,7 +823,6 @@ class MainActivity : ComponentActivity() {
                     bottomInset,
                     shouldShowNavigationBar,
                     showRail,
-                    videoTileVisible,
                     videoOverlayVisible,
                     musicHasTrack,
                 ) {
@@ -829,10 +831,10 @@ class MainActivity : ComponentActivity() {
                         bottom += NavigationBarHeight
                     }
                     when {
-                        // The video tile sits on top of everything at the bottom of the screen.
-                        videoTileVisible ->
-                            bottom += VideoMiniPlayerHeight + MiniPlayerBottomSpacing
                         // An expanded video covers the screen and hides the music bar entirely.
+                        // The same holds while the player is only minimised: that state now
+                        // means "floating elsewhere / behind the app", so the music bar still
+                        // has no business reserving space.
                         videoOverlayVisible -> Unit
                         musicHasTrack -> bottom += MiniPlayerHeight
                     }
@@ -990,8 +992,6 @@ class MainActivity : ComponentActivity() {
                     LocalContentColor provides if (pureBlack) Color.White else contentColorFor(MaterialTheme.colorScheme.surface),
                     LocalPlayerConnection provides playerConnection,
                     LocalPlayerAwareWindowInsets provides playerAwareWindowInsets,
-                    LocalVideoMiniPlayerBottomPadding provides
-                        (bottomInset + navPadding + MiniPlayerBottomSpacing),
                     LocalDownloadUtil provides downloadUtil,
                     LocalShimmerTheme provides ShimmerTheme,
                     LocalSyncUtils provides syncUtils,
@@ -1541,7 +1541,6 @@ class MainActivity : ComponentActivity() {
 val LocalDatabase = staticCompositionLocalOf<MusicDatabase> { error("No database provided") }
 val LocalPlayerConnection = staticCompositionLocalOf<PlayerConnection?> { error("No PlayerConnection provided") }
 val LocalPlayerAwareWindowInsets = compositionLocalOf<WindowInsets> { error("No WindowInsets provided") }
-val LocalVideoMiniPlayerBottomPadding = compositionLocalOf<Dp> { 0.dp }
 val LocalDownloadUtil = staticCompositionLocalOf<DownloadUtil> { error("No DownloadUtil provided") }
 val LocalSyncUtils = staticCompositionLocalOf<SyncUtils> { error("No SyncUtils provided") }
 val LocalListenTogetherManager = staticCompositionLocalOf<com.auramusic.app.listentogether.ListenTogetherManager?> { null }

@@ -89,6 +89,7 @@ import com.auramusic.app.constants.SubtitlesEnabledKey
 import com.auramusic.app.constants.SubtitleFontSizeKey
 import com.auramusic.app.constants.SubtitleLanguageKey
 import com.auramusic.app.constants.VoiceWakeWordKey
+import com.auramusic.app.subtitles.SubtitleLanguageOptions
 import com.auramusic.app.ui.component.DefaultDialog
 import com.auramusic.app.ui.component.EnumDialog
 import com.auramusic.app.ui.component.IconButton
@@ -520,20 +521,7 @@ fun PlayerSettings(
                     },
                     onClick = { onSubtitlesEnabledChange(!subtitlesEnabled) }
                 ))
-                val subtitleLanguageOptions = listOf(
-                    "en" to "English",
-                    "es" to "Spanish",
-                    "fr" to "French",
-                    "de" to "German",
-                    "it" to "Italian",
-                    "pt" to "Portuguese",
-                    "ru" to "Russian",
-                    "ja" to "Japanese",
-                    "ko" to "Korean",
-                    "zh" to "Chinese",
-                    "auto" to "Auto"
-                )
-                val currentSubtitleLangLabel = subtitleLanguageOptions.find { it.first == subtitleLanguage }?.second ?: "English"
+                val currentSubtitleLangLabel = SubtitleLanguageOptions.find { it.first == subtitleLanguage }?.second ?: "English"
                 add(Material3SettingsItem(
                     icon = painterResource(R.drawable.language),
                     title = { Text(stringResource(R.string.subtitle_language)) },
@@ -544,8 +532,8 @@ fun PlayerSettings(
                     ListDialog(
                         onDismiss = { showSubtitleLanguageDialog = false }
                     ) {
-                        items(subtitleLanguageOptions.size) { index ->
-                            val (code, name) = subtitleLanguageOptions[index]
+                        items(SubtitleLanguageOptions.size) { index ->
+                            val (code, name) = SubtitleLanguageOptions[index]
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()

@@ -381,6 +381,9 @@
     <string name="video_player">Video player</string>
     <string name="video_player_pip">Picture in picture</string>
     <string name="video_player_pip_not_supported">Picture in picture is not available on this device</string>
+    <string name="video_player_float">Float video</string>
+    <string name="video_player_float_expand">Full screen</string>
+    <string name="video_player_float_permission">Allow AuraMusic to display over other apps so the video can float above it</string>
     <string name="widget_music_player">Music Player</string>
     <string name="widget_song_title">Song title</string>
     <string name="widget_artist_name">Artist name</string>

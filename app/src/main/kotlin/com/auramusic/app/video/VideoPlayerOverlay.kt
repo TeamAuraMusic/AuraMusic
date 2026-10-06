@@ -10,10 +10,8 @@ import android.view.ViewGroup
 import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -21,7 +19,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -29,6 +26,7 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -53,6 +51,7 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
@@ -107,7 +106,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.util.UnstableApi
@@ -115,9 +113,13 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import coil3.compose.AsyncImage
-import com.auramusic.app.LocalVideoMiniPlayerBottomPadding
 import com.auramusic.app.R
+import com.auramusic.app.constants.SubtitleLanguageKey
+import com.auramusic.app.constants.SubtitlesEnabledKey
 import com.auramusic.app.constants.VideoQuality
+import com.auramusic.app.subtitles.SubtitleLanguageOptions
+import com.auramusic.app.utils.linkifiedText
+import com.auramusic.app.utils.rememberPreference
 import com.auramusic.app.video.VideoPlaybackManager.CommentItem
 import com.auramusic.app.video.VideoPlaybackManager.RecommendationItem
 import com.auramusic.innertube.YouTube
@@ -139,6 +141,13 @@ fun VideoPlayerOverlay(
     // the PiP window. Keeping the in-app overlay alive underneath would leave a second
     // PlayerView attached to the same player, so it is torn down entirely for the duration.
     if (state.inPictureInPicture) return
+    // The floating window owns the video surface while it is up, so the in-app overlay drops
+    // out completely - its PlayerView would otherwise compete for the same single surface.
+    val floatingWindow by VideoPopupWindow.active.collectAsState()
+    if (floatingWindow) return
+    // There is no in-app mini tile any more: once the player is minimised the video is either
+    // floating in its own window or playing behind the app, so this overlay has nothing to draw.
+    if (state.minimized) return
     val session = state.session ?: return
     // When music takes over the video is paused and its tile has to go. Returning here used to
     // be the whole handoff: the surface, the player view and the expanded player were all
@@ -152,8 +161,8 @@ fun VideoPlayerOverlay(
 
     // The overlay covers the whole screen while expanded, so it must not keep the display
     // awake or swallow the back gesture once music has taken over.
-    DisposableEffect(activity, state.minimized, state.hiddenByMusic) {
-        val keepScreenOn = activity != null && !state.minimized && !state.hiddenByMusic
+    DisposableEffect(activity, state.hiddenByMusic) {
+        val keepScreenOn = activity != null && !state.hiddenByMusic
         if (keepScreenOn) {
             activity!!.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         } else {
@@ -164,23 +173,33 @@ fun VideoPlayerOverlay(
         }
     }
 
-    // Minimising collapses into the floating tile that lives inside this app's own window, so
-    // the app stays full screen underneath it. It deliberately does not hand the video to the
-    // system: entering picture-in-picture shrinks the *whole Activity*, launcher and all, which
-    // is a very different gesture. The system window is only asked for when the user actually
-    // leaves the app (MainActivity.onUserLeaveHint) or presses the PiP button in the top bar.
-    val pipAvailable = remember { VideoPictureInPicture.isSupported() }
+    // Minimising hands the video to a floating window over this app - which needs the
+    // "display over other apps" grant - and falls back to the system's picture-in-picture when
+    // it has not been granted, so the video always ends up somewhere visible. The in-app mini
+    // tile is gone: it used to live in this window, right above the music bar.
     val onCollapseRequest: () -> Unit = { VideoPlaybackManager.collapse() }
+
+    // The top bar button floats the video over the app instead: the Activity keeps its full
+    // screen and stays usable while the video sits in a window on top. That window needs the
+    // "display over other apps" grant, so the first tap sends the user to the system toggle
+    // rather than failing silently.
     val onPictureInPictureRequest: () -> Unit = {
-        if (pipAvailable) {
-            activity?.let {
-                VideoPictureInPicture.enter(it, state.videoAspectRatio, state.isPlaying)
+        activity?.let { current ->
+            if (!VideoPopupWindow.isPermissionGranted(current)) {
+                VideoPopupWindow.requestPermission(current)
+                android.widget.Toast.makeText(
+                    current,
+                    R.string.video_player_float_permission,
+                    android.widget.Toast.LENGTH_LONG,
+                ).show()
+            } else {
+                VideoPopupWindow.show(current, player, state.videoAspectRatio)
             }
         }
     }
 
     BackHandler(
-        enabled = !state.minimized && !state.hiddenByMusic,
+        enabled = !state.hiddenByMusic,
         onBack = onCollapseRequest,
     )
 
@@ -190,303 +209,23 @@ fun VideoPlayerOverlay(
         exit = fadeOut(tween(200)) + scaleOut(tween(200)),
         label = "videoOverlayVisible",
     ) {
-        AnimatedContent(
-            // Held on "expanded" while the overlay is on its way out so the fade does not
-            // also cross-fade to the mini tile.
-            targetState = state.minimized && !state.hiddenByMusic,
-            transitionSpec = {
-                if (targetState) {
-                    (fadeIn(tween(200)) + scaleIn(tween(260))).togetherWith(fadeOut(tween(140)) + scaleOut(tween(200)))
-                } else {
-                    (fadeIn(tween(220)) + scaleIn(tween(300))).togetherWith(fadeOut(tween(160)))
-                }
-            },
-            label = "videoPlayerState"
-        ) { minimized ->
-            if (minimized) {
-                VideoMinimizedTile(
-                    player = player,
-                    onExpand = { VideoPlaybackManager.expand() },
-                    onClose = { VideoPlaybackManager.close() },
-                    onChannelClick = onChannelClick,
-                )
-            } else {
-                // Navigating to a channel while expanded would leave the full-screen
-                // overlay covering it, so minimize the player first so the channel
-                // screen is actually visible.
-                val expandedChannelClick: ((String) -> Unit)? = onChannelClick?.let { click ->
-                    { channelId ->
-                        // Collapse fully to the tile: the channel screen has to be reachable behind
-                        // the video, and a PiP window would keep floating over it.
-                        VideoPlaybackManager.collapse()
-                        click(channelId)
-                    }
-                }
-                VideoExpandedPlayer(
-                    player = player,
-                    session = session,
-                    uiState = state,
-                    onCollapse = onCollapseRequest,
-                    onClose = { VideoPlaybackManager.close() },
-                    onChannelClick = expandedChannelClick,
-                    onPictureInPicture = if (pipAvailable) onPictureInPictureRequest else null,
-                )
+        // Navigating to a channel while expanded would leave the full-screen overlay
+        // covering it, so float/hide the player first so the channel screen is visible.
+        val expandedChannelClick: ((String) -> Unit)? = onChannelClick?.let { click ->
+            { channelId ->
+                VideoPlaybackManager.collapseForNavigation()
+                click(channelId)
             }
         }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Mini player
-// ---------------------------------------------------------------------------
-
-@OptIn(UnstableApi::class)
-@Composable
-private fun VideoMinimizedTile(
-    player: ExoPlayer,
-    onExpand: () -> Unit,
-    onClose: () -> Unit,
-    onChannelClick: ((String) -> Unit)?,
-) {
-    val state by VideoPlaybackManager.uiState.collectAsState()
-    // Read position lazily and in whole seconds. This tile is drawn above every screen in the
-    // app, so collecting the half-second position state here invalidated the whole overlay —
-    // video surface included — twice a second for a 3dp progress line and a timestamp.
-    val posMs by remember { derivedStateOf { VideoPlaybackManager.positionState.value.first / 1000L * 1000L } }
-    val durMs by remember { derivedStateOf { VideoPlaybackManager.positionState.value.second } }
-    val density = LocalDensity.current
-
-    // Tile position on screen (px). 0 = resting on the bottom edge; negative
-    // values float the tile upward while keeping it fully on screen; positive
-    // values pull it down toward the dismiss threshold.
-    var dragY by remember { mutableFloatStateOf(0f) }
-    val animatedDragY by animateFloatAsState(
-        targetValue = dragY,
-        animationSpec = tween(durationMillis = 220),
-        label = "miniDragY",
-    )
-    val dismissThreshold = with(density) { 130.dp.toPx() }
-    val dismissProgress = (dragY / dismissThreshold).coerceIn(0f, 1f)
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        // Window height, cached off the configuration rather than read from
-        // BoxWithConstraints. This tile is drawn above every screen in the app,
-        // so a subcomposing layout wrapped around the whole window made every
-        // screen pay to re-subcompose it while a video was playing - which is
-        // what made scrolling feel like it was dragging.
-        val windowHeightPx = with(density) { LocalConfiguration.current.screenHeightDp.dp.toPx() }
-        val tileHeightPx = with(density) { 128.dp.toPx() }
-        val bottomPadPx = with(density) { LocalVideoMiniPlayerBottomPadding.current.toPx() }
-        val floatRangePx = (windowHeightPx - tileHeightPx - bottomPadPx).coerceAtLeast(0f)
-        // dragY is negative when the tile floats upward, so the lower clamp is -floatRangePx
-        // (the highest the tile may travel while staying fully on screen).
-        val minY = -floatRangePx
-        val maxY = with(density) { 460.dp.toPx() }
-
-        Surface(
-            onClick = onExpand,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .offset { IntOffset(0, animatedDragY.toInt()) }
-                .graphicsLayer {
-                    val progress = dismissProgress
-                    scaleX = 1f - 0.06f * progress
-                    scaleY = 1f - 0.06f * progress
-                    alpha = 1f - 0.45f * progress
-                }
-                .pointerInput(minY, maxY, dismissThreshold) {
-                    detectDragGestures(
-                        onDragEnd = {
-                            if (dragY > dismissThreshold) {
-                                onClose()
-                            } else {
-                                dragY = 0f
-                            }
-                        },
-                        onDragCancel = { dragY = 0f },
-                        onDrag = { change, dragAmount ->
-                            dragY = (dragY + dragAmount.y).coerceIn(minY, maxY)
-                            change.consume()
-                        },
-                    )
-                }
-                .padding(horizontal = 10.dp)
-                .padding(bottom = LocalVideoMiniPlayerBottomPadding.current)
-                .fillMaxWidth()
-                .height(128.dp)
-                // A 24dp blur here meant a large offscreen bitmap being blurred and
-                // composited back over whatever the user was scrolling, on the main
-                // thread, for as long as a video was playing. A hairline border reads
-                // the same against the video beneath it and costs nothing.
-                .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f), RoundedCornerShape(26.dp)),
-            shape = RoundedCornerShape(26.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            tonalElevation = 6.dp,
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // The video surface is a SurfaceView, composited by SurfaceFlinger rather than by the
-                // View hierarchy. Rounding or clipping an ancestor forces SurfaceFlinger to
-                // composite the video through an offscreen render target on every frame, so
-                // the shape is drawn as an overlay on top instead.
-                Box(
-                    modifier = Modifier
-                        .width(184.dp)
-                        .fillMaxHeight()
-                        .onGloballyPositioned { coordinates ->
-                            // Kept current so the picture-in-picture window animates out of the
-                            // video's position rather than from the screen corner.
-                            coordinates.boundsInWindow().let { rect ->
-                                VideoPictureInPicture.updateSourceRectHint(
-                                    android.graphics.Rect(
-                                        rect.left.toInt(),
-                                        rect.top.toInt(),
-                                        rect.right.toInt(),
-                                        rect.bottom.toInt(),
-                                    )
-                                )
-                            }
-                        }
-                ) {
-                    AndroidVideoSurface(player, resizeModeOverride = state.resizeMode)
-                    // Overlay carries the rounded outline only. It clips its own drawing —
-                    // not the video layer beneath — so SurfaceFlinger keeps compositing the
-                    // SurfaceView directly.
-                    Box(
-                        modifier = Modifier
-                            .matchParentSize()
-                            .clip(RoundedCornerShape(18.dp))
-                            .drawBehind {
-                                drawRoundRect(
-                                    color = Color.White.copy(alpha = 0.10f),
-                                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(18.dp.toPx()),
-                                    style = Stroke(width = 1.dp.toPx()),
-                                )
-                            }
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .padding(vertical = 2.dp),
-                ) {
-                    Row {
-                        Text(
-                            text = state.session?.title.orEmpty(),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                    if (!state.session?.channelName.isNullOrBlank() && onChannelClick != null) {
-                        Text(
-                            text = state.session?.channelName.orEmpty(),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.clickable {
-                                state.session?.channelId?.let(onChannelClick)
-                            }
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    // Progress line + times.
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(3.dp)
-                            .clip(RoundedCornerShape(1.5f))
-                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f))
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth((if (durMs > 0) (posMs.toFloat() / durMs.toFloat()).coerceIn(0f, 1f) else 0f))
-                                .height(3.dp)
-                                .background(
-                                    Brush.horizontalGradient(
-                                        listOf(
-                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                                            MaterialTheme.colorScheme.primary
-                                        )
-                                    )
-                                )
-                        )
-                    }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 6.dp),
-                    ) {
-                        Text(
-                            text = "${formatTime(posMs)} / ${formatTime(durMs)}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-                        )
-                        Spacer(modifier = Modifier.weight(1f))
-                        // Play/Pause button
-                        Surface(
-                            onClick = { VideoPlaybackManager.togglePlayPause() },
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(36.dp),
-                            tonalElevation = 3.dp,
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                if (state.isBuffering) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(18.dp),
-                                        color = MaterialTheme.colorScheme.onPrimary,
-                                        strokeWidth = 2.dp
-                                    )
-                                } else {
-                                    Icon(
-                                        painter = painterResource(if (state.isPlaying) R.drawable.pause else R.drawable.play),
-                                        contentDescription = stringResource(
-                                            if (state.isPlaying) R.string.pause else R.string.play
-                                        ),
-                                        modifier = Modifier.size(18.dp),
-                                        tint = MaterialTheme.colorScheme.onPrimary
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Close button
-                IconButton(
-                    onClick = onClose,
-                    modifier = Modifier
-                        .align(Alignment.CenterVertically)
-                        .padding(start = 4.dp)
-                        .size(24.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.close),
-                        contentDescription = stringResource(R.string.close),
-                        modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                    )
-                }
-            }
-        }
+        VideoExpandedPlayer(
+            player = player,
+            session = session,
+            uiState = state,
+            onCollapse = onCollapseRequest,
+            onClose = { VideoPlaybackManager.close() },
+            onChannelClick = expandedChannelClick,
+            onPictureInPicture = onPictureInPictureRequest,
+        )
     }
 }
 
@@ -879,6 +618,16 @@ private fun VideoSurfaceWithControls(
     ) {
         AndroidVideoSurface(player, resizeModeOverride = uiState.resizeMode)
 
+        // Drawn after the surface so it lands on top of it, and kept out of the controls'
+        // visibility state: captions are content, not chrome, so they stay up while the
+        // controls fade - they just move down when the bar reappears.
+        VideoCaptionOverlay(
+            videoId = session.videoId,
+            player = player,
+            bottomPadding = if (showControls) 108.dp else 20.dp,
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
+
         if (showControls) {
             PlayerTopBar(
                 onCollapse = onCollapse,
@@ -1005,7 +754,34 @@ private fun PlayerTopBar(
             }
         }
         Spacer(modifier = Modifier.width(8.dp))
+        // The same switch Player settings writes. Captions are an app-wide preference rather
+        // than a per-player mode, so flipping it here also governs the music video player.
+        val (captionsEnabled, onCaptionsToggle) = rememberPreference(SubtitlesEnabledKey, true)
+        Surface(
+            onClick = { onCaptionsToggle(!captionsEnabled) },
+            shape = CircleShape,
+            color = if (captionsEnabled) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                Color.Black.copy(alpha = 0.45f)
+            },
+            modifier = Modifier.size(40.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_subtitles),
+                    contentDescription = stringResource(R.string.closed_captions),
+                    modifier = Modifier.size(20.dp),
+                    tint = if (captionsEnabled) {
+                        MaterialTheme.colorScheme.onPrimary
+                    } else {
+                        Color.White.copy(alpha = 0.7f)
+                    }
+                )
+            }
+        }
         if (onPictureInPicture != null) {
+            Spacer(modifier = Modifier.width(8.dp))
             Surface(
                 onClick = onPictureInPicture,
                 shape = CircleShape,
@@ -1015,7 +791,7 @@ private fun PlayerTopBar(
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         painter = painterResource(R.drawable.picture_in_picture),
-                        contentDescription = stringResource(R.string.video_player_pip),
+                        contentDescription = stringResource(R.string.video_player_float),
                         modifier = Modifier.size(20.dp),
                         tint = Color.White
                     )
@@ -1951,8 +1727,10 @@ private fun ExpandableDescription(
     onToggle: () -> Unit,
 ) {
     Column {
+        // Descriptions come straight from the API as plain text, so any URL in them is
+        // otherwise dead - the link is made tappable and handed to the system handler.
         Text(
-            text = description,
+            text = linkifiedText(description),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = if (expanded) Int.MAX_VALUE else 3,
@@ -2406,6 +2184,11 @@ private fun SettingsOverlay(
     uiState: VideoPlaybackManager.UiState,
     onDismiss: () -> Unit,
 ) {
+    // The same two preferences Player settings writes - the sheet is the second way into
+    // them, so the video player can be told to show captions without leaving playback.
+    val (subtitlesEnabled, onSubtitlesEnabledChange) = rememberPreference(SubtitlesEnabledKey, true)
+    val (subtitleLanguage, onSubtitleLanguageChange) = rememberPreference(SubtitleLanguageKey, "auto")
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -2552,6 +2335,86 @@ private fun SettingsOverlay(
                                 textAlign = TextAlign.Center,
                                 style = MaterialTheme.typography.labelLarge,
                                 color = if (uiState.resizeMode == mode) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = stringResource(R.string.closed_captions),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                ) {
+                    listOf(
+                        true to stringResource(R.string.captions_on),
+                        false to stringResource(R.string.captions_off),
+                    ).forEach { (enabled, label) ->
+                        Surface(
+                            onClick = { onSubtitlesEnabledChange(enabled) },
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (subtitlesEnabled == enabled) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.surfaceContainerHighest
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                text = label,
+                                modifier = Modifier.padding(vertical = 10.dp),
+                                textAlign = TextAlign.Center,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = if (subtitlesEnabled == enabled) {
+                                    MaterialTheme.colorScheme.onPrimary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = stringResource(R.string.subtitle_language),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                        .horizontalScroll(rememberScrollState())
+                ) {
+                    SubtitleLanguageOptions.forEach { (code, name) ->
+                        Surface(
+                            onClick = { onSubtitleLanguageChange(code) },
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (subtitleLanguage == code) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.surfaceContainerHighest
+                            },
+                        ) {
+                            Text(
+                                text = name,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = if (subtitleLanguage == code) {
+                                    MaterialTheme.colorScheme.onPrimary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                }
                             )
                         }
                     }

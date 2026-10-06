@@ -69,6 +69,7 @@ import com.auramusic.app.LocalPlayerAwareWindowInsets
 import com.auramusic.app.R
 import com.auramusic.app.utils.VideoThumbnails
 import com.auramusic.app.utils.compactViewCount
+import com.auramusic.app.utils.linkifiedText
 import com.auramusic.app.video.VideoPlaybackManager
 import com.auramusic.innertube.YouTube
 import com.auramusic.innertube.models.Thumbnail
@@ -754,7 +755,7 @@ private fun ChannelAboutSection(header: ChannelHeader?) {
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
-                        text = header?.description.orEmpty(),
+                        text = linkifiedText(header?.description.orEmpty()),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                     )

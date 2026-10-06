@@ -194,25 +194,13 @@ object VideoPlaybackManager {
     val positionState: StateFlow<Pair<Long, Long>> = _positionState.asStateFlow()
 
     /**
-     * Whether the video mini player should be on screen.
+     * Whether the video overlay is on screen at all.
      *
-     * Derived and distinct so MainActivity can observe this one boolean instead of
-     * [uiState]. MainActivity sits above every screen, so collecting the whole state
-     * there meant any field change - including the playback progress tick - recomposed
-     * the entire activity.
-     */
-    val isMiniPlayerVisible: StateFlow<Boolean> = _uiState
-        .map { it.minimized && !it.hiddenByMusic }
-        .distinctUntilChanged()
-        .stateIn(scope, SharingStarted.Eagerly, false)
-
-    /**
-     * Whether the video overlay is on screen at all - mini tile or expanded player.
-     *
-     * [isMiniPlayerVisible] alone is not enough for layout: while a video is expanded it covers
-     * the whole screen, so the music mini player stays out of the way even though no tile is
-     * showing. Both are derived and distinct so a transition produces exactly one layout pass
-     * instead of the tile and the music bar each moving the bottom inset in its own frame.
+     * The overlay covers the whole screen while expanded and is simply gone once minimised -
+     * the video then lives in a floating window or behind the app - but either way the music
+     * mini player has to stay out of the way. Derived and distinct so a transition produces
+     * exactly one layout pass instead of the two surfaces moving the bottom inset in
+     * different frames.
      */
     val isOverlayVisible: StateFlow<Boolean> = _uiState
         .map { it.session != null && !it.hiddenByMusic }
@@ -885,6 +873,9 @@ object VideoPlaybackManager {
         } catch (e: Exception) {
             Timber.tag("VideoPlaybackManager").w(e, "giveWayToMusic: pause failed")
         }
+        // Music owns the screen now, so the floating window goes with the rest of the video
+        // overlay - it would otherwise sit on top of the music player.
+        VideoPopupWindow.hide()
         _uiState.update { it.copy(isPlaying = false, minimized = true, hiddenByMusic = true) }
         val ctx = context.applicationContext
 
@@ -1059,11 +1050,13 @@ object VideoPlaybackManager {
     }
 
     /**
-     * While the Shorts pager owns the screen it suppresses the global overlay
-     * (expanded player + mini tile) so it does not render over the pager. The
-     * pager renders [androidx.media3.ui.PlayerView] itself.
+     * While the Shorts pager owns the screen it suppresses the global overlay (the expanded
+     * player) so it does not render over the pager. The pager renders
+     * [androidx.media3.ui.PlayerView] itself.
      */
     fun setOverlaySuppressed(suppressed: Boolean) {
+        // The floating window is part of that overlay: it would sit on top of the pager too.
+        if (suppressed) VideoPopupWindow.hide()
         _uiState.update { if (it.suppressOverlay == suppressed) it else it.copy(suppressOverlay = suppressed) }
     }
 
@@ -1088,7 +1081,26 @@ object VideoPlaybackManager {
         applyOrientation(newFullScreen)
     }
 
-    fun collapse() {
+    fun collapse() = minimize(floatSystemFallback = true)
+
+    /**
+     * Hides the player without ever shrinking the Activity.
+     *
+     * Used when the user is navigating somewhere else inside the app: the system's
+     * picture-in-picture would take the whole screen away from the destination they just
+     * asked for, so this path only ever floats the video or lets the overlay go.
+     */
+    fun collapseForNavigation() = minimize(floatSystemFallback = false)
+
+    /**
+     * Puts the video somewhere the user can still see it and drops the in-app overlay.
+     *
+     * There is no mini tile any more, so a minimised player always leaves this Activity: it
+     * floats in its own window when the app may draw over others, and a plain minimise - never
+     * in-app navigation - falls back to the system's picture-in-picture when it may not. With
+     * neither available the overlay simply disappears and playback continues behind.
+     */
+    private fun minimize(floatSystemFallback: Boolean) {
         // Leaving fullscreen must also hand the orientation back to the system,
         // otherwise the Activity stays locked to landscape after the player hides.
         if (_uiState.value.isFullScreen) {
@@ -1096,20 +1108,28 @@ object VideoPlaybackManager {
             applyOrientation(false)
         }
         _uiState.update { it.copy(minimized = true) }
+
+        val activity = activityRef?.get() ?: return
+        val exo = player ?: return
+        if (VideoPopupWindow.active.value) return
+        if (VideoPopupWindow.isPermissionGranted(activity)) {
+            VideoPopupWindow.show(activity, exo, _uiState.value.videoAspectRatio)
+        } else if (
+            floatSystemFallback &&
+            android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O &&
+            VideoPictureInPicture.isSupported()
+        ) {
+            VideoPictureInPicture.enter(activity, _uiState.value.videoAspectRatio, _uiState.value.isPlaying)
+        }
     }
 
     fun expand() {
+        // The floating window and the overlay both render the same player: only one of them
+        // may hold the surface, so the window goes first.
+        VideoPopupWindow.hide()
         _uiState.update { it.copy(minimized = false, hiddenByMusic = false) }
     }
 
-    fun toggleMinimized() {
-        _uiState.update { it.copy(minimized = !it.minimized) }
-    }
-
-    /**
-     * Drops the floating tile back into the Activity. Called when picture-in-picture ends, since
-     * the overlay is hidden while the window is a PiP and would otherwise come back minimised.
-     */
     /**
      * Records that the Activity has entered or left picture-in-picture.
      *
@@ -1123,6 +1143,10 @@ object VideoPlaybackManager {
         }
     }
 
+    /**
+     * Brings the overlay back once picture-in-picture ends. Without it the player would stay
+     * minimised, because the overlay is unmounted for as long as the window is a PiP.
+     */
     fun exitPictureInPicture() {
         _uiState.update {
             if (!it.inPictureInPicture && !it.minimized) it
@@ -1140,6 +1164,8 @@ object VideoPlaybackManager {
     }
 
     fun close() {
+        // The floating window may still be holding the surface the player is about to release.
+        VideoPopupWindow.hide()
         // Persist the final watch position before tearing the session down so the
         // Library's "Recently watched" history reflects exactly where it stopped.
         recordCurrentToHistory()
