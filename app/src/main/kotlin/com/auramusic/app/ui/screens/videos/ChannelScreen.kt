@@ -181,7 +181,7 @@ fun ChannelScreen(
                     .any { it.channelId == resolvedChannelId }
                 if (locallySubscribed) isSubscribed = true
             }
-            videos = com.auramusic.app.video.MusicContentFilter.filter(result.videos)
+            videos = result.videos
             continuation = result.continuation
         } else if (clear) {
             error = context.getString(R.string.videos_feed_error)
@@ -216,10 +216,8 @@ fun ChannelScreen(
         }
         result?.let {
             val existing = videos.map { it.videoId }.toSet()
-            val musicOnly = com.auramusic.app.video.MusicContentFilter
-                .filter(it.videos)
-                .filter { v -> v.videoId !in existing }
-            videos = videos + musicOnly
+            val newVideos = it.videos.filter { v -> v.videoId !in existing }
+            videos = videos + newVideos
             continuation = it.continuation
         }
         isLoadingMore = false

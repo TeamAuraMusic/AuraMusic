@@ -1226,7 +1226,9 @@ object YouTube {
      */
     suspend fun watchMetadata(videoId: String): Result<WatchMetadataResponse> =
         runCatching {
-            innerTube.next(WEB, videoId, null, null, null, null, null)
+            // nextYouTube posts to www.youtube.com — the WEB client's X-Origin must
+            // match the host or YouTube returns 400 "Origin doesn't match Host".
+            innerTube.nextYouTube(WEB, videoId, null, null, null, null, null)
                 .body<WatchMetadataResponse>()
         }
 
@@ -1238,7 +1240,7 @@ object YouTube {
         videoId: String,
         continuation: String,
     ): Result<Pair<List<WatchCompactVideo>, String?>> = runCatching {
-        val response = innerTube.next(WEB, videoId, null, null, null, null, continuation)
+        val response = innerTube.nextYouTube(WEB, videoId, null, null, null, null, continuation)
             .body<WatchMetadataResponse>()
         Pair(response.relatedVideos(), response.relatedContinuation())
     }
@@ -1253,7 +1255,7 @@ object YouTube {
         continuation: String? = null,
     ): Result<YoutubeCommentResponse> =
         runCatching {
-            innerTube.next(WEB, videoId, null, null, null, null, continuation)
+            innerTube.nextYouTube(WEB, videoId, null, null, null, null, continuation)
                 .body<YoutubeCommentResponse>()
         }
 

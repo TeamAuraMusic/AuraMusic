@@ -373,6 +373,43 @@ class InnerTube {
         }
     }
 
+    /**
+     * /next endpoint routed to www.youtube.com instead of the YT Music base URL.
+     *
+     * The default [next] function uses a relative path ("next") which resolves
+     * against the [defaultRequest] base URL (music.youtube.com). The WEB client
+     * sets X-Origin: https://www.youtube.com, so music.youtube.com rejects it
+     * with "Origin doesn't match Host". This variant uses the full absolute URL
+     * to make the host match the origin, which is required for all WEB-client
+     * watch/comment calls.
+     */
+    suspend fun nextYouTube(
+        client: YouTubeClient,
+        videoId: String?,
+        playlistId: String?,
+        playlistSetVideoId: String?,
+        index: Int?,
+        params: String?,
+        continuation: String? = null,
+        setLogin: Boolean = false,
+    ) = withRetry {
+        httpClient.post("https://www.youtube.com/youtubei/v1/next") {
+            val useLogin = shouldUseLogin(client, setLogin)
+            ytClient(client, setLogin = useLogin, useMusicOrigin = false)
+            setBody(
+                NextBody(
+                    context = client.toContext(locale, visitorData, if (useLogin) dataSyncId else null),
+                    videoId = videoId,
+                    playlistId = playlistId,
+                    playlistSetVideoId = playlistSetVideoId,
+                    index = index,
+                    params = params,
+                    continuation = continuation
+                )
+            )
+        }
+    }
+
     suspend fun feedback(
         client: YouTubeClient,
         tokens: List<String>

@@ -49,6 +49,13 @@ data class YouTubeChannelPage(
             header?.get("pageHeaderRenderer")?.jsonObject?.let { pageHeader ->
                 val content = pageHeader["content"]?.jsonObject
                     ?.get("pageHeaderViewModel")?.jsonObject
+                // Title lives at pageHeaderViewModel.title.dynamicTextViewModel.text.content
+                // in 2024+ channel headers. Extracted here so the metadata fallback below
+                // is only used for legacy responses that don't have pageHeaderRenderer.
+                title = content?.get("title")?.jsonObject
+                    ?.get("dynamicTextViewModel")?.jsonObject
+                    ?.get("text")?.jsonObject
+                    ?.get("content")?.jsonPrimitive?.content
                 val metadataRows = content?.get("metadata")?.jsonObject
                     ?.get("contentMetadataViewModel")?.jsonObject
                     ?.get("metadataRows")?.jsonArray
