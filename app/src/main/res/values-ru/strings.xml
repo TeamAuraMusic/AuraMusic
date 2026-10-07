@@ -1093,4 +1093,9 @@
     <string name="video_player_queue_empty">Плейлистов не найдено</string>
     <string name="video_player_brightness">Яркость</string>
     <string name="video_player_volume">Громкость</string>
+    <string name="video_player_pip">Картинка-в-картинке</string>
+    <string name="video_player_pip_not_supported">Опция \"картинка-в-картинке\" недоступна на данном устройстве</string>
+    <string name="video_player_float">Плавающее видео</string>
+    <string name="video_player_float_expand">Во весь экран</string>
+    <string name="video_player_float_permission">Выдайте AuraMusic разрешение на показ поверх других приложений, чтобы видео могло отображаться над ними</string>
 </resources>
