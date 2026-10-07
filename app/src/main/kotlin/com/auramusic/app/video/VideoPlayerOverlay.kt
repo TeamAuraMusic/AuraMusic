@@ -14,6 +14,7 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -27,6 +28,7 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -92,6 +94,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -106,6 +109,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.util.UnstableApi
@@ -113,6 +117,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import coil3.compose.AsyncImage
+import com.auramusic.app.LocalPlayerAwareWindowInsets
 import com.auramusic.app.R
 import com.auramusic.app.constants.SubtitleLanguageKey
 import com.auramusic.app.constants.SubtitlesEnabledKey
@@ -128,6 +133,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.roundToInt
 
 @Composable
 fun VideoPlayerOverlay(
@@ -141,13 +147,6 @@ fun VideoPlayerOverlay(
     // the PiP window. Keeping the in-app overlay alive underneath would leave a second
     // PlayerView attached to the same player, so it is torn down entirely for the duration.
     if (state.inPictureInPicture) return
-    // The floating window owns the video surface while it is up, so the in-app overlay drops
-    // out completely - its PlayerView would otherwise compete for the same single surface.
-    val floatingWindow by VideoPopupWindow.active.collectAsStateWithLifecycle()
-    if (floatingWindow) return
-    // There is no in-app mini tile any more: once the player is minimised the video is either
-    // floating in its own window or playing behind the app, so this overlay has nothing to draw.
-    if (state.minimized) return
     val session = state.session ?: return
     // When music takes over the video is paused and its tile has to go. Returning here used to
     // be the whole handoff: the surface, the player view and the expanded player were all
@@ -158,6 +157,27 @@ fun VideoPlayerOverlay(
     val context = LocalContext.current
     val player = VideoPlaybackManager.playerOrNull() ?: return
     val activity = context as? android.app.Activity
+
+    // Minimised: the video shrinks into a small player drawn in this Activity's own window
+    // and the rest of the app stays usable underneath it. Nothing system-level is involved -
+    // no overlay grant, no second window - and the platform only takes the video over once
+    // the user actually leaves the app (MainActivity.onUserLeaveHint).
+    if (state.minimized) {
+        AnimatedVisibility(
+            visible = !state.hiddenByMusic,
+            enter = fadeIn(tween(200)) + scaleIn(tween(240)),
+            exit = fadeOut(tween(160)) + scaleOut(tween(180)),
+            label = "videoFloatingPlayer",
+        ) {
+            VideoFloatingPlayer(
+                player = player,
+                session = session,
+                onExpand = { VideoPlaybackManager.expand() },
+                onClose = { VideoPlaybackManager.close() },
+            )
+        }
+        return
+    }
 
     // The overlay covers the whole screen while expanded, so it must not keep the display
     // awake or swallow the back gesture once music has taken over.
@@ -173,46 +193,15 @@ fun VideoPlayerOverlay(
         }
     }
 
-    // Minimising hands the video to a floating window over this app - which needs the
-    // "display over other apps" grant - and falls back to the system's picture-in-picture when
-    // it has not been granted, so the video always ends up somewhere visible. The in-app mini
-    // tile is gone: it used to live in this window, right above the music bar.
+    // Minimising drops the video into the floating player above. The system's picture-in-picture
+    // window is deliberately not used here: it shrinks the whole Activity, so the app the user
+    // was looking at disappears with it. The activity only enters it when the user leaves.
     val onCollapseRequest: () -> Unit = { VideoPlaybackManager.collapse() }
 
-    // The PiP button enters the system picture-in-picture window directly, YouTube-style:
-    // the Activity shrinks into a floating overlay so the user can keep watching while using
-    // other apps. On Android 12+ setAutoEnterEnabled(true) covers the Home/Recents gesture
-    // automatically; this button is the explicit in-app trigger. If the device does not
-    // support system PiP the button falls back to the floating overlay window (requires the
-    // "draw over other apps" permission), and ultimately to collapse() as a last resort.
-    val onPictureInPictureRequest: () -> Unit = {
-        activity?.let { current ->
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O &&
-                VideoPictureInPicture.isSupported()
-            ) {
-                // Drop the in-app overlay first so the system PiP window is the only
-                // rendering surface. minimizeForPictureInPicture() sets minimized=true
-                // without opening the floating popup window — the PiP transition itself
-                // is started below. onPictureInPictureModeChanged will set
-                // inPictureInPicture=true once the system animation completes.
-                VideoPlaybackManager.minimizeForPictureInPicture()
-                VideoPictureInPicture.enter(
-                    current,
-                    state.videoAspectRatio,
-                    state.isPlaying,
-                )
-            } else if (VideoPopupWindow.isPermissionGranted(current)) {
-                VideoPopupWindow.show(current, player, state.videoAspectRatio)
-            } else {
-                VideoPopupWindow.requestPermission(current)
-                android.widget.Toast.makeText(
-                    current,
-                    R.string.video_player_float_permission,
-                    android.widget.Toast.LENGTH_LONG,
-                ).show()
-            }
-        } ?: VideoPlaybackManager.collapse()
-    }
+    // The top bar button does exactly what minimise does - there is no separate system window
+    // to ask for any more - so it is the same request, just with a button for people who look
+    // for a picture-in-picture control rather than a down arrow.
+    val onPictureInPictureRequest: () -> Unit = { VideoPlaybackManager.collapse() }
 
     BackHandler(
         enabled = !state.hiddenByMusic,
@@ -229,7 +218,7 @@ fun VideoPlayerOverlay(
         // covering it, so float/hide the player first so the channel screen is visible.
         val expandedChannelClick: ((String) -> Unit)? = onChannelClick?.let { click ->
             { channelId ->
-                VideoPlaybackManager.collapseForNavigation()
+                VideoPlaybackManager.collapse()
                 click(channelId)
             }
         }
@@ -242,6 +231,129 @@ fun VideoPlayerOverlay(
             onChannelClick = expandedChannelClick,
             onPictureInPicture = onPictureInPictureRequest,
         )
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Floating player
+// ---------------------------------------------------------------------------
+
+/**
+ * The small player that takes over once the overlay is minimised.
+ *
+ * It lives in this Activity's own window, so it needs no "display over other apps" grant and
+ * the app underneath stays fully interactive - which is the whole point: the video keeps
+ * playing while the user browses. The system only takes over when the user actually leaves
+ * the app, and that path is handled by MainActivity.onUserLeaveHint.
+ *
+ * The video itself is a SurfaceView, and rounding an ancestor of one forces SurfaceFlinger to
+ * composite it through an offscreen target every frame. The shape is therefore drawn as an
+ * outline on top instead of clipping the view - the corners stay square but scrolling the app
+ * underneath costs nothing extra.
+ */
+@OptIn(UnstableApi::class)
+@Composable
+private fun VideoFloatingPlayer(
+    player: ExoPlayer,
+    session: VideoPlaybackManager.VideoSession,
+    onExpand: () -> Unit,
+    onClose: () -> Unit,
+) {
+    val state by VideoPlaybackManager.uiState.collectAsStateWithLifecycle()
+    val density = LocalDensity.current
+    val screenWidthDp = LocalConfiguration.current.screenWidthDp.dp
+    // Whatever the bottom of the app currently reserves (music bar, gesture bar) is where the
+    // player has to hover, otherwise it lands on top of the music controls.
+    val bottomInset = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
+
+    val width = (screenWidthDp * 0.4f).coerceIn(150.dp, 250.dp)
+    val aspect = state.videoAspectRatio.takeIf { it != null && it > 0.5f && it < 3f } ?: (16f / 9f)
+    val height = width / aspect
+
+    var dragX by remember { mutableFloatStateOf(0f) }
+    var dragY by remember { mutableFloatStateOf(0f) }
+    val animatedX by animateFloatAsState(dragX, tween(220), label = "floatDragX")
+    val animatedY by animateFloatAsState(dragY, tween(220), label = "floatDragY")
+    val dismissThreshold = with(density) { 120.dp.toPx() }
+
+    // Bounds: keep the tile fully on screen while it is being dragged around.
+    val maxShiftPx = with(density) { (screenWidthDp - width - 32.dp).toPx() }
+    val maxUpPx = with(density) {
+        (LocalConfiguration.current.screenHeightDp.dp - height - bottomInset - 32.dp).toPx()
+    }
+
+    val closeRequest by rememberUpdatedState(onClose)
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Surface(
+            onClick = onExpand,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 16.dp, bottom = bottomInset + 16.dp)
+                .offset { IntOffset(animatedX.roundToInt(), animatedY.roundToInt()) }
+                .size(width, height)
+                .graphicsLayer {
+                    val p = (animatedY / dismissThreshold).coerceIn(0f, 1f)
+                    scaleX = 1f - 0.05f * p
+                    scaleY = 1f - 0.05f * p
+                    alpha = 1f - 0.5f * p
+                }
+                .pointerInput(maxShiftPx, maxUpPx, dismissThreshold) {
+                    detectDragGestures(
+                        onDragEnd = {
+                            if (dragY > dismissThreshold) {
+                                closeRequest()
+                            } else {
+                                dragX = 0f
+                                dragY = 0f
+                            }
+                        },
+                        onDragCancel = {
+                            dragX = 0f
+                            dragY = 0f
+                        },
+                        onDrag = { change, amount ->
+                            dragX = (dragX + amount.x).coerceIn(-maxShiftPx, 0f)
+                            dragY = (dragY + amount.y).coerceIn(-maxUpPx, dismissThreshold * 1.6f)
+                            change.consume()
+                        },
+                    )
+                },
+            shape = RoundedCornerShape(14.dp),
+            color = Color.Black,
+            tonalElevation = 4.dp,
+        ) {
+            Box(Modifier.fillMaxSize()) {
+                AndroidVideoSurface(player, resizeModeOverride = state.resizeMode)
+                // Rounded outline drawn on top - clipping the SurfaceView ancestor would
+                // force offscreen compositing every frame.
+                Box(
+                    Modifier
+                        .matchParentSize()
+                        .clip(RoundedCornerShape(14.dp))
+                        .border(1.dp, Color.White.copy(alpha = 0.14f), RoundedCornerShape(14.dp))
+                )
+                // Close button
+                Surface(
+                    onClick = onClose,
+                    shape = CircleShape,
+                    color = Color.Black.copy(alpha = 0.55f),
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(6.dp)
+                        .size(26.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            painter = painterResource(R.drawable.close),
+                            contentDescription = stringResource(R.string.close),
+                            modifier = Modifier.size(14.dp),
+                            tint = Color.White
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -406,19 +518,21 @@ private fun VideoSurfaceWithControls(
     val audioManager = context.getSystemService(AudioManager::class.java)
     val activity = context as? android.app.Activity
 
-    // Duration is stable for the length of a track, so it is read once per track rather than
-    // every half second. Position is not read here at all: this composable holds the video
-    // surface, and any position state read in its scope would recompose the surface along with
-    // it. Consumers read position at draw time instead.
-    val durMs = VideoPlaybackManager.positionState.value.second
-
-    val defaultBrightness: Float = runCatching {
-        val value = android.provider.Settings.System.getInt(
-            context.contentResolver,
-            android.provider.Settings.System.SCREEN_BRIGHTNESS,
-        )
-        value / 255f
-    }.getOrDefault(0.5f)
+    // Position ticks every 500ms while a video plays. Reading positionState directly here
+    // would invalidate this whole scope - video surface included - on every tick, so only
+    // the duration is observed, and only when it actually changes.
+    val durMs by remember { derivedStateOf { VideoPlaybackManager.positionState.value.second } }
+    // Settings reads go through a content provider; with the surface recomposing twice a
+    // second that query used to run on the main thread that often too.
+    val defaultBrightness = remember(context) {
+        runCatching {
+            val value = android.provider.Settings.System.getInt(
+                context.contentResolver,
+                android.provider.Settings.System.SCREEN_BRIGHTNESS,
+            )
+            value / 255f
+        }.getOrDefault(0.5f)
+    }
 
     var collapseDragPx by remember { mutableFloatStateOf(0f) }
     var scrubPreviewMs by remember { mutableStateOf<Long?>(null) }

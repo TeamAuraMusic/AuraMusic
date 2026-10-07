@@ -907,9 +907,6 @@ object VideoPlaybackManager {
         } catch (e: Exception) {
             Timber.tag("VideoPlaybackManager").w(e, "giveWayToMusic: pause failed")
         }
-        // Music owns the screen now, so the floating window goes with the rest of the video
-        // overlay - it would otherwise sit on top of the music player.
-        VideoPopupWindow.hide()
         _uiState.update { it.copy(isPlaying = false, minimized = true, hiddenByMusic = true) }
         val ctx = context.applicationContext
 
@@ -1089,8 +1086,6 @@ object VideoPlaybackManager {
      * [androidx.media3.ui.PlayerView] itself.
      */
     fun setOverlaySuppressed(suppressed: Boolean) {
-        // The floating window is part of that overlay: it would sit on top of the pager too.
-        if (suppressed) VideoPopupWindow.hide()
         _uiState.update { if (it.suppressOverlay == suppressed) it else it.copy(suppressOverlay = suppressed) }
     }
 
@@ -1115,26 +1110,15 @@ object VideoPlaybackManager {
         applyOrientation(newFullScreen)
     }
 
-    fun collapse() = minimize(floatSystemFallback = true)
-
     /**
-     * Hides the player without ever shrinking the Activity.
+     * Drops the player into the small in-app floating player.
      *
-     * Used when the user is navigating somewhere else inside the app: the system's
-     * picture-in-picture would take the whole screen away from the destination they just
-     * asked for, so this path only ever floats the video or lets the overlay go.
+     * The video keeps playing in a corner of this Activity while the rest of the app stays
+     * usable. The system's picture-in-picture window is deliberately not used here: it shrinks
+     * the whole Activity, so the app the user was looking at disappears with it. The activity
+     * only enters it when the user leaves (MainActivity.onUserLeaveHint).
      */
-    fun collapseForNavigation() = minimize(floatSystemFallback = false)
-
-    /**
-     * Puts the video somewhere the user can still see it and drops the in-app overlay.
-     *
-     * There is no mini tile any more, so a minimised player always leaves this Activity: it
-     * floats in its own window when the app may draw over others, and a plain minimise - never
-     * in-app navigation - falls back to the system's picture-in-picture when it may not. With
-     * neither available the overlay simply disappears and playback continues behind.
-     */
-    private fun minimize(floatSystemFallback: Boolean) {
+    fun collapse() {
         // Leaving fullscreen must also hand the orientation back to the system,
         // otherwise the Activity stays locked to landscape after the player hides.
         if (_uiState.value.isFullScreen) {
@@ -1142,39 +1126,10 @@ object VideoPlaybackManager {
             applyOrientation(false)
         }
         _uiState.update { it.copy(minimized = true) }
-
-        val activity = activityRef?.get() ?: return
-        val exo = player ?: return
-        if (VideoPopupWindow.active.value) return
-        if (VideoPopupWindow.isPermissionGranted(activity)) {
-            VideoPopupWindow.show(activity, exo, _uiState.value.videoAspectRatio)
-        } else if (
-            floatSystemFallback &&
-            android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O &&
-            VideoPictureInPicture.isSupported()
-        ) {
-            VideoPictureInPicture.enter(activity, _uiState.value.videoAspectRatio, _uiState.value.isPlaying)
-        }
     }
 
     fun expand() {
-        // The floating window and the overlay both render the same player: only one of them
-        // may hold the surface, so the window goes first.
-        VideoPopupWindow.hide()
         _uiState.update { it.copy(minimized = false, hiddenByMusic = false) }
-    }
-
-    /**
-     * Marks the overlay as minimized without opening the floating popup window or entering
-     * system PiP. Used when the PiP button fires: the caller handles the PiP transition
-     * directly, so all VideoPlaybackManager needs to do is drop the in-app expanded overlay.
-     */
-    fun minimizeForPictureInPicture() {
-        if (_uiState.value.isFullScreen) {
-            _uiState.update { it.copy(isFullScreen = false) }
-            applyOrientation(false)
-        }
-        _uiState.update { it.copy(minimized = true) }
     }
 
     /**
@@ -1211,8 +1166,6 @@ object VideoPlaybackManager {
     }
 
     fun close() {
-        // The floating window may still be holding the surface the player is about to release.
-        VideoPopupWindow.hide()
         // Persist the final watch position before tearing the session down so the
         // Library's "Recently watched" history reflects exactly where it stopped.
         recordCurrentToHistory()

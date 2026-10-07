@@ -297,8 +297,16 @@ class VideoPlaybackService : MediaSessionService() {
                     break
                 }
                 if (mediaSession != null) {
-                    rebuildMediaNotification()
-                    promoteToForegroundWithLatestNotification()
+                    // media3 keeps the notification current on its own during playback;
+                    // this pass only has to re-assert foreground status if it was lost,
+                    // and refresh the content if it went stale. Calling startForeground
+                    // every 10s while already in the foreground is pure binder churn.
+                    if (!enteredForeground) {
+                        rebuildMediaNotification()
+                        promoteToForegroundWithLatestNotification()
+                    } else {
+                        rebuildMediaNotification()
+                    }
                 }
             }
         }

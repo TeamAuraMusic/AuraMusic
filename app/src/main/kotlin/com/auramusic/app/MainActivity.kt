@@ -201,7 +201,6 @@ import com.auramusic.app.voice.VoiceCommandOverlay
 import com.auramusic.app.video.VideoPictureInPicture
 import com.auramusic.app.video.VideoPlaybackManager
 import com.auramusic.app.video.VideoPlayerOverlay
-import com.auramusic.app.video.VideoPopupWindow
 import com.auramusic.app.voice.VoiceCommandViewModel
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -318,9 +317,6 @@ class MainActivity : ComponentActivity() {
         // Called when the user leaves via Home or Recents. Entering PiP here is what keeps the
         // video playing in a floating window instead of stopping at the last frame.
         super.onUserLeaveHint()
-        // Already floating over the app: shrinking the Activity would take away everything the
-        // video was floating over, and there would be two floating windows for one video.
-        if (VideoPopupWindow.active.value) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && VideoPictureInPicture.isSupported()) {
             val manager = VideoPlaybackManager
             if (manager.isPictureInPictureEligible()) {
@@ -338,8 +334,6 @@ class MainActivity : ComponentActivity() {
         if (isInPictureInPictureMode) {
             // The in-app overlay must go away: the platform is already drawing the video into
             // the PiP window, and a second PlayerView on the same player fights it for frames.
-            // A floating window is a second view on that same player, so it goes too.
-            VideoPopupWindow.hide()
             VideoPlaybackManager.setPictureInPicture(true)
         } else {
             VideoPictureInPicture.clearSourceRectHint()
