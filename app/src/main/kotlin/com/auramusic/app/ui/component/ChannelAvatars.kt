@@ -35,15 +35,16 @@ import java.util.concurrent.ConcurrentHashMap
  * glyph for the second channel.
  */
 object ChannelAvatarStore {
-    private val avatars = ConcurrentHashMap<String, String?>()
+    // ConcurrentHashMap rejects null values, so "looked up, has no art" is stored as blank.
+    private val avatars = ConcurrentHashMap<String, String>()
 
     suspend fun avatarFor(channelId: String): String? {
-        if (avatars.containsKey(channelId)) return avatars[channelId]
+        avatars[channelId]?.let { return it.ifBlank { null } }
         val url = runCatching {
             YouTube.youtubeChannel(channelId, params = null).getOrNull()?.avatarUrl
-        }.getOrNull()
+        }.getOrNull().orEmpty()
         avatars[channelId] = url
-        return url
+        return url.ifBlank { null }
     }
 }
 

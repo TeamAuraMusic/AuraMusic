@@ -331,6 +331,13 @@ object VideoPlaybackManager {
             // just filled them in, and erasing them here made the Up Next list and
             // comments vanish (or never appear) for fast-loading videos.
             if (mediaItem?.mediaId == _uiState.value.session?.videoId) return
+            // A native playlist advance to a video the lookahead queued: the session
+            // follows the item instead of being reloaded.
+            val newVideoId = mediaItem?.mediaId
+            if (newVideoId != null && _uiState.value.queue.any { it.videoId == newVideoId }) {
+                advanceSessionTo(newVideoId)
+                return
+            }
             _uiState.update {
                 it.copy(
                     positionMs = 0,
@@ -557,6 +564,83 @@ object VideoPlaybackManager {
         return metadata
     }
 
+    /** The video the lookahead most recently appended to the shared playlist, if any. */
+    private var queuedAheadVideoId: String? = null
+
+    /**
+     * Resolves the next unplayed recommendation and appends it to the shared playlist behind
+     * the current video. With the next item already queued, the end of a video is a native
+     * playlist advance - no reload gap - and the Up next sheet shows the real video queue.
+     */
+    private fun queueUpcomingVideo() {
+        val state = _uiState.value
+        if (!state.autoplayEnabled) return
+        val currentId = state.session?.videoId ?: return
+        val nextItem = state.queue.firstOrNull { it.videoId != currentId && it.videoId !in playedVideoIds }
+            ?: return
+        if (queuedAheadVideoId == nextItem.videoId) return
+        val ctx = currentContext ?: return
+        val service = sharedConnectionRef?.get()?.service ?: return
+        queuedAheadVideoId = nextItem.videoId
+        scope.launch {
+            val source = withContext(Dispatchers.IO) {
+                AuraPlayerUtils.getVideoStreamSource(nextItem.videoId).getOrNull()
+            }
+            if (source == null || _uiState.value.session?.videoId != currentId) {
+                if (queuedAheadVideoId == nextItem.videoId) queuedAheadVideoId = null
+                return@launch
+            }
+            val mediaSource = buildMediaSource(
+                ctx,
+                nextItem.videoId,
+                source,
+                title = nextItem.title,
+                channelName = nextItem.channelName,
+                channelThumbnail = nextItem.thumbnail,
+            )
+            service.appendGuestVideoSource(mediaSource)
+        }
+    }
+
+    /**
+     * The shared player advanced to an item that was queued behind the current video. The
+     * session follows the item: metadata, comments, recommendations and the next lookahead
+     * all reload for the new video, while playback itself never stops.
+     */
+    private fun advanceSessionTo(videoId: String) {
+        val item = _uiState.value.queue.firstOrNull { it.videoId == videoId } ?: return
+        playedVideoIds.add(videoId)
+        queuedAheadVideoId = null
+        // A new video invalidates the previous one's cached watch page.
+        watchMetadataCache = null
+        watchMetadataCacheVideoId = null
+        _uiState.update {
+            it.copy(
+                session = VideoSession(
+                    videoId = item.videoId,
+                    title = item.title,
+                    channelName = item.channelName,
+                    channelId = item.channelId,
+                    channelThumbnail = item.thumbnail,
+                ),
+                positionMs = 0,
+                error = null,
+                isLiked = false,
+                isDisliked = false,
+                isSubscribed = false,
+                isSaved = false,
+                expandedDescription = false,
+            )
+        }
+        onVideoPlayed?.invoke()
+        scope.launch {
+            val watchMetadata = enrichSessionMetadata(videoId)
+            loadRecommendations(videoId, prefetchedMetadata = watchMetadata)
+            loadComments(videoId)
+            queueUpcomingVideo()
+        }
+    }
+
     private suspend fun loadRecommendations(videoId: String, prefetchedMetadata: WatchMetadataResponse? = null) {
         // The isLoadingRecommendations=true + empty list state is already written by
         // playWithDetails at the point it resets UiState, so skipping a redundant update
@@ -580,6 +664,7 @@ object VideoPlaybackManager {
                     isLoadingRecommendations = false,
                 )
             }
+            queueUpcomingVideo()
             return
         }
 
@@ -606,6 +691,7 @@ object VideoPlaybackManager {
             _uiState.update {
                 it.copy(recommendations = nextItems, queue = queue, isLoadingRecommendations = false)
             }
+            queueUpcomingVideo()
             return
         }
 
@@ -632,6 +718,7 @@ object VideoPlaybackManager {
             _uiState.update {
                 it.copy(recommendations = relatedItems, queue = queue, isLoadingRecommendations = false)
             }
+            queueUpcomingVideo()
         } else {
             _uiState.update { it.copy(isLoadingRecommendations = false) }
         }
@@ -773,6 +860,13 @@ object VideoPlaybackManager {
     )
 
     fun playNext() {
+        // The lookahead keeps the next video queued on the shared playlist, so skipping is a
+        // native advance with no reload gap. Only a drained queue falls back to a full load.
+        val exo = player
+        if (exo != null && exo.hasNextMediaItem()) {
+            exo.seekToNextMediaItem()
+            return
+        }
         val queue = _uiState.value.queue
         if (queue.isEmpty()) return
         val nextItem = queue.firstOrNull { it.videoId != _uiState.value.session?.videoId } ?: return
@@ -788,6 +882,11 @@ object VideoPlaybackManager {
     }
 
     fun playPrevious() {
+        val exo = player
+        if (exo != null && exo.hasPreviousMediaItem()) {
+            exo.seekToPreviousMediaItem()
+            return
+        }
         val queue = _uiState.value.queue
         if (queue.isEmpty()) return
         val currentId = _uiState.value.session?.videoId ?: return
@@ -985,6 +1084,20 @@ object VideoPlaybackManager {
     fun setAutoplayEnabled(enabled: Boolean) {
         currentAutoplay = enabled
         _uiState.update { it.copy(autoplayEnabled = enabled) }
+        if (enabled) {
+            queueUpcomingVideo()
+        } else {
+            // Anything the lookahead queued behind the current video would still advance
+            // at the end of the item, so the playlist is trimmed back to just what is
+            // playing.
+            queuedAheadVideoId = null
+            player?.let { exo ->
+                val currentIndex = exo.currentMediaItemIndex
+                for (index in exo.mediaItemCount - 1 downTo 0) {
+                    if (index != currentIndex) exo.removeMediaItem(index)
+                }
+            }
+        }
         currentContext?.let { ctx ->
             scope.launch {
                 ctx.dataStore.edit { it[VideoAutoplayEnabledKey] = enabled }
@@ -999,6 +1112,15 @@ object VideoPlaybackManager {
                 recommendations = it.recommendations.filterNot { r -> r.videoId == videoId },
                 queue = it.queue.filterNot { q -> q.videoId == videoId },
             )
+        }
+        if (queuedAheadVideoId == videoId) queuedAheadVideoId = null
+        // Keep the shared playlist in step: a removed video must not come up next.
+        val exo = player ?: return
+        for (index in 0 until exo.mediaItemCount) {
+            if (index != exo.currentMediaItemIndex && exo.getMediaItemAt(index).mediaId == videoId) {
+                exo.removeMediaItem(index)
+                break
+            }
         }
     }
 
@@ -1183,6 +1305,7 @@ object VideoPlaybackManager {
         // composable is alive; this is the safety net for every other code path.
         activityRef?.get()?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         playedVideoIds.clear()
+        queuedAheadVideoId = null
         // Drop our handles so we aren't pinning a Context/Activity any longer.
         currentContext = null
         activityRef = null
@@ -1253,6 +1376,9 @@ object VideoPlaybackManager {
         // The shared player swaps to the video as a guest: the music queue is snapshotted
         // on the first takeover and the session's notification shows the video's metadata.
         service.playGuestVideoSource(mediaSource, startPositionMs)
+        // A fresh single-item playlist replaced whatever the lookahead had queued.
+        queuedAheadVideoId = null
+        queueUpcomingVideo()
     }
 
     private fun startTicker() {

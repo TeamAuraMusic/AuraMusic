@@ -1814,6 +1814,17 @@ class MusicService :
     }
 
     /**
+     * Queues the next video behind the one playing. Appending (rather than swapping) makes
+     * videos real playlist entries: the player advances on its own at the end of an item,
+     * previous/next become native seeks, and anything reading the playlist - the Up next
+     * sheet included - sees the whole video queue.
+     */
+    fun appendGuestVideoSource(source: MediaSource) {
+        if (!_guestVideoActive.value) return
+        player.addMediaSource(source)
+    }
+
+    /**
      * Hands the player back to music. With [restoreQueue] the snapshot taken by
      * [playGuestVideoSource] is reloaded, paused, exactly where the listener left it.
      */
@@ -3610,6 +3621,10 @@ class MusicService :
                     )
                 )
             }
+        }.apply {
+            // This player renders video too: a hardware codec that fails to configure must
+            // degrade to the platform software codec instead of ending the playback.
+            setEnableDecoderFallback(true)
         }
 
     override fun onPlaybackStatsReady(
