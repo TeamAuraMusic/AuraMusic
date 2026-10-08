@@ -1078,4 +1078,7 @@
     <string name="video_subscriptions">Chaînes abonnées</string>
     <string name="video_player_retry">Réessayer</string>
     <string name="video_category_personal">Pour Vous</string>
+    <string name="video_player_pip">Picture in picture</string>
+    <string name="video_player_pip_not_supported">Picture in picture n\'est pas disponible sur cet appareil.</string>
+    <string name="video_player_float">Vidéo « Float »</string>
 </resources>
