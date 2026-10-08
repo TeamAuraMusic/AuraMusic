@@ -83,6 +83,8 @@ import com.auramusic.app.constants.MixSortTypeKey
 import com.auramusic.app.constants.ShowCachedPlaylistKey
 import com.auramusic.app.constants.ShowDownloadedPlaylistKey
 import com.auramusic.app.constants.ShowLikedPlaylistKey
+import com.auramusic.app.constants.ShowLikedVideosKey
+import com.auramusic.app.constants.ShowSavedVideosKey
 import com.auramusic.app.constants.ShowTopPlaylistKey
 import com.auramusic.app.constants.YtmSyncKey
 import com.auramusic.app.db.entities.Album
@@ -145,9 +147,17 @@ fun LibraryMixScreen(
     var videoChannels by remember {
         mutableStateOf<List<VideoPlaybackManager.VideoSubscribedChannel>>(emptyList())
     }
+    var likedVideos by remember {
+        mutableStateOf<List<VideoPlaybackManager.VideoHistoryEntry>>(emptyList())
+    }
+    var savedVideos by remember {
+        mutableStateOf<List<VideoPlaybackManager.VideoHistoryEntry>>(emptyList())
+    }
     LaunchedEffect(Unit) {
         videoHistory = VideoPlaybackManager.readVideoHistory(context)
         videoChannels = VideoPlaybackManager.readSubscribedChannels(context)
+        likedVideos = VideoPlaybackManager.readLikedVideos(context)
+        savedVideos = VideoPlaybackManager.readSavedVideos(context)
     }
     val playVideoEntry: (VideoPlaybackManager.VideoHistoryEntry) -> Unit = { entry ->
         VideoPlaybackManager.play(
@@ -212,12 +222,14 @@ fun LibraryMixScreen(
             songThumbnails = emptyList(),
         )
 
-    val (showLiked) = rememberPreference(ShowLikedPlaylistKey, true)
-    val (showDownloaded) = rememberPreference(ShowDownloadedPlaylistKey, true)
-    val (showTop) = rememberPreference(ShowTopPlaylistKey, true)
-    val (showCached) = rememberPreference(ShowCachedPlaylistKey, true)
-    // Uploaded songs feature is temporarily disabled
-    val showUploaded = false // rememberPreference(ShowUploadedPlaylistKey, true)
+     val (showLiked) = rememberPreference(ShowLikedPlaylistKey, true)
+     val (showDownloaded) = rememberPreference(ShowDownloadedPlaylistKey, true)
+     val (showTop) = rememberPreference(ShowTopPlaylistKey, true)
+     val (showCached) = rememberPreference(ShowCachedPlaylistKey, true)
+     val (showLikedVideos) = rememberPreference(ShowLikedVideosKey, true)
+     val (showSavedVideos) = rememberPreference(ShowSavedVideosKey, true)
+     // Uploaded songs feature is temporarily disabled
+     val showUploaded = false // rememberPreference(ShowUploadedPlaylistKey, true)
 
     val albums = viewModel.albums.collectAsState()
     val artist = viewModel.artists.collectAsState()
@@ -355,24 +367,68 @@ fun LibraryMixScreen(
 
                     item(
                         key = "header",
-                        contentType = CONTENT_TYPE_HEADER,
-                    ) {
-                        headerContent()
-                    }
+                         contentType = CONTENT_TYPE_HEADER,
+                     ) {
+                         headerContent()
+                     }
 
-                    if (videoHistory.isNotEmpty() || videoChannels.isNotEmpty()) {
-                        item(
-                            key = "videoSections",
-                            contentType = CONTENT_TYPE_HEADER,
-                        ) {
-                            LibraryVideoSections(
-                                history = videoHistory,
-                                channels = videoChannels,
-                                onPlayVideo = playVideoEntry,
-                                onOpenChannel = openVideoChannel,
-                            )
-                        }
-                    }
+                     if (videoHistory.isNotEmpty() || videoChannels.isNotEmpty()) {
+                         item(
+                             key = "videoSections",
+                             contentType = CONTENT_TYPE_HEADER,
+                         ) {
+                             LibraryVideoSections(
+                                 history = videoHistory,
+                                 channels = videoChannels,
+                                 onPlayVideo = playVideoEntry,
+                                 onOpenChannel = openVideoChannel,
+                             )
+                         }
+                     }
+                     if (likedVideos.isNotEmpty() && showLikedVideos) {
+                         item(
+                             key = "likedVideosSection",
+                             contentType = CONTENT_TYPE_HEADER,
+                         ) {
+                             Column(modifier = Modifier.fillMaxWidth()) {
+                                 VideoLibrarySectionHeader(R.string.liked_videos)
+                                 LazyRow(
+                                     contentPadding = PaddingValues(horizontal = 12.dp),
+                                     horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                 ) {
+                                     items(likedVideos) { entry ->
+                                         VideoHistoryThumb(
+                                             entry = entry,
+                                             onClick = { playVideoEntry(entry) },
+                                         )
+                                     }
+                                 }
+                                 Spacer(modifier = Modifier.height(8.dp))
+                             }
+                         }
+                     }
+                     if (savedVideos.isNotEmpty() && showSavedVideos) {
+                         item(
+                             key = "savedVideosSection",
+                             contentType = CONTENT_TYPE_HEADER,
+                         ) {
+                             Column(modifier = Modifier.fillMaxWidth()) {
+                                 VideoLibrarySectionHeader(R.string.saved_videos)
+                                 LazyRow(
+                                     contentPadding = PaddingValues(horizontal = 12.dp),
+                                     horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                 ) {
+                                     items(savedVideos) { entry ->
+                                         VideoHistoryThumb(
+                                             entry = entry,
+                                             onClick = { playVideoEntry(entry) },
+                                         )
+                                     }
+                                 }
+                                 Spacer(modifier = Modifier.height(8.dp))
+                             }
+                         }
+                     }
 
                     if (showLiked) {
                         item(

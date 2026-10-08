@@ -49,20 +49,17 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.pulltorefresh.pullToRefresh
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -109,26 +106,12 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/**
- * Music only. The other YouTube video sections (For You, Trending, New, Gaming) were
- * removed: they are general YouTube feeds, so they surfaced vlogs, let's-plays and
- * gaming alongside music, and there is no music equivalent to fall back on. Both
- * sections left are filtered through [com.auramusic.app.video.MusicContentFilter].
- */
-private enum class VideoCategory(
-    val labelRes: Int,
-) {
-    Music(R.string.filter_music),
-    Personal(R.string.video_category_personal),
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VideosScreen(
     navController: NavController,
 ) {
     val context = LocalContext.current
-    var selectedCategory by remember { mutableStateOf(VideoCategory.Music) }
     var gridView by rememberPreference(VideoFeedGridViewKey, true)
 
     val insets = LocalPlayerAwareWindowInsets.current.asPaddingValues()
@@ -136,9 +119,10 @@ fun VideosScreen(
 
     // Personalised video recommendations
     val recommendationManager = remember {
-        com.auramusic.app.video.VideoRecommendationManager(context).also {
-            com.auramusic.app.video.VideoPlaybackManager.onVideoPlayed = { it.onVideoWatched() }
-        }
+        com.auramusic.app.video.VideoRecommendationManager(context)
+    }
+    com.auramusic.app.video.VideoPlaybackManager.onVideoPlayed = {
+        recommendationManager.onVideoWatched()
     }
     val personalSections by recommendationManager.sections.collectAsState()
     val isLoadingPersonal by recommendationManager.isLoading.collectAsState()
@@ -165,16 +149,7 @@ fun VideosScreen(
 
     suspend fun fetchFeed(showError: Boolean = true) {
         withContext(Dispatchers.IO) {
-            if (selectedCategory == VideoCategory.Personal) {
-                recommendationManager.refresh()
-                isLoading = false
-                return@withContext
-            }
-            val result = when (selectedCategory) {
-                VideoCategory.Music ->
-                    YouTube.youtubeCategoryFeed(context.getString(R.string.video_category_music_query)).getOrNull()
-                VideoCategory.Personal -> null
-            }
+            val result = YouTube.youtubeCategoryFeed(context.getString(R.string.video_category_music_query)).getOrNull()
             if (result != null && result.items.isNotEmpty()) {
                 // Only keep what YouTube itself reports as music, and drop repeats within the
                 // page: the grid keys rows by video id and a duplicate throws at runtime.
@@ -199,22 +174,18 @@ fun VideosScreen(
         fetchFeed()
     }
 
-     suspend fun refreshFeed() {
+    suspend fun refreshFeed() {
         isRefreshing = true
         fetchFeed(showError = false)
         isRefreshing = false
     }
 
-     suspend fun loadMore() {
+    suspend fun loadMore() {
         if (isLoadingMore) return
         val cont = continuation ?: return
         isLoadingMore = true
         withContext(Dispatchers.IO) {
-            val result = when (selectedCategory) {
-                VideoCategory.Music ->
-                    YouTube.youtubeCategoryFeed(context.getString(R.string.video_category_music_query), cont).getOrNull()
-                VideoCategory.Personal -> null
-            }
+            val result = YouTube.youtubeCategoryFeed(context.getString(R.string.video_category_music_query), cont).getOrNull()
             result?.takeIf { it.items.isNotEmpty() }?.let {
                 // Continuation pages can repeat videos; dedupe so the lazy list
                 // never crashes on duplicate keys and pagination terminates.
@@ -238,7 +209,7 @@ fun VideosScreen(
         else -> 2
     }
 
-    LaunchedEffect(selectedCategory) {
+    LaunchedEffect(Unit) {
         loadFirstPage()
     }
 
@@ -266,7 +237,7 @@ fun VideosScreen(
     LaunchedEffect(Unit) {
         snapshotFlow { recommendationManager.shouldRefresh }
             .collect { shouldRefresh ->
-                if (shouldRefresh && selectedCategory == VideoCategory.Personal) {
+                if (shouldRefresh) {
                     scope.launch { recommendationManager.refresh() }
                 }
             }
@@ -275,13 +246,13 @@ fun VideosScreen(
     val gridListState = rememberLazyGridState()
     val listListState = rememberLazyListState()
 
-    LaunchedEffect(gridListState, selectedCategory, gridView) {
+    LaunchedEffect(gridListState, gridView) {
         snapshotFlow {
             val last = gridListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
             last >= gridListState.layoutInfo.totalItemsCount - 8
         }.collect { nearEnd -> if (nearEnd) loadMore() }
     }
-    LaunchedEffect(listListState, selectedCategory, gridView) {
+    LaunchedEffect(listListState, gridView) {
         snapshotFlow {
             val last = listListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
             last >= listListState.layoutInfo.totalItemsCount - 3
@@ -312,11 +283,6 @@ fun VideosScreen(
             gridView = gridView,
             onToggleView = { gridView = !gridView },
             onSearchClick = { navController.navigate("video_search/") },
-        )
-
-        FeedFilterBar(
-            selected = selectedCategory,
-            onCategorySelected = { selectedCategory = it },
         )
 
         BoxWithConstraints(
@@ -395,28 +361,64 @@ else -> {
                      val openChannel: (String) -> Unit = { channelId ->
                          navController.navigate("youtube_channel/$channelId?ts=${System.currentTimeMillis()}")
                      }
-                    // Personalised sections view for "For You" category
-                    if (selectedCategory == VideoCategory.Personal) {
-                        if (personalSections.isEmpty() && !isLoadingPersonal) {
-                            // Empty state
-                            Column(
+                    // Personalized sections integrated at the top of the Music feed
+                    if (personalSections.isNotEmpty() && !isLoadingPersonal) {
+                        if (gridView) {
+                            LazyVerticalGrid(
+                                columns = GridCells.Fixed(columns),
+                                state = gridListState,
                                 modifier = Modifier.fillMaxSize(),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                             ) {
-                                Icon(
-                                    painter = painterResource(R.drawable.slow_motion_video),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(72.dp),
-                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
-                                )
-                                Spacer(modifier = Modifier.height(14.dp))
-                                Text(
-                                    text = "Watch some videos to get personalised recommendations",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                    modifier = Modifier.padding(horizontal = 32.dp),
-                                )
+                                personalSections.forEachIndexed { sectionIndex, section ->
+                                    item(
+                                        key = "section_${sectionIndex}_${section.title}",
+                                        span = { GridItemSpan(maxLineSpan) }
+                                    ) {
+                                        Column(modifier = Modifier.padding(top = 8.dp)) {
+                                            Text(
+                                                text = section.title,
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                            )
+                                        }
+                                    }
+                                    items(
+                                        items = section.videos,
+                                        key = { "section${sectionIndex}_video_${it.videoId}" }
+                                    ) { video ->
+                                        FeedVideoGridCard(
+                                            video = video,
+                                            isNowPlaying = isCurrentlyPlaying(video.videoId),
+                                            onClick = { playVideo(video) },
+                                            onChannelClick = openChannel,
+                                        )
+                                    }
+                                }
+                                items(
+                                    items = feed,
+                                    key = { "video_${it.videoId}" }
+                                ) { video ->
+                                    FeedVideoGridCard(
+                                        video = video,
+                                        isNowPlaying = isCurrentlyPlaying(video.videoId),
+                                        onClick = { playVideo(video) },
+                                        onChannelClick = openChannel,
+                                    )
+                                }
+                                item(
+                                    key = "feed_footer",
+                                    span = { GridItemSpan(maxLineSpan) }
+                                ) {
+                                    GridListFooter(
+                                        isLoadingMore = isLoadingMore,
+                                        hasMore = continuation != null,
+                                        columns = columns,
+                                        gridView = gridView,
+                                    )
+                                }
                             }
                         } else {
                             LazyColumn(
@@ -448,17 +450,24 @@ else -> {
                                         )
                                     }
                                 }
-                                item(key = "personal_footer") {
-                                    if (isLoadingPersonal) {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(16.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            LinearProgressIndicator(modifier = Modifier.height(3.dp))
-                                        }
-                                    }
+                                items(
+                                    items = feed,
+                                    key = { "video_${it.videoId}" }
+                                ) { video ->
+                                    FeedVideoListRow(
+                                        video = video,
+                                        isNowPlaying = isCurrentlyPlaying(video.videoId),
+                                        onClick = { playVideo(video) },
+                                        onChannelClick = openChannel,
+                                    )
+                                }
+                                item(key = "feed_footer") {
+                                    GridListFooter(
+                                        isLoadingMore = isLoadingMore,
+                                        hasMore = continuation != null,
+                                        columns = columns,
+                                        gridView = gridView,
+                                    )
                                 }
                             }
                         }
@@ -581,41 +590,6 @@ private fun VideosTopBar(
                 tint = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(22.dp)
             )
-        }
-    }
-}
-
-@Composable
-private fun FeedFilterBar(
-    selected: VideoCategory,
-    onCategorySelected: (VideoCategory) -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
-            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-            .padding(vertical = 6.dp)
-    ) {
-        Spacer(modifier = Modifier.width(12.dp))
-        VideoCategory.entries.forEach { category ->
-            FilterChip(
-                selected = category == selected,
-                onClick = { onCategorySelected(category) },
-                label = {
-                    Text(
-                        text = stringResource(category.labelRes),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                },
-                colors = FilterChipDefaults.filterChipColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
-                shape = RoundedCornerShape(16.dp),
-                border = null,
-            )
-            Spacer(modifier = Modifier.width(8.dp))
         }
     }
 }

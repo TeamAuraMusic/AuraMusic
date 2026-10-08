@@ -24,7 +24,9 @@ import androidx.media3.extractor.mkv.MatroskaExtractor
 import androidx.media3.extractor.mp4.FragmentedMp4Extractor
 import androidx.datastore.preferences.core.edit
 import com.auramusic.app.R
+import com.auramusic.app.constants.LikedVideosKey
 import com.auramusic.app.constants.SavedVideoIdsKey
+import com.auramusic.app.constants.SavedVideosKey
 import com.auramusic.app.constants.VideoAutoplayEnabledKey
 import com.auramusic.app.constants.VideoHistoryKey
 import com.auramusic.app.constants.VideoQuality
@@ -909,7 +911,9 @@ object VideoPlaybackManager {
         val session = _uiState.value.session ?: return
         val newLiked = !_uiState.value.isLiked
         scope.launch {
-            YouTube.likeVideo(session.videoId, newLiked)
+            YouTube.likeVideo(session.videoId, newLiked).onSuccess {
+                writeLikedVideo(session, newLiked)
+            }
             _uiState.update {
                 it.copy(
                     isLiked = newLiked,
@@ -918,6 +922,35 @@ object VideoPlaybackManager {
             }
         }
     }
+
+    /** Keeps the Library's "Liked videos" shelf in step with the like toggle. */
+    private suspend fun writeLikedVideo(session: VideoSession, liked: Boolean) {
+        val ctx = currentContext ?: return
+        withContext(Dispatchers.IO) {
+            val current = parseVideoHistory(ctx.dataStore[LikedVideosKey]).toMutableList()
+            current.removeAll { it.videoId == session.videoId }
+            if (liked) {
+                current.add(
+                    0,
+                    VideoHistoryEntry(
+                        videoId = session.videoId,
+                        title = session.title,
+                        channelName = session.channelName,
+                        channelId = session.channelId,
+                        thumbnailUrl = session.channelThumbnail,
+                        lastPlayedAt = System.currentTimeMillis(),
+                    ),
+                )
+            }
+            ctx.dataStore.edit { it[LikedVideosKey] = buildVideoHistoryJson(current.take(MAX_VIDEO_HISTORY_ENTRIES)) }
+        }
+    }
+
+    /** The Library's "Liked videos" shelf, most recently liked first. */
+    suspend fun readLikedVideos(context: Context): List<VideoHistoryEntry> =
+        withContext(Dispatchers.IO) {
+            runCatching { parseVideoHistory(context.dataStore[LikedVideosKey]) }.getOrDefault(emptyList())
+        }
 
     fun toggleDislike() {
         val session = _uiState.value.session ?: return
@@ -960,9 +993,39 @@ object VideoPlaybackManager {
                 if (newSaved) saved.add(session.videoId) else saved.remove(session.videoId)
                 settings[SavedVideoIdsKey] = saved
             }
+            writeSavedVideo(session, newSaved)
             _uiState.update { it.copy(isSaved = newSaved) }
         }
     }
+
+    /** Keeps the Library's "Saved videos" shelf in step with the save toggle. */
+    private suspend fun writeSavedVideo(session: VideoSession, saved: Boolean) {
+        val ctx = currentContext ?: return
+        withContext(Dispatchers.IO) {
+            val current = parseVideoHistory(ctx.dataStore[SavedVideosKey]).toMutableList()
+            current.removeAll { it.videoId == session.videoId }
+            if (saved) {
+                current.add(
+                    0,
+                    VideoHistoryEntry(
+                        videoId = session.videoId,
+                        title = session.title,
+                        channelName = session.channelName,
+                        channelId = session.channelId,
+                        thumbnailUrl = session.channelThumbnail,
+                        lastPlayedAt = System.currentTimeMillis(),
+                    ),
+                )
+            }
+            ctx.dataStore.edit { it[SavedVideosKey] = buildVideoHistoryJson(current.take(MAX_VIDEO_HISTORY_ENTRIES)) }
+        }
+    }
+
+    /** The Library's "Saved videos" shelf, most recently saved first. */
+    suspend fun readSavedVideos(context: Context): List<VideoHistoryEntry> =
+        withContext(Dispatchers.IO) {
+            runCatching { parseVideoHistory(context.dataStore[SavedVideosKey]) }.getOrDefault(emptyList())
+        }
 
     fun toggleExpandedDescription() {
         _uiState.update { it.copy(expandedDescription = !it.expandedDescription) }

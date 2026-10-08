@@ -73,6 +73,7 @@ data class WatchTopLevelButton(
 @Serializable
 data class WatchSegmentedLikeDislikeButtonViewModel(
     val likeButtonViewModel: WatchLikeButtonOuter? = null,
+    val dislikeButtonViewModel: WatchLikeButtonOuter? = null,
 )
 
 @Serializable
@@ -93,6 +94,7 @@ data class WatchToggleButtonOuter(
 @Serializable
 data class WatchToggleButtonInner(
     val defaultButtonViewModel: WatchDefaultButtonViewModel? = null,
+    val isToggled: Boolean? = null,
 )
 
 @Serializable
@@ -371,24 +373,27 @@ fun WatchMetadataResponse.likeCountText(): String? =
 enum class WatchLikeState { LIKE, DISLIKE, NONE }
 
 /**
- * The current like/dislike state of a watched video, derived from the icon name
- * the WEB watch page renders on the like button (filled "LIKE"/"DISLIKE" when the
- * user has voted, outline variants otherwise). Unknown/parsing-gap states yield
- * [WatchLikeState.NONE], never crashing.
+ * The current like/dislike state of a watched video, read from the toggle state of the watch
+ * page's like and dislike buttons. The icon name alone cannot carry it - YouTube labels the
+ * like button "LIKE" whether or not the user has voted - so [WatchLikeState.NONE] is what an
+ * unvoted video (or a parsing gap) reports, never crashing.
  */
 fun WatchMetadataResponse.likeState(): WatchLikeState {
-    val iconName = contents?.twoColumnWatchNextResults?.results?.results?.contents
+    val topLevelButtons = contents?.twoColumnWatchNextResults?.results?.results?.contents
         ?.firstNotNullOfOrNull { content ->
             content?.videoPrimaryInfoRenderer?.videoActions?.menuRenderer?.topLevelButtons
-                ?.firstNotNullOfOrNull { button ->
-                    button?.segmentedLikeDislikeButtonViewModel?.likeButtonViewModel
-                        ?.likeButtonViewModel?.toggleButtonViewModel?.toggleButtonViewModel
-                        ?.defaultButtonViewModel?.buttonViewModel?.iconName
-                }
         }
-    return when (iconName) {
-        "LIKE" -> WatchLikeState.LIKE
-        "DISLIKE" -> WatchLikeState.DISLIKE
+    val likeToggled = topLevelButtons?.firstNotNullOfOrNull { button ->
+        button?.segmentedLikeDislikeButtonViewModel?.likeButtonViewModel
+            ?.likeButtonViewModel?.toggleButtonViewModel?.toggleButtonViewModel?.isToggled
+    }
+    val dislikeToggled = topLevelButtons?.firstNotNullOfOrNull { button ->
+        button?.segmentedLikeDislikeButtonViewModel?.dislikeButtonViewModel
+            ?.likeButtonViewModel?.toggleButtonViewModel?.toggleButtonViewModel?.isToggled
+    }
+    return when {
+        likeToggled == true -> WatchLikeState.LIKE
+        dislikeToggled == true -> WatchLikeState.DISLIKE
         else -> WatchLikeState.NONE
     }
 }
