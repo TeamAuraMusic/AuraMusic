@@ -123,6 +123,7 @@ import com.auramusic.app.constants.SubtitleLanguageKey
 import com.auramusic.app.constants.SubtitlesEnabledKey
 import com.auramusic.app.constants.VideoQuality
 import com.auramusic.app.subtitles.SubtitleLanguageOptions
+import com.auramusic.app.ui.component.ChannelPickerDialog
 import com.auramusic.app.utils.linkifiedText
 import com.auramusic.app.utils.rememberPreference
 import com.auramusic.app.video.VideoPlaybackManager.CommentItem
@@ -1491,12 +1492,19 @@ private fun CompactLandscapeBar(
                     .fillMaxWidth()
                     .padding(start = 16.dp, end = 16.dp, bottom = 10.dp)
             ) {
+                var showChannelPicker by remember { mutableStateOf(false) }
+                // Videos that credit two channels open a chooser instead of silently
+                // navigating to the first one.
+                val openChannel: () -> Unit = {
+                    if (session.channels.size > 1) showChannelPicker = true
+                    else session.channelId?.let(onChannelClick)
+                }
                 Box(
                     modifier = Modifier
                         .size(24.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.primaryContainer)
-                        .clickable { session.channelId?.let(onChannelClick) }
+                        .clickable(onClick = openChannel)
                 ) {
                     if (!session.channelAvatarUrl.isNullOrBlank()) {
                         AsyncImage(
@@ -1521,8 +1529,18 @@ private fun CompactLandscapeBar(
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(4.dp))
-                        .clickable { session.channelId?.let(onChannelClick) },
+                        .clickable(onClick = openChannel),
                 )
+                if (showChannelPicker) {
+                    ChannelPickerDialog(
+                        channels = session.channels,
+                        onDismiss = { showChannelPicker = false },
+                        onSelect = { channel ->
+                            showChannelPicker = false
+                            channel.id?.let(onChannelClick)
+                        },
+                    )
+                }
             }
         }
     }
@@ -1563,12 +1581,19 @@ private fun ChannelRow(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth()
     ) {
+        var showChannelPicker by remember { mutableStateOf(false) }
+        // Videos that credit two channels open a chooser instead of silently navigating
+        // to the first one.
+        val openChannel: () -> Unit = {
+            if (session.channels.size > 1) showChannelPicker = true
+            else session.channelId?.let(onChannelClick)
+        }
         Box(
             modifier = Modifier
                 .size(44.dp)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.primaryContainer)
-                .clickable { session.channelId?.let(onChannelClick) }
+                .clickable(onClick = openChannel)
         ) {
             // The real channel avatar (not the video's thumbnail/artwork, which is
             // what channelThumbnail holds for the media notification artwork).
@@ -1593,7 +1618,12 @@ private fun ChannelRow(
 
         Spacer(modifier = Modifier.width(12.dp))
 
-        Column(modifier = Modifier.weight(1f)) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .clip(RoundedCornerShape(4.dp))
+                .clickable(onClick = openChannel),
+        ) {
             Text(
                 text = session.channelName,
                 style = MaterialTheme.typography.bodyLarge,
@@ -1611,6 +1641,17 @@ private fun ChannelRow(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+        }
+
+        if (showChannelPicker) {
+            ChannelPickerDialog(
+                channels = session.channels,
+                onDismiss = { showChannelPicker = false },
+                onSelect = { channel ->
+                    showChannelPicker = false
+                    channel.id?.let(onChannelClick)
+                },
+            )
         }
 
         Surface(

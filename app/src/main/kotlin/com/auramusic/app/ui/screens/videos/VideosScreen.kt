@@ -95,6 +95,7 @@ import coil3.compose.AsyncImage
 import com.auramusic.app.LocalPlayerAwareWindowInsets
 import com.auramusic.app.R
 import com.auramusic.app.constants.VideoFeedGridViewKey
+import com.auramusic.app.ui.component.ChannelPickerDialog
 import com.auramusic.app.ui.component.shimmer.ShimmerHost
 import com.auramusic.app.utils.compactViewCount
 import com.auramusic.app.utils.rememberPreference
@@ -387,6 +388,7 @@ else -> {
                             viewCountText = video.viewCountText,
                             publishedTimeText = video.publishedTimeText,
                             thumbnails = video.thumbnails,
+                            channels = video.channels,
                         )
                     }
                      val openChannel: (String) -> Unit = { channelId ->
@@ -946,6 +948,7 @@ internal fun FeedVideoGridCard(
     onChannelClick: (String) -> Unit,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
+    var showChannelPicker by remember { mutableStateOf(false) }
     Box {
         Column(
             modifier = Modifier
@@ -1072,7 +1075,10 @@ internal fun FeedVideoGridCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            val channelClick: () -> Unit = { video.channelId?.let(onChannelClick) }
+            val channelClick: () -> Unit = {
+                if (video.channels.size > 1) showChannelPicker = true
+                else video.channelId?.let(onChannelClick)
+            }
             ChannelAvatar(
                 channelName = video.channelName,
                 channelThumbnailUrl = video.channelThumbnailUrl,
@@ -1111,6 +1117,16 @@ internal fun FeedVideoGridCard(
             expanded = menuExpanded,
             onDismiss = { menuExpanded = false },
         )
+        if (showChannelPicker) {
+            ChannelPickerDialog(
+                channels = video.channels,
+                onDismiss = { showChannelPicker = false },
+                onSelect = { channel ->
+                    showChannelPicker = false
+                    channel.id?.let(onChannelClick)
+                },
+            )
+        }
     }
 }
 
@@ -1123,6 +1139,7 @@ internal fun FeedVideoListRow(
     onChannelClick: (String) -> Unit,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
+    var showChannelPicker by remember { mutableStateOf(false) }
     Box {
         Row(
             modifier = Modifier
@@ -1226,7 +1243,10 @@ internal fun FeedVideoListRow(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    val channelClick: () -> Unit = { video.channelId?.let(onChannelClick) }
+                    val channelClick: () -> Unit = {
+                        if (video.channels.size > 1) showChannelPicker = true
+                        else video.channelId?.let(onChannelClick)
+                    }
                     ChannelAvatar(
                         channelName = video.channelName,
                         channelThumbnailUrl = video.channelThumbnailUrl,
@@ -1255,5 +1275,15 @@ internal fun FeedVideoListRow(
             expanded = menuExpanded,
             onDismiss = { menuExpanded = false },
         )
+        if (showChannelPicker) {
+            ChannelPickerDialog(
+                channels = video.channels,
+                onDismiss = { showChannelPicker = false },
+                onSelect = { channel ->
+                    showChannelPicker = false
+                    channel.id?.let(onChannelClick)
+                },
+            )
+        }
     }
 }

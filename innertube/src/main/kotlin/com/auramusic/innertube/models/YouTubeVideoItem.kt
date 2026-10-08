@@ -12,4 +12,10 @@ data class YouTubeVideoItem(
     val thumbnails: List<Thumbnail> = emptyList(),
     val isLive: Boolean = false,
     val description: String? = null,
+    /**
+     * Every channel the byline links to, in order. Collaborative and music videos can credit
+     * two channels at once ("A & B"); the single [channelId] above only ever points at the
+     * first of them.
+     */
+    val channels: List<Artist> = emptyList(),
 )

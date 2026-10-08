@@ -63,6 +63,7 @@ object YouTubeFeedPage {
         val byline = renderer["longBylineText"]?.asRunsText()
         val channelName = byline ?: renderer["ownerText"]?.asRunsText().orEmpty()
         val channelId = renderer["longBylineText"]?.firstBrowseId()
+        val channels = renderer["longBylineText"].asChannelList()
 
         val viewCount = renderer["viewCountText"]?.asSimpleOrRunsText()
         val publishedTime = renderer["publishedTimeText"]?.asSimpleText()
@@ -99,6 +100,7 @@ object YouTubeFeedPage {
             thumbnails = thumbnails,
             isLive = isLive,
             description = description,
+            channels = channels,
         )
     }
 
@@ -120,6 +122,26 @@ object YouTubeFeedPage {
             ?.get("navigationEndpoint")?.jsonObject
             ?.get("browseEndpoint")?.jsonObject
             ?.getString("browseId")
+
+    /**
+     * Every channel the byline links to. A single-channel video has one run with a browse id;
+     * a credit line like "A & B" has one per channel, with the separators dropped.
+     */
+    private fun JsonElement?.asChannelList(): List<com.auramusic.innertube.models.Artist> =
+        this?.jsonObject?.get("runs")?.jsonArray
+            ?.mapNotNull { runEl ->
+                val run = runEl.jsonObject
+                val id = run["navigationEndpoint"]?.jsonObject
+                    ?.get("browseEndpoint")?.jsonObject
+                    ?.getString("browseId")
+                    ?.takeIf { it.startsWith("UC") }
+                    ?: return@mapNotNull null
+                val name = run.getString("text")?.takeIf { it.isNotBlank() }
+                    ?: return@mapNotNull null
+                com.auramusic.innertube.models.Artist(name, id)
+            }
+            ?.distinctBy { it.id }
+            .orEmpty()
 
     private fun JsonObject.getString(key: String): String? =
         this[key]?.jsonPrimitive?.contentOrNull

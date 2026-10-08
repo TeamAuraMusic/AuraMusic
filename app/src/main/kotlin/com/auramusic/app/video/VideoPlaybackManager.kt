@@ -94,6 +94,11 @@ object VideoPlaybackManager {
         val channelId: String? = null,
         val channelThumbnail: String? = null,
         val channelAvatarUrl: String? = null,
+        /**
+         * Every channel the video credits. Most videos have one; collaborative and music
+         * videos can have two, and [channelId] only ever names the first.
+         */
+        val channels: List<com.auramusic.innertube.models.Artist> = emptyList(),
         val description: String? = null,
         val viewCountText: String? = null,
         val publishedTimeText: String? = null,
@@ -388,6 +393,7 @@ object VideoPlaybackManager {
         viewCountText: String? = null,
         publishedTimeText: String? = null,
         thumbnails: List<com.auramusic.innertube.models.Thumbnail> = emptyList(),
+        channels: List<com.auramusic.innertube.models.Artist> = emptyList(),
     ) {
         val current = _uiState.value
         if (current.session?.videoId == videoId) {
@@ -421,6 +427,10 @@ object VideoPlaybackManager {
                 channelName = channelName,
                 channelId = channelId,
                 channelThumbnail = channelThumbnail ?: bestThumbnail,
+                channels = channels.ifEmpty {
+                    channelId?.let { listOf(com.auramusic.innertube.models.Artist(channelName, it)) }
+                        .orEmpty()
+                },
                 description = description,
                 viewCountText = viewCountText,
                 publishedTimeText = publishedTimeText,

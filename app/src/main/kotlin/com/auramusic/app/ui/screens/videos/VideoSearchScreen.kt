@@ -84,6 +84,7 @@ import coil3.compose.AsyncImage
 import com.auramusic.app.LocalPlayerAwareWindowInsets
 import com.auramusic.app.R
 import com.auramusic.app.constants.VideoRecentSearchesKey
+import com.auramusic.app.ui.component.ChannelPickerDialog
 import com.auramusic.app.constants.VideoSearchGridViewKey
 import com.auramusic.app.utils.compactViewCount
 import com.auramusic.app.utils.dataStore
@@ -592,6 +593,7 @@ fun VideoSearchScreen(
                                                 viewCountText = video.viewCountText,
                                                 publishedTimeText = video.publishedTimeText,
                                                 thumbnails = video.thumbnails,
+                                                channels = video.channels,
                                             )
                                         },
                                          onChannelClick = { channelId ->
@@ -1130,6 +1132,7 @@ private fun SearchHeroVideoCard(
     onClick: () -> Unit,
     onChannelClick: (String) -> Unit,
 ) {
+    var showChannelPicker by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1248,7 +1251,10 @@ private fun SearchHeroVideoCard(
                     .padding(start = 16.dp, end = 16.dp, bottom = 6.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                val channelClick: () -> Unit = { video.channelId?.let(onChannelClick) }
+                val channelClick: () -> Unit = {
+                    if (video.channels.size > 1) showChannelPicker = true
+                    else video.channelId?.let(onChannelClick)
+                }
                 SearchAvatar(
                     channelName = video.channelName,
                     url = video.channelThumbnailUrl,
@@ -1268,6 +1274,16 @@ private fun SearchHeroVideoCard(
                 )
             }
         }
+    }
+    if (showChannelPicker) {
+        ChannelPickerDialog(
+            channels = video.channels,
+            onDismiss = { showChannelPicker = false },
+            onSelect = { channel ->
+                showChannelPicker = false
+                channel.id?.let(onChannelClick)
+            },
+        )
     }
 }
 

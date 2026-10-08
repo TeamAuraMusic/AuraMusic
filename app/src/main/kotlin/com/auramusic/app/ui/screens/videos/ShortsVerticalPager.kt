@@ -112,6 +112,7 @@ fun ShortsVerticalPager(
                 viewCountText = short.viewCountText,
                 publishedTimeText = short.publishedTimeText,
                 thumbnails = short.thumbnails,
+                channels = short.channels,
             )
         }
     }

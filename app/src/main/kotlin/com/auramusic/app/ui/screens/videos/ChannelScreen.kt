@@ -443,6 +443,7 @@ fun ChannelScreen(
                                     viewCountText = video.viewCountText,
                                     publishedTimeText = video.publishedTimeText,
                                     thumbnails = video.thumbnails,
+                                    channels = video.channels,
                                 )
                             },
                         )

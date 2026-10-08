@@ -58,6 +58,15 @@ object YouTubeSearchPage {
         val channelRuns = videoRenderer.longBylineText?.runs
         val channelName = channelRuns?.joinToString("") { it.text.orEmpty() } ?: ""
         val channelId = channelRuns?.firstOrNull()?.navigationEndpoint?.browseEndpoint?.browseId
+        // Every channel the byline links to, not just the first: a credit line like
+        // "A & B" carries one linked run per channel, with separators dropped.
+        val channels = channelRuns?.mapNotNull { run ->
+            val id = run.navigationEndpoint?.browseEndpoint?.browseId
+                ?.takeIf { it.startsWith("UC") }
+                ?: return@mapNotNull null
+            val name = run.text?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            com.auramusic.innertube.models.Artist(name, id)
+        }?.distinctBy { it.id }.orEmpty()
 
         val viewCount = videoRenderer.viewCountText?.simpleText
             ?: videoRenderer.viewCountText?.runs?.joinToString("") { it.text.orEmpty() }
@@ -88,6 +97,7 @@ object YouTubeSearchPage {
             thumbnails = thumbnails,
             isLive = isLive,
             description = description,
+            channels = channels,
         )
     }
 
