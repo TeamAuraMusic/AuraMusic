@@ -122,12 +122,25 @@ object AuraVideo {
         }
     }
 
-    /** Highest resolution first, then the cheapest codec to decode, then highest bitrate. */
+    /**
+     * Frame-rate tier of a stream. Anything above the standard ladder ("720p60") costs twice
+     * the decode work and drives the video surface at 60 Hz, and the rest of the UI has to
+     * share its frame budget with that. A plain "720p" choice means the standard rate; high
+     * frame rate is an explicit quality, not a silent upgrade.
+     */
+    private fun frameRateRank(stream: org.schabi.newpipe.extractor.stream.VideoStream): Int =
+        if (stream.fps > 30) 1 else 0
+
+    /**
+     * Highest resolution first, then the standard frame rate, then the cheapest codec to
+     * decode, then highest bitrate.
+     */
     private fun bestOf(
         candidates: List<org.schabi.newpipe.extractor.stream.VideoStream>,
     ): org.schabi.newpipe.extractor.stream.VideoStream? =
         candidates.sortedWith(
             compareByDescending<org.schabi.newpipe.extractor.stream.VideoStream> { it.height }
+                .thenBy { frameRateRank(it) }
                 .thenBy { codecRank(it) }
                 .thenByDescending { it.bitrate },
         ).firstOrNull()
