@@ -9,6 +9,7 @@ import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
 import androidx.annotation.OptIn
+import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
@@ -16,10 +17,11 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.SeekParameters
 import androidx.media3.exoplayer.source.MergingMediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
+import androidx.media3.exoplayer.upstream.DefaultBandwidthMeter
 import androidx.media3.extractor.ExtractorsFactory
 import androidx.media3.extractor.mkv.MatroskaExtractor
 import androidx.media3.extractor.mp4.FragmentedMp4Extractor
@@ -1249,6 +1251,7 @@ object VideoPlaybackManager {
         videoControllerFuture = null
     }
 
+    @androidx.annotation.OptIn(UnstableApi::class)
     private fun getOrCreatePlayer(context: Context): ExoPlayer {
         // Always refresh both handles, even when the player already exists: the
         // Activity may have been recreated by a configuration change, and the old
@@ -1260,9 +1263,29 @@ object VideoPlaybackManager {
         // Apply the quality + autoplay preference chosen in Settings/settings-overlay
         // so freshly created players start with them.
         applyStoredPreferences(context)
-        return ExoPlayer.Builder(context)
-            .setWakeMode(C.WAKE_MODE_NETWORK)
+        // The defaults are not safe for video: a 50-second unbounded buffer, no decoder
+        // fallback, and no resolution cap are what made the whole app stutter while a video
+        // played. The factory functions scale all of it to this device's heap.
+        return ExoPlayer.Builder(context, VideoPlayerSupport.createRenderersFactory(context))
+            .setLoadControl(VideoPlayerSupport.createLoadControl(context))
+            .setTrackSelector(VideoPlayerSupport.createTrackSelector(context))
+            .setBandwidthMeter(DefaultBandwidthMeter.getSingletonInstance(context))
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+                    .setUsage(C.USAGE_MEDIA)
+                    .build(),
+                // Focus is mediated by the music takeover guard, not the player.
+                /* handleAudioFocus = */ false,
+            )
+            .setHandleAudioBecomingNoisy(true)
+            // LOCAL, not NETWORK: the high-performance Wi-Fi lock keeps the radio at full
+            // power for the whole session, and the CPU wake lock is what playback needs.
+            .setWakeMode(C.WAKE_MODE_LOCAL)
             .build().also {
+            // Keyframe-accurate seeks: frame-exact seeking decodes every frame between the
+            // sync sample and the target, which is exactly the cost that made scrubbing hitch.
+            it.setSeekParameters(SeekParameters.CLOSEST_SYNC)
             it.addListener(playerListener)
             it.playWhenReady = true
             player = it
@@ -1295,6 +1318,7 @@ object VideoPlaybackManager {
     ) {
         val exo = player ?: return
         val mediaSource = buildMediaSource(
+            currentContext ?: return,
             videoId,
             source,
             title = title,
@@ -1468,6 +1492,7 @@ object VideoPlaybackManager {
 
     @OptIn(UnstableApi::class)
     private fun buildMediaSource(
+        context: Context,
         videoId: String,
         source: com.auramusic.auravideo.AuraVideo.VideoStreamSource,
         title: String,
@@ -1475,7 +1500,7 @@ object VideoPlaybackManager {
         channelThumbnail: String?,
     ): androidx.media3.exoplayer.source.MediaSource {
         val factory = ProgressiveMediaSource.Factory(
-            DefaultHttpDataSource.Factory(),
+            VideoPlayerSupport.createDataSourceFactory(context),
             ExtractorsFactory {
                 arrayOf(
                     MatroskaExtractor(),

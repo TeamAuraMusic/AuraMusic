@@ -82,6 +82,57 @@ object AuraVideo {
     }
 
     /**
+     * Whether the device has a hardware decoder for a video codec. Software decoding a modern
+     * codec at 720p+ pins a big CPU core for the whole session - which is exactly what makes
+     * the rest of the app stutter - so the stream picker needs to know before it prefers one.
+     */
+    private fun hasHardwareDecoderFor(mimeType: String): Boolean = try {
+        android.media.MediaCodecList(android.media.MediaCodecList.REGULAR_CODECS)
+            .codecInfos
+            .filter { !it.isEncoder }
+            .filter { info -> info.supportedTypes.any { type -> type.equals(mimeType, true) } }
+            .any { info ->
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                    !info.isSoftwareOnly
+                } else {
+                    !info.name.startsWith("OMX.google.") && !info.name.startsWith("c2.android.")
+                }
+            }
+    } catch (_: Exception) {
+        // If the codec list cannot be read, assume hardware support so behaviour is unchanged.
+        true
+    }
+
+    private val hardwareVp9 by lazy { hasHardwareDecoderFor("video/x-vnd.on2.vp9") }
+    private val hardwareAv1 by lazy { hasHardwareDecoderFor("video/av01") }
+
+    /**
+     * Lower is better. H.264 is hardware-decoded on effectively every Android device, so it is
+     * the default; VP9 and AV1 are only worth their better compression when the device can
+     * decode them in hardware - otherwise they cost a CPU core for the entire playback.
+     */
+    private fun codecRank(stream: org.schabi.newpipe.extractor.stream.VideoStream): Int {
+        val mime = stream.format?.mimeType?.lowercase() ?: return 2
+        return when {
+            "avc1" in mime || "avc3" in mime -> 0
+            "hev1" in mime || "hvc1" in mime -> 1
+            "vp09" in mime || "vp9" in mime -> if (hardwareVp9) 1 else 3
+            "av01" in mime -> if (hardwareAv1) 1 else 4
+            else -> 2
+        }
+    }
+
+    /** Highest resolution first, then the cheapest codec to decode, then highest bitrate. */
+    private fun bestOf(
+        candidates: List<org.schabi.newpipe.extractor.stream.VideoStream>,
+    ): org.schabi.newpipe.extractor.stream.VideoStream? =
+        candidates.sortedWith(
+            compareByDescending<org.schabi.newpipe.extractor.stream.VideoStream> { it.height }
+                .thenBy { codecRank(it) }
+                .thenByDescending { it.bitrate },
+        ).firstOrNull()
+
+    /**
      * Find the best stream matching the preferred quality
      * Falls back to lower quality if preferred not available
      */
@@ -114,15 +165,15 @@ object AuraVideo {
             }
             if (matching.isNotEmpty()) {
                 // Return the highest quality that doesn't exceed preferred
-                return matching.maxByOrNull { it.height }
+                return bestOf(matching)
             }
         }
 
         // Fallback: if no quality at or below preferred found, find any quality
         return if (requireAudio && filteredStreams.isNotEmpty()) {
-            filteredStreams.maxByOrNull { it.height }
+            bestOf(filteredStreams)
         } else {
-            streams.maxByOrNull { it.height }
+            bestOf(streams)
         }
     }
 
