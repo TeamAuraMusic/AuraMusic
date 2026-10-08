@@ -84,6 +84,7 @@ import coil3.compose.AsyncImage
 import com.auramusic.app.LocalPlayerAwareWindowInsets
 import com.auramusic.app.R
 import com.auramusic.app.constants.VideoRecentSearchesKey
+import com.auramusic.app.ui.component.ChannelAvatarStack
 import com.auramusic.app.ui.component.ChannelPickerDialog
 import com.auramusic.app.constants.VideoSearchGridViewKey
 import com.auramusic.app.utils.compactViewCount
@@ -1255,11 +1256,11 @@ private fun SearchHeroVideoCard(
                     if (video.channels.size > 1) showChannelPicker = true
                     else video.channelId?.let(onChannelClick)
                 }
-                SearchAvatar(
-                    channelName = video.channelName,
-                    url = video.channelThumbnailUrl,
-                    modifierSize = 28,
-                    onClick = channelClick
+                ChannelAvatarStack(
+                    channels = video.channels,
+                    primaryThumbnailUrl = video.channelThumbnailUrl,
+                    size = 28.dp,
+                    onClick = channelClick,
                 )
                 Text(
                     text = video.channelName,
@@ -1283,6 +1284,7 @@ private fun SearchHeroVideoCard(
                 showChannelPicker = false
                 channel.id?.let(onChannelClick)
             },
+            primaryThumbnailUrl = video.channelThumbnailUrl,
         )
     }
 }

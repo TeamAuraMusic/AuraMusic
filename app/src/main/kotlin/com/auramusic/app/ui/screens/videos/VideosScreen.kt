@@ -95,6 +95,7 @@ import coil3.compose.AsyncImage
 import com.auramusic.app.LocalPlayerAwareWindowInsets
 import com.auramusic.app.R
 import com.auramusic.app.constants.VideoFeedGridViewKey
+import com.auramusic.app.ui.component.ChannelAvatarStack
 import com.auramusic.app.ui.component.ChannelPickerDialog
 import com.auramusic.app.ui.component.shimmer.ShimmerHost
 import com.auramusic.app.utils.compactViewCount
@@ -1079,13 +1080,11 @@ internal fun FeedVideoGridCard(
                 if (video.channels.size > 1) showChannelPicker = true
                 else video.channelId?.let(onChannelClick)
             }
-            ChannelAvatar(
-                channelName = video.channelName,
-                channelThumbnailUrl = video.channelThumbnailUrl,
-                modifier = Modifier
-                    .size(34.dp)
-                    .clip(CircleShape)
-                    .clickable(onClick = channelClick)
+            ChannelAvatarStack(
+                channels = video.channels,
+                primaryThumbnailUrl = video.channelThumbnailUrl,
+                size = 34.dp,
+                onClick = channelClick,
             )
             Text(
                 text = video.channelName,
@@ -1125,6 +1124,7 @@ internal fun FeedVideoGridCard(
                     showChannelPicker = false
                     channel.id?.let(onChannelClick)
                 },
+                primaryThumbnailUrl = video.channelThumbnailUrl,
             )
         }
     }
@@ -1247,13 +1247,11 @@ internal fun FeedVideoListRow(
                         if (video.channels.size > 1) showChannelPicker = true
                         else video.channelId?.let(onChannelClick)
                     }
-                    ChannelAvatar(
-                        channelName = video.channelName,
-                        channelThumbnailUrl = video.channelThumbnailUrl,
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clip(CircleShape)
-                            .clickable(onClick = channelClick)
+                    ChannelAvatarStack(
+                        channels = video.channels,
+                        primaryThumbnailUrl = video.channelThumbnailUrl,
+                        size = 28.dp,
+                        onClick = channelClick,
                     )
                     Text(
                         text = video.channelName,
@@ -1283,6 +1281,7 @@ internal fun FeedVideoListRow(
                     showChannelPicker = false
                     channel.id?.let(onChannelClick)
                 },
+                primaryThumbnailUrl = video.channelThumbnailUrl,
             )
         }
     }

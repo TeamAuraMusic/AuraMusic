@@ -123,6 +123,7 @@ import com.auramusic.app.constants.SubtitleLanguageKey
 import com.auramusic.app.constants.SubtitlesEnabledKey
 import com.auramusic.app.constants.VideoQuality
 import com.auramusic.app.subtitles.SubtitleLanguageOptions
+import com.auramusic.app.ui.component.ChannelAvatarStack
 import com.auramusic.app.ui.component.ChannelPickerDialog
 import com.auramusic.app.utils.linkifiedText
 import com.auramusic.app.utils.rememberPreference
@@ -1499,22 +1500,12 @@ private fun CompactLandscapeBar(
                     if (session.channels.size > 1) showChannelPicker = true
                     else session.channelId?.let(onChannelClick)
                 }
-                Box(
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer)
-                        .clickable(onClick = openChannel)
-                ) {
-                    if (!session.channelAvatarUrl.isNullOrBlank()) {
-                        AsyncImage(
-                            model = session.channelAvatarUrl,
-                            contentDescription = session.channelName,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop,
-                        )
-                    }
-                }
+                ChannelAvatarStack(
+                    channels = session.channels,
+                    primaryThumbnailUrl = session.channelAvatarUrl,
+                    size = 24.dp,
+                    onClick = openChannel,
+                )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = listOfNotNull(
@@ -1539,6 +1530,7 @@ private fun CompactLandscapeBar(
                             showChannelPicker = false
                             channel.id?.let(onChannelClick)
                         },
+                        primaryThumbnailUrl = session.channelAvatarUrl,
                     )
                 }
             }
@@ -1588,33 +1580,12 @@ private fun ChannelRow(
             if (session.channels.size > 1) showChannelPicker = true
             else session.channelId?.let(onChannelClick)
         }
-        Box(
-            modifier = Modifier
-                .size(44.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer)
-                .clickable(onClick = openChannel)
-        ) {
-            // The real channel avatar (not the video's thumbnail/artwork, which is
-            // what channelThumbnail holds for the media notification artwork).
-            if (!session.channelAvatarUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = session.channelAvatarUrl,
-                    contentDescription = session.channelName,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                )
-            } else {
-                Icon(
-                    painter = painterResource(R.drawable.ic_person),
-                    contentDescription = session.channelName,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(10.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
-        }
+        ChannelAvatarStack(
+            channels = session.channels,
+            primaryThumbnailUrl = session.channelAvatarUrl,
+            size = 44.dp,
+            onClick = openChannel,
+        )
 
         Spacer(modifier = Modifier.width(12.dp))
 
@@ -1651,6 +1622,7 @@ private fun ChannelRow(
                     showChannelPicker = false
                     channel.id?.let(onChannelClick)
                 },
+                primaryThumbnailUrl = session.channelAvatarUrl,
             )
         }
 
