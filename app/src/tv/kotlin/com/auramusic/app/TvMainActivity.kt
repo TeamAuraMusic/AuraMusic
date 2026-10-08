@@ -42,6 +42,7 @@ import com.auramusic.app.models.toMediaMetadata
  import com.auramusic.app.playback.MusicService
  import com.auramusic.app.playback.MusicService.MusicBinder
  import com.auramusic.app.playback.PlayerConnection
+import com.auramusic.app.video.VideoPlaybackManager
 import com.auramusic.app.playback.queues.YouTubeQueue
  import com.auramusic.app.ui.component.LocalMenuState
  import com.auramusic.app.ui.theme.AuraMusicTheme
@@ -143,6 +144,8 @@ class TvMainActivity : ComponentActivity() {
                     lifecycleScope,
                 )
                 listenTogetherManager.setPlayerConnection(connection)
+                // The video side shares this player instead of owning one.
+                VideoPlaybackManager.attachSharedPlayer(connection)
                 playerConnectionFlow.value = connection
                 handleProgramIntent(this@TvMainActivity.intent, connection)
                 Timber.tag("TvMainActivity").d("PlayerConnection created successfully")

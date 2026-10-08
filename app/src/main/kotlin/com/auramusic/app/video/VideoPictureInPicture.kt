@@ -161,9 +161,7 @@ object VideoPictureInPicture {
         val label = context.getString(
             if (isPlaying) com.auramusic.app.R.string.pause else com.auramusic.app.R.string.play
         )
-        val intent = Intent(context, VideoPlaybackService::class.java).apply {
-            action = VideoPlaybackService.ACTION_COMMAND_TOGGLE_PLAY_PAUSE
-        }
+        val intent = Intent(ACTION_TOGGLE_PLAY_PAUSE).setPackage(context.packageName)
         // RemoteAction's public constructor is used rather than its Builder: the Builder is
         // marked @hide in the platform SDK, so it is unavailable at compile time.
         return RemoteAction(
@@ -175,11 +173,14 @@ object VideoPictureInPicture {
     }
 
     private fun Context.getPendingIntent(intent: Intent): android.app.PendingIntent =
-        android.app.PendingIntent.getService(
+        android.app.PendingIntent.getBroadcast(
             this,
             0,
             intent,
             android.app.PendingIntent.FLAG_UPDATE_CURRENT or
                 android.app.PendingIntent.FLAG_IMMUTABLE,
         )
+
+    /** Broadcast action for the PiP window's play/pause button. */
+    const val ACTION_TOGGLE_PLAY_PAUSE = "com.auramusic.app.video.PIP_TOGGLE_PLAY_PAUSE"
 }

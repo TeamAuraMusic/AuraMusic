@@ -269,6 +269,8 @@ class MainActivity : ComponentActivity() {
                     Timber.tag("MainActivity").d("PlayerConnection created successfully")
                     // Connect Listen Together manager to player
                     listenTogetherManager.setPlayerConnection(playerConnection)
+                    // The video side shares this player instead of owning one.
+                    VideoPlaybackManager.attachSharedPlayer(playerConnection!!)
                 } catch (e: Exception) {
                     Timber.tag("MainActivity").e(e, "Failed to create PlayerConnection")
                     // Retry after a delay of 500ms
@@ -277,6 +279,7 @@ class MainActivity : ComponentActivity() {
                         try {
                             playerConnection = PlayerConnection(this@MainActivity, service, database, lifecycleScope)
                             listenTogetherManager.setPlayerConnection(playerConnection)
+                            VideoPlaybackManager.attachSharedPlayer(playerConnection!!)
                         } catch (e2: Exception) {
                             Timber.tag("MainActivity").e(e2, "Failed to create PlayerConnection on retry")
                         }
@@ -293,9 +296,23 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private val videoPipActionReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: android.content.Context?, intent: android.content.Intent?) {
+            if (intent?.action == VideoPictureInPicture.ACTION_TOGGLE_PLAY_PAUSE) {
+                VideoPlaybackManager.togglePlayPause()
+            }
+        }
+    }
+
     override fun onStart() {
         super.onStart()
         VideoPictureInPicture.attach(this)
+        ContextCompat.registerReceiver(
+            this,
+            videoPipActionReceiver,
+            android.content.IntentFilter(VideoPictureInPicture.ACTION_TOGGLE_PLAY_PAUSE),
+            ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
         // Request notification permission on Android 13+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
@@ -346,6 +363,7 @@ class MainActivity : ComponentActivity() {
         val hasActiveVideo = VideoPlaybackManager.uiState.value.session != null &&
             VideoPlaybackManager.uiState.value.isPlaying
         VideoPictureInPicture.attach(null)
+        runCatching { unregisterReceiver(videoPipActionReceiver) }
         if (!wasInPip && !hasActiveVideo) {
             unbindService(serviceConnection)
         }

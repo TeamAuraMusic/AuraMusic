@@ -70,6 +70,7 @@ import androidx.media3.exoplayer.audio.MediaCodecAudioRenderer
 import androidx.media3.exoplayer.audio.SilenceSkippingAudioProcessor
 import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.MergingMediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.exoplayer.source.ShuffleOrder.DefaultShuffleOrder
@@ -193,7 +194,6 @@ import com.auramusic.app.playback.queues.filterExplicit
 import com.auramusic.app.playback.queues.filterVideoSongs
 import com.auramusic.app.subtitles.SubtitleInfo
 import com.auramusic.app.video.VideoPlaybackManager
-import com.auramusic.app.video.VideoPlaybackService
 import com.auramusic.app.utils.CoilBitmapLoader
 import com.auramusic.app.utils.AuraPlayerUtils
 import com.auramusic.app.utils.NetworkConnectivityObserver
@@ -1573,7 +1573,7 @@ class MusicService :
      * `DefaultMediaNotificationProvider` no longer reads at all - the provider
      * renders only `mediaButtonPreferences`. So none of these four buttons ever
      * reached the shade. Setting media button preferences is what actually works,
-     * and is the same approach VideoPlaybackService already uses.
+     * and is the same approach the video session's foreground service used.
      */
     private fun updateNotification() {
         val liked = currentSong.value?.song?.liked == true
@@ -1697,6 +1697,10 @@ class MusicService :
             return
         }
         
+        // A real queue always displaces a guest video: the guest flag comes down here,
+        // before the queue swap, so the transition handlers below treat the incoming
+        // items as songs again.
+        if (guestVideoActive.value) endGuestVideo(restoreQueue = false)
         currentQueue = queue
         val queueGeneration = ++currentQueueGeneration
         queueTitle = null
@@ -1781,8 +1785,68 @@ class MusicService :
         }
     }
 
+    /**
+     * Whether a video is playing as a guest on this player.
+     *
+     * The video side of the app does not own a player of its own: it hands its media source
+     * here and this player renders it, so audio and video share one player, one session and
+     * one notification. While a guest is active every song-specific path (queue persistence,
+     * automix, lyrics, scrobble, Discord, cast sync, widgets) must stand down - the guest is
+     * not a song.
+     */
+    private val _guestVideoActive = MutableStateFlow(false)
+    val guestVideoActive: StateFlow<Boolean> = _guestVideoActive.asStateFlow()
+
+    /**
+     * Plays a video's media source on this player, replacing whatever the music queue held.
+     * The music queue is snapshotted first so [endGuestVideo] can bring it back untouched.
+     */
+    fun playGuestVideoSource(source: MediaSource, startPositionMs: Long = 0L) {
+        if (!_guestVideoActive.value) {
+            if (queuePersistenceEnabled) saveQueueToDiskNow()
+            _guestVideoActive.value = true
+        }
+        player.stop()
+        player.clearMediaItems()
+        player.setMediaSource(source, startPositionMs)
+        player.prepare()
+        player.playWhenReady = true
+    }
+
+    /**
+     * Hands the player back to music. With [restoreQueue] the snapshot taken by
+     * [playGuestVideoSource] is reloaded, paused, exactly where the listener left it.
+     */
+    fun endGuestVideo(restoreQueue: Boolean) {
+        if (!_guestVideoActive.value) return
+        _guestVideoActive.value = false
+        if (restoreQueue) restorePersistedQueuePaused()
+    }
+
+    /** The same persisted-queue read the service boot path uses, replayed paused. */
+    private fun restorePersistedQueuePaused() {
+        if (!queuePersistenceEnabled) return
+        val queueFile = filesDir.resolve(PERSISTENT_QUEUE_FILE)
+        if (!queueFile.exists()) return
+        runCatching {
+            queueFile.inputStream().use { fis ->
+                ObjectInputStream(fis).use { oos -> oos.readObject() as PersistQueue }
+            }
+        }.onSuccess { queue ->
+            runCatching {
+                val restoredQueue = queue.toQueue()
+                scope.launch {
+                    playerInitialized.first { it }
+                    if (isActive && !_guestVideoActive.value) {
+                        playQueue(queue = restoredQueue, playWhenReady = false)
+                    }
+                }
+            }
+        }
+    }
+
     fun startRadioSeamlessly() {
-        // Safety Check: Ensure Player is initilized
+        // Safety Check: Ensuring Player is initilized
         if (!playerInitialized.value) {
             Timber.tag(TAG).w("startRadioSeamlessly called before player initialization")
             return
@@ -2282,6 +2346,14 @@ class MusicService :
             Timber.d("onMediaItemTransition: Skipping - video source injection in progress")
             return
         }
+        if (guestVideoActive.value) {
+            // A guest video owns the player; none of the music-path bookkeeping (queue
+            // paging, automix, scrobble, Discord, cast) applies to it. The metadata still
+            // moves so anything observing the session sees the video.
+            currentMediaMetadata.value = mediaItem?.metadata
+            lastTransitionMediaId = mediaItem?.mediaId
+            return
+        }
         // Update immediately for queue transitions. Waiting for the later
         // batched onEvents update can leave TV video mode resolving streams
         // against the previous item while the next item's audio is already
@@ -2490,8 +2562,10 @@ class MusicService :
 
         // When the music player truly starts playing, the in-app video player (and its
         // miniplayer + notification) gives way so the music player owns the shade again:
-        // the video pauses, collapses, and its media notification is removed.
-        if (playWhenReady) {
+        // the video pauses, collapses, and its media notification is removed. While the
+        // video is a guest on this player the playWhenReady signal is the video's own,
+        // so it must not hand the screen to music.
+        if (playWhenReady && !guestVideoActive.value) {
             try {
                 VideoPlaybackManager.giveWayToMusic(applicationContext)
             } catch (e: Exception) {
@@ -2523,12 +2597,13 @@ class MusicService :
                 Player.EVENT_PLAY_WHEN_READY_CHANGED
             )
         ) {
-            scheduleAutomix()
+            if (!guestVideoActive.value) scheduleAutomix()
             val isBufferingOrReady =
                 player.playbackState == Player.STATE_BUFFERING || player.playbackState == Player.STATE_READY
             if (isBufferingOrReady && player.playWhenReady) {
                 val focusGranted = requestAudioFocus()
-                if (focusGranted) {
+                // The music EQ chain belongs to songs, not to a guest video's audio.
+                if (focusGranted && !guestVideoActive.value) {
                     openAudioEffectSession()
                 }
             } else {
@@ -2542,7 +2617,7 @@ class MusicService :
         }
 
         // Widget and Discord RPC updates
-        if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED)) {
+        if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED) && !guestVideoActive.value) {
             if (player.isPlaying && videoTakeoverActive) {
                 // Music is actually playing again: the video no longer owns the shade,
                 // so allow the music media notification to be posted once more.
@@ -2566,14 +2641,15 @@ class MusicService :
         // so gating on player.isPlaying would skip the update and leave the
         // previous song's text/thumbnail showing. The play-state change handler
         // (below) re-syncs once playback actually resumes.
-        if (events.containsAny(Player.EVENT_MEDIA_ITEM_TRANSITION) ||
-            (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED) && player.isPlaying)
+        if (!guestVideoActive.value &&
+            (events.containsAny(Player.EVENT_MEDIA_ITEM_TRANSITION) ||
+                (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED) && player.isPlaying))
         ) {
             syncDiscordState()
         }
 
         // Scrobbling
-        if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED)) {
+        if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED) && !guestVideoActive.value) {
             scrobbleManager?.onPlayerStateChanged(player.isPlaying, player.currentMetadata, duration = player.duration)
         }
 
@@ -3654,6 +3730,9 @@ class MusicService :
      */
     private fun saveQueueToDisk() {
         if (!queuePersistenceEnabled) return
+        // While a guest video owns the player the queue on it is not the music queue;
+        // persisting now would overwrite the snapshot taken before the takeover.
+        if (guestVideoActive.value) return
         val snapshot = buildPersistSnapshot() ?: return
         val generation = persistGeneration.incrementAndGet()
         scope.launch(Dispatchers.IO) {

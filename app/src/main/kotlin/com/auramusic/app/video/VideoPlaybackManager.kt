@@ -9,7 +9,6 @@ import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
 import androidx.annotation.OptIn
-import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
@@ -18,15 +17,11 @@ import androidx.media3.common.Player
 import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.SeekParameters
 import androidx.media3.exoplayer.source.MergingMediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
-import androidx.media3.exoplayer.upstream.DefaultBandwidthMeter
 import androidx.media3.extractor.ExtractorsFactory
 import androidx.media3.extractor.mkv.MatroskaExtractor
 import androidx.media3.extractor.mp4.FragmentedMp4Extractor
-import androidx.media3.session.MediaController
-import androidx.media3.session.SessionToken
 import androidx.datastore.preferences.core.edit
 import com.auramusic.app.R
 import com.auramusic.app.constants.SavedVideoIdsKey
@@ -39,7 +34,6 @@ import com.auramusic.app.utils.AuraPlayerUtils
 import com.auramusic.app.utils.VideoThumbnails
 import com.auramusic.app.utils.dataStore
 import com.auramusic.app.utils.get
-import com.auramusic.app.playback.MusicService
 import com.auramusic.innertube.YouTube
 import com.auramusic.innertube.models.WatchEndpoint
 import com.auramusic.innertube.models.YouTubeVideoItem
@@ -62,10 +56,8 @@ import com.auramusic.innertube.models.response.title
 import com.auramusic.innertube.models.response.viewCountText
 import com.auramusic.innertube.models.response.WatchLikeState
 import com.auramusic.innertube.models.response.YoutubeComment
-import com.google.common.util.concurrent.ListenableFuture
 import timber.log.Timber
 import java.util.concurrent.atomic.AtomicLong
-import com.google.common.util.concurrent.MoreExecutors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -215,6 +207,18 @@ object VideoPlaybackManager {
         .stateIn(scope, SharingStarted.Eagerly, false)
 
     private var player: ExoPlayer? = null
+
+    /**
+     * The app's shared player connection. The video side does not own a player: audio and
+     * video share the music player's ExoPlayer, session and notification, so the two can
+     * never fight over the surface, the shade, or the CPU. Registered by MainActivity as
+     * soon as the connection exists.
+     */
+    private var sharedConnectionRef: java.lang.ref.WeakReference<com.auramusic.app.playback.PlayerConnection>? = null
+
+    fun attachSharedPlayer(connection: com.auramusic.app.playback.PlayerConnection) {
+        sharedConnectionRef = java.lang.ref.WeakReference(connection)
+    }
     private var tickerJob: Job? = null
 
     /**
@@ -225,11 +229,6 @@ object VideoPlaybackManager {
      * service the new playback just brought up, so the deferred block checks this first.
      */
     private val handoffGeneration = AtomicLong()
-
-    /** Runs [block] on the main thread after the message currently being handled. */
-    private fun afterCurrentMessage(block: () -> Unit) {
-        Handler(Looper.getMainLooper()).post { block() }
-    }
 
     // SponsorBlock integration for video playback
     var sponsorBlockManager: com.auramusic.app.sponsorblock.SponsorBlockManager? = null
@@ -258,7 +257,6 @@ object VideoPlaybackManager {
      * fullscreen. Weak so a configuration change can collect the old Activity.
      */
     private var activityRef: java.lang.ref.WeakReference<android.app.Activity>? = null
-    private var videoControllerFuture: ListenableFuture<MediaController>? = null
     private val playedVideoIds = mutableSetOf<String>()
 
     /**
@@ -278,11 +276,18 @@ object VideoPlaybackManager {
     fun playerOrNull(): ExoPlayer? = player
 
     private val playerListener = object : Player.Listener {
+        // The listener lives on the shared music player: while the video is not the guest
+        // on it, every callback belongs to music and must not touch video state.
+        private fun isGuestActive(): Boolean =
+            sharedConnectionRef?.get()?.service?.guestVideoActive?.value == true
+
         override fun onIsPlayingChanged(isPlaying: Boolean) {
+            if (!isGuestActive()) return
             _uiState.update { it.copy(isPlaying = isPlaying) }
         }
 
         override fun onPlaybackStateChanged(playbackState: Int) {
+            if (!isGuestActive()) return
             _uiState.update {
                 it.copy(isBuffering = playbackState == Player.STATE_BUFFERING)
             }
@@ -303,10 +308,12 @@ object VideoPlaybackManager {
         }
 
         override fun onPlayerError(error: PlaybackException) {
+            if (!isGuestActive()) return
             _uiState.update { it.copy(isBuffering = false, error = error.message ?: "Playback error") }
         }
 
         override fun onVideoSizeChanged(videoSize: VideoSize) {
+            if (!isGuestActive()) return
             // The PiP window is sized from this, and a stale ratio makes the window letterbox
             // the next video until it is re-entered.
             val ratio = videoSize.toDisplayAspectRatioOrNull()
@@ -316,6 +323,7 @@ object VideoPlaybackManager {
         }
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+            if (!isGuestActive()) return
             val exo = player ?: return
             // playWithDetails already resets the per-video state before loading, so a
             // transition for the current session's own video (fired when exo.prepare()
@@ -354,32 +362,15 @@ object VideoPlaybackManager {
     }
 
     /**
-     * Puts video playback in charge of the screen: music is told to pause and drop
-     * its notification, the video service is (re)started so the media notification
-     * comes back, and a controller is connected. Shared by the fresh-video path and
-     * the resume-same-video path so neither can skip the handoff.
-     *
-     * MusicService is usually still bound by the activity, so stopping it won't tear
-     * it down - an explicit action removes the notification instead.
+     * Puts video playback in charge of the screen. The shared player swaps to the video's
+     * media source when it arrives, so all this has to do is keep preferences fresh and
+     * invalidate any stale give-way teardown from an earlier music takeover.
      */
     private fun handOverFromMusic(context: Context) {
         // Video is taking the screen back, so any teardown queued by an earlier giveWayToMusic
-        // is now stale and must not run against the service this function is about to start.
+        // is now stale and must not run against the playback this function is about to start.
         handoffGeneration.incrementAndGet()
-        val appContext = context.applicationContext
-        if (MusicService.isRunning) {
-            try {
-                appContext.startService(
-                    Intent(appContext, MusicService::class.java)
-                        .setAction(MusicService.ACTION_PAUSE_FOR_VIDEO)
-                )
-            } catch (e: Exception) {
-                // Ignore: music service may not be started.
-            }
-        }
-        VideoPlaybackService.start(appContext)
-        connectServiceController(appContext)
-        applyStoredPreferences(appContext)
+        applyStoredPreferences(context.applicationContext)
     }
 
     fun playWithDetails(
@@ -406,8 +397,13 @@ object VideoPlaybackManager {
             // of it - two players audible at once, with no video notification.
             handOverFromMusic(context)
             _uiState.update { it.copy(minimized = false, hiddenByMusic = false) }
-            player?.play()
-            return
+            if (sharedConnectionRef?.get()?.service?.guestVideoActive?.value == true) {
+                // The guest source is still on the shared player: just resume it.
+                player?.play()
+                return
+            }
+            // Music took the shared player while the session slept; fall through and
+            // run the full load again so the video source is put back on the player.
         }
 
         playedVideoIds.add(videoId)
@@ -418,7 +414,7 @@ object VideoPlaybackManager {
         // Claim a generation for this load; older in-flight loads become no-ops.
         val generation = ++loadGeneration
 
-        val exo = getOrCreatePlayer(context)
+        val exo = attachToSharedPlayer(context)
         handOverFromMusic(context)
         _uiState.value = UiState(
             session = VideoSession(
@@ -451,7 +447,6 @@ object VideoPlaybackManager {
         // previous video (or a placeholder) until the stream resolves and
         // loadMediaSourceInto triggers its own rebuild — the cause of the media
         // notification feeling non-persistent / out of sync when switching videos.
-        context.applicationContext.let { VideoPlaybackService.notifySessionChanged(it) }
         // Notify recommendation manager that a video was played
         onVideoPlayed?.invoke()
         scope.launch {
@@ -558,7 +553,6 @@ object VideoPlaybackManager {
                 isSaved = videoId in savedIds,
             )
         }
-        currentContext?.let { VideoPlaybackService.notifySessionChanged(it) }
         recordCurrentToHistory()
         return metadata
     }
@@ -879,26 +873,29 @@ object VideoPlaybackManager {
         val exo = player ?: return
         if (_uiState.value.isPlaying) {
             exo.pause()
-        } else {
-            // Resuming after the video yielded the shade to the music player
-            // (giveWayToMusic): re-establish the video's foreground media
-            // notification, re-pause the music player, and reconnect the
-            // controller so the video notification is the one shown again.
-            currentContext?.applicationContext?.let { ctx ->
-                if (MusicService.isRunning) {
-                    try {
-                        ctx.startService(
-                            Intent(ctx, MusicService::class.java)
-                                .setAction(MusicService.ACTION_PAUSE_FOR_VIDEO)
-                        )
-                    } catch (_: Exception) { /* music service may not be running */ }
-                }
-                VideoPlaybackService.start(ctx)
-                connectServiceController(ctx)
-                VideoPlaybackService.notifySessionChanged(ctx)
-            }
-            exo.play()
+            return
         }
+        if (sharedConnectionRef?.get()?.service?.guestVideoActive?.value == true) {
+            // The guest source is still on the shared player: just resume it.
+            exo.play()
+            return
+        }
+        // Music took the shared player while the video was hidden, so the source is
+        // gone: run the full load again rather than resuming a stale frame.
+        val session = _uiState.value.session ?: return
+        val ctx = currentContext ?: return
+        playWithDetails(
+            context = ctx,
+            videoId = session.videoId,
+            title = session.title,
+            channelName = session.channelName,
+            channelId = session.channelId,
+            channelThumbnail = session.channelThumbnail,
+            description = session.description,
+            viewCountText = session.viewCountText,
+            publishedTimeText = session.publishedTimeText,
+            channels = session.channels,
+        )
     }
 
     /**
@@ -910,8 +907,7 @@ object VideoPlaybackManager {
      */
     fun giveWayToMusic(context: Context) {
         if (_uiState.value.session == null) {
-            // No active video to demote. (The takeover guard, if any, is released on
-            // close(); there's nothing to clean up here.)
+            // No active video to demote; nothing to clean up.
             return
         }
         try {
@@ -920,23 +916,11 @@ object VideoPlaybackManager {
             Timber.tag("VideoPlaybackManager").w(e, "giveWayToMusic: pause failed")
         }
         _uiState.update { it.copy(isPlaying = false, minimized = true, hiddenByMusic = true) }
-        val ctx = context.applicationContext
-
-        // Everything above is what the user actually sees, and it is done. The teardown below
-        // cancels one foreground service, releases its media session and starts another one,
-        // each of which queues more main-thread work; doing that inside the music player's
-        // listener callback is what made this handoff hitch. Deferring it a message lets the
-        // state change reach the screen first.
-        val generation = handoffGeneration.incrementAndGet()
-        afterCurrentMessage {
-            if (generation != handoffGeneration.get()) return@afterCurrentMessage
-            // Remove the video notification and drop the connected controller (mirroring
-            // close()) so a later resume reconnects and brings the notification back.
-            VideoPlaybackService.stop(ctx)
-            releaseServiceController()
-            // Lift the music service's takeover guard so it can post its notification.
-            if (MusicService.isRunning) MusicService.resumeFromVideo(ctx)
-        }
+        // Music owns the shared player now, so the guest session is over: no queue restore,
+        // the incoming queue is the music the user just asked for. The session metadata is
+        // kept alive so the video can be reloaded if the user comes back to it.
+        sharedConnectionRef?.get()?.service?.endGuestVideo(restoreQueue = false)
+        handoffGeneration.incrementAndGet()
     }
 
     fun seekTo(positionMs: Long) {
@@ -1185,30 +1169,20 @@ object VideoPlaybackManager {
         // Hand the orientation back before the player goes away, otherwise a
         // fullscreen video leaves the Activity locked in landscape.
         if (_uiState.value.isFullScreen) applyOrientation(false)
-        // Cancel the ticker first: it holds a reference to the player and reschedules
-        // itself every 500 ms, so releasing the player while it is mid-tick can produce
-        // a brief use-after-release on ExoPlayer's internal thread.
         tickerJob?.cancel()
         tickerJob = null
-        player?.let { exo ->
-            exo.removeListener(playerListener)
-            exo.stop()
-            exo.release()
-        }
+        // The shared player belongs to music: detach the listener, end the guest
+        // session, and hand the player back with the listener's queue restored - but
+        // never stop or release it.
+        player?.removeListener(playerListener)
         player = null
+        sharedConnectionRef?.get()?.service?.endGuestVideo(restoreQueue = true)
         // Ensure the display-on flag is cleared even when the composable tree is not
         // recomposed (e.g. close() called from a notification action while the overlay
         // is off-screen). The DisposableEffect in VideoPlayerOverlay handles it when the
         // composable is alive; this is the safety net for every other code path.
         activityRef?.get()?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         playedVideoIds.clear()
-        releaseServiceController()
-        currentContext?.applicationContext?.let { ctx ->
-            VideoPlaybackService.stop(ctx)
-            // Lift the music notification transparency guard so the music player's
-            // notification can return once music resumes.
-            if (MusicService.isRunning) MusicService.resumeFromVideo(ctx)
-        }
         // Drop our handles so we aren't pinning a Context/Activity any longer.
         currentContext = null
         activityRef = null
@@ -1217,53 +1191,16 @@ object VideoPlaybackManager {
 
     fun release() {
         player?.removeListener(playerListener)
-        player?.release()
         player = null
+        sharedConnectionRef?.get()?.service?.endGuestVideo(restoreQueue = false)
         tickerJob?.cancel()
         tickerJob = null
         playedVideoIds.clear()
-        releaseServiceController()
-    }
-
-    /**
-     * Keep a MediaController connected to the video MediaSession from app scope.
-     * The connected controller is what makes the session "active", which is what
-     * causes Media3 to render (and keep updated) the media notification with the
-     * artwork + transport controls, mirroring how the music player's notification
-     * is driven by its own connected controller.
-     */
-    private fun connectServiceController(context: Context) {
-        if (videoControllerFuture != null) return
-        val token = SessionToken(context, ComponentName(context, VideoPlaybackService::class.java))
-        val future = MediaController.Builder(context, token).buildAsync()
-        videoControllerFuture = future
-        future.addListener(
-            {
-                try {
-                    future.get()
-                } catch (e: Exception) {
-                    Timber.tag("VideoPlaybackManager").w(e, "Failed to connect video service controller")
-                    if (videoControllerFuture === future) videoControllerFuture = null
-                }
-            },
-            MoreExecutors.directExecutor(),
-        )
-    }
-
-    private fun releaseServiceController() {
-        videoControllerFuture?.let { future ->
-            try {
-                MediaController.releaseFuture(future)
-            } catch (e: Exception) {
-                Timber.tag("VideoPlaybackManager").w(e, "Failed to release video service controller")
-            }
-        }
-        videoControllerFuture = null
     }
 
     @androidx.annotation.OptIn(UnstableApi::class)
-    private fun getOrCreatePlayer(context: Context): ExoPlayer {
-        // Always refresh both handles, even when the player already exists: the
+    private fun attachToSharedPlayer(context: Context): ExoPlayer? {
+        // Always refresh both handles, even when the player is already attached: the
         // Activity may have been recreated by a configuration change, and the old
         // code returned early without updating them, leaving a dead Activity behind
         // for the fullscreen/orientation path.
@@ -1271,36 +1208,14 @@ object VideoPlaybackManager {
         (context as? android.app.Activity)?.let { activityRef = java.lang.ref.WeakReference(it) }
         player?.let { return it }
         // Apply the quality + autoplay preference chosen in Settings/settings-overlay
-        // so freshly created players start with them.
+        // so freshly attached players start with them.
         applyStoredPreferences(context)
-        // The defaults are not safe for video: a 50-second unbounded buffer, no decoder
-        // fallback, and no resolution cap are what made the whole app stutter while a video
-        // played. The factory functions scale all of it to this device's heap.
-        return ExoPlayer.Builder(context, VideoPlayerSupport.createRenderersFactory(context))
-            .setLoadControl(VideoPlayerSupport.createLoadControl(context))
-            .setTrackSelector(VideoPlayerSupport.createTrackSelector(context))
-            .setBandwidthMeter(DefaultBandwidthMeter.getSingletonInstance(context))
-            .setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
-                    .setUsage(C.USAGE_MEDIA)
-                    .build(),
-                // Focus is mediated by the music takeover guard, not the player.
-                /* handleAudioFocus = */ false,
-            )
-            .setHandleAudioBecomingNoisy(true)
-            // LOCAL, not NETWORK: the high-performance Wi-Fi lock keeps the radio at full
-            // power for the whole session, and the CPU wake lock is what playback needs.
-            .setWakeMode(C.WAKE_MODE_LOCAL)
-            .build().also {
-            // Keyframe-accurate seeks: frame-exact seeking decodes every frame between the
-            // sync sample and the target, which is exactly the cost that made scrubbing hitch.
-            it.setSeekParameters(SeekParameters.CLOSEST_SYNC)
-            it.addListener(playerListener)
-            it.playWhenReady = true
-            player = it
-            startTicker()
-        }
+        val connection = sharedConnectionRef?.get() ?: return null
+        val exo = runCatching { connection.player }.getOrNull() ?: return null
+        exo.addListener(playerListener)
+        player = exo
+        startTicker()
+        return exo
     }
 
     /** Reads videoQuality/autoplay from DataStore and pushes them to AuraVideo + state. */
@@ -1326,7 +1241,7 @@ object VideoPlaybackManager {
         channelThumbnail: String?,
         startPositionMs: Long = 0L,
     ) {
-        val exo = player ?: return
+        val service = sharedConnectionRef?.get()?.service ?: return
         val mediaSource = buildMediaSource(
             currentContext ?: return,
             videoId,
@@ -1335,16 +1250,9 @@ object VideoPlaybackManager {
             channelName = channelName,
             channelThumbnail = channelThumbnail,
         )
-        val wasPlaying = exo.playWhenReady || _uiState.value.isPlaying
-        exo.setMediaSource(mediaSource)
-        exo.prepare()
-        if (startPositionMs > 0) exo.seekTo(startPositionMs)
-        if (wasPlaying) exo.play()
-        // Force the video service notification to rebuild immediately with
-        // the media metadata (title, artist, artwork) so the MediaStyle
-        // notification shows full artwork + transport controls instead of
-        // the initial text-only placeholder.
-        currentContext?.let { VideoPlaybackService.notifySessionChanged(it) }
+        // The shared player swaps to the video as a guest: the music queue is snapshotted
+        // on the first takeover and the session's notification shows the video's metadata.
+        service.playGuestVideoSource(mediaSource, startPositionMs)
     }
 
     private fun startTicker() {
