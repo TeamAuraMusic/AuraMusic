@@ -2558,12 +2558,28 @@ private fun SettingsOverlay(
 // Surface + helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Which view type backs the video. A SurfaceView is a separate layer that the compositor has
+ * to merge with the app's window on every frame, and while one is on screen the whole window
+ * pays that merge cost - scrolling, animations, everything. A TextureView renders the video as
+ * an ordinary texture inside the window, so the UI composites in one pass. TextureView is the
+ * default; SurfaceView is kept for Android 14+, where the platform's TextureView has known
+ * regressions around surface re-creation.
+ */
+private fun videoSurfaceLayoutRes(): Int =
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        R.layout.video_player_view_surface
+    } else {
+        R.layout.video_player_view
+    }
+
 @OptIn(UnstableApi::class)
 @Composable
 private fun AndroidVideoSurface(player: ExoPlayer, resizeModeOverride: Int) {
     androidx.compose.ui.viewinterop.AndroidView(
         factory = { ctx ->
-            PlayerView(ctx).apply {
+            (android.view.LayoutInflater.from(ctx)
+                .inflate(videoSurfaceLayoutRes(), null, false) as PlayerView).apply {
                 useController = false
                 resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
                 setBackgroundColor(android.graphics.Color.BLACK)
