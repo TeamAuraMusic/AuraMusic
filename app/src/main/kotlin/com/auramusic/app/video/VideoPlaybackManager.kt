@@ -34,8 +34,10 @@ import com.auramusic.app.constants.VideoQualityKey
 import com.auramusic.app.constants.VideoSubscribedChannelsKey
 import com.auramusic.app.utils.AuraPlayerUtils
 import com.auramusic.app.utils.VideoThumbnails
+import com.auramusic.app.utils.compactViewCount
 import com.auramusic.app.utils.dataStore
 import com.auramusic.app.utils.get
+import com.auramusic.innertube.NewPipeExtractor
 import com.auramusic.innertube.YouTube
 import com.auramusic.innertube.models.WatchEndpoint
 import com.auramusic.innertube.models.YouTubeVideoItem
@@ -45,8 +47,6 @@ import com.auramusic.innertube.models.response.channelAvatarUrl
 import com.auramusic.innertube.models.response.channelId
 import com.auramusic.innertube.models.response.channelName
 import com.auramusic.innertube.models.response.commentCountText
-import com.auramusic.innertube.models.response.comments
-import com.auramusic.innertube.models.response.commentsContinuation
 import com.auramusic.innertube.models.response.dateText
 import com.auramusic.innertube.models.response.description
 import com.auramusic.innertube.models.response.likeCountText
@@ -57,7 +57,6 @@ import com.auramusic.innertube.models.response.subscriberCountText
 import com.auramusic.innertube.models.response.title
 import com.auramusic.innertube.models.response.viewCountText
 import com.auramusic.innertube.models.response.WatchLikeState
-import com.auramusic.innertube.models.response.YoutubeComment
 import timber.log.Timber
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.CoroutineScope
@@ -165,7 +164,7 @@ object VideoPlaybackManager {
         val comments: List<CommentItem> = emptyList(),
         val isLoadingComments: Boolean = false,
         val commentsError: String? = null,
-        val commentsContinuation: String? = null,
+        val commentsContinuation: NewPipeExtractor.NextPage? = null,
         val isLoadingMoreComments: Boolean = false,
         val showSettings: Boolean = false,
         val playbackSpeed: Float = 1.0f,
@@ -565,6 +564,10 @@ object VideoPlaybackManager {
             )
         }
         recordCurrentToHistory()
+        // The watch-page owner block (name, avatar, subscriber count) is the least stable
+        // part of the youtubei response, so top it up from the channel page when it came
+        // back empty.
+        fillMissingChannelMetadata(videoId, metadata.channelId())
         // Enrichment refined the session (title, artwork, like state): repaint the
         // widget and presence without restarting the scrobble timer.
         sharedConnectionRef?.get()?.service?.syncVideoIntegrations()
@@ -774,25 +777,20 @@ object VideoPlaybackManager {
             attempt++
             val result = withContext(Dispatchers.IO) {
                 try {
-                    val token = fetchWatchMetadata(videoId)?.commentsContinuation()
-                    if (token != null) {
-                        YouTube.videoComments(videoId, token).getOrNull()
-                    } else {
-                        null
-                    }
+                    NewPipeExtractor.getComments(videoId)
                 } catch (e: Exception) {
                     Timber.tag("VideoPlaybackManager").w(e, "loadComments attempt $attempt failed")
                     null
                 }
             }
             if (_uiState.value.session?.videoId != videoId) return
-            if (result != null) {
-                val comments = result.comments().map { it.toCommentItem() }
-                _uiState.update {
-                    it.copy(
+            if (result != null && (result.comments.isNotEmpty() || result.nextPage != null)) {
+                val comments = result.comments.map { it.toCommentItem() }
+                _uiState.update { state ->
+                    state.copy(
                         comments = comments,
                         isLoadingComments = false,
-                        commentsContinuation = result.commentsContinuation(),
+                        commentsContinuation = result.nextPage,
                         commentsError = if (comments.isEmpty()) "Comments are unavailable for this video" else null,
                     )
                 }
@@ -816,20 +814,20 @@ object VideoPlaybackManager {
     fun loadMoreComments() {
         val state = _uiState.value
         val videoId = state.session?.videoId ?: return
-        val continuation = state.commentsContinuation ?: return
+        val page = state.commentsContinuation ?: return
         if (state.isLoadingMoreComments) return
         _uiState.update { it.copy(isLoadingMoreComments = true) }
         scope.launch {
             val result = withContext(Dispatchers.IO) {
-                YouTube.videoComments(videoId, continuation).getOrNull()
+                NewPipeExtractor.getMoreComments(videoId, page)
             }
             if (_uiState.value.session?.videoId != videoId) return@launch
-            val newComments = result?.comments().orEmpty().map { it.toCommentItem() }
+            val newComments = result.comments.map { it.toCommentItem() }
             _uiState.update { current ->
                 val existing = current.comments.map { it.commentId }.toSet()
                 current.copy(
                     comments = current.comments + newComments.filter { it.commentId !in existing },
-                    commentsContinuation = result?.commentsContinuation(),
+                    commentsContinuation = result.nextPage,
                     isLoadingMoreComments = false,
                 )
             }
@@ -858,16 +856,47 @@ object VideoPlaybackManager {
         publishedTimeText = publishedTimeText,
     )
 
-    private fun YoutubeComment.toCommentItem() = CommentItem(
+    private fun NewPipeExtractor.VideoComment.toCommentItem() = CommentItem(
         commentId = commentId,
         authorName = authorName,
         authorThumbnail = authorThumbnail,
         content = content,
-        publishedTime = publishedTime,
-        likeCount = likeCount,
-        replyCount = replyCount,
-        isPinned = isAuthorPinned,
+        publishedTime = publishedTime.takeIf { it.isNotBlank() },
+        likeCount = likeCount.takeIf { it > 0 }?.toString(),
+        replyCount = replyCount.takeIf { it > 0 }?.toString(),
     )
+
+    /**
+     * Backstops the channel row against the youtubei watch response, which
+     * reparents the owner block between renderers almost every version. Only
+     * fills fields that are still blank, and only when a channel id is known.
+     */
+    private suspend fun fillMissingChannelMetadata(videoId: String, channelId: String?) {
+        val session = _uiState.value.session?.takeIf { it.videoId == videoId } ?: return
+        val id = session.channelId ?: channelId ?: return
+        val needsName = session.channelName.isBlank()
+        val needsAvatar = session.channelAvatarUrl.isNullOrBlank()
+        val needsSubs = session.subscriberCountText.isNullOrBlank()
+        if (!needsName && !needsAvatar && !needsSubs) return
+
+        val info = withContext(Dispatchers.IO) { NewPipeExtractor.getChannelMetadata(id) } ?: return
+        if (_uiState.value.session?.videoId != videoId) return
+        val avatar = info.avatarUrl
+        val subs = info.subscriberCount.takeIf { it >= 0 }
+            ?.let { compactViewCount(it.toString()) }
+        _uiState.update { current ->
+            val cur = current.session?.takeIf { it.videoId == videoId } ?: return@update current
+            current.copy(
+                session = cur.copy(
+                    channelName = cur.channelName.ifBlank { info.name },
+                    channelAvatarUrl = cur.channelAvatarUrl
+                        ?.takeIf { it.isNotBlank() }
+                        ?: avatar,
+                    subscriberCountText = cur.subscriberCountText ?: subs,
+                ),
+            )
+        }
+    }
 
     fun playNext() {
         // The lookahead keeps the next video queued on the shared playlist, so skipping is a

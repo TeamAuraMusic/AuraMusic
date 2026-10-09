@@ -7,6 +7,10 @@ import io.ktor.http.parseQueryString
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.schabi.newpipe.extractor.NewPipe
+import org.schabi.newpipe.extractor.Page
+import org.schabi.newpipe.extractor.channel.ChannelInfo
+import org.schabi.newpipe.extractor.comments.CommentsInfo
+import org.schabi.newpipe.extractor.comments.CommentsInfoItem
 import org.schabi.newpipe.extractor.downloader.Downloader
 import org.schabi.newpipe.extractor.downloader.Request
 import org.schabi.newpipe.extractor.downloader.Response
@@ -171,11 +175,104 @@ object NewPipeExtractor {
         return try {
             StreamInfo.getInfo(
                 NewPipe.getService(0),
-                "https://www.youtube.com/watch?v=$videoId"
+                "https://www.youtube.com/watch?v=$videoId",
             )
         } catch (e: Exception) {
             e.printStackTrace()
             null
         }
     }
+
+    // ------------------------------------------------------------------
+    // Comments & channel metadata
+    // ------------------------------------------------------------------
+
+    data class VideoComment(
+        val commentId: String,
+        val authorName: String,
+        val authorThumbnail: String?,
+        val content: String,
+        val publishedTime: String,
+        val likeCount: Long,
+        val replyCount: Int,
+    )
+
+    /** Opaque wrapper for a NewPipe [Page] token, so the app module never needs
+     * NewPipe on its classpath. */
+    class NextPage(val page: Page?) {
+        val hasMore: Boolean get() = page != null
+    }
+
+    data class VideoCommentsResult(
+        val comments: List<VideoComment> = emptyList(),
+        val nextPage: NextPage? = null,
+    )
+
+    fun getComments(videoId: String): VideoCommentsResult =
+        try {
+            val info = CommentsInfo.getInfo(service(), watchUrl(videoId))
+            VideoCommentsResult(
+                comments = info.relatedItems
+                    .filterIsInstance<CommentsInfoItem>()
+                    .map { it.toVideoComment() },
+                nextPage = info.nextPage?.let { NextPage(it) },
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+            VideoCommentsResult()
+        }
+
+    fun getMoreComments(videoId: String, token: NextPage): VideoCommentsResult =
+        try {
+            val more = CommentsInfo.getMoreItems(service(), watchUrl(videoId), token.page)
+            VideoCommentsResult(
+                comments = more.items
+                    .filterIsInstance<CommentsInfoItem>()
+                    .map { it.toVideoComment() },
+                nextPage = more.nextPage?.let { NextPage(it) },
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+            VideoCommentsResult()
+        }
+
+    /**
+     * Channel header: name, avatar, subscriber count. Backstops the watch-page
+     * owner block, which Google reparents between renderers almost every
+     * version, silently blanking the channel row.
+     */
+    data class ChannelMetadata(
+        val name: String,
+        val avatarUrl: String?,
+        val subscriberCount: Long,
+    )
+
+    fun getChannelMetadata(channelId: String): ChannelMetadata? =
+        try {
+            val info = ChannelInfo.getInfo(service(), channelUrl(channelId))
+            ChannelMetadata(
+                name = info.name.orEmpty(),
+                avatarUrl = info.avatars.maxByOrNull { it.height }?.url
+                    ?: info.avatars.firstOrNull()?.url,
+                subscriberCount = info.subscriberCount,
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+
+    private fun service() = NewPipe.getService(0)
+    private fun watchUrl(videoId: String) = "https://www.youtube.com/watch?v=$videoId"
+    private fun channelUrl(channelId: String) = "https://www.youtube.com/channel/$channelId"
+
+    private fun CommentsInfoItem.toVideoComment() = VideoComment(
+        commentId = commentId
+            ?: commentText?.content.orEmpty().hashCode().toString(),
+        authorName = uploaderName.orEmpty(),
+        authorThumbnail = uploaderAvatars.maxByOrNull { it.height }?.url,
+        content = commentText?.content.orEmpty(),
+        publishedTime = textualUploadDate.orEmpty(),
+        likeCount = likeCount.toLong(),
+        replyCount = replyCount,
+    )
 }
