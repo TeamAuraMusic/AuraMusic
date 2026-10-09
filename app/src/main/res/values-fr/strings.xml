@@ -1082,4 +1082,11 @@
     <string name="video_player_pip_not_supported">Picture in picture n\'est pas disponible sur cet appareil.</string>
     <string name="video_player_float">Vidéo « Float »</string>
     <string name="liked_videos">Vidéos appréciées</string>
+    <string name="continue_with_google">Continuez avec Google</string>
+    <string name="or_sign_in_email">ou connectez-vous avec votre adresse e-mail</string>
+    <string name="device_account_signin_failed">Impossible de se connecter avec le compte de l\'appareil</string>
+    <string name="use_device_account">Utiliser le compte de l\'appareil</string>
+    <string name="watching_auramusic">Regarder AuraMusic</string>
+    <string name="watch_on_youtube">Regarder sur YouTube</string>
+    <string name="saved_videos">Vidéos enregistrées</string>
 </resources>
