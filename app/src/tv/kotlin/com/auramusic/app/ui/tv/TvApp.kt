@@ -2004,8 +2004,13 @@ fun TvLibraryScreen(
         com.auramusic.app.constants.InnerTubeCookieKey,
         "",
     )
-    val isLoggedIn = remember(innerTubeCookie) {
-        "SAPISID" in com.auramusic.innertube.utils.parseCookieString(innerTubeCookie)
+    val (innerTubeOAuthToken, _) = rememberPreference(
+        com.auramusic.app.constants.InnerTubeOAuthTokenKey,
+        "",
+    )
+    val isLoggedIn = remember(innerTubeCookie, innerTubeOAuthToken) {
+        "SAPISID" in com.auramusic.innertube.utils.parseCookieString(innerTubeCookie) ||
+            innerTubeOAuthToken.isNotBlank()
     }
 
     // When the user is signed in, kick off a one-shot sync of their YouTube
@@ -3559,8 +3564,13 @@ fun TvSettingsScreen(
         com.auramusic.app.constants.InnerTubeCookieKey,
         "",
     )
-    val isLoggedIn = remember(innerTubeCookie) {
-        "SAPISID" in com.auramusic.innertube.utils.parseCookieString(innerTubeCookie)
+    val (innerTubeOAuthToken, _) = rememberPreference(
+        com.auramusic.app.constants.InnerTubeOAuthTokenKey,
+        "",
+    )
+    val isLoggedIn = remember(innerTubeCookie, innerTubeOAuthToken) {
+        "SAPISID" in com.auramusic.innertube.utils.parseCookieString(innerTubeCookie) ||
+            innerTubeOAuthToken.isNotBlank()
     }
 
     // Track which content row is currently focused (index 0 == back button / first focusable)

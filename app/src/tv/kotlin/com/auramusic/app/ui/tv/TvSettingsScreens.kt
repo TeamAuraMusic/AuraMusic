@@ -12,6 +12,8 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -89,6 +91,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import com.auramusic.app.BuildConfig
+import com.auramusic.app.auth.GoogleAccountLogin
 import com.auramusic.app.constants.AccountChannelHandleKey
 import com.auramusic.app.constants.AccountEmailKey
 import com.auramusic.app.constants.AccountNameKey
@@ -100,6 +103,7 @@ import com.auramusic.app.constants.AudioQualityKey
 import com.auramusic.app.constants.DataSyncIdKey
 import com.auramusic.app.constants.EnableLastFMScrobblingKey
 import com.auramusic.app.constants.InnerTubeCookieKey
+import com.auramusic.app.constants.InnerTubeOAuthTokenKey
 import com.auramusic.app.constants.LastFMSessionKey
 import com.auramusic.app.constants.LastFMUseNowPlaying
 import com.auramusic.app.constants.LastFMUseSendLikes
@@ -110,6 +114,7 @@ import com.auramusic.app.constants.SeekExtraSeconds
 import com.auramusic.app.constants.SkipSilenceKey
 import com.auramusic.app.constants.VideoModeEnabledKey
 import com.auramusic.app.constants.VisitorDataKey
+import com.auramusic.app.ui.screens.findActivityOrNull
 import com.auramusic.app.utils.rememberEnumPreference
 import com.auramusic.app.utils.rememberPreference
 import com.auramusic.app.utils.reportException
@@ -385,8 +390,34 @@ import kotlin.math.roundToInt
     BackHandler { onBackClick() }
     val context = LocalContext.current
     val (innerTubeCookie, onInnerTubeCookieChange) = rememberPreference(InnerTubeCookieKey, "")
-    val isLoggedIn = remember(innerTubeCookie) {
-        "SAPISID" in parseCookieString(innerTubeCookie)
+    val (innerTubeOAuthToken, _) = rememberPreference(InnerTubeOAuthTokenKey, "")
+    val isLoggedIn = remember(innerTubeCookie, innerTubeOAuthToken) {
+        "SAPISID" in parseCookieString(innerTubeCookie) || innerTubeOAuthToken.isNotBlank()
+    }
+
+    // Password-free sign-in through the Google accounts this TV already holds; the
+    // browser-based login row below stays as the fallback.
+    val deviceLoginScope = rememberCoroutineScope()
+    val deviceAccounts = remember { GoogleAccountLogin.deviceAccounts(context) }
+    var deviceSignInFailed by remember { mutableStateOf(false) }
+    fun signInWithDevice(account: android.accounts.Account) {
+        deviceLoginScope.launch {
+            GoogleAccountLogin.completeSignIn(context, account, context.findActivityOrNull())
+                .onFailure { deviceSignInFailed = true }
+        }
+    }
+    val deviceChooserLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val pickedName = result.data?.getStringExtra(android.accounts.AccountManager.KEY_ACCOUNT_NAME)
+        val picked = GoogleAccountLogin.deviceAccounts(context)
+            .firstOrNull { it.name == pickedName }
+            ?: GoogleAccountLogin.deviceAccounts(context).firstOrNull()
+        if (picked != null) {
+            signInWithDevice(picked)
+        } else {
+            deviceSignInFailed = true
+        }
     }
 
     val homeViewModel: HomeViewModel = hiltViewModel()
@@ -484,13 +515,35 @@ import kotlin.math.roundToInt
             }
         }
 
+        if (!isLoggedIn && deviceAccounts.isNotEmpty()) {
+            item {
+                TvSettingsCategoryItem(
+                    title = "Use device account",
+                    subtitle = when {
+                        deviceSignInFailed -> "Sign-in failed, try the browser option instead"
+                        deviceAccounts.size == 1 ->
+                            "Sign in as ${deviceAccounts.first().name} without a password"
+                        else -> "Pick one of this TV's Google accounts"
+                    },
+                    onClick = {
+                        if (deviceAccounts.size == 1) {
+                            signInWithDevice(deviceAccounts.first())
+                        } else {
+                            deviceChooserLauncher.launch(GoogleAccountLogin.accountChooserIntent())
+                        }
+                    },
+                    icon = androidx.compose.material.icons.Icons.Filled.Person,
+                )
+            }
+        }
+
         item {
             TvSettingsCategoryItem(
                 title = if (isLoggedIn) "Sign out" else "Sign in to YouTube Music",
                 subtitle = if (isLoggedIn)
                     "Disconnect your account and clear synced content"
                 else
-                    "Use your Google account to sign in",
+                    "Sign in with your Google account in a browser",
                 onClick = {
                     if (isLoggedIn) {
                         accountSettingsViewModel.logoutAndClearSyncedContent(

@@ -50,6 +50,13 @@ class InnerTube {
         }
     private var cookieMap = emptyMap<String, String>()
 
+    /**
+     * OAuth bearer token from a system Google account. When set it authenticates every
+     * login-bearing request instead of the SAPISID cookie, so a device-account sign-in
+     * works without ever capturing WebView cookies.
+     */
+    var oauthToken: String? = null
+
     var proxy: Proxy? = null
         set(value) {
             field = value
@@ -62,7 +69,7 @@ class InnerTube {
     var useLoginForBrowse: Boolean = false
 
     private val hasCompleteLogin: Boolean
-        get() = cookieMap["SAPISID"].isNullOrBlank().not()
+        get() = cookieMap["SAPISID"].isNullOrBlank().not() || !oauthToken.isNullOrBlank()
 
     private fun shouldUseLogin(client: YouTubeClient, requested: Boolean): Boolean =
         requested && client.loginSupported && hasCompleteLogin
@@ -159,12 +166,17 @@ class InnerTube {
             append("Referer", referer)
             visitorData?.let { append("X-Goog-Visitor-Id", it) }
             if (setLogin && client.loginSupported) {
-                cookie?.let { cookie ->
-                    append("cookie", cookie)
-                    if ("SAPISID" !in cookieMap) return@let
-                    val currentTime = System.currentTimeMillis() / 1000
-                    val sapisidHash = sha1("$currentTime ${cookieMap["SAPISID"]} $origin")
-                    append("Authorization", "SAPISIDHASH ${currentTime}_${sapisidHash}")
+                val token = oauthToken
+                if (!token.isNullOrBlank()) {
+                    append("Authorization", "Bearer $token")
+                } else {
+                    cookie?.let { cookie ->
+                        append("cookie", cookie)
+                        if ("SAPISID" !in cookieMap) return@let
+                        val currentTime = System.currentTimeMillis() / 1000
+                        val sapisidHash = sha1("$currentTime ${cookieMap["SAPISID"]} $origin")
+                        append("Authorization", "SAPISIDHASH ${currentTime}_${sapisidHash}")
+                    }
                 }
             }
         }

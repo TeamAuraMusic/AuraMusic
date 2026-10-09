@@ -55,6 +55,7 @@ import com.auramusic.app.constants.GridItemSize
 import com.auramusic.app.constants.GridItemsSizeKey
 import com.auramusic.app.constants.GridThumbnailHeight
 import com.auramusic.app.constants.InnerTubeCookieKey
+import com.auramusic.app.constants.InnerTubeOAuthTokenKey
 import com.auramusic.app.constants.LibraryViewType
 import com.auramusic.app.constants.PlaylistSortDescendingKey
 import com.auramusic.app.constants.PlaylistSortType
@@ -176,8 +177,9 @@ fun LibraryPlaylistsScreen(
         backStackEntry?.savedStateHandle?.getStateFlow("scrollToTop", false)?.collectAsState()
 
     val (innerTubeCookie) = rememberPreference(InnerTubeCookieKey, "")
-    val isLoggedIn = remember(innerTubeCookie) {
-        "SAPISID" in parseCookieString(innerTubeCookie)
+    val (innerTubeOAuthToken) = rememberPreference(InnerTubeOAuthTokenKey, "")
+    val isLoggedIn = remember(innerTubeCookie, innerTubeOAuthToken) {
+        "SAPISID" in parseCookieString(innerTubeCookie) || innerTubeOAuthToken.isNotBlank()
     }
 
     val (ytmSync) = rememberPreference(YtmSyncKey, true)

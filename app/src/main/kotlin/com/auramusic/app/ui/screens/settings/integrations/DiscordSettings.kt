@@ -56,6 +56,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
+import androidx.media3.common.C
 import androidx.media3.common.Player.STATE_READY
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
@@ -68,7 +69,6 @@ import com.auramusic.app.constants.DiscordNameKey
 import com.auramusic.app.constants.DiscordUseDetailsKey
 import com.auramusic.app.constants.DiscordUsernameKey
 import com.auramusic.app.constants.EnableDiscordRPCKey
-import com.auramusic.app.db.entities.Song
 import com.auramusic.app.discord.DiscordRpcManager
 import com.auramusic.app.ui.component.IconButton
 import com.auramusic.app.ui.component.PreferenceEntry
@@ -77,6 +77,7 @@ import com.auramusic.app.ui.component.SwitchPreference
 import com.auramusic.app.ui.utils.backToMain
 import com.auramusic.app.utils.makeTimeString
 import com.auramusic.app.utils.rememberPreference
+import com.auramusic.app.video.VideoPlaybackManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
@@ -88,6 +89,12 @@ fun DiscordSettings(
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val song by playerConnection.currentSong.collectAsState(null)
+
+    // Video sessions publish through the same player, so the preview follows whichever
+    // media owns it: the video's channel/title while a video is up, the song otherwise.
+    val videoUi by VideoPlaybackManager.uiState.collectAsState()
+    val guestVideoActive by playerConnection.service.guestVideoActive.collectAsState()
+    val videoSession = if (guestVideoActive) videoUi.session else null
 
     val playbackState by playerConnection.playbackState.collectAsState()
     var position by rememberSaveable(playbackState) {
@@ -287,7 +294,37 @@ fun DiscordSettings(
             title = stringResource(R.string.preview),
         )
 
-        RichPresence(song, position)
+        if (videoSession != null) {
+            val videoDurationMillis = playerConnection.player.duration
+                .takeIf { it != C.TIME_UNSET && it > 0 } ?: 0L
+            RichPresence(
+                headerText = stringResource(R.string.watching_auramusic),
+                artworkUrl = videoSession.channelThumbnail,
+                artistAvatarUrl = videoSession.channelAvatarUrl,
+                title = videoSession.title,
+                subtitle = videoSession.channelName,
+                albumTitle = null,
+                watchUrl = "https://www.youtube.com/watch?v=${videoSession.videoId}",
+                watchEnabled = true,
+                buttonText = stringResource(R.string.watch_on_youtube),
+                durationMillis = videoDurationMillis,
+                currentPlaybackTimeMillis = position,
+            )
+        } else {
+            RichPresence(
+                headerText = stringResource(R.string.listening_to_auramusic),
+                artworkUrl = song?.song?.thumbnailUrl,
+                artistAvatarUrl = song?.artists?.firstOrNull()?.thumbnailUrl,
+                title = song?.song?.title ?: "Song Title",
+                subtitle = song?.artists?.joinToString { it.name } ?: "Artist",
+                albumTitle = song?.album?.title,
+                watchUrl = "https://music.youtube.com/watch?v=${song?.id}",
+                watchEnabled = song != null,
+                buttonText = stringResource(R.string.listen_on_youtube_music),
+                durationMillis = song?.song?.duration?.times(1000L) ?: 0L,
+                currentPlaybackTimeMillis = position,
+            )
+        }
     }
 
     TopAppBar(
@@ -307,7 +344,19 @@ fun DiscordSettings(
 }
 
 @Composable
-fun RichPresence(song: Song?, currentPlaybackTimeMillis: Long = 0L) {
+fun RichPresence(
+    headerText: String,
+    artworkUrl: String?,
+    artistAvatarUrl: String?,
+    title: String,
+    subtitle: String,
+    albumTitle: String?,
+    watchUrl: String,
+    watchEnabled: Boolean,
+    buttonText: String,
+    durationMillis: Long,
+    currentPlaybackTimeMillis: Long = 0L,
+) {
     val context = LocalContext.current
 
     Surface(
@@ -324,7 +373,7 @@ fun RichPresence(song: Song?, currentPlaybackTimeMillis: Long = 0L) {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = stringResource(R.string.listening_to_auramusic),
+                text = headerText,
                 style = MaterialTheme.typography.labelLarge,
                 textAlign = TextAlign.Start,
                 fontWeight = FontWeight.ExtraBold,
@@ -340,7 +389,7 @@ fun RichPresence(song: Song?, currentPlaybackTimeMillis: Long = 0L) {
                     Modifier.size(108.dp),
                 ) {
                     AsyncImage(
-                        model = song?.song?.thumbnailUrl,
+                        model = artworkUrl,
                         contentDescription = null,
                         modifier =
                         Modifier
@@ -348,7 +397,7 @@ fun RichPresence(song: Song?, currentPlaybackTimeMillis: Long = 0L) {
                             .clip(RoundedCornerShape(3.dp))
                             .align(Alignment.TopStart)
                             .run {
-                                if (song == null) {
+                                if (artworkUrl == null) {
                                     border(
                                         2.dp,
                                         MaterialTheme.colorScheme.onSurface,
@@ -360,7 +409,7 @@ fun RichPresence(song: Song?, currentPlaybackTimeMillis: Long = 0L) {
                             },
                     )
 
-                    song?.artists?.firstOrNull()?.thumbnailUrl?.let {
+                    artistAvatarUrl?.let {
                         Box(
                             modifier =
                             Modifier
@@ -391,7 +440,7 @@ fun RichPresence(song: Song?, currentPlaybackTimeMillis: Long = 0L) {
                         .padding(horizontal = 6.dp),
                 ) {
                     Text(
-                        text = song?.song?.title ?: "Song Title",
+                        text = title,
                         color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.ExtraBold,
@@ -400,14 +449,14 @@ fun RichPresence(song: Song?, currentPlaybackTimeMillis: Long = 0L) {
                     )
 
                     Text(
-                        text = song?.artists?.joinToString { it.name } ?: "Artist",
+                        text = subtitle,
                         color = MaterialTheme.colorScheme.secondary,
                         fontSize = 16.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
 
-                    song?.album?.title?.let {
+                    albumTitle?.let {
                         Text(
                             text = it,
                             color = MaterialTheme.colorScheme.secondary,
@@ -417,10 +466,10 @@ fun RichPresence(song: Song?, currentPlaybackTimeMillis: Long = 0L) {
                         )
                     }
 
-                    if (song != null) {
+                    if (durationMillis > 0) {
                         SongProgressBar(
                             currentTimeMillis = currentPlaybackTimeMillis,
-                            durationMillis = song.song.duration.times(1000L),
+                            durationMillis = durationMillis,
                         )
                     }
                 }
@@ -429,17 +478,14 @@ fun RichPresence(song: Song?, currentPlaybackTimeMillis: Long = 0L) {
             Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedButton(
-                enabled = song != null,
+                enabled = watchEnabled,
                 onClick = {
-                    val intent = Intent(
-                        Intent.ACTION_VIEW,
-                        "https://music.youtube.com/watch?v=${song?.id}".toUri()
-                    )
+                    val intent = Intent(Intent.ACTION_VIEW, watchUrl.toUri())
                     context.startActivity(intent)
                 },
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(stringResource(R.string.listen_on_youtube_music))
+                Text(buttonText)
             }
 
             OutlinedButton(

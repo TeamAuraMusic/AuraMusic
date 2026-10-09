@@ -545,6 +545,10 @@
     <string name="action_logout">Log out</string>
     <string name="action_login">Log in</string>
     <string name="login">Login</string>
+    <string name="continue_with_google">Continue with Google</string>
+    <string name="or_sign_in_email">or sign in with email</string>
+    <string name="device_account_signin_failed">Couldn\'t sign in with the device account</string>
+    <string name="use_device_account">Use device account</string>
     <string name="not_logged_in">Not logged in</string>
     <string name="login_failed">Login failed</string>
     <string name="token_adv_login_description">Enter your authentication token</string>
@@ -748,6 +752,8 @@
     <string name="discord_use_details_description">Show current song in Discord details</string>
     <string name="listening_to_auramusic">Listening to AuraMusic</string>
     <string name="listen_on_youtube_music">Listen on YouTube Music</string>
+    <string name="watching_auramusic">Watching AuraMusic</string>
+    <string name="watch_on_youtube">Watch on YouTube</string>
     <string name="visit_auramusic">Visit AuraMusic</string>
     <!-- Last.fm -->
     <string name="lastfm_integration">Last.fm Integration</string>

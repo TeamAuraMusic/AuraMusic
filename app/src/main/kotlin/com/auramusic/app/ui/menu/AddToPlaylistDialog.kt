@@ -37,6 +37,7 @@ import com.auramusic.app.R
 import com.auramusic.app.constants.AddToPlaylistSortDescendingKey
 import com.auramusic.app.constants.AddToPlaylistSortTypeKey
 import com.auramusic.app.constants.InnerTubeCookieKey
+import com.auramusic.app.constants.InnerTubeOAuthTokenKey
 import com.auramusic.app.constants.ListThumbnailSize
 import com.auramusic.app.constants.PlaylistSortType
 import com.auramusic.app.db.entities.Playlist
@@ -73,8 +74,9 @@ fun AddToPlaylistDialog(
     )
     val playlists by viewModel.allPlaylists.collectAsState()
     val (innerTubeCookie) = rememberPreference(InnerTubeCookieKey, "")
-    val isLoggedIn = remember(innerTubeCookie) {
-        "SAPISID" in parseCookieString(innerTubeCookie)
+    val (innerTubeOAuthToken) = rememberPreference(InnerTubeOAuthTokenKey, "")
+    val isLoggedIn = remember(innerTubeCookie, innerTubeOAuthToken) {
+        "SAPISID" in parseCookieString(innerTubeCookie) || innerTubeOAuthToken.isNotBlank()
     }
     var showCreatePlaylistDialog by rememberSaveable {
         mutableStateOf(false)

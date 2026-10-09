@@ -17,6 +17,7 @@ import com.auramusic.innertube.utils.completed
 import com.auramusic.innertube.utils.parseCookieString
 import com.auramusic.lastfm.LastFM
 import com.auramusic.app.constants.InnerTubeCookieKey
+import com.auramusic.app.constants.InnerTubeOAuthTokenKey
 import com.auramusic.app.constants.LastFMUseSendLikes
 import com.auramusic.app.constants.LastFullSyncKey
 import com.auramusic.app.constants.SYNC_COOLDOWN
@@ -164,7 +165,10 @@ class SyncUtils @Inject constructor(
             val cookie = context.dataStore.data
                 .map { it[InnerTubeCookieKey] }
                 .first()
-            cookie?.let { "SAPISID" in parseCookieString(it) } ?: false
+            val oauthToken = context.dataStore.data
+                .map { it[InnerTubeOAuthTokenKey] }
+                .first()
+            cookie?.let { "SAPISID" in parseCookieString(it) } == true || !oauthToken.isNullOrBlank()
         } catch (e: Exception) {
             Timber.e(e, "Error checking login status")
             false

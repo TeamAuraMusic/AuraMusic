@@ -10,6 +10,7 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import com.auramusic.innertube.utils.parseCookieString
 import com.auramusic.app.constants.InnerTubeCookieKey
+import com.auramusic.app.constants.InnerTubeOAuthTokenKey
 import com.auramusic.app.constants.YtmSyncKey
 import com.auramusic.app.utils.dataStore
 import com.auramusic.app.utils.get
@@ -24,7 +25,8 @@ fun Context.isSyncEnabled(): Boolean {
 fun Context.isUserLoggedIn(): Boolean {
     return runBlocking {
         val cookie = dataStore[InnerTubeCookieKey] ?: ""
-        "SAPISID" in parseCookieString(cookie) && isInternetConnected()
+        val oauthToken = dataStore[InnerTubeOAuthTokenKey] ?: ""
+        (("SAPISID" in parseCookieString(cookie)) || oauthToken.isNotBlank()) && isInternetConnected()
     }
 }
 

@@ -56,6 +56,7 @@ import com.auramusic.app.constants.AccountEmailKey
 import com.auramusic.app.constants.AccountNameKey
 import com.auramusic.app.constants.DataSyncIdKey
 import com.auramusic.app.constants.InnerTubeCookieKey
+import com.auramusic.app.constants.InnerTubeOAuthTokenKey
 import com.auramusic.app.constants.NewReleaseNotificationsEnabledKey
 import com.auramusic.app.constants.UseLoginForBrowse
 import com.auramusic.app.constants.VisitorDataKey
@@ -65,6 +66,7 @@ import com.auramusic.app.ui.component.InfoLabel
 import com.auramusic.app.ui.component.PreferenceEntry
 import com.auramusic.app.ui.component.SwitchPreference
 import com.auramusic.app.ui.component.TextFieldDialog
+import com.auramusic.app.ui.screens.LoginPopup
 import com.auramusic.app.constants.UpdateVariantKey
 import com.auramusic.app.constants.UpdateArchitectureKey
 import com.auramusic.app.utils.Updater
@@ -91,8 +93,9 @@ fun AccountSettings(
     val (visitorData, onVisitorDataChange) = rememberPreference(VisitorDataKey, "")
     val (dataSyncId, onDataSyncIdChange) = rememberPreference(DataSyncIdKey, "")
 
-    val isLoggedIn = remember(innerTubeCookie) {
-        "SAPISID" in parseCookieString(innerTubeCookie)
+    val innerTubeOAuthToken by rememberPreference(InnerTubeOAuthTokenKey, "")
+    val isLoggedIn = remember(innerTubeCookie, innerTubeOAuthToken) {
+        "SAPISID" in parseCookieString(innerTubeCookie) || innerTubeOAuthToken.isNotBlank()
     }
     val (useLoginForBrowse, onUseLoginForBrowseChange) = rememberPreference(UseLoginForBrowse, true)
     val (ytmSync, onYtmSyncChange) = rememberPreference(YtmSyncKey, true)
@@ -105,6 +108,7 @@ fun AccountSettings(
 
     var showToken by remember { mutableStateOf(false) }
     var showTokenEditor by remember { mutableStateOf(false) }
+    var showLoginPopup by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -136,7 +140,8 @@ fun AccountSettings(
             if (isLoggedIn) {
                 navController.navigate("account")
             } else {
-                navController.navigate("login")
+                // System account first, credential WebView as fallback, in place.
+                showLoginPopup = true
             }
         }
 
@@ -368,5 +373,9 @@ fun AccountSettings(
                 }
             }
         }
+    }
+
+    if (showLoginPopup) {
+        LoginPopup(onDismiss = { showLoginPopup = false })
     }
 }

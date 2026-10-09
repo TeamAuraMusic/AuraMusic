@@ -26,6 +26,7 @@ import com.auramusic.innertube.utils.parseCookieString
 import com.auramusic.app.constants.HideExplicitKey
 import com.auramusic.app.constants.HideVideoSongsKey
 import com.auramusic.app.constants.InnerTubeCookieKey
+import com.auramusic.app.constants.InnerTubeOAuthTokenKey
 import com.auramusic.app.constants.AccountNameKey
 import com.auramusic.app.constants.AudiobookIdsKey
 import com.auramusic.app.constants.AudiobookPositionsKey
@@ -661,19 +662,22 @@ fun markWrappedAsSeen() {
 
         // Listen for complete session changes and reload account data. A cookie without the
         // matching dataSyncId is not enough for account/account_menu and may return guest-like
-        // results, especially right after WebView login.
+        // results, especially right after WebView login. System-account sign-ins carry an
+        // OAuth token instead of a cookie, so that rides along in the same change signal.
         viewModelScope.launch(Dispatchers.IO) {
             context.dataStore.data
                 .map { prefs ->
-                    Triple(
+                    listOf(
                         prefs[InnerTubeCookieKey],
                         prefs[VisitorDataKey],
-                        normalizedDataSyncId(prefs[DataSyncIdKey])
+                        normalizedDataSyncId(prefs[DataSyncIdKey]),
+                        prefs[InnerTubeOAuthTokenKey]
                     )
                 }
                 .distinctUntilChanged()
-                .collectLatest { (cookie, visitorData, dataSyncId) ->
-                    val isLoggedIn = cookie?.let { "SAPISID" in parseCookieString(it) } == true
+                .collectLatest { (cookie, visitorData, dataSyncId, oauthToken) ->
+                    val isLoggedIn = cookie?.let { "SAPISID" in parseCookieString(it) } == true ||
+                        !oauthToken.isNullOrBlank()
                     if (!isLoggedIn) {
                         accountName.value = "Guest"
                         accountImageUrl.value = null
@@ -689,6 +693,7 @@ fun markWrappedAsSeen() {
                         ?: "Signed in"
 
                     YouTube.cookie = cookie
+                    YouTube.oauthToken = oauthToken
                     YouTube.visitorData = visitorData?.takeIf { it.isNotBlank() }
                     YouTube.dataSyncId = dataSyncId
 

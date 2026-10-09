@@ -30,6 +30,7 @@ import com.auramusic.innertube.models.YouTubeLocale
 import com.auramusic.kugou.KuGou
 import com.auramusic.lastfm.LastFM
 import com.auramusic.app.BuildConfig
+import com.auramusic.app.auth.GoogleAccountLogin
 import com.auramusic.app.constants.*
 import com.auramusic.app.db.MusicDatabase
 import com.auramusic.app.di.ApplicationScope
@@ -39,6 +40,7 @@ import com.auramusic.app.notifications.NewReleaseNotificationChecker
 import com.auramusic.app.notifications.NewReleaseNotificationScheduler
 import com.auramusic.app.utils.CrashHandler
  import com.auramusic.app.utils.dataStore
+ import com.auramusic.app.utils.get
  import com.auramusic.app.utils.reportException
  import com.auramusic.app.voice.VoiceFeedbackManager
  import dagger.hilt.android.HiltAndroidApp
@@ -86,6 +88,9 @@ class App : Application(), SingletonImageLoader.Factory {
         applicationScope.launch {
             initializeSettings()
             observeSettingsChanges()
+            // System-account tokens lapse after about an hour; re-mint the stored one so a
+            // resumed session keeps its Google sign-in without prompting again.
+            GoogleAccountLogin.silentRefresh(this@App)
         }
         
         // Initialize voice feedback manager (TTS)
@@ -223,6 +228,15 @@ class App : Application(), SingletonImageLoader.Factory {
 
         applicationScope.launch(Dispatchers.IO) {
             dataStore.data
+                .map { it[InnerTubeOAuthTokenKey] }
+                .distinctUntilChanged()
+                .collect { token ->
+                    YouTube.oauthToken = token?.takeIf { it.isNotBlank() }
+                }
+        }
+
+        applicationScope.launch(Dispatchers.IO) {
+            dataStore.data
                 .map { it[LastFMSessionKey] }
                 .distinctUntilChanged()
                 .collect { session ->
@@ -303,13 +317,22 @@ class App : Application(), SingletonImageLoader.Factory {
 
     companion object {
         suspend fun forgetAccount(context: Context) {
+            val staleToken = context.dataStore[InnerTubeOAuthTokenKey]
             context.dataStore.edit { settings ->
                 settings.remove(InnerTubeCookieKey)
+                settings.remove(InnerTubeOAuthTokenKey)
+                settings.remove(OAuthAccountKey)
                 settings.remove(VisitorDataKey)
                 settings.remove(DataSyncIdKey)
                 settings.remove(AccountNameKey)
                 settings.remove(AccountEmailKey)
                 settings.remove(AccountChannelHandleKey)
+            }
+            staleToken?.let { token ->
+                runCatching {
+                    android.accounts.AccountManager.get(context)
+                        .invalidateAuthToken("com.google", token)
+                }
             }
         }
     }

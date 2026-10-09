@@ -63,6 +63,7 @@ import com.auramusic.app.LocalPlayerConnection
 import com.auramusic.app.R
 import com.auramusic.app.constants.HistorySource
 import com.auramusic.app.constants.InnerTubeCookieKey
+import com.auramusic.app.constants.InnerTubeOAuthTokenKey
 import com.auramusic.app.extensions.metadata
 import com.auramusic.app.extensions.toMediaItem
 import com.auramusic.app.models.toMediaMetadata
@@ -136,8 +137,9 @@ fun HistoryScreen(
     val events by viewModel.events.collectAsState()
 
     val innerTubeCookie by rememberPreference(InnerTubeCookieKey, "")
-    val isLoggedIn = remember(innerTubeCookie) {
-        "SAPISID" in parseCookieString(innerTubeCookie)
+    val innerTubeOAuthToken by rememberPreference(InnerTubeOAuthTokenKey, "")
+    val isLoggedIn = remember(innerTubeCookie, innerTubeOAuthToken) {
+        "SAPISID" in parseCookieString(innerTubeCookie) || innerTubeOAuthToken.isNotBlank()
     }
 
     fun dateAgoToString(dateAgo: DateAgo): String {

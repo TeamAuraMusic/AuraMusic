@@ -158,6 +158,11 @@ object YouTube {
         set(value) {
             innerTube.cookie = value
         }
+    var oauthToken: String?
+        get() = innerTube.oauthToken
+        set(value) {
+            innerTube.oauthToken = value
+        }
     var proxy: Proxy?
         get() = innerTube.proxy
         set(value) {

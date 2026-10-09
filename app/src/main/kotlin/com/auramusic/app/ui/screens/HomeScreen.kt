@@ -122,6 +122,7 @@ import com.auramusic.app.constants.GridThumbnailHeight
 import com.auramusic.app.constants.HomeLayoutMode
 import com.auramusic.app.constants.HomeLayoutModeKey
 import com.auramusic.app.constants.InnerTubeCookieKey
+import com.auramusic.app.constants.InnerTubeOAuthTokenKey
 import com.auramusic.app.constants.ListItemHeight
 import com.auramusic.app.constants.ListThumbnailSize
 import com.auramusic.app.constants.SmallGridThumbnailHeight
@@ -225,6 +226,7 @@ fun HomeScreen(
     val accountName by viewModel.accountName.collectAsState()
     val accountImageUrl by viewModel.accountImageUrl.collectAsState()
     val innerTubeCookie by rememberPreference(InnerTubeCookieKey, "")
+    val innerTubeOAuthToken by rememberPreference(InnerTubeOAuthTokenKey, "")
 
     val glassApplyHomeCards by rememberPreference(LiquidGlassApplyHomeCardsKey, defaultValue = false)
 
@@ -232,8 +234,8 @@ fun HomeScreen(
     val wrappedState by viewModel.wrappedManager.state.collectAsState()
     val isWrappedDataReady = wrappedState.isDataReady
 
-    val isLoggedIn = remember(innerTubeCookie) {
-        "SAPISID" in parseCookieString(innerTubeCookie)
+    val isLoggedIn = remember(innerTubeCookie, innerTubeOAuthToken) {
+        "SAPISID" in parseCookieString(innerTubeCookie) || innerTubeOAuthToken.isNotBlank()
     }
     val url = if (isLoggedIn) accountImageUrl else null
 
