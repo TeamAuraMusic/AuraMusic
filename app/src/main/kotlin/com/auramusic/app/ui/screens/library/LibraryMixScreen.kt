@@ -139,26 +139,22 @@ fun LibraryMixScreen(
     val (ytmSync) = rememberPreference(YtmSyncKey, true)
 
     // Video "Recently watched" history + subscribed video channels, shown at the
-    // top of the Library landing page just like YouTube.
+    // top of the Library landing page just like YouTube. Observed as flows so a
+    // like/save from the floating player updates the shelf while this screen is
+    // already composed - a one-shot read only refreshed when the screen was rebuilt.
     val context = LocalContext.current
-    var videoHistory by remember {
-        mutableStateOf<List<VideoPlaybackManager.VideoHistoryEntry>>(emptyList())
-    }
-    var videoChannels by remember {
-        mutableStateOf<List<VideoPlaybackManager.VideoSubscribedChannel>>(emptyList())
-    }
-    var likedVideos by remember {
-        mutableStateOf<List<VideoPlaybackManager.VideoHistoryEntry>>(emptyList())
-    }
-    var savedVideos by remember {
-        mutableStateOf<List<VideoPlaybackManager.VideoHistoryEntry>>(emptyList())
-    }
-    LaunchedEffect(Unit) {
-        videoHistory = VideoPlaybackManager.readVideoHistory(context)
-        videoChannels = VideoPlaybackManager.readSubscribedChannels(context)
-        likedVideos = VideoPlaybackManager.readLikedVideos(context)
-        savedVideos = VideoPlaybackManager.readSavedVideos(context)
-    }
+    val videoHistory by remember {
+        VideoPlaybackManager.videoHistoryFlow(context)
+    }.collectAsState(initial = emptyList())
+    val videoChannels by remember {
+        VideoPlaybackManager.subscribedChannelsFlow(context)
+    }.collectAsState(initial = emptyList())
+    val likedVideos by remember {
+        VideoPlaybackManager.likedVideosFlow(context)
+    }.collectAsState(initial = emptyList())
+    val savedVideos by remember {
+        VideoPlaybackManager.savedVideosFlow(context)
+    }.collectAsState(initial = emptyList())
     val playVideoEntry: (VideoPlaybackManager.VideoHistoryEntry) -> Unit = { entry ->
         VideoPlaybackManager.play(
             context = context,
@@ -705,6 +701,53 @@ fun LibraryMixScreen(
                                 onPlayVideo = playVideoEntry,
                                 onOpenChannel = openVideoChannel,
                             )
+                        }
+                    }
+
+                    if (likedVideos.isNotEmpty() && showLikedVideos) {
+                        item(
+                            key = "likedVideosSection",
+                            span = { GridItemSpan(maxLineSpan) },
+                            contentType = CONTENT_TYPE_HEADER,
+                        ) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                VideoLibrarySectionHeader(R.string.liked_videos)
+                                LazyRow(
+                                    contentPadding = PaddingValues(horizontal = 12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                ) {
+                                    items(likedVideos) { entry ->
+                                        VideoHistoryThumb(
+                                            entry = entry,
+                                            onClick = { playVideoEntry(entry) },
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
+                        }
+                    }
+                    if (savedVideos.isNotEmpty() && showSavedVideos) {
+                        item(
+                            key = "savedVideosSection",
+                            span = { GridItemSpan(maxLineSpan) },
+                            contentType = CONTENT_TYPE_HEADER,
+                        ) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                VideoLibrarySectionHeader(R.string.saved_videos)
+                                LazyRow(
+                                    contentPadding = PaddingValues(horizontal = 12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                ) {
+                                    items(savedVideos) { entry ->
+                                        VideoHistoryThumb(
+                                            entry = entry,
+                                            onClick = { playVideoEntry(entry) },
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
                         }
                     }
 

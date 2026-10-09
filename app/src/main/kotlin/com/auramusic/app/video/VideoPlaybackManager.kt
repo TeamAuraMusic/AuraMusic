@@ -911,9 +911,11 @@ object VideoPlaybackManager {
         val session = _uiState.value.session ?: return
         val newLiked = !_uiState.value.isLiked
         scope.launch {
-            YouTube.likeVideo(session.videoId, newLiked).onSuccess {
-                writeLikedVideo(session, newLiked)
-            }
+            // Record locally first: the Library shelf mirrors the optimistic button state,
+            // so a failed remote call (signed-out account, endpoint hiccup) must not leave
+            // the two out of sync - the button would read "liked" while the shelf stayed empty.
+            writeLikedVideo(session, newLiked)
+            YouTube.likeVideo(session.videoId, newLiked)
             _uiState.update {
                 it.copy(
                     isLiked = newLiked,
@@ -1026,6 +1028,32 @@ object VideoPlaybackManager {
         withContext(Dispatchers.IO) {
             runCatching { parseVideoHistory(context.dataStore[SavedVideosKey]) }.getOrDefault(emptyList())
         }
+
+    /**
+     * Live views of the Library video shelves. Unlike the one-shot readers above, these keep
+     * emitting as DataStore changes, so liking or saving while the Library is already on
+     * screen (e.g. through the floating player) refreshes the shelf without waiting for the
+     * screen to be rebuilt.
+     */
+    fun likedVideosFlow(context: Context) =
+        context.dataStore.data
+            .map { parseVideoHistory(it[LikedVideosKey]) }
+            .distinctUntilChanged()
+
+    fun savedVideosFlow(context: Context) =
+        context.dataStore.data
+            .map { parseVideoHistory(it[SavedVideosKey]) }
+            .distinctUntilChanged()
+
+    fun videoHistoryFlow(context: Context) =
+        context.dataStore.data
+            .map { parseVideoHistory(it[VideoHistoryKey]) }
+            .distinctUntilChanged()
+
+    fun subscribedChannelsFlow(context: Context) =
+        context.dataStore.data
+            .map { parseSubscribedChannels(it[VideoSubscribedChannelsKey]) }
+            .distinctUntilChanged()
 
     fun toggleExpandedDescription() {
         _uiState.update { it.copy(expandedDescription = !it.expandedDescription) }

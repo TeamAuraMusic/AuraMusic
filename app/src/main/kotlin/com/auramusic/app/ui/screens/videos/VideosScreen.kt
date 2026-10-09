@@ -233,11 +233,15 @@ fun VideosScreen(
         if (!isLoading && feed.isNotEmpty()) hasLoadedOnce = true
     }
 
-    // Auto-refresh personalised feed after watching 2-3 videos
+    // Load the personalised sections on entry (skipped when a previous entry already
+    // built them), then again after watching 2-3 videos. Without the initial refresh()
+    // nothing ever populated them: shouldRefresh starts false, so the collector below
+    // had nothing to react to until three new watches.
     LaunchedEffect(Unit) {
+        if (personalSections.isEmpty()) recommendationManager.refresh()
         snapshotFlow { recommendationManager.shouldRefresh }
             .collect { shouldRefresh ->
-                if (shouldRefresh) {
+                if (shouldRefresh && !recommendationManager.isLoading.value) {
                     scope.launch { recommendationManager.refresh() }
                 }
             }

@@ -1,6 +1,9 @@
 package com.auramusic.app.video
 
 import android.content.Context
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
 import com.auramusic.app.utils.dataStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,15 +29,20 @@ class VideoRecommendationManager(private val context: Context) {
         val videos: List<com.auramusic.innertube.models.YouTubeVideoItem>,
     )
 
-    private val _sections = MutableStateFlow<List<FeedSection>>(emptyList())
+    // Shared at process level: the screen creates a fresh manager on every entry, and
+    // keeping sections instance-scoped would throw the built feed away on each tab switch
+    // and re-run every network search just to repaint the same rows.
+    private val _sections = sharedSections
     val sections: StateFlow<List<FeedSection>> = _sections.asStateFlow()
 
-    private val _isLoading = MutableStateFlow(false)
+    private val _isLoading = sharedLoading
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    // How many videos have been watched since last refresh
-    private var watchCountSinceRefresh = 0
-    private var lastRefreshWatchCount = 0
+    // How many videos have been watched since last refresh. Compose snapshot state, not
+    // plain vars: VideosScreen observes shouldRefresh through snapshotFlow, which only
+    // re-emits when the reads inside it touch snapshot-tracked state.
+    private var watchCountSinceRefresh by mutableIntStateOf(0)
+    private var lastRefreshWatchCount by mutableIntStateOf(0)
     val shouldRefresh: Boolean
         get() = watchCountSinceRefresh - lastRefreshWatchCount >= REFRESH_THRESHOLD
 
@@ -275,5 +283,8 @@ class VideoRecommendationManager(private val context: Context) {
     companion object {
         /** Refresh the personalised feed after this many new video watches. */
         const val REFRESH_THRESHOLD = 3
+
+        private val sharedSections = MutableStateFlow<List<FeedSection>>(emptyList())
+        private val sharedLoading = MutableStateFlow(false)
     }
 }
