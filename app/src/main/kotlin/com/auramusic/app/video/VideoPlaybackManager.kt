@@ -458,6 +458,8 @@ object VideoPlaybackManager {
         // notification feeling non-persistent / out of sync when switching videos.
         // Notify recommendation manager that a video was played
         onVideoPlayed?.invoke()
+        // The session is live: hand it to the widget, Discord presence and scrobbler.
+        sharedConnectionRef?.get()?.service?.syncVideoIntegrations(sessionChanged = true)
         scope.launch {
             val source = withContext(Dispatchers.IO) {
                 AuraPlayerUtils.getVideoStreamSource(videoId).getOrNull()
@@ -563,6 +565,9 @@ object VideoPlaybackManager {
             )
         }
         recordCurrentToHistory()
+        // Enrichment refined the session (title, artwork, like state): repaint the
+        // widget and presence without restarting the scrobble timer.
+        sharedConnectionRef?.get()?.service?.syncVideoIntegrations()
         return metadata
     }
 
@@ -635,6 +640,9 @@ object VideoPlaybackManager {
             )
         }
         onVideoPlayed?.invoke()
+        // Queue advanced to a new video while still playing: no IS_PLAYING event will
+        // fire, so the integrations are pushed from here instead.
+        sharedConnectionRef?.get()?.service?.syncVideoIntegrations(sessionChanged = true)
         scope.launch {
             val watchMetadata = enrichSessionMetadata(videoId)
             loadRecommendations(videoId, prefetchedMetadata = watchMetadata)
@@ -922,6 +930,9 @@ object VideoPlaybackManager {
                     isDisliked = if (newLiked) false else it.isDisliked
                 )
             }
+            // The widget shows the video's like state; repaint it now instead of
+            // waiting for the next player event.
+            sharedConnectionRef?.get()?.service?.syncVideoIntegrations()
         }
     }
 

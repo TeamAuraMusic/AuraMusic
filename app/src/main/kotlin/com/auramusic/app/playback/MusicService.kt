@@ -421,13 +421,67 @@ class MusicService :
             album = null,
         )
 
+    /**
+     * The playing video shaped like a track. Widgets, Discord and the scrobbler all speak
+     * [MediaMetadata]/[Song], so the video path reuses those shapes instead of teaching
+     * every integration about video sessions.
+     */
+    private fun guestVideoMetadata(): MediaMetadata? {
+        val session = VideoPlaybackManager.uiState.value.session ?: return null
+        val durationMs = player.duration.takeIf { it != C.TIME_UNSET && it > 0 } ?: 0L
+        return MediaMetadata(
+            id = session.videoId,
+            title = session.title,
+            artists = listOf(
+                MediaMetadata.Artist(
+                    id = session.channelId,
+                    name = session.channelName.ifBlank { session.channelId ?: "YouTube" },
+                ),
+            ),
+            duration = (durationMs / 1000).toInt(),
+            thumbnailUrl = session.channelThumbnail,
+            liked = VideoPlaybackManager.uiState.value.isLiked,
+        )
+    }
+
+    /**
+     * Pushes the current video into the integrations the music path owns: widget, Discord
+     * presence and the scrobbler. [VideoPlaybackManager] calls this once a session is
+     * established ([sessionChanged] also restarts the scrobble timer) and again after
+     * enrichment refines the title/artwork - refreshes pass false so they never reset a
+     * running scrobble timer, which would deliver a duplicate scrobble.
+     */
+    fun syncVideoIntegrations(sessionChanged: Boolean = false) {
+        updateWidgetUI(player.isPlaying)
+        syncDiscordState()
+        // Only once the video actually owns the player: before that (session set, stream
+        // still loading) music may still be audible, and killing its scrobble window for
+        // a video that then fails to load would lose the scrobble entirely.
+        if (sessionChanged && guestVideoActive.value) {
+            scrobbleManager?.onSongStop()
+            if (player.isPlaying) {
+                guestVideoMetadata()?.let { metadata ->
+                    scrobbleManager?.onSongStart(metadata, duration = player.duration)
+                }
+            }
+        }
+    }
+
     private fun syncDiscordState() {
         if (!discordRpcEnabled) return
         scope.launch {
-            val metadata = currentMediaMetadata.value
-            val song = currentSong.value
-                ?.takeIf { it.song.id == metadata?.id }
-                ?: metadata?.toDiscordSong()
+            val song: Song?
+            val activityType: Int
+            if (guestVideoActive.value) {
+                song = guestVideoMetadata()?.toDiscordSong()
+                activityType = DiscordActivity.TYPE_WATCHING
+            } else {
+                val metadata = currentMediaMetadata.value
+                song = currentSong.value
+                    ?.takeIf { it.song.id == metadata?.id }
+                    ?: metadata?.toDiscordSong()
+                activityType = DiscordActivity.TYPE_LISTENING
+            }
             if (song == null) {
                 if (DiscordRpcManager.isReady()) DiscordRpcManager.clear()
                 return@launch
@@ -440,11 +494,15 @@ class MusicService :
                 }
                 return@launch
             }
-            updateDiscordRPC(song, player.isPlaying)
+            updateDiscordRPC(song, player.isPlaying, activityType)
         }
     }
 
-    private fun updateDiscordRPC(song: Song, isPlaying: Boolean) {
+    private fun updateDiscordRPC(
+        song: Song,
+        isPlaying: Boolean,
+        activityType: Int = DiscordActivity.TYPE_LISTENING,
+    ) {
         if (!DiscordRpcManager.isReady() || !discordRpcEnabled) return
         val useDetails = dataStore.get(DiscordUseDetailsKey, false)
         val position = player.currentPosition
@@ -466,7 +524,7 @@ class MusicService :
             startTimestamp = startTimestamp,
             endTimestamp = endTimestamp,
             advancedMode = false,
-            activityType = DiscordActivity.TYPE_LISTENING,
+            activityType = activityType,
         )
         DiscordRpcManager.setActivity(
             activity = activity,
@@ -1832,6 +1890,10 @@ class MusicService :
         if (!_guestVideoActive.value) return
         _guestVideoActive.value = false
         if (restoreQueue) restorePersistedQueuePaused()
+        // The video is gone: hand the widget, presence and scrobbler back to the music
+        // path immediately instead of waiting for the debounced song update to emit.
+        updateWidgetUI(player.isPlaying)
+        syncDiscordState()
     }
 
     /** The same persisted-queue read the service boot path uses, replayed paused. */
@@ -2359,10 +2421,14 @@ class MusicService :
         }
         if (guestVideoActive.value) {
             // A guest video owns the player; none of the music-path bookkeeping (queue
-            // paging, automix, scrobble, Discord, cast) applies to it. The metadata still
-            // moves so anything observing the session sees the video.
+            // paging, automix, cast) applies to it. The metadata still moves so anything
+            // observing the session sees the video, the music track's scrobble window
+            // closes (the video's own timer is started by syncVideoIntegrations), and
+            // the widget repaints with the incoming video's title.
             currentMediaMetadata.value = mediaItem?.metadata
             lastTransitionMediaId = mediaItem?.mediaId
+            scrobbleManager?.onSongStop()
+            updateWidgetUI(player.isPlaying)
             return
         }
         // Update immediately for queue transitions. Waiting for the later
@@ -2627,9 +2693,11 @@ class MusicService :
             }
         }
 
-        // Widget and Discord RPC updates
-        if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED) && !guestVideoActive.value) {
-            if (player.isPlaying && videoTakeoverActive) {
+        // Widget and Discord RPC updates. Runs during a guest video too - the widget
+        // funnel below branches on guestVideoActive, so a video pause still stops the
+        // progress loop and clears presence exactly like a song pause does.
+        if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED)) {
+            if (!guestVideoActive.value && player.isPlaying && videoTakeoverActive) {
                 // Music is actually playing again: the video no longer owns the shade,
                 // so allow the music media notification to be posted once more.
                 clearVideoTakeover()
@@ -2651,17 +2719,20 @@ class MusicService :
         // transition the player is frequently still buffering (not yet "playing"),
         // so gating on player.isPlaying would skip the update and leave the
         // previous song's text/thumbnail showing. The play-state change handler
-        // (below) re-syncs once playback actually resumes.
-        if (!guestVideoActive.value &&
-            (events.containsAny(Player.EVENT_MEDIA_ITEM_TRANSITION) ||
-                (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED) && player.isPlaying))
+        // (below) re-syncs once playback actually resumes. syncDiscordState picks
+        // song or video data from whichever medium owns the player.
+        if (events.containsAny(Player.EVENT_MEDIA_ITEM_TRANSITION) ||
+            (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED) && player.isPlaying)
         ) {
             syncDiscordState()
         }
 
-        // Scrobbling
-        if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED) && !guestVideoActive.value) {
-            scrobbleManager?.onPlayerStateChanged(player.isPlaying, player.currentMetadata, duration = player.duration)
+        // Scrobbling: the video session is shaped into a track for the scrobbler, so a
+        // video keeps Last.fm in step exactly like a song does.
+        if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED)) {
+            val scrobbleMetadata =
+                if (guestVideoActive.value) guestVideoMetadata() else player.currentMetadata
+            scrobbleManager?.onPlayerStateChanged(player.isPlaying, scrobbleMetadata, duration = player.duration)
         }
 
     }
@@ -3982,7 +4053,7 @@ class MusicService :
                 updateWidgetUI(player.isPlaying)
             }
             MusicWidgetReceiver.ACTION_LIKE -> {
-                toggleLike()
+                if (guestVideoActive.value) VideoPlaybackManager.toggleLike() else toggleLike()
             }
             MusicWidgetReceiver.ACTION_NEXT -> {
                 player.seekToNext()
@@ -4020,7 +4091,7 @@ class MusicService :
                 updateWidgetUI(player.isPlaying)
             }
             CompactWideWidgetReceiver.ACTION_COMPACT_WIDE_LIKE -> {
-                toggleLike()
+                if (guestVideoActive.value) VideoPlaybackManager.toggleLike() else toggleLike()
             }
             }
 
@@ -4039,6 +4110,22 @@ class MusicService :
         scope.launch {
             widgetUpdateMutex.withLock {
                 try {
+                    if (guestVideoActive.value) {
+                        // A guest video owns the player: show it instead of the (absent)
+                        // song, with the same progress/like controls music uses.
+                        val session = VideoPlaybackManager.uiState.value.session
+                        widgetManager.updateWidgets(
+                            title = session?.title ?: getString(R.string.no_song_playing),
+                            artist = session?.channelName?.takeIf { it.isNotBlank() }
+                                ?: getString(R.string.tap_to_open),
+                            artworkUri = session?.channelThumbnail,
+                            isPlaying = isPlaying,
+                            isLiked = VideoPlaybackManager.uiState.value.isLiked,
+                            duration = if (player.duration != C.TIME_UNSET) player.duration else 0,
+                            currentPosition = player.currentPosition,
+                        )
+                        return@withLock
+                    }
                     val songData = currentSong.value
                     val song = songData?.song
                     val songTitle = song?.title ?: getString(R.string.no_song_playing)
