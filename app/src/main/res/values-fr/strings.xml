@@ -1081,4 +1081,5 @@
     <string name="video_player_pip">Picture in picture</string>
     <string name="video_player_pip_not_supported">Picture in picture n\'est pas disponible sur cet appareil.</string>
     <string name="video_player_float">Vidéo « Float »</string>
+    <string name="liked_videos">Vidéos appréciées</string>
 </resources>
