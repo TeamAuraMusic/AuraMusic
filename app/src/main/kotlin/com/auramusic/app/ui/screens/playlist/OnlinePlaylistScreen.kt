@@ -35,6 +35,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -193,6 +194,40 @@ fun OnlinePlaylistScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             ContainedLoadingIndicator()
+                        }
+                    }
+                } else if (error != null) {
+                    // Without this branch a failed load (login rejected, network down,
+                    // malformed header) rendered nothing at all: a blank page that looked
+                    // like the playlist refused to open.
+                    item(key = "load_error") {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 32.dp, vertical = 48.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Text(
+                                text = error ?: stringResource(R.string.playlist_is_empty),
+                                color = MaterialTheme.colorScheme.error,
+                                textAlign = TextAlign.Center,
+                                style = MaterialTheme.typography.bodyLarge,
+                            )
+                            Spacer(Modifier.height(16.dp))
+                            OutlinedButton(onClick = { viewModel.retry() }) {
+                                Text(stringResource(R.string.retry))
+                            }
+                        }
+                    }
+                } else {
+                    item(key = "empty_playlist") {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(stringResource(R.string.playlist_is_empty))
                         }
                     }
                 }

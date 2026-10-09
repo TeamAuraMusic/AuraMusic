@@ -3907,6 +3907,16 @@ class MusicService :
             if (isVideoMode) {
                 player.stop()
             }
+            // Swiping the app away while nothing is actually playing used to leave the
+            // idle service (and its notification) alive, draining battery with no audio
+            // to show for it. The queue is persisted first so reopening the app restores
+            // the session exactly as it was; only an active playback keeps running,
+            // since background listening is the whole point of a music player.
+            if (queuePersistenceEnabled) {
+                saveQueueToDiskNow()
+            }
+            stopForeground(android.app.Service.STOP_FOREGROUND_REMOVE)
+            stopSelf()
         }
         super.onTaskRemoved(rootIntent)
     }

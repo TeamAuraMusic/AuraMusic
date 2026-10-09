@@ -325,7 +325,7 @@ fun markWrappedAsSeen() {
 
             // Account playlists - independent
             launch {
-                if (YouTube.cookie != null) {
+                if (YouTube.cookie != null || !YouTube.oauthToken.isNullOrBlank()) {
                     YouTube.library("FEmusic_liked_playlists").completed().onSuccess {
                         accountPlaylists.value = it.items.filterIsInstance<PlaylistItem>().filterNot { it.id == "SE" }
                     }.onFailure {

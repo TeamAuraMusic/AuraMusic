@@ -136,11 +136,12 @@ fun AccountSettings(
         Spacer(Modifier.height(12.dp))
 
         val accountSectionModifier = Modifier.clickable {
-            onClose()
             if (isLoggedIn) {
+                onClose()
                 navController.navigate("account")
             } else {
-                // System account first, credential WebView as fallback, in place.
+                // The popup renders inside this dialog; closing it first would dispose
+                // this composable before the popup could ever appear.
                 showLoginPopup = true
             }
         }
