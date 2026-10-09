@@ -58,6 +58,7 @@ import com.auramusic.innertube.models.response.title
 import com.auramusic.innertube.models.response.viewCountText
 import com.auramusic.innertube.models.response.WatchLikeState
 import timber.log.Timber
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -120,6 +121,9 @@ object VideoPlaybackManager {
         val likeCount: String? = null,
         val replyCount: String? = null,
         val isPinned: Boolean = false,
+        val replies: List<CommentItem> = emptyList(),
+        val isLoadingReplies: Boolean = false,
+        val repliesExhausted: Boolean = false,
     )
 
     /** One watched-video entry shown in the Library "Recently watched" row. */
@@ -245,6 +249,16 @@ object VideoPlaybackManager {
     private var watchMetadataCache: WatchMetadataResponse? = null
     private var watchMetadataCacheVideoId: String? = null
     private val watchMetadataMutex = Mutex()
+
+    /**
+     * Reply pagination tokens keyed by comment id. These stay out of [CommentItem]
+     * because they are extractor types the UI layer should never have to know about.
+     * Cleared whenever a new video starts so a stale token is never reused.
+     */
+    private val replyTokens = ConcurrentHashMap<String, NewPipeExtractor.NextPage?>()
+
+    /** Channel refs for comments still missing an avatar, filled in on the side. */
+    private val missingAvatars = ConcurrentHashMap<String, String>()
     /**
      * Application context only. This used to hold the Activity, which leaked it for
      * the life of the process (it was never cleared, and was set before the
@@ -418,6 +432,9 @@ object VideoPlaybackManager {
         // A new video invalidates the previous one's cached watch page.
         watchMetadataCache = null
         watchMetadataCacheVideoId = null
+        // Reply tokens and avatar backfills belong to the previous video's comments.
+        replyTokens.clear()
+        missingAvatars.clear()
         val bestThumbnail = thumbnails.maxByOrNull { it.width ?: 0 }?.url
         // Claim a generation for this load; older in-flight loads become no-ops.
         val generation = ++loadGeneration
@@ -554,8 +571,12 @@ object VideoPlaybackManager {
                         ?: metadata.description(),
                     viewCountText = session.viewCountText ?: metadata.viewCountText(),
                     publishedTimeText = session.publishedTimeText ?: metadata.dateText(),
-                    subscriberCountText = metadata.subscriberCountText(),
-                    commentCountText = metadata.commentCountText(),
+                    // Keep already-resolved values: the youtubei owner/comment blocks are
+                    // routinely empty now, so an unconditional copy would wipe what the
+                    // channel-page backfill had just resolved.
+                    subscriberCountText = session.subscriberCountText
+                        ?: metadata.subscriberCountText(),
+                    commentCountText = session.commentCountText ?: metadata.commentCountText(),
                     likeCountText = session.likeCountText ?: metadata.likeCountText(),
                 ),
                 isLiked = likeState == WatchLikeState.LIKE,
@@ -624,6 +645,9 @@ object VideoPlaybackManager {
         // A new video invalidates the previous one's cached watch page.
         watchMetadataCache = null
         watchMetadataCacheVideoId = null
+        // Reply tokens and avatar backfills belong to the previous video's comments.
+        replyTokens.clear()
+        missingAvatars.clear()
         _uiState.update {
             it.copy(
                 session = VideoSession(
@@ -794,6 +818,7 @@ object VideoPlaybackManager {
                         commentsError = if (comments.isEmpty()) "Comments are unavailable for this video" else null,
                     )
                 }
+                backfillMissingAvatars(videoId)
                 return
             }
             lastError = "Could not load comments"
@@ -831,6 +856,107 @@ object VideoPlaybackManager {
                     isLoadingMoreComments = false,
                 )
             }
+            backfillMissingAvatars(videoId)
+        }
+    }
+
+    /**
+     * Loads the replies for one comment into that comment's own [CommentItem.replies].
+     * [append] is false for the first page (replaces) and true for subsequent ones.
+     */
+    fun loadCommentReplies(commentId: String, append: Boolean = false) {
+        val state = _uiState.value
+        val videoId = state.session?.videoId ?: return
+        val target = state.comments.firstOrNull { it.commentId == commentId } ?: return
+        if (target.isLoadingReplies) return
+        val token = replyTokens[commentId] ?: return
+
+        markRepliesLoading(commentId, append)
+        scope.launch {
+            val result = withContext(Dispatchers.IO) {
+                NewPipeExtractor.getCommentReplies(videoId, token)
+            }
+            if (_uiState.value.session?.videoId != videoId) return@launch
+            val mapped = result.comments.map { it.toCommentItem() }
+            if (result.nextPage != null) replyTokens[commentId] = result.nextPage else replyTokens.remove(commentId)
+            _uiState.update { current ->
+                val cleaned = current.comments.map { it.copy(isLoadingReplies = false) }
+                current.copy(
+                    comments = cleaned.map { comment ->
+                        if (comment.commentId != commentId) return@map comment
+                        mergeReplies(comment, mapped, result.nextPage != null)
+                    },
+                )
+            }
+        }
+    }
+
+    private fun markRepliesLoading(commentId: String, append: Boolean) {
+        _uiState.update { current ->
+            current.copy(
+                comments = current.comments.map { comment ->
+                    if (comment.commentId != commentId) {
+                        comment
+                    } else {
+                        comment.copy(
+                            isLoadingReplies = true,
+                            // A fresh load shows nothing until the page lands, so the
+                            // row never flickers between old and new content.
+                            replies = if (append) comment.replies else emptyList(),
+                        )
+                    }
+                },
+            )
+        }
+    }
+
+    private fun mergeReplies(
+        comment: CommentItem,
+        incoming: List<CommentItem>,
+        hasMore: Boolean,
+    ): CommentItem {
+        val existing = comment.replies.mapTo(HashSet()) { it.commentId }
+        val merged = comment.replies + incoming.filter { it.commentId !in existing }
+        return comment.copy(
+            replies = merged,
+            // Keep the spinner lit while pages are still outstanding, so a
+            // multi-page reply chain shows continuous progress instead of
+            // flickering between loaded and not.
+            isLoadingReplies = hasMore && merged.size < (comment.replyCount?.toIntOrNull() ?: 0),
+            repliesExhausted = !hasMore,
+        )
+    }
+
+    /**
+     * Comments ship without an author avatar more often than not (replies almost
+     * never have one), so the ones still blanking get fetched from the author's
+     * channel page in batches.
+     */
+    private suspend fun backfillMissingAvatars(videoId: String) {
+        val pending = missingAvatars.toMap()
+        missingAvatars.clear()
+        if (pending.isEmpty()) return
+        val resolved = pending.entries.chunked(4).flatMap { batch ->
+            batch
+                .map { (commentId, ref) ->
+                    val avatar = withContext(Dispatchers.IO) {
+                        NewPipeExtractor.fetchCommentAvatar(ref)
+                    }
+                    if (avatar.isNullOrBlank()) null else commentId to avatar
+                }.filterNotNull()
+        }
+        if (_uiState.value.session?.videoId != videoId) return
+        if (resolved.isEmpty()) return
+        val avatarById = resolved.toMap()
+        _uiState.update { current ->
+            current.copy(
+                comments = current.comments.map { comment ->
+                    avatarById[comment.commentId]
+                        ?.takeIf { comment.authorThumbnail.isNullOrBlank() }
+                        ?.let { comment.copy(authorThumbnail = it) }
+                        ?: comment
+                },
+            )
         }
     }
 
@@ -856,15 +982,27 @@ object VideoPlaybackManager {
         publishedTimeText = publishedTimeText,
     )
 
-    private fun NewPipeExtractor.VideoComment.toCommentItem() = CommentItem(
-        commentId = commentId,
-        authorName = authorName,
-        authorThumbnail = authorThumbnail,
-        content = content,
-        publishedTime = publishedTime.takeIf { it.isNotBlank() },
-        likeCount = likeCount.takeIf { it > 0 }?.toString(),
-        replyCount = replyCount.takeIf { it > 0 }?.toString(),
-    )
+    private fun NewPipeExtractor.VideoComment.toCommentItem(): CommentItem {
+        // Copy to a local: a public API property from another module cannot be
+        // smart-cast, so the null check has to be on a value we own.
+        val channelRef = authorChannelRef
+        if (authorThumbnail.isNullOrBlank() && !channelRef.isNullOrBlank()) {
+            missingAvatars[commentId] = channelRef
+        }
+        if (repliesToken != null) {
+            replyTokens[commentId] = repliesToken
+        }
+        return CommentItem(
+            commentId = commentId,
+            authorName = authorName,
+            authorThumbnail = authorThumbnail?.takeIf { it.isNotBlank() },
+            content = content,
+            publishedTime = publishedTime.takeIf { it.isNotBlank() },
+            likeCount = likeCount.takeIf { it > 0 }?.toString(),
+            replyCount = replyCount.takeIf { it > 0 }?.toString(),
+            isPinned = isPinned,
+        )
+    }
 
     /**
      * Backstops the channel row against the youtubei watch response, which

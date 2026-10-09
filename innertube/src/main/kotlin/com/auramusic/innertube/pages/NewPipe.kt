@@ -6,6 +6,7 @@ import io.ktor.http.URLBuilder
 import io.ktor.http.parseQueryString
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.schabi.newpipe.extractor.Image
 import org.schabi.newpipe.extractor.NewPipe
 import org.schabi.newpipe.extractor.Page
 import org.schabi.newpipe.extractor.channel.ChannelInfo
@@ -195,6 +196,11 @@ object NewPipeExtractor {
         val publishedTime: String,
         val likeCount: Long,
         val replyCount: Int,
+        /** Channel URL the comment is credited to; used to backfill a missing avatar. */
+        val authorChannelRef: String? = null,
+        /** Continuation for this comment's replies, when it has any. */
+        val repliesToken: NextPage? = null,
+        val isPinned: Boolean = false,
     )
 
     /** Opaque wrapper for a NewPipe [Page] token, so the app module never needs
@@ -236,6 +242,21 @@ object NewPipeExtractor {
             VideoCommentsResult()
         }
 
+    /** Replies for one comment. Reuses the watch page's continuation endpoint. */
+    fun getCommentReplies(videoId: String, token: NextPage): VideoCommentsResult =
+        try {
+            val more = CommentsInfo.getMoreItems(service(), watchUrl(videoId), token.page)
+            VideoCommentsResult(
+                comments = more.items
+                    .filterIsInstance<CommentsInfoItem>()
+                    .map { it.toVideoComment() },
+                nextPage = more.nextPage?.let { NextPage(it) },
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+            VideoCommentsResult()
+        }
+
     /**
      * Channel header: name, avatar, subscriber count. Backstops the watch-page
      * owner block, which Google reparents between renderers almost every
@@ -252,8 +273,7 @@ object NewPipeExtractor {
             val info = ChannelInfo.getInfo(service(), channelUrl(channelId))
             ChannelMetadata(
                 name = info.name.orEmpty(),
-                avatarUrl = info.avatars.maxByOrNull { it.height }?.url
-                    ?: info.avatars.firstOrNull()?.url,
+                avatarUrl = info.avatars.bestImageUrl(),
                 subscriberCount = info.subscriberCount,
             )
         } catch (e: Exception) {
@@ -263,16 +283,58 @@ object NewPipeExtractor {
 
     private fun service() = NewPipe.getService(0)
     private fun watchUrl(videoId: String) = "https://www.youtube.com/watch?v=$videoId"
-    private fun channelUrl(channelId: String) = "https://www.youtube.com/channel/$channelId"
+    /**
+     * Accepts either a bare UC… channel id or an @handle. Some watch payloads
+     * hand back a handle where the code expected an id, and the /channel/ form
+     * 404s on those, which is how the channel row goes blank.
+     */
+    private fun channelUrl(channelId: String): String =
+        if (channelId.startsWith("@")) {
+            "https://www.youtube.com/$channelId"
+        } else {
+            "https://www.youtube.com/channel/$channelId"
+        }
+
+    /**
+     * Avatar for a comment author, taken from the channel page. YouTube leaves
+     * the avatar empty on many comment payloads (replies especially), so the
+     * top-level list backfills from the author's own channel URL.
+     *
+     * @param ref a channel URL or handle the comment credits the author with.
+     */
+    fun fetchCommentAvatar(ref: String?): String? {
+        if (ref.isNullOrBlank()) return null
+        // NewPipe hands back absolute URLs; only a bare id/handle needs building.
+        val url = if (ref.startsWith("http://") || ref.startsWith("https://")) {
+            ref
+        } else {
+            channelUrl(ref)
+        }
+        return try {
+            ChannelInfo.getInfo(service(), url).avatars.bestImageUrl()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
 
     private fun CommentsInfoItem.toVideoComment() = VideoComment(
         commentId = commentId
-            ?: commentText?.content.orEmpty().hashCode().toString(),
+            ?: commentText.content.hashCode().toString(),
         authorName = uploaderName.orEmpty(),
-        authorThumbnail = uploaderAvatars.maxByOrNull { it.height }?.url,
-        content = commentText?.content.orEmpty(),
+        authorThumbnail = uploaderAvatars.bestImageUrl(),
+        content = commentText.content,
         publishedTime = textualUploadDate.orEmpty(),
         likeCount = likeCount.toLong(),
         replyCount = replyCount,
+        authorChannelRef = uploaderUrl?.takeIf { it.isNotBlank() },
+        repliesToken = replies?.let { NextPage(it) },
+        isPinned = isPinned,
     )
+
+    /** Largest of any available dimension; YouTube comment avatars often ship
+     * only a width, so height alone would pick nothing at all. */
+    private fun List<Image>?.bestImageUrl(): String? =
+        this.orEmpty().maxByOrNull { maxOf(it.width, it.height) }?.url
+            ?: this?.firstOrNull()?.url
 }

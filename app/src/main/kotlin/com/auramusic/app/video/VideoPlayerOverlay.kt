@@ -1945,6 +1945,11 @@ private fun VideoTabs(uiState: VideoPlaybackManager.UiState) {
 
 @Composable
 private fun CommentsSection(uiState: VideoPlaybackManager.UiState) {
+    // Pinned first, everything else in the order YouTube served it, so the
+    // author's shout-out is not buried under 200 replies.
+    val ordered = remember(uiState.comments) {
+        uiState.comments.sortedByDescending { it.isPinned }
+    }
     when {
         uiState.isLoadingComments -> {
             Box(
@@ -1978,8 +1983,8 @@ private fun CommentsSection(uiState: VideoPlaybackManager.UiState) {
         }
         else -> {
             Column(modifier = Modifier.fillMaxWidth()) {
-                uiState.comments.forEach { comment ->
-                    CommentRow(comment = comment)
+                ordered.forEach { comment ->
+                    CommentThread(comment = comment)
                 }
                 if (uiState.isLoadingMoreComments) {
                     Box(
@@ -1996,17 +2001,122 @@ private fun CommentsSection(uiState: VideoPlaybackManager.UiState) {
     }
 }
 
+/**
+ * One top-level comment plus its replies. The replies are lazily loaded the
+ * first time the row is expanded, and rendered inset under their parent so the
+ * reply chain is obvious at a glance.
+ */
 @Composable
-private fun CommentRow(comment: CommentItem) {
+private fun CommentThread(comment: CommentItem) {
+    // Start expanded when the replies are already resident, collapsed otherwise.
+    var expanded by remember(comment.commentId) {
+        mutableStateOf(comment.replies.isNotEmpty())
+    }
+    val loaded = comment.replies.size
+    val claimed = comment.replyCount?.toIntOrNull() ?: 0
+    val hasUnloadedReplies = claimed > loaded
+    Column(modifier = Modifier.fillMaxWidth()) {
+        CommentRow(
+            comment = comment,
+            pinnedStyle = comment.isPinned,
+        )
+        when {
+            // Nothing fetched yet: offer the tap that starts the request.
+            hasUnloadedReplies && loaded == 0 -> Text(
+                text = stringResource(
+                    R.string.video_player_show_replies,
+                    comment.replyCount.orEmpty(),
+                ),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .padding(start = 64.dp, top = 2.dp, bottom = 8.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .clickable {
+                        expanded = true
+                        VideoPlaybackManager.loadCommentReplies(comment.commentId)
+                    },
+            )
+            // Something is loaded, so the row can always be folded away.
+            loaded > 0 -> Text(
+                text = if (expanded) {
+                    stringResource(R.string.video_player_hide_replies, loaded)
+                } else {
+                    stringResource(R.string.video_player_show_replies, loaded)
+                },
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .padding(start = 64.dp, top = 2.dp, bottom = 8.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .clickable {
+                        if (!expanded && hasUnloadedReplies) {
+                            VideoPlaybackManager.loadCommentReplies(comment.commentId)
+                        }
+                        expanded = !expanded
+                    },
+            )
+        }
+        AnimatedVisibility(visible = expanded) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                comment.replies.forEach { reply ->
+                    CommentRow(comment = reply, indented = true)
+                }
+                when {
+                    comment.isLoadingReplies -> Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 64.dp)
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.CenterStart,
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp))
+                    }
+                    // Only the first reply page is auto-loaded, so anything past it
+                    // needs an explicit tap.
+                    !comment.repliesExhausted -> Text(
+                        text = stringResource(R.string.video_player_more_replies),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .padding(start = 64.dp, top = 4.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .clickable {
+                                VideoPlaybackManager.loadCommentReplies(
+                                    commentId = comment.commentId,
+                                    append = true,
+                                )
+                            },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CommentRow(
+    comment: CommentItem,
+    indented: Boolean = false,
+    pinnedStyle: Boolean = false,
+) {
+    val startPadding = if (indented) 64.dp else 16.dp
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .background(
+                if (pinnedStyle) {
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                } else {
+                    Color.Transparent
+                }
+            )
+            .padding(start = startPadding, end = 16.dp, top = 10.dp, bottom = 6.dp),
         verticalAlignment = Alignment.Top
     ) {
         Box(
             modifier = Modifier
-                .size(36.dp)
+                .size(if (indented) 28.dp else 36.dp)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.primaryContainer),
             contentAlignment = Alignment.Center
@@ -2021,7 +2131,11 @@ private fun CommentRow(comment: CommentItem) {
             } else {
                 Text(
                     text = comment.authorName.firstOrNull()?.toString() ?: "?",
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = if (indented) {
+                        MaterialTheme.typography.bodySmall
+                    } else {
+                        MaterialTheme.typography.bodyMedium
+                    },
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
@@ -2033,12 +2147,35 @@ private fun CommentRow(comment: CommentItem) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(
-                    text = comment.authorName,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f, fill = false)
+                ) {
+                    Text(
+                        text = comment.authorName,
+                        style = if (indented) {
+                            MaterialTheme.typography.labelMedium
+                        } else {
+                            MaterialTheme.typography.labelLarge
+                        },
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (comment.isPinned) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = stringResource(R.string.video_player_pinned),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                // Likes sit opposite the author rather than on their own line, which
+                // is what keeps the row scannable.
                 comment.likeCount?.let {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
@@ -2057,28 +2194,20 @@ private fun CommentRow(comment: CommentItem) {
                 }
             }
             Text(
-                text = buildString {
-                    if (comment.isPinned) append("📌 ")
-                    append(comment.content)
+                text = comment.content,
+                style = if (indented) {
+                    MaterialTheme.typography.bodySmall
+                } else {
+                    MaterialTheme.typography.bodyMedium
                 },
-                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                comment.publishedTime?.let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                    )
-                }
-                comment.replyCount?.let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                    )
-                }
+            comment.publishedTime?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
             }
         }
     }
