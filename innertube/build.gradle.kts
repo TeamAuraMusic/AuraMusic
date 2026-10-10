@@ -32,5 +32,7 @@ dependencies {
     implementation(libs.newpipeextractor)
     implementation(libs.timber)
 
+    testImplementation(libs.junit)
+
     coreLibraryDesugaring(libs.desugaring)
 }

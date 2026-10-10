@@ -13,6 +13,8 @@ sealed class YTItem {
 data class Artist(
     val name: String,
     val id: String?,
+    /** Channel avatar, when the payload that credited this channel carried one. */
+    val avatarUrl: String? = null,
 )
 
 data class Album(

@@ -71,6 +71,7 @@ import com.auramusic.app.utils.VideoThumbnails
 import com.auramusic.app.utils.compactViewCount
 import com.auramusic.app.utils.linkifiedText
 import com.auramusic.app.video.VideoPlaybackManager
+import com.auramusic.innertube.NewPipeExtractor
 import com.auramusic.innertube.YouTube
 import com.auramusic.innertube.models.Thumbnail
 import com.auramusic.innertube.models.YouTubeChannelPost
@@ -172,6 +173,33 @@ fun ChannelScreen(
                 videosCountText = result.videosCountText,
                 description = result.description,
             )
+            // The Innertube channel page sometimes hands back its shell without the
+            // header fields. The extractor parses them on every response, so anything
+            // still blank gets topped up from there instead of leaving the banner,
+            // about text or subscriber count missing.
+            val needsHeaderTopUp = result.bannerUrl == null ||
+                result.subscriberCountText == null ||
+                result.description.isNullOrBlank() ||
+                result.avatarUrl == null ||
+                result.title.isBlank()
+            if (needsHeaderTopUp) {
+                val extra = withContext(Dispatchers.IO) {
+                    NewPipeExtractor.getChannelMetadata(result.channelId)
+                }
+                val current = header
+                if (extra != null && current != null) {
+                    header = current.copy(
+                        title = current.title.ifBlank { extra.name },
+                        avatarUrl = current.avatarUrl ?: extra.avatarUrl,
+                        bannerUrl = current.bannerUrl ?: extra.bannerUrl,
+                        subscriberCountText = current.subscriberCountText
+                            ?: extra.subscriberCount.takeIf { it >= 0 }
+                                ?.let { "${compactViewCount(it.toString())} subscribers" },
+                        description = current.description?.takeIf { it.isNotBlank() }
+                            ?: extra.description,
+                    )
+                }
+            }
             result.isSubscribed?.let { isSubscribed = it }
             if (result.isSubscribed == null) {
                 // Remote page didn't expose the toggle state; fall back to the
@@ -183,8 +211,28 @@ fun ChannelScreen(
             }
             videos = result.videos
             continuation = result.continuation
-        } else if (clear) {
-            error = context.getString(R.string.videos_feed_error)
+        } else {
+            // Innertube's channel page failed outright; the extractor still delivers
+            // the header (name, avatar, banner, about), so the page opens with real
+            // metadata rather than an error shell.
+            val fallback = withContext(Dispatchers.IO) {
+                NewPipeExtractor.getChannelMetadata(requestChannelId)
+            }
+            if (fallback != null) {
+                resolvedChannelId = requestChannelId
+                header = ChannelHeader(
+                    channelId = requestChannelId,
+                    title = fallback.name,
+                    avatarUrl = fallback.avatarUrl,
+                    bannerUrl = fallback.bannerUrl,
+                    subscriberCountText = fallback.subscriberCount.takeIf { it >= 0 }
+                        ?.let { "${compactViewCount(it.toString())} subscribers" },
+                    videosCountText = null,
+                    description = fallback.description,
+                )
+            } else if (clear) {
+                error = context.getString(R.string.videos_feed_error)
+            }
         }
         isLoading = false
     }

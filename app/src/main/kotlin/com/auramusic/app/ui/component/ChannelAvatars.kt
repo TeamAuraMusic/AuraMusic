@@ -13,8 +13,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,8 +26,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.auramusic.innertube.CollaboratorResolver
+import com.auramusic.innertube.NewPipeExtractor
 import com.auramusic.innertube.YouTube
 import com.auramusic.innertube.models.Artist
+import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -43,6 +50,14 @@ object ChannelAvatarStore {
         val url = runCatching {
             YouTube.youtubeChannel(channelId, params = null).getOrNull()?.avatarUrl
         }.getOrNull().orEmpty()
+            .ifBlank {
+                // The Innertube channel page occasionally hands back no art at all;
+                // the extractor's channel page still carries it, so the credited
+                // avatar does not degrade into a letter glyph.
+                runCatching { NewPipeExtractor.fetchCommentAvatar(channelId) }
+                    .getOrNull()
+                    .orEmpty()
+            }
         avatars[channelId] = url
         return url.ifBlank { null }
     }
@@ -59,7 +74,12 @@ fun CreditedChannelAvatar(
     modifier: Modifier = Modifier,
 ) {
     val channelId = channel.id
-    val url by produceState<String?>(initialValue = thumbnailUrl, channelId, thumbnailUrl) {
+    val url by produceState<String?>(
+        initialValue = thumbnailUrl ?: channel.avatarUrl,
+        key1 = channelId,
+        key2 = thumbnailUrl,
+        key3 = channel.avatarUrl,
+    ) {
         if (value == null && channelId != null) {
             value = ChannelAvatarStore.avatarFor(channelId)
         }
@@ -135,4 +155,37 @@ fun ChannelAvatarStack(
                 .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape),
         )
     }
+}
+
+/**
+ * The channels a video card should credit.
+ *
+ * A collaboration's byline usually only links the first channel, which left the stack
+ * one short and the chooser with nothing to choose. When the credit line looks like a
+ * collaboration, ask the cached owner-dialog resolver for the full list; plain
+ * single-channel videos are never asked, so a scrolling feed pays nothing extra.
+ */
+@Composable
+fun rememberVideoChannels(
+    videoId: String,
+    baseChannels: List<Artist>,
+    channelName: String,
+): List<Artist> {
+    var resolved by remember(videoId, baseChannels) { mutableStateOf<List<Artist>?>(null) }
+    LaunchedEffect(videoId, baseChannels, channelName) {
+        if (videoId.isBlank() || baseChannels.size > 1 || !channelName.hasCollaborationByline()) {
+            return@LaunchedEffect
+        }
+        resolved = CollaboratorResolver.resolve(videoId).takeIf { it.size > 1 }
+    }
+    return resolved ?: baseChannels
+}
+
+/** Byline shapes that credit more than one channel: "A & B", "A x B", "A feat. B". */
+internal fun String.hasCollaborationByline(): Boolean {
+    val normalized = " ${trim().lowercase(Locale.US)} "
+    return normalized.contains(" & ") ||
+        normalized.contains(" x ") ||
+        normalized.contains(" feat. ") ||
+        normalized.contains(" ft. ")
 }

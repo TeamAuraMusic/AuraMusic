@@ -64,6 +64,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -259,6 +262,15 @@ object VideoPlaybackManager {
 
     /** Channel refs for comments still missing an avatar, filled in on the side. */
     private val missingAvatars = ConcurrentHashMap<String, String>()
+
+    /**
+     * Resolved avatars by channel ref, kept for the life of the process. Pagination
+     * pages often omit the avatar entirely, but the same handful of authors recur
+     * across a comment thread (and across videos) — a cache hit paints those rows
+     * immediately instead of leaving a placeholder until the channel page round-trip
+     * lands.
+     */
+    private val avatarByChannelRef = ConcurrentHashMap<String, String>()
     /**
      * Application context only. This used to hold the Activity, which leaked it for
      * the life of the process (it was never cleared, and was set before the
@@ -340,19 +352,35 @@ object VideoPlaybackManager {
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             if (!isGuestActive()) return
             val exo = player ?: return
+            // A merged audio+video source reports its video-only child's "<id>_v" id
+            // (the merged timeline takes the first child's media item), so strip the
+            // stream suffix before comparing against the session and queue. Without
+            // this, every 1080p+ start and every queued advance looked foreign: the
+            // reset branch below wiped the just-loaded recommendations/comments while
+            // the previous video's title stayed on screen.
+            val rawMediaId = mediaItem?.mediaId
+            val newVideoId = when {
+                rawMediaId.isNullOrEmpty() -> null
+                rawMediaId.length > 11 && rawMediaId.endsWith("_v") -> rawMediaId.dropLast(2)
+                rawMediaId.length > 11 && rawMediaId.endsWith("_a") -> rawMediaId.dropLast(2)
+                else -> rawMediaId
+            }
             // playWithDetails already resets the per-video state before loading, so a
             // transition for the current session's own video (fired when exo.prepare()
             // lands) must NOT wipe recommendations/comments — the async loaders may have
             // just filled them in, and erasing them here made the Up Next list and
             // comments vanish (or never appear) for fast-loading videos.
-            if (mediaItem?.mediaId == _uiState.value.session?.videoId) return
+            if (newVideoId == _uiState.value.session?.videoId) return
             // A native playlist advance to a video the lookahead queued: the session
             // follows the item instead of being reloaded.
-            val newVideoId = mediaItem?.mediaId
             if (newVideoId != null && _uiState.value.queue.any { it.videoId == newVideoId }) {
                 advanceSessionTo(newVideoId)
                 return
             }
+            // An item without a usable id (merged placeholder, external injection):
+            // there is nothing to key a reload on, so keep the current session rather
+            // than tearing down a video that may still be the one playing.
+            if (newVideoId == null) return
             _uiState.update {
                 it.copy(
                     positionMs = 0,
@@ -451,6 +479,15 @@ object VideoPlaybackManager {
                 channels = channels.ifEmpty {
                     channelId?.let { listOf(com.auramusic.innertube.models.Artist(channelName, it)) }
                         .orEmpty()
+                }.mapIndexed { index, channel ->
+                    // The primary channel's art travels with the video; hand it to the
+                    // credited list so the avatar stack renders immediately instead of
+                    // waiting on a channel-page lookup.
+                    if (index == 0 && channel.avatarUrl == null) {
+                        channel.copy(avatarUrl = channelThumbnail ?: bestThumbnail)
+                    } else {
+                        channel
+                    }
                 },
                 description = description,
                 viewCountText = viewCountText,
@@ -496,6 +533,7 @@ object VideoPlaybackManager {
             // reuse the already-cached response without locking the mutex a second time —
             // this removes one extra _uiState.update recomposition at the start of every load.
             val watchMetadata = enrichSessionMetadata(videoId)
+            resolveCollaboratorChannels(videoId)
             loadRecommendations(videoId, prefetchedMetadata = watchMetadata)
             loadComments(videoId)
             // Load SponsorBlock segments for this video
@@ -664,6 +702,19 @@ object VideoPlaybackManager {
                 isSubscribed = false,
                 isSaved = false,
                 expandedDescription = false,
+                // The Up Next list and comments belong to the video that just ended.
+                // Clearing them up front (and lighting the loaders) means the new
+                // video shows spinners instead of the old video's rows while the
+                // enrich/recommendation/comment fetches are still in flight.
+                recommendations = emptyList(),
+                recommendationsContinuation = null,
+                isLoadingRecommendations = true,
+                isLoadingMoreRecommendations = false,
+                comments = emptyList(),
+                commentsContinuation = null,
+                commentsError = null,
+                isLoadingComments = true,
+                isLoadingMoreComments = false,
             )
         }
         onVideoPlayed?.invoke()
@@ -672,6 +723,7 @@ object VideoPlaybackManager {
         sharedConnectionRef?.get()?.service?.syncVideoIntegrations(sessionChanged = true)
         scope.launch {
             val watchMetadata = enrichSessionMetadata(videoId)
+            resolveCollaboratorChannels(videoId)
             loadRecommendations(videoId, prefetchedMetadata = watchMetadata)
             loadComments(videoId)
             queueUpcomingVideo()
@@ -888,6 +940,9 @@ object VideoPlaybackManager {
                     },
                 )
             }
+            // Replies land without avatars nearly every time; the backfill patches the
+            // nested rows too, so the chain does not stay a wall of initials.
+            backfillMissingAvatars(videoId)
         }
     }
 
@@ -928,33 +983,69 @@ object VideoPlaybackManager {
     }
 
     /**
-     * Comments ship without an author avatar more often than not (replies almost
-     * never have one), so the ones still blanking get fetched from the author's
-     * channel page in batches.
+     * Comments ship without an author avatar more often than not — pagination pages
+     * and replies almost never carry one — so the ones still blanking get fetched
+     * from the author's channel page in batches. Known authors are painted straight
+     * from [avatarByChannelRef] (no request), successful lookups are remembered for
+     * later pages and later videos, and a transient failure gets one retry before
+     * the row is left to its initial.
      */
     private suspend fun backfillMissingAvatars(videoId: String) {
-        val pending = missingAvatars.toMap()
+        var pending = missingAvatars.toMap()
         missingAvatars.clear()
         if (pending.isEmpty()) return
-        val resolved = pending.entries.chunked(4).flatMap { batch ->
-            batch
-                .map { (commentId, ref) ->
-                    val avatar = withContext(Dispatchers.IO) {
-                        NewPipeExtractor.fetchCommentAvatar(ref)
-                    }
-                    if (avatar.isNullOrBlank()) null else commentId to avatar
-                }.filterNotNull()
+        val resolved = mutableMapOf<String, String>()
+        pending = pending.filter { (commentId, ref) ->
+            avatarByChannelRef[ref]?.let { avatar ->
+                resolved[commentId] = avatar
+                false
+            } ?: true
+        }
+        var attempts = 0
+        while (pending.isNotEmpty() && attempts < 2) {
+            attempts++
+            val failed = mutableMapOf<String, String>()
+            coroutineScope {
+                // Four lookups in flight at once: a page rarely credits fewer authors
+                // than that, and serialising them is what made new rows sit on their
+                // initial for seconds after a load-more landed.
+                pending.entries.chunked(4).forEach { batch ->
+                    batch
+                        .map { (commentId, ref) ->
+                            async(Dispatchers.IO) {
+                                Triple(commentId, ref, NewPipeExtractor.fetchCommentAvatar(ref))
+                            }
+                        }.awaitAll()
+                        .forEach { (commentId, ref, avatar) ->
+                            if (avatar.isNullOrBlank()) {
+                                failed[commentId] = ref
+                            } else {
+                                avatarByChannelRef[ref] = avatar
+                                resolved[commentId] = avatar
+                            }
+                        }
+                }
+            }
+            pending = failed
+            if (pending.isNotEmpty() && attempts < 2) delay(400L)
         }
         if (_uiState.value.session?.videoId != videoId) return
         if (resolved.isEmpty()) return
-        val avatarById = resolved.toMap()
+        fun applyAvatar(item: CommentItem): CommentItem {
+            val avatar = resolved[item.commentId] ?: return item
+            if (!item.authorThumbnail.isNullOrBlank()) return item
+            return item.copy(authorThumbnail = avatar)
+        }
         _uiState.update { current ->
             current.copy(
                 comments = current.comments.map { comment ->
-                    avatarById[comment.commentId]
-                        ?.takeIf { comment.authorThumbnail.isNullOrBlank() }
-                        ?.let { comment.copy(authorThumbnail = it) }
-                        ?: comment
+                    val patched = applyAvatar(comment)
+                    val replies = patched.replies
+                    if (replies.isEmpty() || replies.none { resolved.containsKey(it.commentId) }) {
+                        patched
+                    } else {
+                        patched.copy(replies = replies.map(::applyAvatar))
+                    }
                 },
             )
         }
@@ -986,7 +1077,9 @@ object VideoPlaybackManager {
         // Copy to a local: a public API property from another module cannot be
         // smart-cast, so the null check has to be on a value we own.
         val channelRef = authorChannelRef
-        if (authorThumbnail.isNullOrBlank() && !channelRef.isNullOrBlank()) {
+        val thumbnail = authorThumbnail?.takeIf { it.isNotBlank() }
+            ?: channelRef?.let { avatarByChannelRef[it] }
+        if (thumbnail == null && !channelRef.isNullOrBlank()) {
             missingAvatars[commentId] = channelRef
         }
         if (repliesToken != null) {
@@ -995,7 +1088,7 @@ object VideoPlaybackManager {
         return CommentItem(
             commentId = commentId,
             authorName = authorName,
-            authorThumbnail = authorThumbnail?.takeIf { it.isNotBlank() },
+            authorThumbnail = thumbnail,
             content = content,
             publishedTime = publishedTime.takeIf { it.isNotBlank() },
             likeCount = likeCount.takeIf { it > 0 }?.toString(),
@@ -1033,6 +1126,24 @@ object VideoPlaybackManager {
                     subscriberCountText = cur.subscriberCountText ?: subs,
                 ),
             )
+        }
+    }
+
+    /**
+     * Collaborative uploads credit a second channel only inside the owner dialog of the
+     * watch-next payload; the byline-derived list usually carries just the first channel.
+     * That left the avatar stack one short and the channel chooser with nothing to choose,
+     * so the cached resolver swaps in the full credit list once it knows it.
+     */
+    private suspend fun resolveCollaboratorChannels(videoId: String) {
+        val session = _uiState.value.session?.takeIf { it.videoId == videoId } ?: return
+        if (session.channels.size > 1) return
+        val collaborators = com.auramusic.innertube.CollaboratorResolver.resolve(videoId)
+        if (_uiState.value.session?.videoId != videoId) return
+        if (collaborators.size <= 1) return
+        _uiState.update { current ->
+            val cur = current.session?.takeIf { it.videoId == videoId } ?: return@update current
+            current.copy(session = cur.copy(channels = collaborators))
         }
     }
 

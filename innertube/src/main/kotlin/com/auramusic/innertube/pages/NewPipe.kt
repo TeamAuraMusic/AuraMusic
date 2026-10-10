@@ -258,14 +258,17 @@ object NewPipeExtractor {
         }
 
     /**
-     * Channel header: name, avatar, subscriber count. Backstops the watch-page
-     * owner block, which Google reparents between renderers almost every
-     * version, silently blanking the channel row.
+     * Channel header: name, avatar, banner, subscriber count, description. Backstops
+     * the watch-page owner block, which Google reparents between renderers almost
+     * every version, and fills the channel page when the Innertube browse response
+     * comes back without its header fields.
      */
     data class ChannelMetadata(
         val name: String,
         val avatarUrl: String?,
         val subscriberCount: Long,
+        val description: String?,
+        val bannerUrl: String?,
     )
 
     fun getChannelMetadata(channelId: String): ChannelMetadata? =
@@ -275,13 +278,23 @@ object NewPipeExtractor {
                 name = info.name.orEmpty(),
                 avatarUrl = info.avatars.bestImageUrl(),
                 subscriberCount = info.subscriberCount,
+                description = info.description?.takeIf { it.isNotBlank() },
+                bannerUrl = info.banners.bestImageUrl(),
             )
         } catch (e: Exception) {
             e.printStackTrace()
             null
         }
 
-    private fun service() = NewPipe.getService(0)
+    /**
+     * NewPipe's service registry is only populated once the downloader wrapper is
+     * constructed. Fetching metadata before any stream extraction used to race that
+     * order and throw, so every entry point guarantees the init happened.
+     */
+    private fun service(): org.schabi.newpipe.extractor.StreamingService {
+        init()
+        return NewPipe.getService(0)
+    }
     private fun watchUrl(videoId: String) = "https://www.youtube.com/watch?v=$videoId"
     /**
      * Accepts either a bare UC… channel id or an @handle. Some watch payloads

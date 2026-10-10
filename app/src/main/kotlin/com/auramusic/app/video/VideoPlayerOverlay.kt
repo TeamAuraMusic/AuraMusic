@@ -54,6 +54,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -1308,7 +1309,11 @@ private fun VideoDetailPane(
     onChannelClick: (String) -> Unit,
 ) {
     val listState = rememberLazyListState()
-    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    var selectedTab by remember { mutableIntStateOf(DetailTab.UpNext.ordinal) }
+    // Reply expansion lives with the pane: comment rows are recycled by the lazy list,
+    // so per-row remember state would not survive a scroll.
+    val expandedReplyIds = remember { mutableStateOf(setOf<String>()) }
 
     LaunchedEffect(listState, uiState.comments.size, uiState.recommendations.size) {
         snapshotFlowSafe(listState) { nearEnd ->
@@ -1324,6 +1329,16 @@ private fun VideoDetailPane(
         }
     }
 
+    LaunchedEffect(uiState.session?.videoId) {
+        expandedReplyIds.value = emptySet()
+    }
+
+    // Pinned first, everything else in the order YouTube served it, so the
+    // author's shout-out is not buried under 200 replies.
+    val orderedComments = remember(uiState.comments) {
+        uiState.comments.sortedByDescending { it.isPinned }
+    }
+
     LazyColumn(
         state = listState,
         modifier = modifier,
@@ -1337,7 +1352,92 @@ private fun VideoDetailPane(
             )
         }
         item(key = "tabs") {
-            VideoTabs(uiState = uiState)
+            VideoTabs(
+                selectedTab = selectedTab,
+                onTabSelected = { selectedTab = it },
+            )
+        }
+        // The tab bodies are lazy siblings instead of a Column nested inside one
+        // item: a few hundred comments composed eagerly in a single slot made the
+        // detail pane judder on scroll, and appending a page re-laid out the whole
+        // block at once.
+        if (selectedTab == DetailTab.Comments.ordinal) {
+            when {
+                uiState.isLoadingComments -> item(key = "comments-loading") {
+                    ListSpinnerBlock(modifier = Modifier.padding(vertical = 24.dp))
+                }
+                uiState.commentsError != null && uiState.comments.isEmpty() -> {
+                    item(key = "comments-error") {
+                        CommentsErrorBlock(message = uiState.commentsError.orEmpty())
+                    }
+                }
+                else -> {
+                    // The id doubles as the key, but ids fall back to a content hash
+                    // when the extractor leaves one blank - the index keeps a hash
+                    // collision from taking the whole list down with it.
+                    itemsIndexed(
+                        items = orderedComments,
+                        key = { index, comment -> "$index:${comment.commentId}" },
+                    ) { _, comment ->
+                        CommentThread(
+                            comment = comment,
+                            expanded = comment.commentId in expandedReplyIds.value,
+                            onExpandedChange = { expand ->
+                                expandedReplyIds.value = if (expand) {
+                                    expandedReplyIds.value + comment.commentId
+                                } else {
+                                    expandedReplyIds.value - comment.commentId
+                                }
+                            },
+                        )
+                    }
+                    if (uiState.isLoadingMoreComments) {
+                        item(key = "comments-more") {
+                            ListSpinnerBlock(modifier = Modifier.padding(vertical = 12.dp))
+                        }
+                    }
+                }
+            }
+        } else {
+            item(key = "autoplay") {
+                AutoplayToggleRow(uiState = uiState)
+            }
+            when {
+                uiState.isLoadingRecommendations -> item(key = "recommendations-loading") {
+                    RecommendationSkeleton()
+                }
+                uiState.recommendations.isEmpty() -> item(key = "recommendations-empty") {
+                    NoRecommendationsBlock()
+                }
+                else -> {
+                    itemsIndexed(
+                        items = uiState.recommendations,
+                        key = { index, item -> "$index:${item.videoId}" },
+                    ) { _, item ->
+                        UpNextRow(
+                            item = item,
+                            isPlaying = item.videoId == uiState.session?.videoId,
+                            onClick = {
+                                VideoPlaybackManager.playWithDetails(
+                                    context = context,
+                                    videoId = item.videoId,
+                                    title = item.title,
+                                    channelName = item.channelName,
+                                    channelId = item.channelId,
+                                    viewCountText = item.viewCountText,
+                                    publishedTimeText = item.publishedTimeText,
+                                )
+                            },
+                            onRemove = { VideoPlaybackManager.removeFromQueue(item.videoId) },
+                        )
+                    }
+                    if (uiState.isLoadingMoreRecommendations) {
+                        item(key = "recommendations-more") {
+                            ListSpinnerBlock(modifier = Modifier.padding(vertical = 12.dp))
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -1906,9 +2006,10 @@ private enum class DetailTab(val labelRes: Int) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun VideoTabs(uiState: VideoPlaybackManager.UiState) {
-    var selectedTab by remember { mutableIntStateOf(DetailTab.UpNext.ordinal) }
-
+private fun VideoTabs(
+    selectedTab: Int,
+    onTabSelected: (Int) -> Unit,
+) {
     Column {
         SecondaryScrollableTabRow(
             selectedTabIndex = selectedTab,
@@ -1920,7 +2021,7 @@ private fun VideoTabs(uiState: VideoPlaybackManager.UiState) {
             DetailTab.entries.forEach { tab ->
                 Tab(
                     selected = selectedTab == tab.ordinal,
-                    onClick = { selectedTab = tab.ordinal },
+                    onClick = { onTabSelected(tab.ordinal) },
                     text = {
                         Text(
                             text = stringResource(tab.labelRes),
@@ -1935,68 +2036,39 @@ private fun VideoTabs(uiState: VideoPlaybackManager.UiState) {
         }
 
         Spacer(modifier = Modifier.height(8.dp))
+    }
+}
 
-        when (selectedTab) {
-            DetailTab.Comments.ordinal -> CommentsSection(uiState = uiState)
-            else -> UpNextSection(uiState = uiState)
-        }
+/** Centered progress block shared by the comments / Up next loading states. */
+@Composable
+private fun ListSpinnerBlock(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth(),
+        contentAlignment = Alignment.Center,
+    ) {
+        CircularProgressIndicator(modifier = Modifier.size(24.dp))
     }
 }
 
 @Composable
-private fun CommentsSection(uiState: VideoPlaybackManager.UiState) {
-    // Pinned first, everything else in the order YouTube served it, so the
-    // author's shout-out is not buried under 200 replies.
-    val ordered = remember(uiState.comments) {
-        uiState.comments.sortedByDescending { it.isPinned }
-    }
-    when {
-        uiState.isLoadingComments -> {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 24.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(modifier = Modifier.size(28.dp))
-            }
-        }
-        uiState.commentsError != null && uiState.comments.isEmpty() -> {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    text = uiState.commentsError.orEmpty(),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
-                )
-                TextButton(onClick = { VideoPlaybackManager.retryLoadingComments() }) {
-                    Text(
-                        text = stringResource(R.string.video_player_retry),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-            }
-        }
-        else -> {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                ordered.forEach { comment ->
-                    CommentThread(comment = comment)
-                }
-                if (uiState.isLoadingMoreComments) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 12.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                    }
-                }
-            }
+private fun CommentsErrorBlock(message: String) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
+        )
+        TextButton(onClick = { VideoPlaybackManager.retryLoadingComments() }) {
+            Text(
+                text = stringResource(R.string.video_player_retry),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+            )
         }
     }
 }
@@ -2007,11 +2079,11 @@ private fun CommentsSection(uiState: VideoPlaybackManager.UiState) {
  * reply chain is obvious at a glance.
  */
 @Composable
-private fun CommentThread(comment: CommentItem) {
-    // Start expanded when the replies are already resident, collapsed otherwise.
-    var expanded by remember(comment.commentId) {
-        mutableStateOf(comment.replies.isNotEmpty())
-    }
+private fun CommentThread(
+    comment: CommentItem,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
+) {
     val loaded = comment.replies.size
     val claimed = comment.replyCount?.toIntOrNull() ?: 0
     val hasUnloadedReplies = claimed > loaded
@@ -2033,7 +2105,7 @@ private fun CommentThread(comment: CommentItem) {
                     .padding(start = 64.dp, top = 2.dp, bottom = 8.dp)
                     .clip(RoundedCornerShape(6.dp))
                     .clickable {
-                        expanded = true
+                        onExpandedChange(true)
                         VideoPlaybackManager.loadCommentReplies(comment.commentId)
                     },
             )
@@ -2053,7 +2125,7 @@ private fun CommentThread(comment: CommentItem) {
                         if (!expanded && hasUnloadedReplies) {
                             VideoPlaybackManager.loadCommentReplies(comment.commentId)
                         }
-                        expanded = !expanded
+                        onExpandedChange(!expanded)
                     },
             )
         }
@@ -2214,9 +2286,7 @@ private fun CommentRow(
 }
 
 @Composable
-private fun UpNextSection(uiState: VideoPlaybackManager.UiState) {
-    val context = LocalContext.current
-
+private fun AutoplayToggleRow(uiState: VideoPlaybackManager.UiState) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -2242,74 +2312,41 @@ private fun UpNextSection(uiState: VideoPlaybackManager.UiState) {
             )
         }
         Spacer(modifier = Modifier.height(4.dp))
+    }
+}
 
-        when {
-        uiState.isLoadingRecommendations -> {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                repeat(4) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                            .height(84.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                    )
-                }
-            }
-        }
-        uiState.recommendations.isEmpty() -> {
+@Composable
+private fun RecommendationSkeleton() {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        repeat(4) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 24.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = stringResource(R.string.video_player_no_recommendations),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                )
-            }
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                    .height(84.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            )
         }
-        else -> {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                uiState.recommendations.forEach { item ->
-                    UpNextRow(
-                        item = item,
-                        isPlaying = item.videoId == uiState.session?.videoId,
-                        onClick = {
-                            VideoPlaybackManager.playWithDetails(
-                                context = context,
-                                videoId = item.videoId,
-                                title = item.title,
-                                channelName = item.channelName,
-                                channelId = item.channelId,
-                                viewCountText = item.viewCountText,
-                                publishedTimeText = item.publishedTimeText,
-                            )
-                        },
-                        onRemove = { VideoPlaybackManager.removeFromQueue(item.videoId) },
-                    )
-                }
-                if (uiState.isLoadingMoreRecommendations) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 12.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                    }
-                }
-            }
-        }
-        }
+    }
+}
+
+@Composable
+private fun NoRecommendationsBlock() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = stringResource(R.string.video_player_no_recommendations),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+        )
     }
 }
 

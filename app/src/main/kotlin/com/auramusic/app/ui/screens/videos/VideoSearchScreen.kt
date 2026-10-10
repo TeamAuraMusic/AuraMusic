@@ -86,6 +86,7 @@ import com.auramusic.app.R
 import com.auramusic.app.constants.VideoRecentSearchesKey
 import com.auramusic.app.ui.component.ChannelAvatarStack
 import com.auramusic.app.ui.component.ChannelPickerDialog
+import com.auramusic.app.ui.component.rememberVideoChannels
 import com.auramusic.app.constants.VideoSearchGridViewKey
 import com.auramusic.app.utils.compactViewCount
 import com.auramusic.app.utils.dataStore
@@ -1134,6 +1135,7 @@ private fun SearchHeroVideoCard(
     onChannelClick: (String) -> Unit,
 ) {
     var showChannelPicker by remember { mutableStateOf(false) }
+    val channels = rememberVideoChannels(video.videoId, video.channels, video.channelName)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1253,11 +1255,11 @@ private fun SearchHeroVideoCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 val channelClick: () -> Unit = {
-                    if (video.channels.size > 1) showChannelPicker = true
+                    if (channels.size > 1) showChannelPicker = true
                     else video.channelId?.let(onChannelClick)
                 }
                 ChannelAvatarStack(
-                    channels = video.channels,
+                    channels = channels,
                     primaryThumbnailUrl = video.channelThumbnailUrl,
                     size = 28.dp,
                     onClick = channelClick,
@@ -1278,7 +1280,7 @@ private fun SearchHeroVideoCard(
     }
     if (showChannelPicker) {
         ChannelPickerDialog(
-            channels = video.channels,
+            channels = channels,
             onDismiss = { showChannelPicker = false },
             onSelect = { channel ->
                 showChannelPicker = false
