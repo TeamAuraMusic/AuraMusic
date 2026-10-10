@@ -244,6 +244,87 @@ import kotlinx.coroutines.launch
   }
 
 /**
+ * Media3 PlayerView hosting the active player plus the switch/buffering overlays.
+ * Exactly one instance may be composed at a time (split layout vs. fullscreen
+ * layer): the surface claims the video output, so the two must never coexist.
+ */
+@Composable
+private fun TvVideoView(
+    activePlayer: androidx.media3.common.Player?,
+    isVideoSwitching: Boolean,
+    isBuffering: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier.background(Color.Black),
+        contentAlignment = Alignment.Center,
+    ) {
+        AndroidView(
+            factory = { ctx ->
+                PlayerView(ctx).apply {
+                    player = activePlayer
+                    useController = false
+                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                    setBackgroundColor(android.graphics.Color.BLACK)
+                    setShutterBackgroundColor(android.graphics.Color.BLACK)
+                }
+            },
+            modifier = Modifier.fillMaxSize(),
+            update = { playerView ->
+                // Always sync player reference and resume surface. Keep player
+                // attached across navigations to avoid black screen after 2+ re-entries.
+                if (playerView.player !== activePlayer) {
+                    playerView.player = activePlayer
+                }
+                playerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                playerView.onResume()
+                playerView.requestLayout()
+            },
+            onRelease = { playerView ->
+                playerView.onPause()
+            },
+        )
+
+        if (isVideoSwitching) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        modifier = Modifier.size(48.dp),
+                    )
+                    Text(
+                        text = "Loading video...",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.7f),
+                    )
+                }
+            }
+        } else if (isBuffering) {
+            // Lighter overlay for brief buffering mid-playback
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator(
+                    color = Color.White,
+                    modifier = Modifier.size(48.dp),
+                )
+            }
+        }
+    }
+}
+
+/**
  * TV-compatible full-screen player with large controls optimized for remote control navigation.
  * Features large touch targets, clear visual hierarchy, and TV-friendly layout.
  * Split layout: left side = player controls, right side = queue.
@@ -253,8 +334,10 @@ import kotlinx.coroutines.launch
 fun TvPlayerScreen(
     playerConnection: PlayerConnection?,
     onBackClick: () -> Unit,
+    isFullScreen: Boolean,
+    onFullScreenChange: (Boolean) -> Unit,
 ) {
-    BackHandler { onBackClick() }
+    BackHandler { if (isFullScreen) onFullScreenChange(false) else onBackClick() }
     var duration by remember { mutableStateOf(0L) }
     var currentPosition by remember { mutableStateOf(0L) }
     var sleepTimerMinutes by remember { mutableStateOf<Int?>(null) }
@@ -268,6 +351,29 @@ fun TvPlayerScreen(
     // On TV, enabling lyrics always means expanded mode. The preference survives
     // navigation, so returning to the player restores the same expanded view.
     val lyricsExpanded = showLyrics
+
+    // Fullscreen media overlay: the bottom controls fade out after a few idle
+    // seconds and any remote key press wakes them again — the wake counter
+    // restarts the hide timer.
+    var controlsVisible by remember { mutableStateOf(true) }
+    var wakeTick by remember { mutableStateOf(0) }
+    LaunchedEffect(isFullScreen, wakeTick) {
+        if (!isFullScreen) return@LaunchedEffect
+        controlsVisible = true
+        delay(5000)
+        controlsVisible = false
+    }
+    val controlsAlpha by animateFloatAsState(
+        targetValue = if (controlsVisible) 1f else 0f,
+        label = "fullscreenControls",
+    )
+    val fullscreenPlayFocus = remember { FocusRequester() }
+    LaunchedEffect(isFullScreen) {
+        if (isFullScreen) {
+            delay(120)
+            runCatching { fullscreenPlayFocus.requestFocus() }
+        }
+    }
 
     // Resolve player connection: prefer passed-in parameter, fall back to composition local.
     // We avoid early return to show loading UI when service not ready.
@@ -457,6 +563,7 @@ fun TvPlayerScreen(
                 }
             }
 
+            if (!isFullScreen) {
             // Main content: Two-column layout. Some TVs expose less usable
             // height because of overscan/scaling, so compact the left player
             // column to keep playback controls visible on every TV.
@@ -540,70 +647,12 @@ fun TvPlayerScreen(
                             playbackState == androidx.media3.common.Player.STATE_BUFFERING
 
                         if (videoModeEnabled) {
-                            // Always show PlayerView when video mode is active
-                            AndroidView(
-                                factory = { ctx ->
-                                    PlayerView(ctx).apply {
-                                        player = activePlayer
-                                        useController = false
-                                        resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                                        setBackgroundColor(android.graphics.Color.BLACK)
-                                        setShutterBackgroundColor(android.graphics.Color.BLACK)
-                                    }
-                                },
+                            TvVideoView(
+                                activePlayer = activePlayer,
+                                isVideoSwitching = isVideoSwitching,
+                                isBuffering = isVideoBuffering,
                                 modifier = Modifier.fillMaxSize(),
-                                update = { playerView ->
-                                    // Always sync player reference and resume surface. Keep player
-                                    // attached across navigations to avoid black screen after 2+ re-entries.
-                                    if (playerView.player !== activePlayer) {
-                                        playerView.player = activePlayer
-                                    }
-                                    playerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                                    playerView.onResume()
-                                    playerView.requestLayout()
-                                },
-                                onRelease = { playerView ->
-                                    playerView.onPause()
-                                },
                             )
-
-                            // Overlay loading indicator only during actual switching
-                            if (isVideoSwitching) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(Color.Black),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                                    ) {
-                                        CircularProgressIndicator(
-                                            color = Color.White,
-                                            modifier = Modifier.size(48.dp),
-                                        )
-                                        Text(
-                                            text = "Loading video...",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = Color.White.copy(alpha = 0.7f),
-                                        )
-                                    }
-                                }
-                            } else if (isVideoBuffering) {
-                                // Lighter overlay for brief buffering mid-playback
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(Color.Black.copy(alpha = 0.5f)),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    CircularProgressIndicator(
-                                        color = Color.White,
-                                        modifier = Modifier.size(48.dp),
-                                    )
-                                }
-                            }
                         } else if (showLyrics) {
                             // Show lyrics behind thumbnail when enabled
                             val positionProvider = { effectivePlayerConnection?.player?.currentPosition ?: currentPosition }
@@ -882,6 +931,13 @@ fun TvPlayerScreen(
                             size = sideControlSize,
                         )
 
+                        TvPlayerControlButton(
+                            onClick = { onFullScreenChange(true) },
+                            painter = painterResource(R.drawable.fullscreen),
+                            contentDescription = "Enter fullscreen",
+                            size = sideControlSize,
+                        )
+
                         val isLiked = currentSong?.song?.liked == true
                         TvPlayerControlButton(
                             onClick = { pc?.toggleLike() },
@@ -954,7 +1010,225 @@ fun TvPlayerScreen(
             }
 
             // Back button removed from here — now in the top bar
+            }
+            }
+
+            if (isFullScreen) {
+                // Full-bleed media with auto-hiding controls overlaid. The split
+                // layout is not composed in this state, so this is the only
+                // PlayerView instance and it owns the video surface. The parent
+                // top bar is hidden too (see TvApp), making this truly edge-to-edge.
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .zIndex(3f)
+                        .background(Color.Black)
+                        .onPreviewKeyEvent { event ->
+                            if (event.type == KeyEventType.KeyDown) {
+                                wakeTick++
+                            }
+                            false
+                        },
+                ) {
+                    when {
+                        videoModeEnabled -> TvVideoView(
+                            activePlayer = activePlayer,
+                            isVideoSwitching = isVideoSwitching,
+                            isBuffering = playbackState == androidx.media3.common.Player.STATE_BUFFERING,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+
+                        showLyrics -> {
+                            val positionProvider = { effectivePlayerConnection?.player?.currentPosition ?: currentPosition }
+                            val lyrics = remember(currentLyrics) { currentLyrics?.lyrics?.trim() }
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                when {
+                                    lyrics == null -> {
+                                        CircularProgressIndicator(
+                                            color = Color.White,
+                                            modifier = Modifier.size(48.dp),
+                                        )
+                                    }
+
+                                    lyrics == com.auramusic.app.db.entities.LyricsEntity.LYRICS_NOT_FOUND -> {
+                                        Text(
+                                            text = "Lyrics not found",
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color = Color.White.copy(alpha = 0.7f),
+                                            textAlign = TextAlign.Center,
+                                        )
+                                    }
+
+                                    else -> {
+                                        androidx.compose.material3.ProvideTextStyle(
+                                            value = MaterialTheme.typography.bodyLarge.copy(
+                                                fontSize = 26.sp,
+                                                textAlign = TextAlign.Center,
+                                                color = Color(0xFFFFFBFE).copy(alpha = 0.98f),
+                                            ),
+                                        ) {
+                                            com.auramusic.app.ui.component.Lyrics(
+                                                sliderPositionProvider = positionProvider,
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .padding(horizontal = 64.dp, vertical = 96.dp),
+                                                showLyrics = true,
+                                                disableInteractiveFeatures = true,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        else -> mediaMetadata?.thumbnailUrl?.let { thumbnailUrl ->
+                            AsyncImage(
+                                model = thumbnailUrl,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
+                    }
+
+                    // Scrim keeps the overlaid controls readable over bright video.
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .height(300.dp)
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f)),
+                                ),
+                            ),
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .graphicsLayer { alpha = controlsAlpha }
+                            .padding(horizontal = 48.dp, vertical = 24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            text = mediaMetadata?.title ?: "No song playing",
+                            style = MaterialTheme.typography.headlineSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                            ),
+                            color = Color.White,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .basicMarquee(
+                                    iterations = 1,
+                                    initialDelayMillis = 3000,
+                                    velocity = 30.dp,
+                                ),
+                        )
+                        Text(
+                            text = mediaMetadata?.artists?.joinToString(", ") { it.name }.orEmpty(),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.White.copy(alpha = 0.75f),
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .basicMarquee(
+                                    iterations = 1,
+                                    initialDelayMillis = 3000,
+                                    velocity = 30.dp,
+                                ),
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        LinearProgressIndicator(
+                            progress = progress,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(6.dp)
+                                .clip(RoundedCornerShape(3.dp)),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = Color.White.copy(alpha = 0.3f),
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text(
+                                text = makeTimeString(currentPosition),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.White.copy(alpha = 0.8f),
+                            )
+                            Text(
+                                text = makeTimeString(duration),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.White.copy(alpha = 0.8f),
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            TvPlayerControlButton(
+                                onClick = { pc?.seekToPrevious() },
+                                icon = Icons.Filled.SkipPrevious,
+                                contentDescription = "Previous song",
+                            )
+                            TvPlayerControlButton(
+                                onClick = {
+                                    val newPos = maxOf(0L, currentPosition - 10000L)
+                                    pc?.player?.seekTo(newPos)
+                                },
+                                icon = Icons.Filled.FastRewind,
+                                contentDescription = "Rewind 10 seconds",
+                            )
+                            TvPlayerControlButton(
+                                onClick = { pc?.togglePlayPause() },
+                                icon = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                                contentDescription = if (isPlaying) "Pause" else "Play",
+                                size = 88.dp,
+                                focusRequester = fullscreenPlayFocus,
+                            )
+                            TvPlayerControlButton(
+                                onClick = {
+                                    val durationVal = pc?.player?.duration?.takeIf { it != C.TIME_UNSET } ?: Long.MAX_VALUE
+                                    val newPos = minOf(durationVal, currentPosition + 10000L)
+                                    pc?.player?.seekTo(newPos)
+                                },
+                                icon = Icons.Filled.FastForward,
+                                contentDescription = "Fast forward 10 seconds",
+                            )
+                            TvPlayerControlButton(
+                                onClick = { pc?.seekToNext() },
+                                icon = Icons.Filled.SkipNext,
+                                contentDescription = "Next song",
+                            )
+                            if (!videoModeEnabled) {
+                                TvPlayerControlButton(
+                                    onClick = { onShowLyricsChange(!showLyrics) },
+                                    icon = Icons.Filled.Lyrics,
+                                    contentDescription = if (showLyrics) "Show album artwork" else "Show lyrics",
+                                    tint = if (showLyrics) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f),
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(16.dp))
+                            TvPlayerControlButton(
+                                onClick = { onFullScreenChange(false) },
+                                painter = painterResource(R.drawable.fullscreen_exit),
+                                contentDescription = "Exit fullscreen",
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
-}
 }

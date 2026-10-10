@@ -260,6 +260,9 @@ enum class TvSection(val label: String) {
      val currentMediaMetadata by playerConnection?.mediaMetadata?.collectAsState(null) ?: remember { mutableStateOf(null) }
      val showMiniPlayer = currentSong != null || currentMediaMetadata != null
      var showExitDialog by remember { mutableStateOf(false) }
+    // When the player screen is fullscreen the top bar is hidden entirely so
+    // video/lyrics reach every edge of the display.
+    var playerFullscreen by remember { mutableStateOf(false) }
 
       // Handle remote back button: go back in navigator, or show exit dialog
       // Only handle back when no overlay/dialog is showing to avoid conflicts
@@ -499,6 +502,7 @@ enum class TvSection(val label: String) {
 
                   // Set up focus for content screens - focus content when section changes
                    LaunchedEffect(sectionState.value, currentDestination) {
+                       if (currentDestination !is TvDestination.Player) playerFullscreen = false
                        kotlinx.coroutines.delay(100)
                        when {
                            // Player takes its own focus — don't interfere
@@ -516,7 +520,9 @@ enum class TvSection(val label: String) {
                      when (currentDestination) {
                          is TvDestination.Player -> TvPlayerScreen(
                              playerConnection = playerConnection,
-                             onBackClick = { navigator.popBack() }
+                             onBackClick = { navigator.popBack() },
+                             isFullScreen = playerFullscreen,
+                             onFullScreenChange = { playerFullscreen = it },
                          )
                          else -> {
                              when (sectionState.value) {
@@ -641,7 +647,9 @@ enum class TvSection(val label: String) {
                  }
 
                  // Top bar overlaid on top with transparent background
-                 // so focused panel art shows through behind it
+                 // so focused panel art shows through behind it. Hidden while
+                 // the player is fullscreen so media can fill the display.
+                 if (!playerFullscreen) {
                  TvTopBar(
                      sectionState = sectionState,
                      isPlaying = isPlayingState.value,
@@ -674,6 +682,7 @@ enum class TvSection(val label: String) {
                      },
                       topBarFocusRequester = topBarFocusRequester,
                   )
+                 }
 
                   // TV screensaver overlay (now-playing + album art, dimmed).
                   // Dismissed by any key press via the root onPreviewKeyEvent above,
