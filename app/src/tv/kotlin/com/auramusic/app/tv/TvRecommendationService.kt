@@ -8,6 +8,7 @@ import android.content.ContentProviderOperation
 import android.content.Intent
 import android.net.Uri
 import androidx.core.app.NotificationCompat
+import androidx.tvprovider.media.tv.ChannelLogoUtils
 import androidx.tvprovider.media.tv.PreviewChannel
 import androidx.tvprovider.media.tv.PreviewProgram
 import androidx.tvprovider.media.tv.TvContractCompat
@@ -177,7 +178,10 @@ class TvRecommendationService : android.app.Service() {
             val packageNameColumn = cursor.getColumnIndexOrThrow(TvContractCompat.Channels.COLUMN_PACKAGE_NAME)
             while (cursor.moveToNext()) {
                 if (cursor.getString(packageNameColumn) == ctx.packageName) {
-                    return cursor.getLong(0).also { requestChannelVisibility(ctx, it) }
+                    return cursor.getLong(0).also {
+                        ensureChannelLogo(ctx, it)
+                        requestChannelVisibility(ctx, it)
+                    }
                 }
             }
         }
@@ -195,8 +199,16 @@ class TvRecommendationService : android.app.Service() {
         )
 
         return channelUri?.lastPathSegment?.toLongOrNull()?.also {
+            ensureChannelLogo(ctx, it)
             requestChannelVisibility(ctx, it)
         } ?: 0L
+    }
+
+    private fun ensureChannelLogo(ctx: Context, channelId: Long) {
+        val logoUri = Uri.parse("android.resource://${ctx.packageName}/${R.mipmap.ic_launcher_foreground}")
+        if (ChannelLogoUtils.loadChannelLogo(ctx, channelId) == null) {
+            ChannelLogoUtils.storeChannelLogo(ctx, channelId, logoUri)
+        }
     }
 
     private fun requestChannelVisibility(ctx: Context, channelId: Long) {
