@@ -1,6 +1,7 @@
 package com.auramusic.app.tv
 
 import android.content.Context
+import androidx.annotation.Keep
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -13,6 +14,7 @@ import kotlinx.coroutines.launch
  * Updates are debounced so rapid queue changes (e.g., next track)
  * don't spam the system. The latest state is always what gets published.
  */
+@Keep
 object TvRecommendationHelper {
 
     private var pendingJob: kotlinx.coroutines.Job? = null

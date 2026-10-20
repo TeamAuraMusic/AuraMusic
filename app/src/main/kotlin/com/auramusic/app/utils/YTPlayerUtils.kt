@@ -27,6 +27,12 @@ import okhttp3.OkHttpClient
 import timber.log.Timber
 import java.util.concurrent.TimeUnit
 
+internal fun shouldUseSlowUrlFallback(
+    clientName: String,
+    mainClientName: String,
+    signatureCipher: String?,
+): Boolean = clientName != mainClientName || !signatureCipher.isNullOrBlank()
+
 object YTPlayerUtils {
     private const val logTag = "YTPlayerUtils"
 
@@ -206,7 +212,19 @@ object YTPlayerUtils {
             }
         // Only web-family clients take a `pot` parameter on their stream URLs;
         // appending one to guest-client URLs can invalidate them.
-        val streamUrl = findUrlOrNull(format, videoId, response, allowSlowFallback = clientName != MAIN_CLIENT.clientName)
+        // WEB_REMIX commonly returns ciphered URLs. Unlike guest clients, it may
+        // still be the only client with a usable authenticated/PO-token response,
+        // so let NewPipe resolve its signature instead of discarding the format.
+        val streamUrl = findUrlOrNull(
+            format,
+            videoId,
+            response,
+            allowSlowFallback = shouldUseSlowUrlFallback(
+                clientName,
+                MAIN_CLIENT.clientName,
+                format.signatureCipher,
+            ),
+        )
             ?.let { addStreamingPoTokenIfNeeded(it, videoId, poTokenProvider, appendPot = client.useWebPoTokens) }
             ?: run {
                 Timber.tag(logTag).d("Stream URL not found for client: $clientName")
