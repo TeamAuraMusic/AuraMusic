@@ -1586,7 +1586,10 @@ private fun VideoDetailPane(
     // so per-row remember state would not survive a scroll.
     val expandedReplyIds = remember { mutableStateOf(setOf<String>()) }
 
-    LaunchedEffect(listState, uiState.comments.size, uiState.recommendations.size) {
+    // Load more triggers on queue size too: when the queue drains down to the last few
+    // items the load-more request fires exactly as it would from comments, so the list
+    // never runs dry without warning.
+    LaunchedEffect(listState, uiState.comments.size, uiState.queue.size) {
         snapshotFlowSafe(listState) { nearEnd ->
             if (!nearEnd) return@snapshotFlowSafe
             val fresh = VideoPlaybackManager.uiState.value
@@ -1602,6 +1605,19 @@ private fun VideoDetailPane(
 
     LaunchedEffect(uiState.session?.videoId) {
         expandedReplyIds.value = emptySet()
+        // Auto-scroll: when the playing video advances, bring its row into view so the
+        // queue always shows where the listener is, the same way the TV queue does.
+        val currentId = uiState.session?.videoId ?: return@LaunchedEffect
+        val index = uiState.queue.indexOfFirst { it.videoId == currentId }
+        if (index < 0) return@LaunchedEffect
+        // Count the fixed items above the queue rows (info + tabs + autoplay toggle = 3)
+        // so the scroll target lands on the right row rather than three rows too high.
+        val offset = 3
+        if (listState.layoutInfo.visibleItemsInfo.any { it.index == index + offset }) {
+            listState.animateScrollToItem(index + offset)
+        } else {
+            listState.scrollToItem(index + offset)
+        }
     }
 
     // Pinned first, everything else in the order YouTube served it, so the
@@ -1677,12 +1693,12 @@ private fun VideoDetailPane(
                 uiState.isLoadingRecommendations -> item(key = "recommendations-loading") {
                     RecommendationSkeleton()
                 }
-                uiState.recommendations.isEmpty() -> item(key = "recommendations-empty") {
+                uiState.queue.isEmpty() -> item(key = "recommendations-empty") {
                     NoRecommendationsBlock()
                 }
                 else -> {
                     itemsIndexed(
-                        items = uiState.recommendations,
+                        items = uiState.queue,
                         key = { index, item -> "$index:${item.videoId}" },
                     ) { _, item ->
                         UpNextRow(
