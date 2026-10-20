@@ -11,7 +11,6 @@ import androidx.core.app.NotificationCompat
 import androidx.tvprovider.media.tv.ChannelLogoUtils
 import androidx.tvprovider.media.tv.PreviewChannel
 import androidx.tvprovider.media.tv.PreviewProgram
-import androidx.tvprovider.media.tv.ChannelLogoUtils
 import androidx.tvprovider.media.tv.TvContractCompat
 import com.auramusic.app.R
 import com.auramusic.app.models.PersistQueue
