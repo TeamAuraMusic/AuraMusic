@@ -6,6 +6,8 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import com.auramusic.app.utils.dataStore
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -67,36 +69,58 @@ class VideoRecommendationManager(private val context: Context) {
             }
 
             val sections = withContext(Dispatchers.IO) {
-                val result = mutableListOf<FeedSection>()
+                coroutineScope {
+                    // The four sections are independent of one another and three of
+                    // them are a handful of round trips each, so they all start at
+                    // once. What stays serial is only the waiting, and that happens
+                    // in the order the page reads.
+                    // Each one fails on its own. Running them together would
+                    // otherwise mean a single failed search cancelling the other two
+                    // as well, and taking the sections that had already been found
+                    // down with it.
+                    val channelVideos = async {
+                        runCatching { buildChannelRecommendations(history) }.getOrDefault(emptyList())
+                    }
+                    val recommended = async {
+                        runCatching { buildRecommended(history) }.getOrDefault(emptyList())
+                    }
+                    val subscriptions = async {
+                        runCatching { buildSubscriptionsFeed() }.getOrDefault(emptyList())
+                    }
 
-                // Every section below is passed through MusicContentFilter: these
-                // searches run on regular YouTube, so without it a "recommended"
-                // section happily fills up with vlogs and let's-plays.
-                // 1. Continue Watching
-                val continueWatching = buildContinueWatching(history)
-                if (continueWatching.isNotEmpty()) {
-                    result.add(FeedSection("Continue Watching", continueWatching))
+                    val built = mutableListOf<FeedSection>()
+
+                    // A first build fills the page in from the top as each section is
+                    // ready - Continue Watching needs no network at all and is there
+                    // within a frame or two, before the first search has answered.
+                    // Waiting for all of them before showing any of them is what made
+                    // the page sit blank while eleven requests ran in a row.
+                    //
+                    // A refresh does not do this. There the old rows are already on
+                    // screen, and replacing the list after every section would empty
+                    // the page and fill it again, one row at a time, in front of the
+                    // user. Those are swapped once, when the whole new set is ready.
+                    val fillAsItGoes = _sections.value.isEmpty()
+
+                    fun add(
+                        title: String,
+                        videos: List<com.auramusic.innertube.models.YouTubeVideoItem>,
+                    ) {
+                        // Every section is passed through MusicContentFilter: these
+                        // searches run on regular YouTube, so without it a
+                        // "recommended" section happily fills up with vlogs.
+                        if (videos.isEmpty()) return
+                        built += FeedSection(title, videos)
+                        if (fillAsItGoes) _sections.value = built.toList()
+                    }
+
+                    add("Continue Watching", buildContinueWatching(history))
+                    add("From Channels You Watch", channelVideos.await())
+                    add("Recommended For You", recommended.await())
+                    add("Subscriptions", subscriptions.await())
+
+                    built.toList()
                 }
-
-                // 2. From Channels You Watch
-                val channelVideos = buildChannelRecommendations(history)
-                if (channelVideos.isNotEmpty()) {
-                    result.add(FeedSection("From Channels You Watch", channelVideos))
-                }
-
-                // 3. Recommended For You
-                val recommended = buildRecommended(history)
-                if (recommended.isNotEmpty()) {
-                    result.add(FeedSection("Recommended For You", recommended))
-                }
-
-                // 4. Subscriptions
-                val subscriptions = buildSubscriptionsFeed()
-                if (subscriptions.isNotEmpty()) {
-                    result.add(FeedSection("Subscriptions", subscriptions))
-                }
-
-                result
             }
             _sections.value = sections
             markRefreshed()

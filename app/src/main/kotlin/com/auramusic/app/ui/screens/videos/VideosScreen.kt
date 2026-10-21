@@ -171,11 +171,14 @@ fun VideosScreen(
         if (entry == null || !entry.shouldResume) 0L else entry.positionMs
     }
 
-    var feed by remember { mutableStateOf<List<YouTubeVideoItem>>(emptyList()) }
+    // What the last visit to this tab found, kept for the life of the process, so
+    // coming back to it paints rows instead of a skeleton. The refresh still runs -
+    // it just lands on top of something rather than in place of nothing.
+    var feed by remember { mutableStateOf(VideoFeedCache.items) }
     // Paging no longer rides on a continuation token, so "is there more" is tracked
     // directly: a fetch that adds nothing new counts against the budget below.
     var canLoadMore by remember { mutableStateOf(true) }
-    var isLoading by remember { mutableStateOf(true) }
+    var isLoading by remember { mutableStateOf(VideoFeedCache.items.isEmpty()) }
     var isLoadingMore by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var isRefreshing by remember { mutableStateOf(false) }
@@ -199,16 +202,25 @@ fun VideosScreen(
     suspend fun nextFeedQuery(): String =
         com.auramusic.app.video.VideoFeedQueryPicker.nextQuery(feedKeywords())
 
+    // Whether this entry to the screen has already asked for its first page.
+    //
+    // This used to be inferred from the feed being empty, which stopped being the same
+    // question once the rows from the last visit are shown straight away: on re-entry
+    // the feed is full and the first request would have been a rotated phrase instead
+    // of the one that is certain to come back with music in it.
+    var hasFetchedFirstPage by remember { mutableStateOf(false) }
+
     suspend fun fetchFeed(showError: Boolean = true) {
         // The first page asks for something certain rather than a rotated query: a
         // personalised phrase can come back with no music in it at all, every row gets
         // filtered away, and the screen opens on nothing while each of those checks
         // waits on the network. Rotation starts from the second page on.
-        val query = if (feed.isEmpty()) {
+        val query = if (!hasFetchedFirstPage) {
             context.getString(R.string.video_category_music_query)
         } else {
             nextFeedQuery()
         }
+        hasFetchedFirstPage = true
         withContext(Dispatchers.IO) {
             val result = YouTube.youtubeCategoryFeed(query).getOrNull()
             if (result != null && result.items.isNotEmpty()) {
@@ -239,10 +251,12 @@ fun VideosScreen(
     }
 
     suspend fun loadFirstPage() {
-        if (!isLoading) {
+        // Only clear the page when there is nothing on it. Re-entering the tab with
+        // rows already showing should refresh them, not take them away and put a
+        // skeleton where they were.
+        if (feed.isEmpty()) {
             isLoading = true
             error = null
-            feed = emptyList()
             canLoadMore = true
             emptyFetches = 0
         }
@@ -315,6 +329,12 @@ fun VideosScreen(
     val columns = when {
         configuration.screenWidthDp >= 550 -> 3
         else -> 2
+    }
+
+    // One place keeps the kept copy in step, whatever changed the feed - a first
+    // page, a refresh, or rows appended at the bottom.
+    LaunchedEffect(feed) {
+        VideoFeedCache.items = feed
     }
 
     LaunchedEffect(Unit) {
@@ -435,7 +455,11 @@ fun VideosScreen(
             contentAlignment = Alignment.TopStart
         ) {
             when {
-                isLoading -> SkeletonFeed(columns = columns, gridView = gridView)
+                // A skeleton is for a page with nothing on it, not for one being
+                // updated. Covering Continue Watching with a placeholder until the
+                // feed answers is what made the tab look empty for seconds at a time.
+                isLoading && feed.isEmpty() && personalSections.isEmpty() ->
+                    SkeletonFeed(columns = columns, gridView = gridView)
                 error != null && feed.isEmpty() -> {
                     Column(
                         modifier = Modifier.fillMaxSize(),
@@ -479,7 +503,11 @@ else -> {
                      }
 
                     // Personalised sections integrated at the top of the Music feed
-                    if (personalSections.isNotEmpty() && !isLoadingPersonal) {
+                    // Shown as soon as any section exists, not once all of them do:
+                    // the sections publish one at a time now, and the old guard on
+                    // isLoadingPersonal held every one of them back until the last
+                    // search had returned.
+                    if (personalSections.isNotEmpty() || isLoadingPersonal) {
                         if (gridView) {
                             LazyVerticalGrid(
                                 columns = GridCells.Fixed(columns),
@@ -684,6 +712,18 @@ else -> {
             }
         }
     }
+}
+
+/**
+ * The last feed this process built.
+ *
+ * Not a cache that stops the page asking again - it asks every time it opens, exactly
+ * as before. This is only what is on the screen while it does. Leaving the tab and
+ * coming back used to mean a skeleton and a fresh round trip before a single card
+ * appeared, for rows that had been found a minute earlier.
+ */
+private object VideoFeedCache {
+    var items: List<YouTubeVideoItem> = emptyList()
 }
 
 @Composable
