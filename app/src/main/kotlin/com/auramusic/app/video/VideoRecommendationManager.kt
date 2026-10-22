@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import com.auramusic.app.utils.dataStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -178,51 +179,110 @@ class VideoRecommendationManager(private val context: Context) {
     }
 
     /**
-     * Search YouTube for videos from the user's top 3 most-watched channels.
+     * A channel a section draws from.
+     *
+     * [channelId] is preferred and is what makes the section reliable: the channel's
+     * own tab is asked directly. Older history rows carry a name but no id, so the
+     * name is kept as the way back to it.
+     */
+    private data class ChannelSource(val channelId: String?, val name: String)
+
+    /**
+     * Videos from the channels the user watches most.
+     *
+     * Each channel is asked for its own videos rather than searched for by name. A
+     * search returns whatever YouTube finds relevant, which in practice was one busy
+     * channel filling the whole quota and the loop stopping before it ever reached
+     * the others - so a section titled with every channel showed one of them. Asking
+     * the channel itself guarantees the rows belong to it, and taking a few from each
+     * and interleaving them is what makes the section plural.
      */
     private suspend fun buildChannelRecommendations(
         history: List<VideoPlaybackManager.VideoHistoryEntry>,
     ): List<com.auramusic.innertube.models.YouTubeVideoItem> {
-        val topChannels = history
+        val sources = history
             .filter { it.channelName.isNotBlank() }
-            .groupBy { it.channelName }
+            .groupBy { it.channelId?.takeIf(String::isNotBlank) ?: it.channelName }
             .entries
             .sortedByDescending { it.value.size }
-            .take(3)
-            .map { it.key }
-
-        if (topChannels.isEmpty()) return emptyList()
-
-        val allVideos = mutableListOf<com.auramusic.innertube.models.YouTubeVideoItem>()
-        val seenIds = mutableSetOf<String>()
-        val seenTitles = mutableSetOf<String>()
-
-        // Also exclude recently watched video IDs
-        val recentlyWatchedIds = history.take(20).map { it.videoId }.toSet()
-
-        for (channelName in topChannels) {
-            try {
-                val result = com.auramusic.innertube.YouTube.youtubeSearchFeed(
-                    query = channelName,
-                    continuation = null,
-                ).getOrNull()
-                result?.items?.forEach { video ->
-                    if (video.videoId !in seenIds &&
-                        video.videoId !in recentlyWatchedIds &&
-                        video.title !in seenTitles
-                    ) {
-                        seenIds.add(video.videoId)
-                        seenTitles.add(video.title)
-                        allVideos.add(video)
-                    }
-                }
-            } catch (_: Exception) {
-                // Skip failed channel searches
+            .take(MAX_SECTION_CHANNELS)
+            .map { (_, entries) ->
+                val first = entries.first()
+                ChannelSource(
+                    channelId = first.channelId?.takeIf(String::isNotBlank),
+                    name = first.channelName,
+                )
             }
-            if (allVideos.size >= 15) break
-        }
 
-        return MusicContentFilter.filter(allVideos.take(15))
+        if (sources.isEmpty()) return emptyList()
+
+        // Recently watched videos are the one thing this section should not offer:
+        // the point is the next thing from a channel, not the last one again.
+        val recentlyWatched = history.take(20).mapTo(HashSet()) { it.videoId }
+        return sectionFrom(sources, excluded = recentlyWatched)
+    }
+
+    /**
+     * A few videos from each source, interleaved, music only.
+     */
+    private suspend fun sectionFrom(
+        sources: List<ChannelSource>,
+        excluded: Set<String>,
+    ): List<com.auramusic.innertube.models.YouTubeVideoItem> {
+        val perChannel = coroutineScope {
+            sources.map { source ->
+                async {
+                    videosFromChannel(source)
+                        .filterNot { it.videoId in excluded }
+                        .distinctBy { it.videoId }
+                        .take(MAX_PER_CHANNEL)
+                }
+            }.awaitAll()
+        }
+        return MusicContentFilter.filter(interleave(perChannel)).take(MAX_SECTION_VIDEOS)
+    }
+
+    /**
+     * One channel's own videos, newest first.
+     */
+    private suspend fun videosFromChannel(
+        source: ChannelSource,
+    ): List<com.auramusic.innertube.models.YouTubeVideoItem> {
+        if (source.channelId != null) {
+            val videos = com.auramusic.innertube.YouTube.youtubeChannel(source.channelId)
+                .getOrNull()
+                ?.videos
+                .orEmpty()
+            if (videos.isNotEmpty()) return videos
+        }
+        if (source.name.isBlank()) return emptyList()
+        // No id, so a search is the only way back to the channel - and only its own
+        // rows are kept, which is the whole point of going per channel.
+        return com.auramusic.innertube.YouTube.youtubeSearchFeed(
+            query = source.name,
+            continuation = null,
+        ).getOrNull()
+            ?.items
+            ?.filter { it.channelName.equals(source.name, ignoreCase = true) }
+            .orEmpty()
+    }
+
+    /**
+     * Round-robin across the channels, so the first rows are not all one of them.
+     */
+    private fun interleave(
+        perChannel: List<List<com.auramusic.innertube.models.YouTubeVideoItem>>,
+    ): List<com.auramusic.innertube.models.YouTubeVideoItem> {
+        val seen = HashSet<String>()
+        val rows = mutableListOf<com.auramusic.innertube.models.YouTubeVideoItem>()
+        val longest = perChannel.maxOfOrNull { it.size } ?: 0
+        for (index in 0 until longest) {
+            for (videos in perChannel) {
+                val video = videos.getOrNull(index) ?: continue
+                if (seen.add(video.videoId)) rows += video
+            }
+        }
+        return rows
     }
 
     /**
@@ -267,8 +327,11 @@ class VideoRecommendationManager(private val context: Context) {
     }
 
     /**
-     * Videos from subscribed channels, sorted by recency.
-     * Searches YouTube for each subscribed channel name.
+     * Videos from the channels the user is subscribed to.
+     *
+     * Same shape as the channels section, and for the same reason: it searched for
+     * each channel by name and stopped as soon as fifteen videos had been found, so
+     * the first busy channel filled it and the rest were never asked.
      */
     private suspend fun buildSubscriptionsFeed(): List<com.auramusic.innertube.models.YouTubeVideoItem> {
         val subs = try {
@@ -280,31 +343,12 @@ class VideoRecommendationManager(private val context: Context) {
 
         if (subs.isEmpty()) return emptyList()
 
-        val allVideos = mutableListOf<com.auramusic.innertube.models.YouTubeVideoItem>()
-        val seenIds = mutableSetOf<String>()
+        val sources = subs
+            .sortedByDescending { it.subscribedAt }
+            .take(MAX_SECTION_CHANNELS)
+            .map { ChannelSource(channelId = it.channelId.ifBlank { null }, name = it.name) }
 
-        // Search for videos from the most recently subscribed channels first
-        val sortedSubs = subs.sortedByDescending { it.subscribedAt }.take(5)
-
-        for (channel in sortedSubs) {
-            try {
-                val result = com.auramusic.innertube.YouTube.youtubeSearchFeed(
-                    query = channel.name,
-                    continuation = null,
-                ).getOrNull()
-                result?.items?.forEach { video ->
-                    if (video.videoId !in seenIds) {
-                        seenIds.add(video.videoId)
-                        allVideos.add(video)
-                    }
-                }
-            } catch (_: Exception) {
-                // Skip failed channel searches
-            }
-            if (allVideos.size >= 15) break
-        }
-
-        return MusicContentFilter.filter(allVideos.take(15))
+        return sectionFrom(sources, excluded = emptySet())
     }
 
     // ------------------------------------------------------------------
@@ -322,6 +366,16 @@ class VideoRecommendationManager(private val context: Context) {
     companion object {
         /** Refresh the personalised feed after this many new video watches. */
         const val REFRESH_THRESHOLD = 3
+
+        /**
+         * How many channels a section draws from, and how many videos from each.
+         *
+         * A few from several channels rather than one channel's newest page: a
+         * section named after channels should not be a single channel.
+         */
+        private const val MAX_SECTION_CHANNELS = 3
+        private const val MAX_PER_CHANNEL = 6
+        private const val MAX_SECTION_VIDEOS = 18
 
         internal val sharedSections = MutableStateFlow<List<FeedSection>>(emptyList())
         private val sharedLoading = MutableStateFlow(false)

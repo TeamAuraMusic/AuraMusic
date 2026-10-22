@@ -46,45 +46,91 @@ object ArtistChannelResolver {
     ): Resolved? {
         val targetSubs = artistSubscribersText?.let { parseSubscribers(it) }
 
-        // A real channel with a matching subscriber count needs no guessing.
-        artistChannelId?.let { id ->
-            val page = YouTube.youtubeChannel(id).getOrNull()
-            val name = page?.title.orEmpty()
-            val isGenerated = name.trim().endsWith(TOPIC_SUFFIX, ignoreCase = true)
-            if (!isGenerated) {
-                return Resolved(channelId = id, channelName = name, replacedGenerated = false)
-            }
+        // What the id we were given actually points at. If the page did not load this
+        // stays null, and nothing is decided from it: the old code read a failed fetch
+        // as "not a generated channel" and went straight there, which is one of the
+        // ways a Topic page was opened.
+        val givenPage = artistChannelId?.let { id -> YouTube.youtubeChannel(id).getOrNull() }
+        val givenName = givenPage?.title.orEmpty()
+        val givenIsGenerated = givenName.trim().endsWith(TOPIC_SUFFIX, ignoreCase = true)
+
+        // A channel that answered and is not generated is the artist's own, whatever
+        // its name says: this is the id the artist page itself points at.
+        if (artistChannelId != null && givenPage != null && !givenIsGenerated) {
+            return Resolved(
+                channelId = artistChannelId,
+                channelName = givenName,
+                replacedGenerated = false,
+            )
         }
 
-        // Either there was no id, or the one there was generated: look the artist up and
-        // take the channel whose audience matches the artist's.
-        val candidates = YouTube.youtubeSearch(artistName).getOrNull()?.items
+        val name = artistName.ifBlank { givenName.replace(TOPIC_SUFFIX, "", ignoreCase = true).trim() }
+        if (name.isBlank()) {
+            return artistChannelId?.let { Resolved(it, givenName, replacedGenerated = false) }
+        }
+
+        // Only channels named exactly this artist. The old match also accepted names
+        // that merely contained it, then took whichever one YouTube returned first -
+        // a same-named cover act, a fan page, a label channel. That is the channel
+        // that opened instead of the artist's own.
+        val candidates = YouTube.youtubeSearch(name).getOrNull()?.items
             ?.filterIsInstance<YouTubeSearchResultItem.Channel>()
             .orEmpty()
             .filterNot { it.title.trim().endsWith(TOPIC_SUFFIX, ignoreCase = true) }
-            .filter { it.title.equals(artistName, ignoreCase = true) || similar(it.title, artistName) }
+            .filter { normalize(it.title) == normalize(name) }
+            .distinctBy { it.channelId }
 
-        if (candidates.isEmpty()) {
-            // Nothing matched by name; the id we started with is better than a guess.
-            return artistChannelId?.let { Resolved(it, artistName, replacedGenerated = false) }
+        // When the id we have is unknown, only a confident replacement is worth
+        // making: a matching audience, or the only channel of that exact name.
+        val best = pickChannel(
+            candidates = candidates,
+            targetSubs = targetSubs,
+            requireConfidence = givenPage == null,
+        )
+        if (best != null) {
+            return Resolved(
+                channelId = best.channelId,
+                channelName = best.title,
+                replacedGenerated = true,
+            )
         }
 
-        if (targetSubs != null) {
-            candidates
-                .mapNotNull { candidate ->
-                    val subs = candidate.subscriberCountText?.let { parseSubscribers(it) } ?: return@mapNotNull null
-                    val drift = kotlin.math.abs(subs - targetSubs).toDouble() / targetSubs
-                    candidate to drift
-                }
-                .filter { it.second <= SUBSCRIBER_TOLERANCE }
+        // Nothing exact. A generated channel is still this artist even if it is not the
+        // one a person runs; a differently named channel is not, and is not worth
+        // guessing at.
+        return artistChannelId?.let {
+            Resolved(channelId = it, channelName = givenName.ifBlank { name }, replacedGenerated = false)
+        }
+    }
+
+    /**
+     * Among channels that are exactly this artist, the one most likely to be theirs:
+     * the closest audience to the artist page's, or failing that the largest.
+     */
+    private fun pickChannel(
+        candidates: List<YouTubeSearchResultItem.Channel>,
+        targetSubs: Long?,
+        requireConfidence: Boolean,
+    ): YouTubeSearchResultItem.Channel? {
+        if (candidates.isEmpty()) return null
+
+        if (targetSubs != null && targetSubs > 0) {
+            val measured = candidates.mapNotNull { candidate ->
+                val subs = candidate.subscriberCountText?.let { parseSubscribers(it) }
+                    ?: return@mapNotNull null
+                candidate to kotlin.math.abs(subs - targetSubs).toDouble() / targetSubs
+            }
+            measured.filter { it.second <= SUBSCRIBER_TOLERANCE }
                 .minByOrNull { it.second }
-                ?.let { (candidate, _) ->
-                    return Resolved(candidate.channelId, candidate.title, replacedGenerated = true)
-                }
+                ?.let { return it.first }
         }
 
-        val best = candidates.first()
-        return Resolved(best.channelId, best.title, replacedGenerated = true)
+        // Not sure enough to overrule the id we were given.
+        if (requireConfidence && candidates.size > 1) return null
+
+        // No count to compare, or nothing within tolerance: the biggest channel with
+        // exactly this name is the artist's own far more often than not.
+        return candidates.maxByOrNull { parseSubscribers(it.subscriberCountText.orEmpty()) ?: 0L }
     }
 
     /**
@@ -106,13 +152,12 @@ object ArtistChannelResolver {
         return (number * multiplier).toLong()
     }
 
-    /** Looser than equality, for names written differently on the two sides. */
-    private fun similar(a: String, b: String): Boolean {
-        val left = normalize(a)
-        val right = normalize(b)
-        return left == right || left.contains(right) || right.contains(left)
-    }
-
+    /**
+     * The name with case, punctuation and spacing taken out, so "A.R. Rahman" and
+     * "A. R. Rahman" are the same artist. It deliberately does not accept one name
+     * containing another - "Arijit" is not "Arijit Singh", and treating it as if it
+     * were is how a fan page gets opened instead of the artist.
+     */
     private fun normalize(s: String): String =
         s.lowercase()
             .replace(TOPIC_SUFFIX.lowercase(), "")

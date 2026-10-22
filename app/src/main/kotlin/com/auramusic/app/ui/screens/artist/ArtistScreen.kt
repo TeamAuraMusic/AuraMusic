@@ -12,6 +12,8 @@ import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -345,8 +347,18 @@ fun ArtistScreen(
                                 )
 
                                 // Buttons Row
+                                //
+                                // Scrolls sideways when it does not fit. Subscribe,
+                                // Open channel and the player controls came to more
+                                // than a narrow phone is wide, so the row ran off the
+                                // right edge there and the last buttons could not be
+                                // reached at all. A fixed gap does the spacing now that
+                                // there is no leftover width to push things apart with.
                                 Row(
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     // Subscribe Button
@@ -438,7 +450,10 @@ fun ArtistScreen(
                                         }
                                     }
 
-                                    Spacer(modifier = Modifier.weight(1f))
+                                    // No spacer here any more: inside a scrolling row
+                                    // there is no leftover width to divide, and a
+                                    // weighted spacer would be measured against
+                                    // infinity. The row's own gap does the work.
 
                                     Row(
                                         horizontalArrangement = Arrangement.spacedBy(16.dp),

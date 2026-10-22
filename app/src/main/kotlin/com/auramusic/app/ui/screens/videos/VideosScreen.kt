@@ -247,6 +247,7 @@ fun VideosScreen(
                 }
             }
         }
+        VideoFeedCache.fetchedAt = System.currentTimeMillis()
         isLoading = false
     }
 
@@ -263,10 +264,17 @@ fun VideosScreen(
         fetchFeed()
     }
 
-    suspend fun refreshFeed() {
-        isRefreshing = true
-        fetchFeed(showError = false)
-        isRefreshing = false
+    // Silently by default. A refresh that started itself has no one waiting on it,
+    // and the indicator over the page - a spinner that appeared every time the tab was
+    // opened - was that refresh announcing itself. Only a pull is a request the user
+    // made and expects to see answered.
+    suspend fun refreshFeed(showIndicator: Boolean = false) {
+        if (showIndicator) isRefreshing = true
+        try {
+            fetchFeed(showError = false)
+        } finally {
+            isRefreshing = false
+        }
     }
 
     /**
@@ -338,7 +346,12 @@ fun VideosScreen(
     }
 
     LaunchedEffect(Unit) {
-        loadFirstPage()
+        // Rows from a moment ago are still good. Opening the tab again should not
+        // spend a request on them, nor a spinner - only a genuinely stale page or an
+        // empty one is worth fetching on arrival.
+        val stillFresh = feed.isNotEmpty() &&
+            System.currentTimeMillis() - VideoFeedCache.fetchedAt < FEED_MIN_REFRESH_INTERVAL_MS
+        if (!stillFresh) loadFirstPage()
     }
 
     // Warm the collaborations for the rows about to be drawn. Resolving them lazily
@@ -371,8 +384,13 @@ fun VideosScreen(
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME && hasLoadedOnce && !isLoading) {
-                scope.launch {
-                    refreshFeed()
+                // Coming back from the player is not a request for fresh rows, and it
+                // is not an occasion to put a spinner over the page either. Only
+                // refetch once what is on screen has had time to go stale, and then
+                // quietly - the indicator is for refreshes the user asked for.
+                val age = System.currentTimeMillis() - VideoFeedCache.fetchedAt
+                if (age >= FEED_MIN_REFRESH_INTERVAL_MS) {
+                    scope.launch { refreshFeed(showIndicator = false) }
                 }
             }
         }
@@ -446,9 +464,9 @@ fun VideosScreen(
                     state = pullRefreshState,
                     isRefreshing = isRefreshing,
                     onRefresh = {
-                        isRefreshing = true
                         scope.launch {
-                            refreshFeed()
+                            // The one refresh that should be visible: the user pulled.
+                            refreshFeed(showIndicator = true)
                         }
                     },
                 ),
@@ -724,7 +742,18 @@ else -> {
  */
 private object VideoFeedCache {
     var items: List<YouTubeVideoItem> = emptyList()
+
+    /** When [items] was last written, so a quick look round does not refetch. */
+    var fetchedAt: Long = 0L
 }
+
+/**
+ * How old the rows have to be before opening the tab refetches them.
+ *
+ * Short enough that coming back later gets fresh rows, long enough that flicking
+ * between tabs - or back from a video - does not fire a request and a spinner.
+ */
+private const val FEED_MIN_REFRESH_INTERVAL_MS = 30_000L
 
 @Composable
 private fun VideosTopBar(

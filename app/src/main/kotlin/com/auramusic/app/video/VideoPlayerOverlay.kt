@@ -1690,16 +1690,26 @@ private fun VideoDetailPane(
                 AutoplayToggleRow(uiState = uiState)
             }
             when {
-                uiState.isLoadingRecommendations -> item(key = "recommendations-loading") {
-                    RecommendationSkeleton()
-                }
+                // A skeleton only when there is nothing to show. Loading the next
+                // video's recommendations used to flip this flag while the queue was
+                // still full, and because this branch is tested first the whole list
+                // was replaced by placeholders for as long as the fetch took - the
+                // queue appearing to reload every time playback moved on.
+                uiState.isLoadingRecommendations && uiState.queue.isEmpty() ->
+                    item(key = "recommendations-loading") {
+                        RecommendationSkeleton()
+                    }
                 uiState.queue.isEmpty() -> item(key = "recommendations-empty") {
                     NoRecommendationsBlock()
                 }
                 else -> {
                     itemsIndexed(
                         items = uiState.queue,
-                        key = { index, item -> "$index:${item.videoId}" },
+                        // Keyed by video, not by position. An index in the key meant
+                        // every row was a different row the moment one was removed or
+                        // inserted, so the whole list was thrown away and rebuilt
+                        // instead of the one row that changed.
+                        key = { _, item -> item.videoId },
                     ) { _, item ->
                         UpNextRow(
                             item = item,
