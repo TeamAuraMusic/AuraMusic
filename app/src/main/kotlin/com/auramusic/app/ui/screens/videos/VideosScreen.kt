@@ -61,8 +61,6 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Subscriptions
 import androidx.compose.material.icons.filled.VideoLibrary
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -117,6 +115,8 @@ import com.auramusic.app.utils.rememberPreference
 import com.auramusic.app.video.VideoPlaybackManager
 import com.auramusic.innertube.YouTube
 import com.auramusic.innertube.models.YouTubeVideoItem
+import com.auramusic.app.ui.component.LocalMenuState
+import com.auramusic.app.ui.menu.YouTubeVideoMenu
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -1208,49 +1208,6 @@ internal fun ChannelAvatar(
     }
 }
 
-@Composable
-private fun FeedVideoContextMenu(
-    video: YouTubeVideoItem,
-    expanded: Boolean,
-    onDismiss: () -> Unit,
-) {
-    val context = LocalContext.current
-    DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.play_next)) },
-            leadingIcon = { Icon(painterResource(R.drawable.ic_skip_next), contentDescription = null) },
-            onClick = {
-                VideoPlaybackManager.queueNext(video)
-                onDismiss()
-            },
-        )
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.add_to_queue)) },
-            leadingIcon = { Icon(painterResource(R.drawable.ic_queue), contentDescription = null) },
-            onClick = {
-                VideoPlaybackManager.addToQueue(video)
-                onDismiss()
-            },
-        )
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.share)) },
-            leadingIcon = { Icon(painterResource(R.drawable.share), contentDescription = null) },
-            onClick = {
-                VideoPlaybackManager.shareVideo(context, video.videoId, video.title)
-                onDismiss()
-            },
-        )
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.copy_link)) },
-            leadingIcon = { Icon(painterResource(R.drawable.link), contentDescription = null) },
-            onClick = {
-                VideoPlaybackManager.copyVideoLink(context, video.videoId)
-                onDismiss()
-            },
-        )
-    }
-}
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun FeedVideoGridCard(
@@ -1260,9 +1217,19 @@ internal fun FeedVideoGridCard(
     onClick: () -> Unit,
     onChannelClick: (String) -> Unit,
 ) {
-    var menuExpanded by remember { mutableStateOf(false) }
     var showChannelPicker by remember { mutableStateOf(false) }
     val channels = rememberVideoChannels(video.videoId, video.channels, video.channelName)
+    val menuState = LocalMenuState.current
+    val showMenu: () -> Unit = {
+        menuState.show {
+            YouTubeVideoMenu(
+                video = video,
+                channels = channels,
+                onChannelClick = onChannelClick,
+                onDismiss = menuState::dismiss,
+            )
+        }
+    }
     Box {
         Column(
             modifier = Modifier
@@ -1278,7 +1245,7 @@ internal fun FeedVideoGridCard(
                 )
                 .combinedClickable(
                     onClick = onClick,
-                    onLongClick = { menuExpanded = true },
+                    onLongClick = showMenu,
                 ),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
@@ -1408,17 +1375,19 @@ internal fun FeedVideoGridCard(
                 size = 34.dp,
                 onClick = channelClick,
             )
-            Text(
-                text = video.channelName,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .weight(1f, fill = false)
-                    .clip(RoundedCornerShape(4.dp))
-                    .clickable(onClick = channelClick)
-            )
+            Box(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = video.channelName,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .clickable(onClick = channelClick)
+                )
+            }
+            VideoMenuButton(onClick = showMenu)
         }
         val compactViews = video.viewCountText?.let { compactViewCount(it) }
         if (compactViews != null) {
@@ -1433,11 +1402,6 @@ internal fun FeedVideoGridCard(
             )
         }
         }
-        FeedVideoContextMenu(
-            video = video,
-            expanded = menuExpanded,
-            onDismiss = { menuExpanded = false },
-        )
         if (showChannelPicker) {
             ChannelPickerDialog(
                 channels = channels,
@@ -1461,16 +1425,26 @@ internal fun FeedVideoListRow(
     onClick: () -> Unit,
     onChannelClick: (String) -> Unit,
 ) {
-    var menuExpanded by remember { mutableStateOf(false) }
     var showChannelPicker by remember { mutableStateOf(false) }
     val channels = rememberVideoChannels(video.videoId, video.channels, video.channelName)
+    val menuState = LocalMenuState.current
+    val showMenu: () -> Unit = {
+        menuState.show {
+            YouTubeVideoMenu(
+                video = video,
+                channels = channels,
+                onChannelClick = onChannelClick,
+                onDismiss = menuState::dismiss,
+            )
+        }
+    }
     Box {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .combinedClickable(
                     onClick = onClick,
-                    onLongClick = { menuExpanded = true },
+                    onLongClick = showMenu,
                 )
                 .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -1597,12 +1571,8 @@ internal fun FeedVideoListRow(
                 }
             }
         }
+        VideoMenuButton(onClick = showMenu)
         }
-        FeedVideoContextMenu(
-            video = video,
-            expanded = menuExpanded,
-            onDismiss = { menuExpanded = false },
-        )
         if (showChannelPicker) {
             ChannelPickerDialog(
                 channels = channels,
@@ -1614,6 +1584,19 @@ internal fun FeedVideoListRow(
                 primaryThumbnailUrl = video.channelThumbnailUrl,
             )
         }
+    }
+}
+
+/** The three-dot button that opens a video's menu, as music items have. */
+@Composable
+internal fun VideoMenuButton(onClick: () -> Unit) {
+    IconButton(onClick = onClick, modifier = Modifier.size(36.dp)) {
+        Icon(
+            painter = painterResource(R.drawable.more_vert),
+            contentDescription = stringResource(R.string.more_options),
+            modifier = Modifier.size(20.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

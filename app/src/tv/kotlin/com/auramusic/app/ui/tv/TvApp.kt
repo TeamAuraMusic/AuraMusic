@@ -76,6 +76,7 @@ import com.auramusic.app.LocalPlayerConnection
 import com.auramusic.app.db.entities.Song
 import com.auramusic.app.models.toMediaMetadata
 import com.auramusic.app.utils.makeTimeString
+import com.auramusic.app.utils.PlaylistLinks
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
@@ -2359,6 +2360,23 @@ fun TvSearchScreen(
         }
     }
 
+    // A pasted playlist share link (or playlist id) opens that playlist instead of searching for it.
+    val linkScope = rememberCoroutineScope()
+    fun openPlaylistLink(text: String): Boolean {
+        val playlistId = PlaylistLinks.playlistId(text) ?: return false
+        tvSearchViewModel.query.value = text
+        linkScope.launch {
+            if (PlaylistLinks.isAlbumPlaylist(playlistId)) {
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    YouTube.albumSongs(playlistId).getOrNull()
+                }?.firstOrNull()?.album?.id?.let { navigator.navigate(TvDestination.Album(it)) }
+            } else {
+                navigator.navigate(TvDestination.Playlist(playlistId))
+            }
+        }
+        return true
+    }
+
     // Save current query to recent searches when user clicks a result
     val saveQueryToHistory: () -> Unit = {
         if (query.isNotBlank()) {
@@ -2394,9 +2412,23 @@ fun TvSearchScreen(
             ) {
                 OutlinedTextField(
                     value = query,
-                    onValueChange = { tvSearchViewModel.updateQuery(it) },
+                    onValueChange = { newText ->
+                        // Text arriving in one go (paste, or sent from a phone remote) can be a share link.
+                        val pasted = newText.length - query.length > 1
+                        if (!(pasted && openPlaylistLink(newText))) tvSearchViewModel.updateQuery(newText)
+                    },
                     label = { Text("Search") },
                     singleLine = true,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        imeAction = androidx.compose.ui.text.input.ImeAction.Search,
+                    ),
+                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                        onSearch = {
+                            if (!openPlaylistLink(query)) {
+                                defaultKeyboardAction(androidx.compose.ui.text.input.ImeAction.Done)
+                            }
+                        },
+                    ),
                     modifier = Modifier
                         .weight(1f)
                         .onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 0 }

@@ -95,8 +95,12 @@ import com.auramusic.app.ui.menu.YouTubeAlbumMenu
 import com.auramusic.app.ui.menu.YouTubeArtistMenu
 import com.auramusic.app.ui.menu.YouTubePlaylistMenu
 import com.auramusic.app.ui.menu.YouTubeSongMenu
+import com.auramusic.app.utils.PlaylistLinks
 import com.auramusic.app.viewmodels.OnlineSearchViewModel
+import com.auramusic.innertube.YouTube
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.net.URLDecoder
 import java.net.URLEncoder
 
@@ -158,6 +162,20 @@ fun OnlineSearchResult(
     // Update query when decodedQuery changes
     LaunchedEffect(decodedQuery) {
         query = TextFieldValue(decodedQuery, TextRange(decodedQuery.length))
+    }
+
+    // A pasted playlist share link (or playlist id) opens that playlist instead of searching for it.
+    LaunchedEffect(decodedQuery) {
+        val playlistId = PlaylistLinks.playlistId(decodedQuery) ?: return@LaunchedEffect
+        val route = if (PlaylistLinks.isAlbumPlaylist(playlistId)) {
+            withContext(Dispatchers.IO) { YouTube.albumSongs(playlistId).getOrNull() }
+                ?.firstOrNull()?.album?.id?.let { "album/$it" }
+        } else {
+            "online_playlist/$playlistId"
+        } ?: return@LaunchedEffect
+        navController.navigate(route) {
+            popUpTo("search/{query}") { inclusive = true }
+        }
     }
 
     val searchFilter by viewModel.filter.collectAsState()

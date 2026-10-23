@@ -45,6 +45,9 @@ import androidx.media3.common.Player.REPEAT_MODE_OFF
 import androidx.media3.common.Player.REPEAT_MODE_ONE
 import androidx.media3.common.Player.STATE_IDLE
 import androidx.media3.common.Timeline
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 import androidx.media3.common.audio.SonicAudioProcessor
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
@@ -5150,15 +5153,6 @@ class MusicService :
             Timber.d("scheduleAutomix: Skipping automix into video song")
             return
         }
-        
-        // If the incoming track is already fully available, a native gapless transition is
-        // strictly better than a volume ramp: one AudioTrack, no overlap, no encoder-delay
-        // mismatch. Fall through to the normal auto-transition instead of building a second
-        // player, and skip the warmup entirely.
-        if (isNextItemGapless()) {
-            Timber.d("scheduleAutomix: Next item is fully buffered, using native gapless")
-            return
-        }
 
         val blendMs = resolveBlendDurationMs()
 
@@ -5202,67 +5196,16 @@ class MusicService :
     }
 
     /**
-     * Blend length for the upcoming transition.
-     *
-     * The blend cannot outlast the incoming track's own start-up cost, and Media3 will not
-     * begin decoding the next period until playback is within 10s of it
-     * (`DURATION_TO_ADVANCE_READING_THRESHOLD_US` in ExoPlayerImplInternal). So the useful
-     * length is the runway left in the current track, capped to stay inside that window.
+     * Blend length for the upcoming transition: the runway left in the current track, capped
+     * so a long tail does not turn into an endless overlap, and floored so a short one still
+     * fades instead of clicking.
      */
     private fun resolveBlendDurationMs(): Long {
         val duration = player.duration
         val remaining =
             if (duration == C.TIME_UNSET || duration <= 0) Long.MAX_VALUE
             else duration - player.currentPosition
-        // Never longer than the reading window, otherwise the incoming decoder cannot be warm.
-        val capped = minOf(remaining, AUTOMIX_MAX_BLEND_MS)
-        // A track nearly over gets whatever runway it has, down to a floor; one with plenty of
-        // room uses the default rather than an arbitrarily long overlap.
-        return if (capped <= AUTOMIX_DEFAULT_BLEND_MS) {
-            capped.coerceAtLeast(AUTOMIX_MIN_BLEND_MS)
-        } else {
-            AUTOMIX_DEFAULT_BLEND_MS
-        }
-    }
-
-    /**
-     * True when the next item is already fully buffered, so ExoPlayer can transition to it
-     * natively and gaplessly.
-     *
-     * Requires both signals, and deliberately reports false whenever either is unknown — a
-     * wrong true silently drops a blend the user asked for, while a wrong false only costs a
-     * perfectly good fade.
-     *
-     * Note there is no public per-next-period buffered-position API on Player, so an uncached
-     * track cannot be proven fully buffered from outside. Cached tracks are the case worth
-     * detecting: they are also the case that sounds noticeably better without a fade.
-     */
-    private fun isNextItemGapless(): Boolean {
-        val nextIndex = nextAutomixMediaItemIndex()
-        if (nextIndex == C.INDEX_UNSET) return false
-
-        val nextItem = runCatching { player.getMediaItemAt(nextIndex) }.getOrNull() ?: return false
-        val mediaId = nextItem.mediaId.removeSuffix("_video")
-        if (mediaId.isEmpty()) return false
-
-        // The track's own length is unknown, so isCached(mediaId, 0, 1) would only prove the
-        // first byte. Check the downloaded and playback caches with the chunk length actually
-        // written, which is what createDataSourceFactory probes.
-        val isCached = runCatching {
-            downloadCache.isCached(mediaId, 0, CHUNK_LENGTH) ||
-                playerCache.isCached(mediaId, 0, CHUNK_LENGTH)
-        }.getOrDefault(false)
-        if (!isCached) return false
-
-        // A known duration is what lets ExoPlayer trim encoder delay and keep one AudioTrack
-        // across the boundary. Unknown duration means it cannot do that, so the native path
-        // would not actually be gapless.
-        val timeline = runCatching { player.currentTimeline }.getOrNull() ?: return false
-        if (timeline.isEmpty) return false
-        val window = runCatching { timeline.getWindow(nextIndex, Timeline.Window()) }.getOrNull()
-            ?: return false
-        if (window.isPlaceholder) return false
-        return window.durationUs != C.TIME_UNSET && window.durationUs > 0
+        return remaining.coerceIn(AUTOMIX_MIN_BLEND_MS, AUTOMIX_MAX_BLEND_MS)
     }
 
     private fun nextAutomixMediaItemIndex(): Int {
@@ -5593,20 +5536,19 @@ class MusicService :
 automixDeadlineJob?.cancel()
          automixDeadlineJob = null
          automixJob = scope.launch {
-             // Blend length is derived from the runway left in the outgoing track and capped to
-             // the window in which Media3 starts decoding the incoming one. See
+             // Blend length is derived from the runway left in the outgoing track. See
              // resolveBlendDurationMs.
              val duration = blendMs.coerceIn(AUTOMIX_MIN_BLEND_MS, AUTOMIX_MAX_BLEND_MS)
-             val steps = AUTOMIX_BLEND_STEPS
-             val stepTime = (duration / steps).coerceAtLeast(1L)
              val targetVolume = if (isMuted.value) 0f else playerVolume.value
              val outgoingStartVolume = oldPlayer.volume
              nextPlayer.volume = 0f
 
-             for (i in 1..steps) {
-                 if (!isActive) break
-                 // Pause volume ramp if player is paused, but do not spin forever: if the incoming
-                 // track never starts, stop waiting so cleanup still runs.
+             // Equal-power curve on a short, fixed tick. A linear ramp dips by about 3 dB in
+             // the middle of the blend, and coarse steps are heard as clicks on TV audio.
+             var elapsedMs = 0L
+             while (isActive && elapsedMs < duration) {
+                 // Hold the ramp while paused, but do not spin forever: if the incoming track
+                 // never starts, stop waiting so cleanup still runs.
                  var waitedMs = 0L
                  while (!nextPlayer.isPlaying && isActive && waitedMs < AUTOMIX_PLAYBACK_WAIT_MS) {
                      delay(100)
@@ -5617,28 +5559,16 @@ automixDeadlineJob?.cancel()
                      Timber.tag(TAG).w("Incoming track never started, ending blend early")
                      break
                  }
-                
-                val progress = i / steps.toFloat()
-                val fadeIn: Float
-                val fadeOut: Float
-                if (automixEnabled) {
-                    // Linear fade for DJ-style mixing
-                    fadeIn = progress
-                    fadeOut = 1.0f - progress
-                } else {
-                    // Quadratic fade for smooth transitions
-                    fadeIn = 1.0f - (1.0f - progress) * (1.0f - progress)
-                    fadeOut = (1.0f - progress) * (1.0f - progress)
-                }
-                
-                try {
-                    nextPlayer.volume = targetVolume * fadeIn
-                    oldPlayer.volume = outgoingStartVolume * fadeOut
-                } catch (e: Exception) { break }
-                
-                delay(stepTime)
-            }
-            
+
+                 delay(AUTOMIX_RAMP_TICK_MS)
+                 elapsedMs += AUTOMIX_RAMP_TICK_MS
+                 val angle = minOf(elapsedMs, duration) / duration.toFloat() * (PI.toFloat() / 2f)
+                 try {
+                     nextPlayer.volume = targetVolume * sin(angle)
+                     oldPlayer.volume = outgoingStartVolume * cos(angle)
+                 } catch (e: Exception) { break }
+             }
+
             try {
                 oldPlayer.volume = 0f
                 nextPlayer.volume = targetVolume
@@ -5773,11 +5703,7 @@ automixDeadlineJob?.cancel()
          */
         private const val AUTOMIX_PRELOAD_TARGET_US = 12_000_000L
 
-        /**
-         * Longest automix blend. Media3 does not begin decoding the next period until playback
-         * is within `DURATION_TO_ADVANCE_READING_THRESHOLD_US` (10s) of it, so a blend longer
-         * than this cannot have the incoming track warm and will rebuffer mid-fade.
-         */
+        /** Longest automix blend, so a long tail does not become an endless overlap. */
         private const val AUTOMIX_MAX_BLEND_MS = 8_000L
 
         /** Shortest blend worth fading; below this the overlap reads as a click, not a mix. */
@@ -5789,11 +5715,11 @@ automixDeadlineJob?.cancel()
          */
         private const val AUTOMIX_WARMUP_LEAD_MS = 20_000L
 
-        /** Default blend when nothing better can be derived from the remaining runway. */
+        /** Blend used when the swap is started without a runway-derived length. */
         private const val AUTOMIX_DEFAULT_BLEND_MS = 4_000L
 
-        /** Steps in the volume ramp. ~20 gives a smooth curve without a visible step change. */
-        private const val AUTOMIX_BLEND_STEPS = 20
+        /** Volume ramp update interval; short enough that the fade has no audible steps. */
+        private const val AUTOMIX_RAMP_TICK_MS = 50L
 
         /**
          * How long after the trigger the incoming track has to reach READY before the blend is

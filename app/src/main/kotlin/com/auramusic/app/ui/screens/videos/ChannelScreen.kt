@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
@@ -51,6 +53,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
+import com.auramusic.app.ui.component.LocalMenuState
+import com.auramusic.app.ui.menu.YouTubeVideoMenu
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -955,14 +959,16 @@ private fun ChannelAboutSection(header: ChannelHeader?) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ChannelVideoGridCard(
     video: YouTubeVideoItem,
     onClick: () -> Unit,
 ) {
+    val showMenu = rememberChannelVideoMenu(video)
     Column(
         modifier = Modifier
-            .clickable(onClick = onClick)
+            .combinedClickable(onClick = onClick, onLongClick = showMenu)
             .padding(6.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
@@ -984,28 +990,33 @@ private fun ChannelVideoGridCard(
         )
         val meta = listOfNotNull(video.viewCountText, video.publishedTimeText)
             .joinToString(" \u00b7 ")
-            .takeIf { it.isNotBlank() }
-        if (meta != null) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = meta,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
-                modifier = Modifier.padding(horizontal = 4.dp),
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 4.dp),
             )
+            VideoMenuButton(onClick = showMenu)
         }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ChannelVideoRow(
     video: YouTubeVideoItem,
     onClick: () -> Unit,
 ) {
+    val showMenu = rememberChannelVideoMenu(video)
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .combinedClickable(onClick = onClick, onLongClick = showMenu)
             .padding(horizontal = 12.dp, vertical = 6.dp),
     ) {
         ThumbnailWithBadge(
@@ -1040,6 +1051,23 @@ private fun ChannelVideoRow(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+            )
+        }
+        VideoMenuButton(onClick = showMenu)
+    }
+}
+
+/** Opens a channel video's menu; the channel entries are left out because it is already open. */
+@Composable
+private fun rememberChannelVideoMenu(video: YouTubeVideoItem): () -> Unit {
+    val menuState = LocalMenuState.current
+    return {
+        menuState.show {
+            YouTubeVideoMenu(
+                video = video,
+                channels = emptyList(),
+                onChannelClick = null,
+                onDismiss = menuState::dismiss,
             )
         }
     }
