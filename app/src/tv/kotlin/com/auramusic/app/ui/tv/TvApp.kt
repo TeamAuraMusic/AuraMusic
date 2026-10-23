@@ -295,17 +295,12 @@ enum class TvSection(val label: String) {
           androidx.compose.material3.AlertDialog(
               onDismissRequest = { showExitDialog = false },
               title = { Text("Exit AuraMusic?", fontWeight = FontWeight.Bold) },
-              text = { Text("Music will stop playing if you exit.") },
+              text = { Text("Keep music playing and control it from the Google TV quick menu, or stop playback and exit.") },
                confirmButton = {
                    Button(
                        onClick = {
                            showExitDialog = false
-                           // Stop playback before exiting
-                           playerConnection?.player?.let { player ->
-                               player.stop()
-                               player.clearMediaItems()
-                           }
-                           (view.context as? android.app.Activity)?.finish()
+                           (view.context as? android.app.Activity)?.moveTaskToBack(true)
                        },
                        modifier = Modifier
                            .onFocusChanged { exitButtonFocused = it.isFocused }
@@ -315,10 +310,11 @@ enum class TvSection(val label: String) {
                                shape = RoundedCornerShape(8.dp),
                            ),
                    ) {
-                       Text("Exit")
+                       Text("Keep playing")
                    }
                },
               dismissButton = {
+                  Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                   Button(
                       onClick = { showExitDialog = false },
                       colors = ButtonDefaults.outlinedButtonColors(
@@ -334,6 +330,19 @@ enum class TvSection(val label: String) {
                           ),
                   ) {
                       Text("Stay")
+                  }
+                   Button(
+                       onClick = {
+                           showExitDialog = false
+                           playerConnection?.player?.let { player ->
+                               player.stop()
+                               player.clearMediaItems()
+                           }
+                           (view.context as? android.app.Activity)?.finish()
+                       },
+                   ) {
+                       Text("Stop & exit")
+                   }
                   }
               },
           )
@@ -399,6 +408,10 @@ enum class TvSection(val label: String) {
           defaultValue = 60,
       )
       val dimIdleTimeoutMs = (dimIdleSecondsPref.coerceIn(15, 600) * 1000L)
+      val (dimAmountPref, _) = rememberPreference(
+          com.auramusic.app.constants.TvDimAmountKey,
+          defaultValue = 62,
+      )
       val resetIdle: () -> Unit = {
           lastInteraction.value = System.currentTimeMillis()
           if (isScreensaverActive) isScreensaverActive = false
@@ -752,7 +765,7 @@ enum class TvSection(val label: String) {
                               // Enough to take the glare off a room, not enough to
                               // lose the screen: a shelf is still readable, a video
                               // still visible, so this is a dimmer and not a blank.
-                              .background(Color.Black.copy(alpha = 0.62f)),
+                              .background(Color.Black.copy(alpha = dimAmountPref.coerceIn(0, 100) / 100f)),
                       )
                   }
               }

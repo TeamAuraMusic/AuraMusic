@@ -1229,6 +1229,9 @@ fun TvPlaybackSettingsScreen(
     val (tvDimIdleSeconds, onTvDimIdleSecondsChange) = rememberPreference(
         com.auramusic.app.constants.TvDimIdleSecondsKey, 60,
     )
+    val (tvDimAmount, onTvDimAmountChange) = rememberPreference(
+        com.auramusic.app.constants.TvDimAmountKey, 62,
+    )
     val (seekExtraSeconds, onSeekExtraSecondsChange) = rememberPreference(
         com.auramusic.app.constants.SeekExtraSeconds, false,
     )
@@ -1381,6 +1384,16 @@ fun TvPlaybackSettingsScreen(
                     // hundred clicks fighting each other over the same second.
                     steps = 38,
                     onValueChange = { onTvDimIdleSecondsChange(it.roundToInt()) },
+                )
+            }
+            item {
+                TvSliderRow(
+                    title = "Dimming amount",
+                    subtitle = "$tvDimAmount%",
+                    value = tvDimAmount.toFloat(),
+                    valueRange = 0f..100f,
+                    steps = 99,
+                    onValueChange = { onTvDimAmountChange(it.roundToInt().coerceIn(0, 100)) },
                 )
             }
         }

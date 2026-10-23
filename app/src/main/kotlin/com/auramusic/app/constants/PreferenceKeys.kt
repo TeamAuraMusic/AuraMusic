@@ -244,6 +244,9 @@ val TvDimOnIdleKey = booleanPreferencesKey("tvDimOnIdle")
  */
 val TvDimIdleSecondsKey = intPreferencesKey("tvDimIdleSeconds")
 
+/** How dark the television's idle dim is, from 0 to 100 percent. */
+val TvDimAmountKey = intPreferencesKey("tvDimAmount")
+
 val PersistentQueueKey = booleanPreferencesKey("persistentQueue")
 val PersistentShuffleAcrossQueuesKey = booleanPreferencesKey("persistentShuffleAcrossQueues")
 val RememberShuffleAndRepeatKey = booleanPreferencesKey("rememberShuffleAndRepeat")
