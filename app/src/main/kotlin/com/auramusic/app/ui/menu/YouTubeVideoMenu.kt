@@ -81,6 +81,13 @@ fun YouTubeVideoMenu(
     /** Null where the channel is already open, which leaves the channel entries out. */
     onChannelClick: ((String) -> Unit)?,
     onDismiss: () -> Unit,
+    /**
+     * False where the video is already in the queue. "Play next" and "Add to queue"
+     * then have nothing left to say; the queue opens this menu to offer the opposite.
+     */
+    showQueueActions: Boolean = true,
+    /** Takes the video back out of the queue, shown in place of the queue actions. */
+    onRemoveFromQueue: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -172,32 +179,52 @@ fun YouTubeVideoMenu(
     ) {
         item {
             NewActionGrid(
-                actions = listOf(
-                    NewAction(
-                        icon = { MenuIcon(R.drawable.playlist_play) },
-                        text = stringResource(R.string.play_next),
-                        onClick = {
-                            VideoPlaybackManager.queueNext(video)
-                            onDismiss()
-                        },
-                    ),
-                    NewAction(
-                        icon = { MenuIcon(R.drawable.ic_queue) },
-                        text = stringResource(R.string.add_to_queue),
-                        onClick = {
-                            VideoPlaybackManager.addToQueue(video)
-                            onDismiss()
-                        },
-                    ),
-                    NewAction(
-                        icon = { MenuIcon(R.drawable.share) },
-                        text = stringResource(R.string.share),
-                        onClick = {
-                            VideoPlaybackManager.shareVideo(context, video.videoId, video.title)
-                            onDismiss()
-                        },
-                    ),
-                ),
+                actions = buildList {
+                    if (showQueueActions) {
+                        add(
+                            NewAction(
+                                icon = { MenuIcon(R.drawable.playlist_play) },
+                                text = stringResource(R.string.play_next),
+                                onClick = {
+                                    VideoPlaybackManager.queueNext(video)
+                                    onDismiss()
+                                },
+                            ),
+                        )
+                        add(
+                            NewAction(
+                                icon = { MenuIcon(R.drawable.ic_queue) },
+                                text = stringResource(R.string.add_to_queue),
+                                onClick = {
+                                    VideoPlaybackManager.addToQueue(video)
+                                    onDismiss()
+                                },
+                            ),
+                        )
+                    }
+                    if (onRemoveFromQueue != null) {
+                        add(
+                            NewAction(
+                                icon = { MenuIcon(R.drawable.close) },
+                                text = stringResource(R.string.video_player_remove_from_queue),
+                                onClick = {
+                                    onRemoveFromQueue()
+                                    onDismiss()
+                                },
+                            ),
+                        )
+                    }
+                    add(
+                        NewAction(
+                            icon = { MenuIcon(R.drawable.share) },
+                            text = stringResource(R.string.share),
+                            onClick = {
+                                VideoPlaybackManager.shareVideo(context, video.videoId, video.title)
+                                onDismiss()
+                            },
+                        ),
+                    )
+                },
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp),
             )
         }

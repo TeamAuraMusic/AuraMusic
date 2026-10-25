@@ -73,6 +73,14 @@ val SavedVideosKey = stringPreferencesKey("videoSavedJson")
 val LikedVideosKey = stringPreferencesKey("videoLikedJson")
 val VideoHistoryKey = stringPreferencesKey("videoHistoryJson")
 /**
+ * Which side was actually playing when the app last left: "music" or "video".
+ *
+ * Music comes back on its own because the service persists its queue; a video has
+ * nothing to restore it from, so this is what tells the app that reopening should
+ * bring back the floating video at the place it was left rather than a song.
+ */
+val LastPlayedMediaKindKey = stringPreferencesKey("lastPlayedMediaKind")
+/**
  * Persisted canvas lookups: {"<normalized query>": {"u": url|"", "e": expiryMs}}.
  * Lives in DataStore so a track resolved once does not go back to the canvas server
  * after a restart - the server has its own KV cache, but a request is still a request.

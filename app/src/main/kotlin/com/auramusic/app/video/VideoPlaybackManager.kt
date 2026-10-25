@@ -25,6 +25,7 @@ import androidx.media3.extractor.mkv.MatroskaExtractor
 import androidx.media3.extractor.mp4.FragmentedMp4Extractor
 import androidx.datastore.preferences.core.edit
 import com.auramusic.app.R
+import com.auramusic.app.constants.LastPlayedMediaKindKey
 import com.auramusic.app.constants.LikedVideosKey
 import com.auramusic.app.constants.SavedVideoIdsKey
 import com.auramusic.app.constants.SavedVideosKey
@@ -76,6 +77,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -86,6 +88,10 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 object VideoPlaybackManager {
+
+    /** Values of [LastPlayedMediaKindKey]. */
+    const val MEDIA_KIND_MUSIC = "music"
+    const val MEDIA_KIND_VIDEO = "video"
 
     data class VideoSession(
         val videoId: String,
@@ -290,7 +296,97 @@ object VideoPlaybackManager {
     fun attachSharedPlayer(connection: com.auramusic.app.playback.PlayerConnection) {
         sharedConnectionRef = java.lang.ref.WeakReference(connection)
     }
+
+    /** Guards the one cold-start restore per process. */
+    @Volatile private var restoreAttempted = false
     private var tickerJob: Job? = null
+
+    /**
+     * Brings back the video that was on screen when the app last closed, as a paused
+     * tile in the floating player.
+     *
+     * Music restores itself because the service persists its queue; a video had
+     * nothing to come back to, so opening the app always showed the last song - even
+     * when the last thing the listener was watching was a video. Where it stopped and
+     * what it was come from the video history, which is written while a video plays.
+     *
+     * Only the first connection in a process is a cold start; reattaching after a
+     * configuration change must not pull the video the listener is watching back into
+     * the corner.
+     */
+    fun restoreLastPlayedVideo(context: Context) {
+        if (restoreAttempted) return
+        restoreAttempted = true
+        val appContext = context.applicationContext
+        scope.launch {
+            val prefs = withContext(Dispatchers.IO) {
+                runCatching { appContext.dataStore.data.first() }.getOrNull()
+            } ?: return@launch
+            if (prefs[LastPlayedMediaKindKey] != MEDIA_KIND_VIDEO) return@launch
+            if (_uiState.value.session != null) return@launch
+
+            val connection = sharedConnectionRef?.get() ?: return@launch
+            runCatching { connection.service.isPlayerReady.first { it } }
+
+            // MusicService restores its persisted queue onto this same player right
+            // after the player is ready, and a video taking the player snapshots that
+            // queue to disk first. Waiting for the queue keeps the snapshot from
+            // overwriting the listener's music with an empty one. An empty queue is a
+            // normal state, so the wait is short.
+            val deadline = System.currentTimeMillis() + QUEUE_RESTORE_GRACE_MS
+            while (System.currentTimeMillis() < deadline) {
+                val items = runCatching { connection.player.mediaItemCount }.getOrDefault(0)
+                if (items > 0) break
+                delay(100)
+            }
+            if (_uiState.value.session != null) return@launch
+
+            // Music may have started while the queue was settling; if it did, it is the
+            // most recent thing that played and the video stays closed.
+            val fresh = withContext(Dispatchers.IO) {
+                runCatching { appContext.dataStore.data.first() }.getOrNull()
+            } ?: return@launch
+            if (fresh[LastPlayedMediaKindKey] != MEDIA_KIND_VIDEO) return@launch
+
+            val entry = parseVideoHistory(fresh[VideoHistoryKey])
+                .maxByOrNull { it.lastPlayedAt }
+                ?.takeIf { it.videoId.isNotBlank() && !it.isWatched }
+                ?: return@launch
+            // A video finished to the end is not "where I left off"; it belongs to
+            // history now, not to the corner of the screen.
+            playWithDetails(
+                context = context,
+                videoId = entry.videoId,
+                title = entry.title,
+                channelName = entry.channelName,
+                channelId = entry.channelId,
+                channelThumbnail = entry.channelAvatarUrl,
+                thumbnails = emptyList(),
+                // A history entry with no duration is older than the field, not a
+                // video that just started; its position is still the best answer.
+                startPositionMs = if (entry.durationMs <= 0L || entry.shouldResume) {
+                    entry.positionMs
+                } else {
+                    0L
+                },
+                startDurationMs = entry.durationMs,
+                startMinimized = true,
+                startPaused = true,
+            )
+        }
+    }
+
+    /** Records which side last played, so a cold start knows what to bring back. */
+    private fun markLastPlayedMediaKind(kind: String) {
+        val ctx = currentContext
+            ?: sharedConnectionRef?.get()?.service?.applicationContext
+            ?: return
+        scope.launch {
+            runCatching {
+                ctx.dataStore.edit { it[LastPlayedMediaKindKey] = kind }
+            }
+        }
+    }
 
     /**
      * Bumped whenever video takes the screen back from music.
@@ -528,6 +624,16 @@ object VideoPlaybackManager {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             if (!isGuestActive()) return
             _uiState.update { it.copy(isPlaying = isPlaying) }
+            if (isPlaying) {
+                // Set while playback is actually running, not when a video is merely
+                // selected: a load that never produces a frame must not claim the cold
+                // start next time.
+                markLastPlayedMediaKind(MEDIA_KIND_VIDEO)
+            } else {
+                // The playhead has stopped, so this is the most accurate position the
+                // history will get before the process goes away.
+                recordCurrentToHistory()
+            }
         }
 
         override fun onPlaybackStateChanged(playbackState: Int) {
@@ -677,6 +783,9 @@ object VideoPlaybackManager {
         thumbnails: List<com.auramusic.innertube.models.Thumbnail> = emptyList(),
         channels: List<com.auramusic.innertube.models.Artist> = emptyList(),
         startPositionMs: Long = 0L,
+        startDurationMs: Long = 0L,
+        startMinimized: Boolean = false,
+        startPaused: Boolean = false,
     ) {
         val current = _uiState.value
         if (current.session?.videoId == videoId) {
@@ -749,13 +858,19 @@ object VideoPlaybackManager {
                 viewCountText = viewCountText,
                 publishedTimeText = publishedTimeText,
             ),
-            minimized = false,
+            // Restoring the last video opens in the floating player, where the
+            // listener left it, rather than taking the whole screen again.
+            minimized = startMinimized,
             // Not yet playing, because nothing is. This used to be asserted true
             // before a byte of video existed, so every load that gave up on the way
             // left the player claiming to play a video that was never going to move -
             // the one shape every one of these failures has taken.
             isPlaying = false,
             isBuffering = true,
+            // A resumed video knows where it is before the stream does, so the tile's
+            // progress strip and the history write are right during the load.
+            positionMs = startPositionMs,
+            durationMs = startDurationMs,
             videoQuality = currentQuality,
             autoplayEnabled = currentAutoplay,
             // Pre-set loading states so the UI shows spinners immediately. The async loaders
@@ -779,6 +894,9 @@ object VideoPlaybackManager {
             recommendations = current.recommendations,
             queueOrder = current.queueOrder,
         )
+        if (startPositionMs > 0L || startDurationMs > 0L) {
+            _positionState.value = startPositionMs to startDurationMs
+        }
         // Rebuild the media notification immediately with the NEW video's metadata.
         // This closes the window where the shade would otherwise keep showing the
         // previous video (or a placeholder) until the stream resolves and
@@ -797,6 +915,7 @@ object VideoPlaybackManager {
                 channelName = channelName,
                 channelThumbnail = channelThumbnail ?: bestThumbnail,
                 startPositionMs = startPositionMs,
+                startPaused = startPaused,
             )
         }
         scope.launch {
@@ -2342,6 +2461,9 @@ object VideoPlaybackManager {
         // rather than to the window, and forgetting what has been watched when the
         // overlay is closed is what let the same videos come round again.
         queuedAheadVideoId = null
+        // Closed on purpose: the video should not be waiting in the corner the next
+        // time the app opens. Music (if the listener has any) takes the cold start.
+        markLastPlayedMediaKind(MEDIA_KIND_MUSIC)
         // Drop our handles so we aren't pinning a Context/Activity any longer.
         currentContext = null
         activityRef = null
@@ -2410,6 +2532,7 @@ object VideoPlaybackManager {
         channelName: String,
         channelThumbnail: String?,
         startPositionMs: Long,
+        startPaused: Boolean = false,
     ) {
         // True once a later load owns the session. This load's answer is no longer the
         // one on screen, so it has nothing to report.
@@ -2447,6 +2570,7 @@ object VideoPlaybackManager {
             channelName = channelName,
             channelThumbnail = channelThumbnail,
             startPositionMs = startPositionMs,
+            playWhenReady = !startPaused,
         )
     }
 
@@ -2510,6 +2634,7 @@ object VideoPlaybackManager {
         channelName: String,
         channelThumbnail: String?,
         startPositionMs: Long = 0L,
+        playWhenReady: Boolean = true,
     ) {
         val service = sharedConnectionRef?.get()?.service ?: return
         // Another load has taken over since this one was checked. It is answerable for
@@ -2526,7 +2651,7 @@ object VideoPlaybackManager {
         )
         // The shared player swaps to the video as a guest: the music queue is snapshotted
         // on the first takeover and the session's notification shows the video's metadata.
-        service.playGuestVideoSource(mediaSource, startPositionMs)
+        service.playGuestVideoSource(mediaSource, startPositionMs, playWhenReady)
         // A fresh single-item playlist replaced whatever the lookahead had queued, so
         // what is ahead on the player is no longer described by it either.
         queuedAheadVideoId = null
@@ -2840,6 +2965,12 @@ private const val YOUTUBE_WATCH_LATER_ID = "WL"
 
 /** How often the ticker wakes when there is nothing on screen to redraw for it. */
 private const val IDLE_TICK_MS = 1_000L
+
+/**
+ * How long a cold start waits for the music service to put its persisted queue on
+ * the shared player before restoring a video over it.
+ */
+private const val QUEUE_RESTORE_GRACE_MS = 2_000L
 
 private fun parseVideoHistory(json: String?): List<VideoPlaybackManager.VideoHistoryEntry> {
     if (json.isNullOrBlank()) return emptyList()

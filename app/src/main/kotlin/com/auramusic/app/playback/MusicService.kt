@@ -132,6 +132,7 @@ import com.auramusic.app.constants.HideExplicitKey
 import com.auramusic.app.constants.HideVideoSongsKey
 import com.auramusic.app.constants.HistoryDuration
 import com.auramusic.app.constants.LastFMUseNowPlaying
+import com.auramusic.app.constants.LastPlayedMediaKindKey
 import com.auramusic.app.constants.LateNightModeKey
 import com.auramusic.app.constants.MediaSessionConstants.CommandToggleLike
 import com.auramusic.app.constants.MediaSessionConstants.CommandToggleRepeatMode
@@ -1897,7 +1898,11 @@ class MusicService :
      * Plays a video's media source on this player, replacing whatever the music queue held.
      * The music queue is snapshotted first so [endGuestVideo] can bring it back untouched.
      */
-    fun playGuestVideoSource(source: MediaSource, startPositionMs: Long = 0L) {
+    fun playGuestVideoSource(
+        source: MediaSource,
+        startPositionMs: Long = 0L,
+        playWhenReady: Boolean = true,
+    ) {
         if (!_guestVideoActive.value) {
             // Video mode's state describes a song that was playing as a video, and any
             // switch still running was started against the music playlist and is about
@@ -1914,7 +1919,7 @@ class MusicService :
         player.clearMediaItems()
         player.setMediaSource(source, startPositionMs)
         player.prepare()
-        player.playWhenReady = true
+        player.playWhenReady = playWhenReady
     }
 
     /**
@@ -2778,6 +2783,15 @@ class MusicService :
                 VideoPlaybackManager.giveWayToMusic(applicationContext)
             } catch (e: Exception) {
                 Timber.tag(TAG).w(e, "Video playback handoff to music failed")
+            }
+            // A cold start brings back whichever side played last. Music says so here,
+            // where music is genuinely running rather than merely queued.
+            scope.launch {
+                runCatching {
+                    dataStore.edit {
+                        it[LastPlayedMediaKindKey] = VideoPlaybackManager.MEDIA_KIND_MUSIC
+                    }
+                }
             }
         }
 

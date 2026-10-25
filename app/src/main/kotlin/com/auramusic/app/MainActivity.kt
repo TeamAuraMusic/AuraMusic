@@ -273,6 +273,9 @@ class MainActivity : ComponentActivity() {
                     listenTogetherManager.setPlayerConnection(playerConnection)
                     // The video side shares this player instead of owning one.
                     VideoPlaybackManager.attachSharedPlayer(playerConnection!!)
+                    // If a video was the last thing playing when the app closed, bring it
+                    // back as the floating player instead of the last song.
+                    VideoPlaybackManager.restoreLastPlayedVideo(this@MainActivity)
                     // Downloads are consulted from deep inside playback, which has no
                     // context of its own; this is the one place both can be reached.
                     com.auramusic.app.utils.AuraPlayerUtils.currentContextForDownloads =
@@ -293,6 +296,7 @@ class MainActivity : ComponentActivity() {
                             playerConnection = PlayerConnection(this@MainActivity, service, database, lifecycleScope)
                             listenTogetherManager.setPlayerConnection(playerConnection)
                             VideoPlaybackManager.attachSharedPlayer(playerConnection!!)
+                            VideoPlaybackManager.restoreLastPlayedVideo(this@MainActivity)
                         } catch (e2: Exception) {
                             Timber.tag("MainActivity").e(e2, "Failed to create PlayerConnection on retry")
                         }

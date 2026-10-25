@@ -107,6 +107,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -153,8 +154,11 @@ import com.auramusic.app.constants.SubtitlesEnabledKey
 import com.auramusic.app.constants.VideoCodec
 import com.auramusic.app.constants.VideoQuality
 import com.auramusic.app.subtitles.SubtitleLanguageOptions
+import com.auramusic.app.ui.component.BottomSheetMenu
 import com.auramusic.app.ui.component.ChannelAvatarStack
 import com.auramusic.app.ui.component.ChannelPickerDialog
+import com.auramusic.app.ui.component.MenuState
+import com.auramusic.app.ui.menu.YouTubeVideoMenu
 import com.auramusic.app.utils.AuraPlayerUtils
 import com.auramusic.app.video.VideoDownloadStore
 import com.auramusic.app.utils.linkifiedText
@@ -163,6 +167,8 @@ import com.auramusic.app.video.VideoPlaybackManager.CommentItem
 import com.auramusic.app.video.VideoPlaybackManager.RecommendationItem
 import com.auramusic.innertube.YouTube
 import com.auramusic.innertube.models.PlaylistItem
+import com.auramusic.innertube.models.Thumbnail
+import com.auramusic.innertube.models.YouTubeVideoItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -173,6 +179,11 @@ import kotlin.math.roundToInt
 fun VideoPlayerOverlay(
     onChannelClick: ((String) -> Unit)? = null,
 ) {
+    // Where the floating tile was put lives here rather than inside it: the tile is
+    // disposed every time the player expands, and remembering its position inside
+    // that subtree would drop it back into the corner on the way out.
+    var floatX by rememberSaveable { mutableStateOf(0f) }
+    var floatY by rememberSaveable { mutableStateOf(0f) }
     val state by VideoPlaybackManager.uiState.collectAsStateWithLifecycle()
     // The vertical Shorts pager renders the video surface itself, so the global
     // overlay (expanded player + mini tile) must stay out of the way while it is open.
@@ -206,6 +217,12 @@ fun VideoPlayerOverlay(
             VideoFloatingPlayer(
                 player = player,
                 session = session,
+                offsetX = floatX,
+                offsetY = floatY,
+                onOffsetChange = { x, y ->
+                    floatX = x
+                    floatY = y
+                },
                 onExpand = { VideoPlaybackManager.expand() },
                 onClose = { VideoPlaybackManager.close() },
             )
@@ -294,6 +311,9 @@ fun VideoPlayerOverlay(
 private fun VideoFloatingPlayer(
     player: ExoPlayer,
     session: VideoPlaybackManager.VideoSession,
+    offsetX: Float,
+    offsetY: Float,
+    onOffsetChange: (Float, Float) -> Unit,
     onExpand: () -> Unit,
     onClose: () -> Unit,
 ) {
@@ -304,14 +324,15 @@ private fun VideoFloatingPlayer(
     // player has to hover, otherwise it lands on top of the music controls.
     val bottomInset = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
 
-    val width = (screenWidthDp * 0.4f).coerceIn(150.dp, 250.dp)
+    // A little under half the screen. The old 40% read as a preview of the video
+    // rather than something being watched; the clamps keep small phones from losing
+    // most of their screen and tablets from getting a second television.
+    val width = (screenWidthDp * 0.48f).coerceIn(170.dp, 300.dp)
     val aspect = state.videoAspectRatio.takeIf { it != null && it > 0.5f && it < 3f } ?: (16f / 9f)
     val height = width / aspect
 
-    var dragX by remember { mutableFloatStateOf(0f) }
-    var dragY by remember { mutableFloatStateOf(0f) }
-    val animatedX by animateFloatAsState(dragX, tween(220), label = "floatDragX")
-    val animatedY by animateFloatAsState(dragY, tween(220), label = "floatDragY")
+    var dragX by remember { mutableFloatStateOf(offsetX) }
+    var dragY by remember { mutableFloatStateOf(offsetY) }
     val dismissThreshold = with(density) { 120.dp.toPx() }
 
     // Bounds: keep the tile fully on screen while it is being dragged around.
@@ -320,7 +341,20 @@ private fun VideoFloatingPlayer(
         (LocalConfiguration.current.screenHeightDp.dp - height - bottomInset - 32.dp).toPx()
     }
 
+    // Rotation or a different inset can leave the remembered spot outside the new
+    // bounds; pull it back rather than letting the tile hang half off the screen.
+    LaunchedEffect(maxShiftPx, maxUpPx) {
+        val clampedX = dragX.coerceIn(-maxShiftPx, 0f)
+        val clampedY = dragY.coerceIn(-maxUpPx, 0f)
+        if (clampedX != dragX || clampedY != dragY) {
+            dragX = clampedX
+            dragY = clampedY
+            onOffsetChange(clampedX, clampedY)
+        }
+    }
+
     val closeRequest by rememberUpdatedState(onClose)
+    val commitOffset by rememberUpdatedState(onOffsetChange)
 
     Box(modifier = Modifier.fillMaxSize()) {
         Surface(
@@ -328,10 +362,10 @@ private fun VideoFloatingPlayer(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(end = 16.dp, bottom = bottomInset + 16.dp)
-                .offset { IntOffset(animatedX.roundToInt(), animatedY.roundToInt()) }
+                .offset { IntOffset(dragX.roundToInt(), dragY.roundToInt()) }
                 .size(width, height)
                 .graphicsLayer {
-                    val p = (animatedY / dismissThreshold).coerceIn(0f, 1f)
+                    val p = (dragY / dismissThreshold).coerceIn(0f, 1f)
                     scaleX = 1f - 0.05f * p
                     scaleY = 1f - 0.05f * p
                     alpha = 1f - 0.5f * p
@@ -342,13 +376,17 @@ private fun VideoFloatingPlayer(
                             if (dragY > dismissThreshold) {
                                 closeRequest()
                             } else {
-                                dragX = 0f
-                                dragY = 0f
+                                // Stay where the finger left it. Snapping back to the
+                                // corner is why the tile could not be moved around.
+                                dragX = dragX.coerceIn(-maxShiftPx, 0f)
+                                dragY = dragY.coerceIn(-maxUpPx, 0f)
+                                commitOffset(dragX, dragY)
                             }
                         },
                         onDragCancel = {
-                            dragX = 0f
-                            dragY = 0f
+                            dragX = dragX.coerceIn(-maxShiftPx, 0f)
+                            dragY = dragY.coerceIn(-maxUpPx, 0f)
+                            commitOffset(dragX, dragY)
                         },
                         onDrag = { change, amount ->
                             dragX = (dragX + amount.x).coerceIn(-maxShiftPx, 0f)
@@ -1767,6 +1805,9 @@ private fun VideoDetailPane(
     val listState = rememberLazyListState()
     val context = LocalContext.current
     var selectedTab by remember { mutableIntStateOf(DetailTab.UpNext.ordinal) }
+    // The app's menu host lives underneath the video overlay, so a sheet opened from
+    // the queue would be hidden by the player. The pane hosts its own instead.
+    val menuState = remember { MenuState() }
     // Reply expansion lives with the pane: comment rows are recycled by the lazy list,
     // so per-row remember state would not survive a scroll.
     val expandedReplyIds = remember { mutableStateOf(setOf<String>()) }
@@ -1914,7 +1955,38 @@ private fun VideoDetailPane(
                                     publishedTimeText = item.publishedTimeText,
                                 )
                             },
-                            onRemove = { VideoPlaybackManager.removeFromQueue(item.videoId) },
+                            onMenuClick = {
+                                menuState.show {
+                                    YouTubeVideoMenu(
+                                        video = YouTubeVideoItem(
+                                            videoId = item.videoId,
+                                            title = item.title,
+                                            channelName = item.channelName,
+                                            channelId = item.channelId,
+                                            viewCountText = item.viewCountText,
+                                            publishedTimeText = item.publishedTimeText,
+                                            durationText = item.durationText,
+                                            thumbnails = listOfNotNull(
+                                                item.thumbnail?.let {
+                                                    Thumbnail(url = it, width = null, height = null)
+                                                },
+                                            ),
+                                        ),
+                                        channels = emptyList(),
+                                        onChannelClick = { channelId ->
+                                            VideoPlaybackManager.collapse()
+                                            onChannelClick(channelId)
+                                        },
+                                        onDismiss = { menuState.dismiss() },
+                                        // It is already in the queue: queueing it again
+                                        // has nothing to say, and taking it out does.
+                                        showQueueActions = false,
+                                        onRemoveFromQueue = {
+                                            VideoPlaybackManager.removeFromQueue(item.videoId)
+                                        },
+                                    )
+                                }
+                            },
                         )
                     }
                     if (uiState.isLoadingMoreRecommendations) {
@@ -1926,6 +1998,10 @@ private fun VideoDetailPane(
             }
         }
     }
+    // A host of its own: the app's menu host is drawn under this overlay, so a queue
+    // sheet opened there would never be seen. A modal sheet is its own window, so it
+    // can sit beside the list without taking part in its layout.
+    BottomSheetMenu(state = menuState)
 }
 
 /** Small indirection so the effect body stays readable. */
@@ -3395,7 +3471,7 @@ private fun UpNextRow(
     item: RecommendationItem,
     isPlaying: Boolean,
     onClick: () -> Unit,
-    onRemove: () -> Unit,
+    onMenuClick: () -> Unit,
     hasPlayed: Boolean = false,
 ) {
     // The playing row is lifted onto a tonal card so "where am I in the queue" reads at a
@@ -3536,22 +3612,18 @@ private fun UpNextRow(
         }
 
         if (!isPlaying) {
-            Surface(
-                onClick = onRemove,
-                shape = CircleShape,
-                color = Color.Transparent,
+            IconButton(
+                onClick = onMenuClick,
                 modifier = Modifier
                     .padding(start = 4.dp)
                     .size(36.dp),
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        painter = painterResource(R.drawable.close),
-                        contentDescription = stringResource(R.string.video_player_remove_from_queue),
-                        modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Icon(
+                    painter = painterResource(R.drawable.more_vert),
+                    contentDescription = stringResource(R.string.more_options),
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }
