@@ -324,7 +324,8 @@ constructor(
             }.distinctUntilChanged()
             .flatMapLatest { (sortType, descending) ->
                 database.playlists(sortType, descending)
-            }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+            }.withoutHidden(context)
+            .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     fun sync() {
         viewModelScope.launch(Dispatchers.IO) { syncUtils.syncSavedPlaylists() }
@@ -410,6 +411,7 @@ constructor(
             database.albumsLiked(AlbumSortType.CREATE_DATE, true).map { it.filterExplicitAlbums(hideExplicit) }
         }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
     var playlists = database.playlists(PlaylistSortType.CREATE_DATE, true)
+        .withoutHidden(context)
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     init {
@@ -471,4 +473,37 @@ class LibraryViewModel
 constructor() : ViewModel() {
     private val curScreen = mutableStateOf(LibraryFilter.LIBRARY)
     val filter: MutableState<LibraryFilter> = curScreen
+}
+
+/** Leaves out the playlists the user hid; they are listed under Hidden playlists instead. */
+private fun kotlinx.coroutines.flow.Flow<List<com.auramusic.app.db.entities.Playlist>>.withoutHidden(
+    context: Context,
+) = kotlinx.coroutines.flow.combine(
+    this,
+    context.dataStore.data.map { it[com.auramusic.app.constants.HiddenPlaylistIdsKey].orEmpty() }.distinctUntilChanged(),
+) { playlists, hidden -> if (hidden.isEmpty()) playlists else playlists.filterNot { it.id in hidden } }
+
+@HiltViewModel
+class HiddenPlaylistsViewModel
+@Inject
+constructor(
+    @ApplicationContext private val context: Context,
+    database: MusicDatabase,
+) : ViewModel() {
+    val playlists = kotlinx.coroutines.flow.combine(
+        database.playlists(PlaylistSortType.NAME, false),
+        context.dataStore.data.map { it[com.auramusic.app.constants.HiddenPlaylistIdsKey].orEmpty() }.distinctUntilChanged(),
+    ) { playlists, hidden -> playlists.filter { it.id in hidden } }
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    fun unhide(playlistId: String) {
+        viewModelScope.launch { setPlaylistHidden(context, playlistId, false) }
+    }
+}
+
+suspend fun setPlaylistHidden(context: Context, playlistId: String, hidden: Boolean) {
+    context.dataStore.edit { prefs ->
+        val current = prefs[com.auramusic.app.constants.HiddenPlaylistIdsKey].orEmpty()
+        prefs[com.auramusic.app.constants.HiddenPlaylistIdsKey] = if (hidden) current + playlistId else current - playlistId
+    }
 }

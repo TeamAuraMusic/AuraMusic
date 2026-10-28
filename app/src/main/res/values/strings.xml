@@ -1200,4 +1200,11 @@
     <string name="lock_screen_player_collapse">Collapse</string>
     <string name="lock_screen_player_this_phone">This phone</string>
     <string name="lock_screen_player_open_app">Unlock and open AuraMusic</string>
+    <string name="hide_playlist">Hide playlist</string>
+    <string name="hide_playlist_desc">Move it to Hidden playlists in your library</string>
+    <string name="unhide_playlist">Unhide playlist</string>
+    <string name="hidden_playlists">Hidden playlists</string>
+    <string name="hidden_playlists_empty">No hidden playlists</string>
+    <string name="playlist_hidden">Playlist hidden</string>
+    <string name="playlist_unhidden">Playlist is visible again</string>
 </resources>

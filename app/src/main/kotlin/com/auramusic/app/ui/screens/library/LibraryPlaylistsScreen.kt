@@ -152,6 +152,17 @@ fun LibraryPlaylistsScreen(
             songThumbnails = emptyList(),
         )
         
+    val hiddenPlaylist =
+        Playlist(
+            playlist = PlaylistEntity(
+                id = "hidden_playlists",
+                name = stringResource(R.string.hidden_playlists)
+            ),
+            songCount = 0,
+            songThumbnails = emptyList(),
+        )
+    val hiddenPlaylistIds by rememberPreference(com.auramusic.app.constants.HiddenPlaylistIdsKey, emptySet())
+
     val uploadedPlaylist =
         Playlist(
             playlist = PlaylistEntity(
@@ -362,6 +373,22 @@ fun LibraryPlaylistsScreen(
                             )
                         }
                     }
+
+                    if (hiddenPlaylistIds.isNotEmpty()) {
+                        item(
+                            key = "hiddenPlaylists",
+                            contentType = { CONTENT_TYPE_PLAYLIST },
+                        ) {
+                            PlaylistListItem(
+                                playlist = hiddenPlaylist,
+                                autoPlaylist = true,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { navController.navigate("hidden_playlists") }
+                                    .animateItem(),
+                            )
+                        }
+                    }
                     
                     if (showUploaded) {
                         item(
@@ -521,6 +548,23 @@ fun LibraryPlaylistsScreen(
                                             navController.navigate("cache_playlist/cached")
                                         },
                                     )
+                                    .animateItem(),
+                            )
+                        }
+                    }
+
+                    if (hiddenPlaylistIds.isNotEmpty()) {
+                        item(
+                            key = "hiddenPlaylists",
+                            contentType = { CONTENT_TYPE_PLAYLIST },
+                        ) {
+                            PlaylistGridItem(
+                                playlist = hiddenPlaylist,
+                                fillMaxWidth = true,
+                                autoPlaylist = true,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { navController.navigate("hidden_playlists") }
                                     .animateItem(),
                             )
                         }

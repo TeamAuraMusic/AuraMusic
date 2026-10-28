@@ -120,25 +120,31 @@ object YTPlayerUtils {
 
         // Order in which clients are used to build a usable stream URL.
         //
-        // YouTube's 2026 anti-bot enforcement has tightened the older guest
-        // identities (legacy ANDROID_VR 1.61, IPADOS, ANDROID_NO_SDK), which
-        // now frequently serve URLs that 403 at fetch time (surfaced by the
-        // player as IO_BAD_HTTP_STATUS). The currently most permissive guests
-        // come first; WEB_REMIX stays in the middle with a session PO token;
-        // plain ANDROID remains as a last-resort guest. Metadata
+        // Measured live: VISIONOS serves the whole file. ANDROID_VR 1.61 does too but is
+        // increasingly bot-checked. ANDROID_VR 1.65 and IPADOS often serve URLs whose first
+        // 512 KB downloads and every later range is 403, so they go last among guests; the
+        // two-point probe in buildPlaybackData rejects those URLs. WEB_REMIX keeps its
+        // session PO token; plain ANDROID URLs are ciphered and need NewPipe. Metadata
         // (loudness/history tracking) always comes from MAIN_CLIENT.
         val streamClients: Array<YouTubeClient> = arrayOf(
             VISIONOS,
-            ANDROID_VR_1_65_10,
             ANDROID_VR_NO_AUTH,
-            IPADOS,
             WEB_REMIX,
+            ANDROID_VR_1_65_10,
+            IPADOS,
             ANDROID_NO_SDK,
             ANDROID,
         )
 
+        // A client whose stream just died for this song is tried last on the retry, so the
+        // retry actually moves to a different source instead of re-serving the same URL.
+        val recentlyFailed = failedStreamClients[videoId]
+            ?.takeIf { System.currentTimeMillis() - it.second < FAILED_CLIENT_TTL_MS }
+            ?.first
+        val orderedClients = streamClients.sortedBy { it.clientName == recentlyFailed?.clientName && it.clientVersion == recentlyFailed.clientVersion }
+
         var fallbackFailure: String? = null
-        for (client in streamClients) {
+        for (client in orderedClients) {
             if (client.loginRequired && !isLoggedIn) {
                 Timber.tag(logTag).d("Skipping client ${client.clientName} - requires login but user is not logged in")
                 continue
@@ -243,12 +249,13 @@ object YTPlayerUtils {
         // unavailable / rate-limited"). A 1-byte ranged GET with the client's
         // own headers is cheap and lets us fall through to the next client
         // instead.
-        if (!isStreamUrlUsable(streamUrl, client)) {
+        if (!isStreamUrlUsable(streamUrl, client, format.contentLength)) {
             Timber.tag(logTag).w("Stream URL from $clientName failed probe (POT-gated/expired), trying next client")
             return null
         }
 
         Timber.tag(logTag).d("Using stream from $clientName: ${format.mimeType}, bitrate=${format.bitrate}")
+        lastStreamClients[videoId] = client
         return PlaybackData(
             audioConfig,
             videoDetails,
@@ -410,34 +417,45 @@ return format
     }
 
     /**
-     * Cheap liveness probe for a GVS stream URL: fetch a single byte with a
-     * ranged GET (HEAD is sometimes rejected by googlevideo while ranged
-     * GETs succeed). Only 2xx/206 counts as usable.
+     * Liveness probe for a GVS stream URL, using ranged GETs (HEAD is sometimes rejected by
+     * googlevideo while ranged GETs succeed). Only 2xx/206 counts as usable.
+     *
+     * Probes the start AND a point past the first chunk. Some guest clients (seen with
+     * ANDROID_VR 1.65 and IPADOS) are served URLs where the first 512 KB is free but every
+     * later range is 403 — the song starts, then dies a few seconds in with
+     * IO_BAD_HTTP_STATUS, usually while the app is in the background. A start-only probe
+     * passes those URLs.
      */
-    private fun isStreamUrlUsable(url: String, client: YouTubeClient): Boolean {
+    private fun isStreamUrlUsable(url: String, client: YouTubeClient, contentLength: Long?): Boolean {
         if (!url.contains("googlevideo.com") && !url.contains("youtube.com/videoplayback")) {
             // Not a GVS URL (e.g. local/other source) — accept as-is.
             return true
         }
-        return try {
-            val requestBuilder = okhttp3.Request.Builder()
-                .url(url)
-                .header("Range", "bytes=0-0")
-            streamHeadersForClient(client).forEach { (name, value) ->
-                requestBuilder.header(name, value)
-            }
-            httpClient.newCall(requestBuilder.build()).execute().use { response ->
-                val ok = response.isSuccessful
-                if (!ok) {
-                    Timber.tag(logTag).d("Stream probe got HTTP ${response.code}")
-                }
-                ok
-            }
-        } catch (e: Exception) {
-            Timber.tag(logTag).e(e, "Stream probe failed with exception")
-            false
-        }
+        val length = contentLength ?: url.toUri().getQueryParameter("clen")?.toLongOrNull()
+        val deepOffset = length?.let { (it / 2).coerceAtLeast(0L) }?.takeIf { it > PROBE_FREE_PREFIX_BYTES }
+        return probeRange(url, client, 0L) && (deepOffset == null || probeRange(url, client, deepOffset))
     }
+
+    private fun probeRange(url: String, client: YouTubeClient, offset: Long): Boolean = try {
+        val requestBuilder = okhttp3.Request.Builder()
+            .url(url)
+            .header("Range", "bytes=$offset-$offset")
+        streamHeadersForClient(client).forEach { (name, value) ->
+            requestBuilder.header(name, value)
+        }
+        httpClient.newCall(requestBuilder.build()).execute().use { response ->
+            if (!response.isSuccessful) {
+                Timber.tag(logTag).d("Stream probe at $offset got HTTP ${response.code}")
+            }
+            response.isSuccessful
+        }
+    } catch (e: Exception) {
+        Timber.tag(logTag).e(e, "Stream probe at $offset failed with exception")
+        false
+    }
+
+    /** googlevideo serves this much of a gated URL before it starts answering 403. */
+    private const val PROBE_FREE_PREFIX_BYTES = 1024L * 1024L
 
     private fun getSignatureTimestampOrNull(videoId: String): Int? {
         Timber.tag(logTag).d("Getting signature timestamp for videoId: $videoId")
@@ -529,7 +547,17 @@ return format
             .toString()
     }
 
+    /** Client whose stream failed mid-play, per song, with when it failed. */
+    private val failedStreamClients = java.util.concurrent.ConcurrentHashMap<String, Pair<YouTubeClient, Long>>()
+    private val lastStreamClients = java.util.concurrent.ConcurrentHashMap<String, YouTubeClient>()
+    private const val FAILED_CLIENT_TTL_MS = 10 * 60_000L
+
+    /**
+     * Called when playback of [videoId] failed: remembers which client served the stream so
+     * the next resolution prefers a different one.
+     */
     fun forceRefreshForVideo(videoId: String) {
         Timber.tag(logTag).d("Force refreshing for videoId: $videoId")
+        lastStreamClients[videoId]?.let { failedStreamClients[videoId] = it to System.currentTimeMillis() }
     }
 }

@@ -80,6 +80,11 @@ fun PlaylistMenu(
     songList: List<Song>? = emptyList(),
 ) {
     val context = LocalContext.current
+    val hiddenPlaylistIds by com.auramusic.app.utils.rememberPreference(
+        com.auramusic.app.constants.HiddenPlaylistIdsKey,
+        emptySet(),
+    )
+    val isHidden = playlist.id in hiddenPlaylistIds
     val database = LocalDatabase.current
     val downloadUtil = LocalDownloadUtil.current
     val playerConnection = LocalPlayerConnection.current ?: return
@@ -394,6 +399,30 @@ fun PlaylistMenu(
                             )
                         }
                     }
+                    add(
+                        Material3MenuItemData(
+                            title = { Text(text = stringResource(if (isHidden) R.string.unhide_playlist else R.string.hide_playlist)) },
+                            description = if (isHidden) null else ({ Text(text = stringResource(R.string.hide_playlist_desc)) }),
+                            icon = {
+                                Icon(
+                                    painter = painterResource(if (isHidden) R.drawable.visibility else R.drawable.visibility_off),
+                                    contentDescription = null,
+                                )
+                            },
+                            onClick = {
+                                val hide = !isHidden
+                                coroutineScope.launch {
+                                    com.auramusic.app.viewmodels.setPlaylistHidden(context, playlist.id, hide)
+                                }
+                                android.widget.Toast.makeText(
+                                    context,
+                                    if (hide) R.string.playlist_hidden else R.string.playlist_unhidden,
+                                    android.widget.Toast.LENGTH_SHORT,
+                                ).show()
+                                onDismiss()
+                            }
+                        )
+                    )
                     if (!isGuest) {
                         add(
                             Material3MenuItemData(

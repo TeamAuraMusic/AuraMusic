@@ -36,6 +36,7 @@ import com.auramusic.app.ui.screens.videos.VideoSearchScreen
 import com.auramusic.app.ui.screens.videos.ChannelScreen
 import com.auramusic.app.ui.screens.playlist.AutoPlaylistScreen
 import com.auramusic.app.ui.screens.playlist.CachePlaylistScreen
+import com.auramusic.app.ui.screens.playlist.HiddenPlaylistsScreen
 import com.auramusic.app.ui.screens.playlist.LocalPlaylistScreen
 import com.auramusic.app.ui.screens.playlist.OnlinePlaylistScreen
 import com.auramusic.app.ui.screens.playlist.TopPlaylistScreen
@@ -312,6 +313,10 @@ fun NavGraphBuilder.navigationBuilder(
         ),
     ) {
         CachePlaylistScreen(navController, scrollBehavior)
+    }
+
+    composable("hidden_playlists") {
+        HiddenPlaylistsScreen(navController, scrollBehavior)
     }
 
     composable(
