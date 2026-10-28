@@ -885,3 +885,8 @@ val CountryCodeToName =
         "YE" to "Yemen",
         "ZW" to "Zimbabwe",
     )
+
+// Lock screen player
+val LockScreenPlayerKey = booleanPreferencesKey("lockScreenPlayer")
+val LockScreenPlayerLyricsKey = booleanPreferencesKey("lockScreenPlayerLyrics")
+val LockScreenPlayerExpandedKey = booleanPreferencesKey("lockScreenPlayerExpanded")

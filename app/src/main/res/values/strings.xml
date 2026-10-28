@@ -1189,4 +1189,12 @@
     <string name="mic_permission_required">Microphone permission is required for voice search.</string>
     <string name="liked_videos">Liked videos</string>
     <string name="saved_videos">Saved videos</string>
+    <string name="lock_screen_player">Lock screen player</string>
+    <string name="lock_screen_player_desc">Show AuraMusic\'s own player on the lock screen while music plays. Tap it to expand.</string>
+    <string name="lock_screen_player_lyrics">Show lyrics on lock screen</string>
+    <string name="lock_screen_player_lyrics_desc">Synced lyrics in the expanded lock screen player</string>
+    <string name="lock_screen_player_permission">Allow display over other apps</string>
+    <string name="lock_screen_player_permission_desc">Needed to show the player on the lock screen. Tap to allow.</string>
+    <string name="lock_screen_player_collapse">Collapse</string>
+    <string name="lock_screen_player_open_app">Unlock and open AuraMusic</string>
 </resources>

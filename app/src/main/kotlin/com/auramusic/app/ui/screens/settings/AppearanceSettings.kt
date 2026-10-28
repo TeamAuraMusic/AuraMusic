@@ -1502,6 +1502,112 @@ fun AppearanceSettings(
 
         Spacer(modifier = Modifier.height(27.dp))
 
+        val (lockScreenPlayer, onLockScreenPlayerChange) = rememberPreference(
+            com.auramusic.app.constants.LockScreenPlayerKey,
+            defaultValue = false
+        )
+        val (lockScreenPlayerLyrics, onLockScreenPlayerLyricsChange) = rememberPreference(
+            com.auramusic.app.constants.LockScreenPlayerLyricsKey,
+            defaultValue = true
+        )
+        // Re-checked whenever the screen comes back, since the grant happens in system settings.
+        var canDrawOverlays by remember { mutableStateOf(android.provider.Settings.canDrawOverlays(context)) }
+        val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+        androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+            val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+                if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                    canDrawOverlays = android.provider.Settings.canDrawOverlays(context)
+                }
+            }
+            lifecycleOwner.lifecycle.addObserver(observer)
+            onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+        }
+        val openOverlaySettings = {
+            runCatching {
+                context.startActivity(
+                    android.content.Intent(
+                        android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        android.net.Uri.parse("package:${context.packageName}")
+                    ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
+            }
+            Unit
+        }
+
+        Material3SettingsGroup(
+            title = stringResource(R.string.lock_screen_player),
+            items = buildList {
+                add(
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.lock),
+                        title = { Text(stringResource(R.string.lock_screen_player)) },
+                        description = { Text(stringResource(R.string.lock_screen_player_desc)) },
+                        trailingContent = {
+                            Switch(
+                                checked = lockScreenPlayer,
+                                onCheckedChange = { enabled ->
+                                    onLockScreenPlayerChange(enabled)
+                                    if (enabled && !canDrawOverlays) openOverlaySettings()
+                                },
+                                thumbContent = {
+                                    Icon(
+                                        painter = painterResource(
+                                            id = if (lockScreenPlayer) R.drawable.check else R.drawable.close
+                                        ),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(SwitchDefaults.IconSize)
+                                    )
+                                }
+                            )
+                        },
+                        onClick = {
+                            val enabled = !lockScreenPlayer
+                            onLockScreenPlayerChange(enabled)
+                            if (enabled && !canDrawOverlays) openOverlaySettings()
+                        }
+                    )
+                )
+                if (lockScreenPlayer) {
+                    if (!canDrawOverlays) {
+                        add(
+                            Material3SettingsItem(
+                                icon = painterResource(R.drawable.info),
+                                title = { Text(stringResource(R.string.lock_screen_player_permission)) },
+                                description = { Text(stringResource(R.string.lock_screen_player_permission_desc)) },
+                                isHighlighted = true,
+                                onClick = openOverlaySettings
+                            )
+                        )
+                    }
+                    add(
+                        Material3SettingsItem(
+                            icon = painterResource(R.drawable.lyrics),
+                            title = { Text(stringResource(R.string.lock_screen_player_lyrics)) },
+                            description = { Text(stringResource(R.string.lock_screen_player_lyrics_desc)) },
+                            trailingContent = {
+                                Switch(
+                                    checked = lockScreenPlayerLyrics,
+                                    onCheckedChange = onLockScreenPlayerLyricsChange,
+                                    thumbContent = {
+                                        Icon(
+                                            painter = painterResource(
+                                                id = if (lockScreenPlayerLyrics) R.drawable.check else R.drawable.close
+                                            ),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(SwitchDefaults.IconSize)
+                                        )
+                                    }
+                                )
+                            },
+                            onClick = { onLockScreenPlayerLyricsChange(!lockScreenPlayerLyrics) }
+                        )
+                    )
+                }
+            }
+        )
+
+        Spacer(modifier = Modifier.height(27.dp))
+
         Material3SettingsGroup(
             title = stringResource(R.string.liquid_glass_settings),
             items = buildList {

@@ -650,6 +650,7 @@ class MusicService :
                     if (!player.isPlaying && DiscordRpcManager.isReady()) {
                         DiscordRpcManager.disconnect()
                     }
+                    showLockScreenPlayerIfEnabled()
                 }
                 Intent.ACTION_SCREEN_ON -> {
                     if (player.isPlaying) {
@@ -658,6 +659,22 @@ class MusicService :
                 }
             }
         }
+    }
+
+    /**
+     * Puts AuraMusic's own lock screen player in place as the screen goes off, so it is already
+     * there when the phone wakes. Starting an activity from the background needs the
+     * "Display over other apps" permission; without it the system lock screen stays as it is.
+     */
+    @Volatile private var lockScreenPlayerEnabled = false
+
+    private fun showLockScreenPlayerIfEnabled() {
+        if (isTvDevice || isVideoMode || !player.isPlaying) return
+        if (!lockScreenPlayerEnabled) return
+        if (!android.provider.Settings.canDrawOverlays(this)) return
+        runCatching {
+            startActivity(com.auramusic.app.lockscreen.LockScreenPlayerActivity.intent(this))
+        }.onFailure { Timber.tag(TAG).w(it, "Could not show the lock screen player") }
     }
 
     override fun onCreate() {
@@ -1163,6 +1180,11 @@ class MusicService :
                     it.scrobbleDelaySeconds = delaySeconds
                 }
             }
+
+        dataStore.data
+            .map { it[com.auramusic.app.constants.LockScreenPlayerKey] ?: false }
+            .distinctUntilChanged()
+            .collect(scope) { lockScreenPlayerEnabled = it }
 
         // Automix: configure automix settings
         dataStore.data
