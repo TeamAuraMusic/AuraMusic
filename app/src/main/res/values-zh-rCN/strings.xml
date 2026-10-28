@@ -424,7 +424,6 @@
     <string name="squiggly">曲线</string>
     <string name="wavy">波浪</string>
     <string name="slim">纤细</string>
-    <string name="liquid">流体</string>
     <string name="visualizer">音频可视化</string>
     <string name="misc">其他</string>
     <string name="default_open_tab">默认打开的标签页</string>

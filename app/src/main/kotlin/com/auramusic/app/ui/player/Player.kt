@@ -177,7 +177,7 @@ import com.auramusic.app.utils.ShareUtils
 import com.auramusic.app.ui.component.Lyrics
 import com.auramusic.app.ui.component.PlayerSliderTrack
 import com.auramusic.app.ui.component.ResizableIconButton
-import com.auramusic.app.ui.component.SamsungSlider
+import com.auramusic.app.ui.component.WaveformSlider
 import com.auramusic.app.ui.component.SquigglySlider
 import com.auramusic.app.ui.component.WavySlider
 import com.auramusic.app.ui.component.AudioVisualizerSlider
@@ -1394,8 +1394,8 @@ fun BottomSheetPlayer(
                     )
                 }
 
-                SliderStyle.LIQUID -> {
-                    SamsungSlider(
+                SliderStyle.WAVEFORM -> {
+                    WaveformSlider(
                         value = (sliderPosition ?: effectivePosition).toFloat(),
                         valueRange = 0f..(if (duration == C.TIME_UNSET) 0f else duration.toFloat()),
                         onValueChange = {
@@ -1419,6 +1419,8 @@ fun BottomSheetPlayer(
                         },
                         enabled = !isListenTogetherGuest,
                         colors = PlayerSliderColors.getSliderColors(textButtonColor, playerBackground, useDarkTheme),
+                        isPlaying = effectiveIsPlaying,
+                        seed = mediaMetadata?.id,
                         modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
                     )
                 }

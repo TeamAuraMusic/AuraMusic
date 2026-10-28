@@ -656,22 +656,33 @@ class MusicService :
                     if (player.isPlaying) {
                         syncDiscordState()
                     }
+                    // Again on wake: a phone with a lock delay is not locked yet when the
+                    // screen goes off, and the system may have dropped the earlier launch.
+                    showLockScreenPlayerIfEnabled()
                 }
             }
         }
     }
 
     /**
-     * Puts AuraMusic's own lock screen player in place as the screen goes off, so it is already
-     * there when the phone wakes. Starting an activity from the background needs the
-     * "Display over other apps" permission; without it the system lock screen stays as it is.
+     * Puts AuraMusic's own lock screen player over the lock screen. Called as the screen goes off
+     * and again as it comes on, so it is in place whenever the phone is locked with music on.
+     * Starting an activity from the background needs the "Display over other apps" permission;
+     * without it the system lock screen stays as it is.
      */
     @Volatile private var lockScreenPlayerEnabled = false
 
     private fun showLockScreenPlayerIfEnabled() {
-        if (isTvDevice || isVideoMode || !player.isPlaying) return
-        if (!lockScreenPlayerEnabled) return
+        if (isTvDevice || isVideoMode || !lockScreenPlayerEnabled) return
+        // playWhenReady rather than isPlaying: between songs, or while buffering, isPlaying is
+        // briefly false even though music is on.
+        if (player.currentMediaItem == null || !player.playWhenReady) return
         if (!android.provider.Settings.canDrawOverlays(this)) return
+        val keyguard = getSystemService(android.app.KeyguardManager::class.java)
+        val screenOff = getSystemService(android.os.PowerManager::class.java)?.isInteractive == false
+        // Screen off: launch now so it is there on wake, even before a lock delay has expired.
+        // Screen on: only when actually locked, never over an unlocked phone.
+        if (!screenOff && keyguard?.isKeyguardLocked != true) return
         runCatching {
             startActivity(com.auramusic.app.lockscreen.LockScreenPlayerActivity.intent(this))
         }.onFailure { Timber.tag(TAG).w(it, "Could not show the lock screen player") }

@@ -382,7 +382,6 @@
     <string name="enable_voice_commands">Включить голосовые команды</string>
     <string name="enable_voice_commands_desc">Включить интерактивный голосовой контроль с анимированным наложением. Работают такие команды, как «Play», «Next» или «Search Songs».</string>
     <string name="slim">Узкий</string>
-    <string name="liquid">Жидкий</string>
     <string name="visualizer">Визуализатор</string>
     <string name="misc">Прочее</string>
     <string name="default_open_tab">Страница при открытии</string>

@@ -133,7 +133,7 @@ import com.auramusic.app.ui.component.IconButton
 import com.auramusic.app.ui.component.Material3SettingsGroup
 import com.auramusic.app.ui.component.Material3SettingsItem
 import com.auramusic.app.ui.component.PlayerSliderTrack
-import com.auramusic.app.ui.component.SamsungSlider
+import com.auramusic.app.ui.component.WaveformSlider
 import com.auramusic.app.ui.component.AudioVisualizerPreview
 import com.auramusic.app.ui.component.SquigglySlider
 import com.auramusic.app.ui.component.WavySlider
@@ -1203,27 +1203,28 @@ fun AppearanceSettings(
                             .clip(RoundedCornerShape(16.dp))
                             .border(
                                 1.dp,
-                                if (sliderStyle == SliderStyle.LIQUID) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                                if (sliderStyle == SliderStyle.WAVEFORM) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
                                 RoundedCornerShape(16.dp)
                             )
                             .clickable {
-                                onSliderStyleChange(SliderStyle.LIQUID)
+                                onSliderStyleChange(SliderStyle.WAVEFORM)
                                 onSquigglySliderChange(false)
                                 showSliderOptionDialog = false
                             }
                             .padding(12.dp)
                     ) {
                         val sliderValue = 0.4f
-                        SamsungSlider(
+                        WaveformSlider(
                             value = sliderValue,
                             valueRange = 0f..1f,
                             onValueChange = { /* preview only */ },
                             colors = sliderPreviewColors,
                             enabled = false,
+                            isPlaying = true,
                             modifier = Modifier.weight(1f)
                         )
                         Text(
-                            text = stringResource(R.string.liquid),
+                            text = stringResource(R.string.waveform),
                             style = MaterialTheme.typography.labelSmall,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -1510,6 +1511,10 @@ fun AppearanceSettings(
             com.auramusic.app.constants.LockScreenPlayerLyricsKey,
             defaultValue = true
         )
+        val (lockScreenPlayerAod, onLockScreenPlayerAodChange) = rememberPreference(
+            com.auramusic.app.constants.LockScreenPlayerAodKey,
+            defaultValue = false
+        )
         // Re-checked whenever the screen comes back, since the grant happens in system settings.
         var canDrawOverlays by remember { mutableStateOf(android.provider.Settings.canDrawOverlays(context)) }
         val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
@@ -1600,6 +1605,29 @@ fun AppearanceSettings(
                                 )
                             },
                             onClick = { onLockScreenPlayerLyricsChange(!lockScreenPlayerLyrics) }
+                        )
+                    )
+                    add(
+                        Material3SettingsItem(
+                            icon = painterResource(R.drawable.bedtime),
+                            title = { Text(stringResource(R.string.lock_screen_player_aod)) },
+                            description = { Text(stringResource(R.string.lock_screen_player_aod_desc)) },
+                            trailingContent = {
+                                Switch(
+                                    checked = lockScreenPlayerAod,
+                                    onCheckedChange = onLockScreenPlayerAodChange,
+                                    thumbContent = {
+                                        Icon(
+                                            painter = painterResource(
+                                                id = if (lockScreenPlayerAod) R.drawable.check else R.drawable.close
+                                            ),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(SwitchDefaults.IconSize)
+                                        )
+                                    }
+                                )
+                            },
+                            onClick = { onLockScreenPlayerAodChange(!lockScreenPlayerAod) }
                         )
                     )
                 }
@@ -1886,7 +1914,7 @@ fun AppearanceSettings(
                                 SliderStyle.DEFAULT -> stringResource(R.string.default_)
                                 SliderStyle.WAVY -> stringResource(R.string.wavy)
                                 SliderStyle.SLIM -> stringResource(R.string.slim)
-                                SliderStyle.LIQUID -> stringResource(R.string.liquid)
+                                SliderStyle.WAVEFORM -> stringResource(R.string.waveform)
                                 SliderStyle.VISUALIZER -> stringResource(R.string.visualizer)
                             }
                         )

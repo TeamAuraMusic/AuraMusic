@@ -478,7 +478,7 @@
     <string name="squiggly">Squiggly</string>
     <string name="wavy">Wavy</string>
     <string name="slim">Slim</string>
-    <string name="liquid">Liquid</string>
+    <string name="waveform">Waveform</string>
     <string name="visualizer">Visualizer</string>
     <string name="misc">Misc</string>
     <string name="default_open_tab">Default open tab</string>
@@ -1195,6 +1195,8 @@
     <string name="lock_screen_player_lyrics_desc">Synced lyrics in the expanded lock screen player</string>
     <string name="lock_screen_player_permission">Allow display over other apps</string>
     <string name="lock_screen_player_permission_desc">Needed to show the player on the lock screen. Tap to allow.</string>
+    <string name="lock_screen_player_aod">Always On Display</string>
+    <string name="lock_screen_player_aod_desc">Keep a dim clock and the playing song on screen while music plays. Uses more battery.</string>
     <string name="lock_screen_player_collapse">Collapse</string>
     <string name="lock_screen_player_this_phone">This phone</string>
     <string name="lock_screen_player_open_app">Unlock and open AuraMusic</string>

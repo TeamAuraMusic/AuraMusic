@@ -130,7 +130,7 @@ enum class SliderStyle {
     DEFAULT,
     WAVY,
     SLIM,
-    LIQUID,
+    WAVEFORM,
     VISUALIZER
 }
 
@@ -890,3 +890,4 @@ val CountryCodeToName =
 val LockScreenPlayerKey = booleanPreferencesKey("lockScreenPlayer")
 val LockScreenPlayerLyricsKey = booleanPreferencesKey("lockScreenPlayerLyrics")
 val LockScreenPlayerExpandedKey = booleanPreferencesKey("lockScreenPlayerExpanded")
+val LockScreenPlayerAodKey = booleanPreferencesKey("lockScreenPlayerAod")

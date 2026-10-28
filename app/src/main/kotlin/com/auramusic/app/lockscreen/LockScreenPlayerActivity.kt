@@ -79,6 +79,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -107,6 +108,7 @@ import coil3.toBitmap
 import com.auramusic.app.LocalDatabase
 import com.auramusic.app.LocalPlayerConnection
 import com.auramusic.app.R
+import com.auramusic.app.constants.LockScreenPlayerAodKey
 import com.auramusic.app.constants.LockScreenPlayerExpandedKey
 import com.auramusic.app.constants.LockScreenPlayerLyricsKey
 import com.auramusic.app.db.MusicDatabase
@@ -176,6 +178,12 @@ class LockScreenPlayerActivity : ComponentActivity() {
             window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED)
         }
         WindowCompat.setDecorFitsSystemWindows(window, false)
+        androidx.core.content.ContextCompat.registerReceiver(
+            this,
+            unlockReceiver,
+            android.content.IntentFilter(Intent.ACTION_USER_PRESENT),
+            androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
 
         setContent {
             val connection = playerConnection
@@ -206,8 +214,42 @@ class LockScreenPlayerActivity : ComponentActivity() {
         playerConnection?.dispose()
         playerConnection = null
         super.onStop()
-        // Once the user unlocks or leaves, this screen has done its job.
-        if (!isChangingConfigurations) finish()
+        // The screen going dark also stops this activity; it must stay for the next wake.
+        // Only once the phone is unlocked has it done its job.
+        val keyguard = getSystemService(KeyguardManager::class.java)
+        if (!isChangingConfigurations && keyguard?.isKeyguardLocked != true) finish()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Woken up already unlocked (e.g. face unlock, or a lock delay that had not expired).
+        // Not checked while the screen is still off, when the keyguard may not have locked yet.
+        val keyguard = getSystemService(KeyguardManager::class.java)
+        val interactive = getSystemService(android.os.PowerManager::class.java)?.isInteractive == true
+        if (interactive && keyguard?.isKeyguardLocked != true) finish()
+    }
+
+    /** The user unlocked while this was showing: hand over to the phone. */
+    private val unlockReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) = finish()
+    }
+
+    /** Keeps the screen awake for Always On Display; otherwise the normal screen timeout applies. */
+    internal fun setAlwaysOn(on: Boolean) {
+        if (on) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    }
+
+    /** Drops this window to minimum brightness while the AOD face is showing. */
+    internal fun setDimmed(dimmed: Boolean) {
+        window.attributes = window.attributes.apply {
+            screenBrightness = if (dimmed) 0.01f else WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+        }
+    }
+
+    override fun onDestroy() {
+        runCatching { unregisterReceiver(unlockReceiver) }
+        super.onDestroy()
     }
 
     private fun openApp() {
@@ -273,7 +315,43 @@ private fun LockScreenPlayer(
     val song = metadata!!
     val accent by animateColorAsState(rememberArtworkAccent(song.thumbnailUrl), tween(600), label = "accent")
 
-    Box(Modifier.fillMaxSize().background(Scrim)) {
+    // Always On Display: after a short idle on the compact view, dim to a burn-in safe clock.
+    val aodEnabled by rememberPreference(LockScreenPlayerAodKey, false)
+    var aod by remember { mutableStateOf(false) }
+    var lastTouch by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(aodEnabled, expanded, lastTouch, aod) {
+        activity.setAlwaysOn(aodEnabled)
+        if (!aodEnabled || expanded || aod) return@LaunchedEffect
+        delay(AOD_IDLE_MS)
+        aod = true
+    }
+    LaunchedEffect(aod) { activity.setDimmed(aod) }
+
+    if (aod) {
+        AlwaysOnDisplay(
+            title = song.title,
+            artist = song.artists.joinToString { it.name },
+            artwork = song.thumbnailUrl,
+            accent = accent,
+            isPlaying = isPlaying,
+            onWake = { aod = false; lastTouch = System.currentTimeMillis() },
+        )
+        return
+    }
+
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Scrim)
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial)
+                        lastTouch = System.currentTimeMillis()
+                    }
+                }
+            },
+    ) {
         // Blurred artwork wash behind both views, tinted with the artwork's own colour.
         AsyncImage(
             model = song.thumbnailUrl,
@@ -321,6 +399,73 @@ private fun LockScreenPlayer(
                     onExpand = { expanded = true },
                     onDismiss = onDismiss,
                 )
+            }
+        }
+    }
+}
+
+private const val AOD_IDLE_MS = 10_000L
+
+/**
+ * Always On Display face: pure black, dim text, and the content drifts a little every minute so
+ * no pixel stays lit in the same place. Any tap wakes it back to the lock screen player.
+ */
+@Composable
+private fun AlwaysOnDisplay(
+    title: String,
+    artist: String,
+    artwork: String?,
+    accent: Color,
+    isPlaying: Boolean,
+    onWake: () -> Unit,
+) {
+    val (time, date) = rememberClock()
+    var shift by remember { mutableStateOf(Offset.Zero) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            shift = Offset(Random.nextInt(-24, 25).toFloat(), Random.nextInt(-60, 61).toFloat())
+            delay(60_000L)
+        }
+    }
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .pointerInput(Unit) { detectTapGestures { onWake() } },
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.graphicsLayer {
+                translationX = shift.x.dp.toPx()
+                translationY = shift.y.dp.toPx()
+            },
+        ) {
+            Text(time, color = Color.White.copy(alpha = 0.75f), fontSize = 72.sp, fontWeight = FontWeight.Thin)
+            Text(date, color = Color.White.copy(alpha = 0.5f), fontSize = 15.sp)
+            Spacer(Modifier.height(36.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.06f))
+                    .padding(start = 6.dp, end = 16.dp, top = 6.dp, bottom = 6.dp),
+            ) {
+                AsyncImage(
+                    model = artwork,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    alpha = 0.6f,
+                    modifier = Modifier.size(36.dp).clip(CircleShape),
+                )
+                Column(Modifier.padding(start = 10.dp).width(180.dp)) {
+                    Text(title, color = Color.White.copy(alpha = 0.7f), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(artist, color = Color.White.copy(alpha = 0.45f), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                if (isPlaying) {
+                    Spacer(Modifier.width(8.dp))
+                    Icon(painterResource(R.drawable.music_note), contentDescription = null, tint = accent.copy(alpha = 0.6f), modifier = Modifier.size(16.dp))
+                }
             }
         }
     }
