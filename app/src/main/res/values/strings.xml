@@ -1196,5 +1196,6 @@
     <string name="lock_screen_player_permission">Allow display over other apps</string>
     <string name="lock_screen_player_permission_desc">Needed to show the player on the lock screen. Tap to allow.</string>
     <string name="lock_screen_player_collapse">Collapse</string>
+    <string name="lock_screen_player_this_phone">This phone</string>
     <string name="lock_screen_player_open_app">Unlock and open AuraMusic</string>
 </resources>
