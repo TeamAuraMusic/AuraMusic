@@ -894,9 +894,10 @@ object VideoPlaybackManager {
             recommendations = current.recommendations,
             queueOrder = current.queueOrder,
         )
-        if (startPositionMs > 0L || startDurationMs > 0L) {
-            _positionState.value = startPositionMs to startDurationMs
-        }
+        // Always reset the high-frequency pair with the session. A video opened from
+        // music used to inherit the song's progress for a beat, because the ticker
+        // had been publishing the shared player's position all along.
+        _positionState.value = startPositionMs to startDurationMs
         // Rebuild the media notification immediately with the NEW video's metadata.
         // This closes the window where the shade would otherwise keep showing the
         // previous video (or a placeholder) until the stream resolves and
