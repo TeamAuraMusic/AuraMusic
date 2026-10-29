@@ -11,7 +11,6 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -87,6 +86,8 @@ import com.auramusic.app.db.entities.Song
 import com.auramusic.app.extensions.toMediaItem
 import com.auramusic.app.playback.ExoDownloadService
 import com.auramusic.app.playback.queues.ListQueue
+import com.auramusic.app.ui.component.CollectionSectionHeader
+import com.auramusic.app.ui.component.CollectionSongHero
 import com.auramusic.app.ui.component.DefaultDialog
 import com.auramusic.app.ui.component.DraggableScrollbar
 import com.auramusic.app.ui.component.EmptyPlaceholder
@@ -94,6 +95,7 @@ import com.auramusic.app.ui.component.IconButton
 import com.auramusic.app.ui.component.LocalMenuState
 import com.auramusic.app.ui.component.SongListItem
 import com.auramusic.app.ui.component.SortHeader
+import com.auramusic.app.ui.component.rememberArtworkAccent
 import com.auramusic.app.ui.menu.SelectionSongMenu
 import com.auramusic.app.ui.menu.SongMenu
 import com.auramusic.app.ui.menu.TopPlaylistMenu
@@ -123,6 +125,7 @@ fun TopPlaylistScreen(
     val likeLength = remember(songs) {
         songs?.fastSumBy { it.song.duration } ?: 0
     }
+    val heroAccent = rememberArtworkAccent(songs?.firstOrNull()?.song?.thumbnailUrl)
 
     var isSearching by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf(TextFieldValue()) }
@@ -271,30 +274,30 @@ fun TopPlaylistScreen(
                     }
 
                     item(key = "songs_header") {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(start = 16.dp),
-                        ) {
-                            SortHeader(
-                                sortType = sortType,
-                                sortDescending = false,
-                                onSortTypeChange = {
-                                    viewModel.topPeriod.value = it
-                                },
-                                onSortDescendingChange = {},
-                                sortTypeText = { sortType ->
-                                    when (sortType) {
-                                        MyTopFilter.ALL_TIME -> R.string.all_time
-                                        MyTopFilter.DAY -> R.string.past_24_hours
-                                        MyTopFilter.WEEK -> R.string.past_week
-                                        MyTopFilter.MONTH -> R.string.past_month
-                                        MyTopFilter.YEAR -> R.string.past_year
-                                    }
-                                },
-                                modifier = Modifier.weight(1f),
-                                showDescending = false,
-                            )
-                        }
+                        CollectionSectionHeader(
+                            title = stringResource(R.string.songs),
+                            accent = heroAccent,
+                            trailing = {
+                                SortHeader(
+                                    sortType = sortType,
+                                    sortDescending = false,
+                                    onSortTypeChange = {
+                                        viewModel.topPeriod.value = it
+                                    },
+                                    onSortDescendingChange = {},
+                                    sortTypeText = { sortType ->
+                                        when (sortType) {
+                                            MyTopFilter.ALL_TIME -> R.string.all_time
+                                            MyTopFilter.DAY -> R.string.past_24_hours
+                                            MyTopFilter.WEEK -> R.string.past_week
+                                            MyTopFilter.MONTH -> R.string.past_month
+                                            MyTopFilter.YEAR -> R.string.past_year
+                                        }
+                                    },
+                                    showDescending = false,
+                                )
+                            },
+                        )
                     }
                 }
 
@@ -513,185 +516,74 @@ private fun TopPlaylistHeader(
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val context = LocalContext.current
-    
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp, bottom = 20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // Playlist Thumbnail - Large centered with shadow
-        Box(
-            modifier = Modifier.padding(top = 8.dp, bottom = 20.dp)
-        ) {
-            androidx.compose.material3.Surface(
-                modifier = Modifier
-                    .size(240.dp)
-                    .shadow(
-                        elevation = 24.dp,
-                        shape = RoundedCornerShape(3.dp),
-                        spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                    ),
-                shape = RoundedCornerShape(3.dp)
-            ) {
-                AsyncImage(
-                    model = songs[0].thumbnailUrl,
-                    contentDescription = null,
-                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
+
+    val countLabel = pluralStringResource(R.plurals.n_song, songs.size, songs.size)
+    val lengthLabel = likeLength.takeIf { it > 0 }?.let { makeTimeString(it * 1000L) }
+
+    CollectionSongHero(
+        title = name,
+        overline = stringResource(R.string.auto_playlist),
+        coverUrl = songs.firstOrNull()?.song?.thumbnailUrl,
+        chips = listOfNotNull(countLabel, lengthLabel),
+        onPlay = {
+            playerConnection.playQueue(
+                ListQueue(
+                    title = name,
+                    items = songs.map { it.toMediaItem() },
+                ),
+            )
+        },
+        onShuffle = {
+            playerConnection.playQueue(
+                ListQueue(
+                    title = name,
+                    items = songs.shuffled().map { it.toMediaItem() },
+                ),
+            )
+        },
+        onMenu = {
+            menuState.show {
+                TopPlaylistMenu(
+                    downloadState = downloadState,
+                    onQueue = {
+                        playerConnection.addToQueue(
+                            songs.map { it.toMediaItem() }
+                        )
+                    },
+                    onDownload = {
+                        when (downloadState) {
+                            Download.STATE_COMPLETED -> onShowRemoveDownloadDialog()
+                            Download.STATE_DOWNLOADING -> {
+                                songs.forEach { song ->
+                                    DownloadService.sendRemoveDownload(
+                                        context,
+                                        ExoDownloadService::class.java,
+                                        song.id,
+                                        false,
+                                    )
+                                }
+                            }
+                            else -> {
+                                songs.forEach { song ->
+                                    val downloadRequest = DownloadRequest
+                                        .Builder(song.id, song.id.toUri())
+                                        .setCustomCacheKey(song.id)
+                                        .setData(song.title.toByteArray())
+                                        .build()
+                                    DownloadService.sendAddDownload(
+                                        context,
+                                        ExoDownloadService::class.java,
+                                        downloadRequest,
+                                        false,
+                                    )
+                                }
+                            }
+                        }
+                    },
+                    onDismiss = { menuState.dismiss() }
                 )
             }
-        }
-
-        // Playlist Name
-        Text(
-            text = name,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 32.dp)
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Metadata - Song Count • Duration
-        Text(
-            text = buildString {
-                append(pluralStringResource(R.plurals.n_song, songs.size, songs.size))
-                if (likeLength > 0) {
-                    append(" • ")
-                    append(makeTimeString(likeLength * 1000L))
-                }
-            },
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Action Buttons Row
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Shuffle Button - Smaller secondary button
-            androidx.compose.material3.Surface(
-                onClick = {
-                    playerConnection.playQueue(
-                        ListQueue(
-                            title = name,
-                            items = songs.shuffled().map { it.toMediaItem() },
-                        ),
-                    )
-                },
-                shape = androidx.compose.foundation.shape.CircleShape,
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.shuffle),
-                        contentDescription = stringResource(R.string.shuffle),
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-
-            // Play Button - Larger primary circular button
-            Surface(
-                onClick = {
-                    playerConnection.playQueue(
-                        ListQueue(
-                            title = name,
-                            items = songs.map { it.toMediaItem() },
-                        ),
-                    )
-                },
-                color = MaterialTheme.colorScheme.primary,
-                shape = androidx.compose.foundation.shape.CircleShape,
-                modifier = Modifier.size(72.dp)
-            ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.play),
-                        contentDescription = stringResource(R.string.play),
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
-            }
-
-            // Menu Button - Smaller secondary button
-            androidx.compose.material3.Surface(
-                onClick = {
-                    menuState.show {
-                        TopPlaylistMenu(
-                            downloadState = downloadState,
-                            onQueue = {
-                                playerConnection.addToQueue(
-                                    songs.map { it.toMediaItem() }
-                                )
-                            },
-                            onDownload = {
-                                when (downloadState) {
-                                    Download.STATE_COMPLETED -> onShowRemoveDownloadDialog()
-                                    Download.STATE_DOWNLOADING -> {
-                                        songs.forEach { song ->
-                                            DownloadService.sendRemoveDownload(
-                                                context,
-                                                ExoDownloadService::class.java,
-                                                song.id,
-                                                false,
-                                            )
-                                        }
-                                    }
-                                    else -> {
-                                        songs.forEach { song ->
-                                            val downloadRequest = DownloadRequest
-                                                .Builder(song.id, song.id.toUri())
-                                                .setCustomCacheKey(song.id)
-                                                .setData(song.title.toByteArray())
-                                                .build()
-                                            DownloadService.sendAddDownload(
-                                                context,
-                                                ExoDownloadService::class.java,
-                                                downloadRequest,
-                                                false,
-                                            )
-                                        }
-                                    }
-                                }
-                            },
-                            onDismiss = { menuState.dismiss() }
-                        )
-                    }
-                },
-                shape = androidx.compose.foundation.shape.CircleShape,
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.more_vert),
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-        }
-    }
+        },
+        modifier = modifier,
+    )
 }

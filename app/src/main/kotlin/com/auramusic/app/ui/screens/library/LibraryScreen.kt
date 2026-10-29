@@ -53,7 +53,13 @@ fun LibraryScreen(navController: NavController) {
         modifier = Modifier.fillMaxSize(),
     ) {
         when (filterType) {
-            LibraryFilter.LIBRARY -> LibraryMixScreen(navController, filterContent)
+            LibraryFilter.LIBRARY -> LibraryMixScreen(
+                navController = navController,
+                filterContent = filterContent,
+                onOpenArtists = { filterType = LibraryFilter.ARTISTS },
+                onOpenAlbums = { filterType = LibraryFilter.ALBUMS },
+                onOpenPlaylists = { filterType = LibraryFilter.PLAYLISTS },
+            )
             LibraryFilter.PLAYLISTS -> LibraryPlaylistsScreen(navController, filterContent)
             LibraryFilter.SONGS -> LibrarySongsScreen(
                 navController,

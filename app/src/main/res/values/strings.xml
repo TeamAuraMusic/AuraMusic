@@ -29,6 +29,7 @@
     <string name="no_videos_found">No videos found</string>
     <string name="no_posts_found">No posts found</string>
     <string name="live">LIVE</string>
+    <string name="channel">Channel</string>
     <string name="channel_tab_videos">Videos</string>
     <string name="channel_tab_shorts">Shorts</string>
     <string name="channel_tab_posts">Posts</string>
@@ -183,6 +184,14 @@
     <string name="library_artist_empty">Library artists will show up here</string>
     <string name="library_album_empty">Library albums will show up here</string>
     <string name="library_playlist_empty">Your playlists will show up here</string>
+    <string name="auto_playlist">Auto playlist</string>
+    <string name="your_shortcuts">Your shortcuts</string>
+    <string name="subscribed_artists">Subscribed artists</string>
+    <string name="liked_albums">Liked albums</string>
+    <string name="liked_playlists">Liked playlists</string>
+    <string name="from_your_wrapped">From your Wrapped</string>
+    <string name="library_music_subtitle">Artists, albums and playlists you keep</string>
+    <string name="library_video_subtitle">History, subscriptions and videos you saved</string>
     <!-- Artist screen -->
     <string name="from_your_library">From your library</string>
     <string name="radio">Radio</string>

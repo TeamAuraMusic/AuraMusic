@@ -3,6 +3,7 @@ package com.auramusic.app.ui.component
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -43,6 +44,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -51,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.palette.graphics.Palette
 import coil3.compose.AsyncImage
+import com.auramusic.app.R
 import coil3.imageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
@@ -304,6 +307,54 @@ fun HeroIconButton(
     }
 }
 
+/** Subscribe toggle shared by the artist and channel heroes: an accent outline while
+ *  unsubscribed, a tonal fill once subscribed. */
+@Composable
+fun CollectionSubscribeButton(
+    subscribed: Boolean,
+    accent: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    val onBackground = MaterialTheme.colorScheme.onBackground
+    val containerColor by animateColorAsState(
+        targetValue = if (subscribed) onBackground.copy(alpha = 0.1f) else Color.Transparent,
+        label = "subscribeContainer",
+    )
+    val contentColor by animateColorAsState(
+        targetValue = if (subscribed) onBackground else accent,
+        label = "subscribeContent",
+    )
+    Surface(
+        onClick = onClick,
+        enabled = enabled,
+        shape = CircleShape,
+        color = containerColor,
+        contentColor = contentColor,
+        border = if (subscribed) null else BorderStroke(1.5.dp, accent),
+        modifier = modifier.height(44.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 14.dp, end = 18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                painter = painterResource(if (subscribed) R.drawable.subscribed else R.drawable.subscribe),
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = stringResource(if (subscribed) R.string.subscribed else R.string.subscribe),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+            )
+        }
+    }
+}
+
 /** Section header with an accent bar, used for song lists and shelves under the hero. */
 @Composable
 fun CollectionSectionHeader(
@@ -334,6 +385,93 @@ fun CollectionSectionHeader(
             overflow = TextOverflow.Ellipsis,
         )
         trailing?.invoke(this)
+    }
+}
+
+/**
+ * Hero for a collection that is a flat list of songs (Liked, Downloaded, My Top,
+ * Cached): the same blurred backdrop, glowing cover and pill actions as the album,
+ * artist and playlist screens, built from the collection's first song.
+ */
+@Composable
+fun CollectionSongHero(
+    title: String,
+    overline: String,
+    coverUrl: String?,
+    chips: List<String>,
+    onPlay: () -> Unit,
+    modifier: Modifier = Modifier,
+    onShuffle: (() -> Unit)? = null,
+    onMenu: (() -> Unit)? = null,
+    topPadding: Dp = 0.dp,
+) {
+    val accent = rememberArtworkAccent(coverUrl)
+    CollectionHeroBackdrop(
+        imageUrl = coverUrl,
+        accent = accent,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = topPadding + 20.dp, bottom = 4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            CollectionArtwork(
+                accent = accent,
+                size = 196.dp,
+                shape = RoundedCornerShape(24.dp),
+            ) {
+                if (coverUrl != null) {
+                    AsyncImage(
+                        model = coverUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.matchParentSize(),
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(R.drawable.queue_music),
+                        contentDescription = null,
+                        tint = accent.copy(alpha = 0.6f),
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .size(64.dp),
+                    )
+                }
+            }
+            Spacer(Modifier.height(20.dp))
+            CollectionTitleBlock(
+                title = title,
+                overline = overline,
+                accent = accent,
+                chips = chips,
+            )
+            Spacer(Modifier.height(18.dp))
+            CollectionActionRow {
+                if (onShuffle != null) {
+                    HeroIconButton(
+                        icon = R.drawable.shuffle,
+                        onClick = onShuffle,
+                        contentDescription = stringResource(R.string.shuffle),
+                    )
+                }
+                HeroPillButton(
+                    text = stringResource(R.string.play),
+                    icon = R.drawable.play,
+                    onClick = onPlay,
+                    accent = accent,
+                    modifier = Modifier.weight(1f),
+                )
+                if (onMenu != null) {
+                    HeroIconButton(
+                        icon = R.drawable.more_vert,
+                        onClick = onMenu,
+                        contentDescription = stringResource(R.string.more_options),
+                    )
+                }
+            }
+        }
     }
 }
 

@@ -104,6 +104,8 @@ import com.auramusic.app.db.entities.Song
 import com.auramusic.app.extensions.toMediaItem
 import com.auramusic.app.playback.ExoDownloadService
 import com.auramusic.app.playback.queues.ListQueue
+import com.auramusic.app.ui.component.CollectionSectionHeader
+import com.auramusic.app.ui.component.CollectionSongHero
 import com.auramusic.app.ui.component.DefaultDialog
 import com.auramusic.app.ui.component.DraggableScrollbar
 import com.auramusic.app.ui.component.EmptyPlaceholder
@@ -111,6 +113,7 @@ import com.auramusic.app.ui.component.IconButton
 import com.auramusic.app.ui.component.LocalMenuState
 import com.auramusic.app.ui.component.SongListItem
 import com.auramusic.app.ui.component.SortHeader
+import com.auramusic.app.ui.component.rememberArtworkAccent
 import com.auramusic.app.ui.menu.AutoPlaylistMenu
 import com.auramusic.app.ui.menu.SelectionSongMenu
 import com.auramusic.app.ui.menu.SongMenu
@@ -602,6 +605,7 @@ fun AutoPlaylistScreen(
         remember(songs) {
             songs?.fastSumBy { it.song.duration } ?: 0
         }
+    val heroAccent = rememberArtworkAccent(songs?.firstOrNull()?.song?.thumbnailUrl)
 
     val playlistId = viewModel.playlist
     val playlistType = when (playlistId) {
@@ -750,6 +754,19 @@ fun AutoPlaylistScreen(
     // refreshed once a second showed a download as stalled between ticks.
     val pendingVideoDownloads by VideoDownloadStore.pendingFlow(context).collectAsState()
 
+    val playDownloadedVideo: (VideoDownloadStore.Entry) -> Unit = { download ->
+        VideoPlaybackManager.playWithDetails(
+            context = context,
+            videoId = download.videoId,
+            title = download.title,
+            channelName = download.channelName,
+            channelThumbnail = null,
+            thumbnails = listOfNotNull(
+                download.thumbnailUrl?.let { Thumbnail(it, null, null) },
+            ),
+        )
+    }
+
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val pullRefreshState = rememberPullToRefreshState()
     val canRefresh = playlistType == PlaylistType.LIKE || playlistType == PlaylistType.UPLOADED
@@ -792,14 +809,28 @@ fun AutoPlaylistScreen(
                         )
                     }
                 } else {
-                    // A line saying how much this is, the way the music side has a
-                    // header of its own: a shelf of videos with no total reads as a list
-                    // of links rather than as what is on the device.
-                    item(key = "videos_summary") {
-                        VideoDownloadsSummary(
-                            finished = videoDownloads.size,
-                            downloading = pendingVideoDownloads.size,
-                            sizeBytes = videoDownloads.sumOf { it.sizeBytes },
+                    item(key = "videos_hero") {
+                        val firstDownload = videoDownloads.firstOrNull()
+                        val chips = buildList {
+                            add(stringResource(R.string.video_downloads_count, videoDownloads.size))
+                            add(formatDownloadedVideoSize(videoDownloads.sumOf { it.sizeBytes }))
+                            if (pendingVideoDownloads.isNotEmpty()) {
+                                add(
+                                    stringResource(
+                                        R.string.video_downloads_pending_count,
+                                        pendingVideoDownloads.size,
+                                    )
+                                )
+                            }
+                        }
+                        CollectionSongHero(
+                            title = stringResource(R.string.offline),
+                            overline = stringResource(R.string.videos),
+                            coverUrl = firstDownload?.thumbnailUrl,
+                            chips = chips,
+                            onPlay = {
+                                firstDownload?.let(playDownloadedVideo)
+                            },
                             modifier = Modifier.animateItem(),
                         )
                     }
@@ -814,18 +845,7 @@ fun AutoPlaylistScreen(
                     items(videoDownloads, key = { it.videoId }) { download ->
                         DownloadedVideoRow(
                             download = download,
-                            onPlay = {
-                                VideoPlaybackManager.playWithDetails(
-                                    context = context,
-                                    videoId = download.videoId,
-                                    title = download.title,
-                                    channelName = download.channelName,
-                                    channelThumbnail = null,
-                                    thumbnails = listOfNotNull(
-                                        download.thumbnailUrl?.let { Thumbnail(it, null, null) },
-                                    ),
-                                )
-                            },
+                            onPlay = { playDownloadedVideo(download) },
                             onRemove = { VideoDownloadStore.cancel(context, download.videoId) },
                             modifier = Modifier.animateItem(),
                         )
@@ -858,26 +878,26 @@ fun AutoPlaylistScreen(
                     }
 
                     item(key = "songs_header") {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(start = 16.dp),
-                        ) {
-                            SortHeader(
-                                sortType = sortType,
-                                sortDescending = sortDescending,
-                                onSortTypeChange = onSortTypeChange,
-                                onSortDescendingChange = onSortDescendingChange,
-                                sortTypeText = { sortType ->
-                                    when (sortType) {
-                                        SongSortType.CREATE_DATE -> R.string.sort_by_create_date
-                                        SongSortType.NAME -> R.string.sort_by_name
-                                        SongSortType.ARTIST -> R.string.sort_by_artist
-                                        SongSortType.PLAY_TIME -> R.string.sort_by_play_time
-                                    }
-                                },
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
+                        CollectionSectionHeader(
+                            title = stringResource(R.string.songs),
+                            accent = heroAccent,
+                            trailing = {
+                                SortHeader(
+                                    sortType = sortType,
+                                    sortDescending = sortDescending,
+                                    onSortTypeChange = onSortTypeChange,
+                                    onSortDescendingChange = onSortDescendingChange,
+                                    sortTypeText = { sortType ->
+                                        when (sortType) {
+                                            SongSortType.CREATE_DATE -> R.string.sort_by_create_date
+                                            SongSortType.NAME -> R.string.sort_by_name
+                                            SongSortType.ARTIST -> R.string.sort_by_artist
+                                            SongSortType.PLAY_TIME -> R.string.sort_by_play_time
+                                        }
+                                    },
+                                )
+                            },
+                        )
                     }
                 }
 
@@ -1109,187 +1129,76 @@ private fun AutoPlaylistHeader(
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val context = LocalContext.current
-    
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp, bottom = 20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // Playlist Thumbnail - Large centered with shadow
-        Box(
-            modifier = Modifier.padding(top = 8.dp, bottom = 20.dp)
-        ) {
-            androidx.compose.material3.Surface(
-                modifier = Modifier
-                    .size(240.dp)
-                    .shadow(
-                        elevation = 24.dp,
-                        shape = RoundedCornerShape(3.dp),
-                        spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                    ),
-                shape = RoundedCornerShape(3.dp)
-            ) {
-                AsyncImage(
-                    model = songs[0].song.thumbnailUrl,
-                    contentDescription = null,
-                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
+
+    val countLabel = pluralStringResource(R.plurals.n_song, songs.size, songs.size)
+    val lengthLabel = likeLength.takeIf { it > 0 }?.let { makeTimeString(it * 1000L) }
+
+    CollectionSongHero(
+        title = name,
+        overline = stringResource(R.string.auto_playlist),
+        coverUrl = songs.firstOrNull()?.song?.thumbnailUrl,
+        chips = listOfNotNull(countLabel, lengthLabel),
+        onPlay = {
+            playerConnection.playQueue(
+                ListQueue(
+                    title = name,
+                    items = songs.map { it.toMediaItem() },
+                ),
+            )
+        },
+        onShuffle = {
+            playerConnection.playQueue(
+                ListQueue(
+                    title = name,
+                    items = songs.shuffled().map { it.toMediaItem() },
+                ),
+            )
+        },
+        onMenu = {
+            menuState.show {
+                AutoPlaylistMenu(
+                    downloadState = downloadState,
+                    onQueue = {
+                        playerConnection.addToQueue(
+                            songs.map { it.toMediaItem() }
+                        )
+                    },
+                    onDownload = {
+                        when (downloadState) {
+                            Download.STATE_COMPLETED -> onShowRemoveDownloadDialog()
+                            Download.STATE_DOWNLOADING -> {
+                                songs.forEach { song ->
+                                    DownloadService.sendRemoveDownload(
+                                        context,
+                                        ExoDownloadService::class.java,
+                                        song.song.id,
+                                        false,
+                                    )
+                                }
+                            }
+                            else -> {
+                                songs.forEach { song ->
+                                    val downloadRequest = DownloadRequest
+                                        .Builder(song.song.id, song.song.id.toUri())
+                                        .setCustomCacheKey(song.song.id)
+                                        .setData(song.song.title.toByteArray())
+                                        .build()
+                                    DownloadService.sendAddDownload(
+                                        context,
+                                        ExoDownloadService::class.java,
+                                        downloadRequest,
+                                        false,
+                                    )
+                                }
+                            }
+                        }
+                    },
+                    onDismiss = { menuState.dismiss() }
                 )
             }
-        }
-
-        // Playlist Name
-        Text(
-            text = name,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 32.dp)
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Metadata - Song Count • Duration
-        Text(
-            text = buildString {
-                append(pluralStringResource(R.plurals.n_song, songs.size, songs.size))
-                if (likeLength > 0) {
-                    append(" • ")
-                    append(makeTimeString(likeLength * 1000L))
-                }
-            },
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Action Buttons Row
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Shuffle Button - Smaller secondary button
-            androidx.compose.material3.Surface(
-                onClick = {
-                    playerConnection.playQueue(
-                        ListQueue(
-                            title = name,
-                            items = songs.shuffled().map { it.toMediaItem() },
-                        ),
-                    )
-                },
-                shape = androidx.compose.foundation.shape.CircleShape,
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.shuffle),
-                        contentDescription = stringResource(R.string.shuffle),
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-
-            // Play Button - Larger primary circular button
-            Surface(
-                onClick = {
-                    playerConnection.playQueue(
-                        ListQueue(
-                            title = name,
-                            items = songs.map { it.toMediaItem() },
-                        ),
-                    )
-                },
-                color = MaterialTheme.colorScheme.primary,
-                shape = androidx.compose.foundation.shape.CircleShape,
-                modifier = Modifier.size(72.dp)
-            ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.play),
-                        contentDescription = stringResource(R.string.play),
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
-            }
-
-            // Menu Button - Smaller secondary button
-            Surface(
-                onClick = {
-                    menuState.show {
-                        AutoPlaylistMenu(
-                            downloadState = downloadState,
-                            onQueue = {
-                                playerConnection.addToQueue(
-                                    songs.map { it.toMediaItem() }
-                                )
-                            },
-                            onDownload = {
-                                when (downloadState) {
-                                    Download.STATE_COMPLETED -> onShowRemoveDownloadDialog()
-                                    Download.STATE_DOWNLOADING -> {
-                                        songs.forEach { song ->
-                                            DownloadService.sendRemoveDownload(
-                                                context,
-                                                ExoDownloadService::class.java,
-                                                song.song.id,
-                                                false,
-                                            )
-                                        }
-                                    }
-                                    else -> {
-                                        songs.forEach { song ->
-                                            val downloadRequest = DownloadRequest
-                                                .Builder(song.song.id, song.song.id.toUri())
-                                                .setCustomCacheKey(song.song.id)
-                                                .setData(song.song.title.toByteArray())
-                                                .build()
-                                            DownloadService.sendAddDownload(
-                                                context,
-                                                ExoDownloadService::class.java,
-                                                downloadRequest,
-                                                false,
-                                            )
-                                        }
-                                    }
-                                }
-                            },
-                            onDismiss = { menuState.dismiss() }
-                        )
-                    }
-                },
-                shape = androidx.compose.foundation.shape.CircleShape,
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.more_vert),
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-        }
-    }
+        },
+        modifier = modifier,
+    )
 }
 
 

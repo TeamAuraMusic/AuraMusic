@@ -9,9 +9,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -118,6 +116,7 @@ import com.auramusic.app.ui.component.AlbumGridItem
 import com.auramusic.app.ui.component.CollectionActionRow
 import com.auramusic.app.ui.component.CollectionHeroBackdrop
 import com.auramusic.app.ui.component.CollectionSectionHeader
+import com.auramusic.app.ui.component.CollectionSubscribeButton
 import com.auramusic.app.ui.component.ExpandableText
 import com.auramusic.app.ui.component.HeroIconButton
 import com.auramusic.app.ui.component.HeroPillButton
@@ -538,7 +537,7 @@ fun ArtistScreen(
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            ArtistSubscribeButton(
+                            CollectionSubscribeButton(
                                 subscribed = libraryArtist?.artist?.bookmarkedAt != null,
                                 accent = accent,
                                 onClick = {
@@ -1222,50 +1221,4 @@ private fun ArtistSectionHeader(
             null
         },
     )
-}
-
-/** Subscribe toggle: an accent outline when not subscribed, a tonal fill once subscribed. */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ArtistSubscribeButton(
-    subscribed: Boolean,
-    accent: Color,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val onBackground = MaterialTheme.colorScheme.onBackground
-    val containerColor by animateColorAsState(
-        targetValue = if (subscribed) onBackground.copy(alpha = 0.1f) else Color.Transparent,
-        label = "subscribeContainer",
-    )
-    val contentColor by animateColorAsState(
-        targetValue = if (subscribed) onBackground else accent,
-        label = "subscribeContent",
-    )
-    Surface(
-        onClick = onClick,
-        shape = CircleShape,
-        color = containerColor,
-        contentColor = contentColor,
-        border = if (subscribed) null else BorderStroke(1.5.dp, accent),
-        modifier = modifier.height(44.dp),
-    ) {
-        Row(
-            modifier = Modifier.padding(start = 14.dp, end = 18.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                painter = painterResource(if (subscribed) R.drawable.subscribed else R.drawable.subscribe),
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = stringResource(if (subscribed) R.string.subscribed else R.string.subscribe),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-            )
-        }
-    }
 }
