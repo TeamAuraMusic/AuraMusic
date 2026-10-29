@@ -202,7 +202,17 @@ fun HomeScreen(
     val keepListening by viewModel.keepListening.collectAsState()
     val similarRecommendations by viewModel.similarRecommendations.collectAsState()
     val accountPlaylists by viewModel.accountPlaylists.collectAsState()
-    val homePage by viewModel.homePage.collectAsState()
+    val rawHomePage by viewModel.homePage.collectAsState()
+    val hiddenPlaylistIds by rememberPreference(com.auramusic.app.constants.HiddenPlaylistIdsKey, emptySet())
+    // Hidden playlists stay out of every home section until they are unhidden.
+    val homePage = remember(rawHomePage, hiddenPlaylistIds) {
+        if (hiddenPlaylistIds.isEmpty()) rawHomePage
+        else rawHomePage?.copy(
+            sections = rawHomePage!!.sections
+                .map { section -> section.copy(items = section.items.filterNot { it is PlaylistItem && it.id in hiddenPlaylistIds }) }
+                .filter { it.items.isNotEmpty() },
+        )
+    }
     val explorePage by viewModel.explorePage.collectAsState()
     val speedDialItems by viewModel.speedDialItems.collectAsState()
     val pinnedSpeedDialItems by viewModel.pinnedSpeedDialItems.collectAsState()

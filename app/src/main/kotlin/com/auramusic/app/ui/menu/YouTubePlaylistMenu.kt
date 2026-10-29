@@ -108,6 +108,11 @@ fun YouTubePlaylistMenu(
     val isGuest = listenTogetherManager?.isInRoom == true && !listenTogetherManager.isHost
     val playlistFlow = remember(playlist.id) { database.playlistByBrowseId(playlist.id) }
     val dbPlaylist by playlistFlow.collectAsState(initial = null)
+    val hiddenPlaylistIds by com.auramusic.app.utils.rememberPreference(
+        com.auramusic.app.constants.HiddenPlaylistIdsKey,
+        emptySet(),
+    )
+    val isHidden = playlist.id in hiddenPlaylistIds || dbPlaylist?.playlist?.id in hiddenPlaylistIds
 
     var showChoosePlaylistDialog by rememberSaveable { mutableStateOf(false) }
     var showImportPlaylistDialog by rememberSaveable { mutableStateOf(false) }
@@ -400,7 +405,35 @@ fun YouTubePlaylistMenu(
                             )
                         }
                     }
+                    // Next to Start radio: hide this playlist from the library, Home and artist pages.
+                    add(
+                        NewAction(
+                            icon = {
+                                Icon(
+                                    painter = painterResource(if (isHidden) R.drawable.visibility else R.drawable.visibility_off),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(28.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            text = stringResource(if (isHidden) R.string.unhide else R.string.hide),
+                            onClick = {
+                                val hide = !isHidden
+                                coroutineScope.launch {
+                                    com.auramusic.app.viewmodels.setPlaylistHidden(context, playlist.id, hide)
+                                    dbPlaylist?.playlist?.id?.let { com.auramusic.app.viewmodels.setPlaylistHidden(context, it, hide) }
+                                }
+                                android.widget.Toast.makeText(
+                                    context,
+                                    if (hide) R.string.playlist_hidden else R.string.playlist_unhidden,
+                                    android.widget.Toast.LENGTH_SHORT,
+                                ).show()
+                                onDismiss()
+                            }
+                        )
+                    )
                 },
+                columns = 4,
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp)
             )
         }

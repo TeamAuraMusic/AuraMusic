@@ -57,7 +57,7 @@ fun HiddenPlaylistsScreen(
                     playlist = playlist,
                     trailingContent = {
                         IconButton(onClick = {
-                            viewModel.unhide(playlist.id)
+                            viewModel.unhide(playlist)
                             Toast.makeText(context, R.string.playlist_unhidden, Toast.LENGTH_SHORT).show()
                         }) {
                             Icon(

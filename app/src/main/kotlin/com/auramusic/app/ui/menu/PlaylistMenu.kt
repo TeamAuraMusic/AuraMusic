@@ -84,7 +84,7 @@ fun PlaylistMenu(
         com.auramusic.app.constants.HiddenPlaylistIdsKey,
         emptySet(),
     )
-    val isHidden = playlist.id in hiddenPlaylistIds
+    val isHidden = playlist.id in hiddenPlaylistIds || playlist.playlist.browseId in hiddenPlaylistIds
     val database = LocalDatabase.current
     val downloadUtil = LocalDownloadUtil.current
     val playerConnection = LocalPlayerConnection.current ?: return
@@ -413,6 +413,7 @@ fun PlaylistMenu(
                                 val hide = !isHidden
                                 coroutineScope.launch {
                                     com.auramusic.app.viewmodels.setPlaylistHidden(context, playlist.id, hide)
+                                    playlist.playlist.browseId?.let { com.auramusic.app.viewmodels.setPlaylistHidden(context, it, hide) }
                                 }
                                 android.widget.Toast.makeText(
                                     context,

@@ -154,7 +154,16 @@ fun ArtistScreen(
     val isGuest = listenTogetherManager?.isInRoom == true && !listenTogetherManager.isHost
     val isPlaying by playerConnection.isEffectivelyPlaying.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
-    val artistPage = viewModel.artistPage
+    val hiddenPlaylistIds by rememberPreference(com.auramusic.app.constants.HiddenPlaylistIdsKey, emptySet())
+    // Hidden playlists stay out of the "featured on", "fans might also like" and community rows.
+    val artistPage = viewModel.artistPage?.let { page ->
+        if (hiddenPlaylistIds.isEmpty()) page
+        else page.copy(
+            sections = page.sections
+                .map { section -> section.copy(items = section.items.filterNot { it is PlaylistItem && it.id in hiddenPlaylistIds }) }
+                .filter { it.items.isNotEmpty() },
+        )
+    }
     // Set while the artist-to-channel link is being resolved, so the button can say so
     // rather than appearing to do nothing.
     var openingChannel by remember { mutableStateOf(false) }

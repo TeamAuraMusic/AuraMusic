@@ -481,7 +481,10 @@ private fun kotlinx.coroutines.flow.Flow<List<com.auramusic.app.db.entities.Play
 ) = kotlinx.coroutines.flow.combine(
     this,
     context.dataStore.data.map { it[com.auramusic.app.constants.HiddenPlaylistIdsKey].orEmpty() }.distinctUntilChanged(),
-) { playlists, hidden -> if (hidden.isEmpty()) playlists else playlists.filterNot { it.id in hidden } }
+) { playlists, hidden -> if (hidden.isEmpty()) playlists else playlists.filterNot { it.isHiddenBy(hidden) } }
+
+private fun com.auramusic.app.db.entities.Playlist.isHiddenBy(hidden: Set<String>) =
+    id in hidden || playlist.browseId in hidden
 
 @HiltViewModel
 class HiddenPlaylistsViewModel
@@ -493,11 +496,14 @@ constructor(
     val playlists = kotlinx.coroutines.flow.combine(
         database.playlists(PlaylistSortType.NAME, false),
         context.dataStore.data.map { it[com.auramusic.app.constants.HiddenPlaylistIdsKey].orEmpty() }.distinctUntilChanged(),
-    ) { playlists, hidden -> playlists.filter { it.id in hidden } }
+    ) { playlists, hidden -> playlists.filter { it.isHiddenBy(hidden) } }
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    fun unhide(playlistId: String) {
-        viewModelScope.launch { setPlaylistHidden(context, playlistId, false) }
+    fun unhide(playlist: com.auramusic.app.db.entities.Playlist) {
+        viewModelScope.launch {
+            setPlaylistHidden(context, playlist.id, false)
+            playlist.playlist.browseId?.let { setPlaylistHidden(context, it, false) }
+        }
     }
 }
 
