@@ -1163,4 +1163,20 @@
         <item quantity="other">%d загрузок</item>
     </plurals>
     <string name="video_player_watched">Просмотрено</string>
+    <string name="waveform">Форма волны</string>
+    <string name="lock_screen_player">Плеер на экране блокировки</string>
+    <string name="lock_screen_player_desc">Показывать собственный плеер AuraMusic на экране блокировки, пока играет музыка. Нажмите, чтобы раскрыть.</string>
+    <string name="lock_screen_player_lyrics">Показывать слова песни на экране блокировки</string>
+    <string name="lock_screen_player_lyrics_desc">Синхронизированные слова песни в расширенном плеере на экране блокировки</string>
+    <string name="lock_screen_player_permission">Дать разрешение на показ поверх других приложений</string>
+    <string name="lock_screen_player_permission_desc">Это необходимо чтобы показывать плеер на экране блокировки. Нажмите, чтобы разрешить.</string>
+    <string name="lock_screen_player_aod">Always On Display</string>
+    <string name="lock_screen_player_aod_desc">Показывает затемненные часы и проигрываемую песню на экране, пока играет музыка. Увеличивает расход батареи.</string>
+    <string name="lock_screen_player_collapse">Свернуть</string>
+    <string name="lock_screen_player_this_phone">Этот телефон</string>
+    <string name="lock_screen_player_open_app">Разблокировать и открыть AuraMusic</string>
+    <string name="hide_playlist">Спрятать плейлист</string>
+    <string name="hide">Спрятать</string>
+    <string name="unhide">Раскрыть</string>
+    <string name="hide_playlist_desc">Поместить плейлист в список скрытых плейлистов вашей библиотеки</string>
 </resources>
