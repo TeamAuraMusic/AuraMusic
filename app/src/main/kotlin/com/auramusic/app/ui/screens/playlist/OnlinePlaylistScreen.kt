@@ -6,21 +6,27 @@
 package com.auramusic.app.ui.screens.playlist
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -38,15 +44,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -58,17 +65,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
@@ -92,11 +101,22 @@ import com.auramusic.app.constants.HideExplicitKey
 import com.auramusic.app.db.entities.Playlist
 import com.auramusic.app.db.entities.PlaylistEntity
 import com.auramusic.app.db.entities.PlaylistSongMap
+import com.auramusic.app.extensions.toMediaItem
 import com.auramusic.app.models.toMediaMetadata
+import com.auramusic.app.playback.queues.ListQueue
 import com.auramusic.app.playback.queues.YouTubePlaylistQueue
+import com.auramusic.app.playback.queues.YouTubeQueue
+import com.auramusic.app.ui.component.CollectionActionRow
+import com.auramusic.app.ui.component.CollectionArtwork
+import com.auramusic.app.ui.component.CollectionHeroBackdrop
+import com.auramusic.app.ui.component.CollectionSectionHeader
+import com.auramusic.app.ui.component.CollectionTitleBlock
+import com.auramusic.app.ui.component.HeroIconButton
+import com.auramusic.app.ui.component.HeroPillButton
 import com.auramusic.app.ui.component.IconButton
 import com.auramusic.app.ui.component.LocalMenuState
 import com.auramusic.app.ui.component.YouTubeListItem
+import com.auramusic.app.ui.component.rememberArtworkAccent
 import com.auramusic.app.ui.menu.YouTubePlaylistMenu
 import com.auramusic.app.ui.menu.YouTubeSelectionSongMenu
 import com.auramusic.app.ui.menu.YouTubeSongMenu
@@ -107,6 +127,8 @@ import com.auramusic.app.viewmodels.OnlinePlaylistViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+
+private const val HeroKey = "playlist_header"
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -179,10 +201,39 @@ fun OnlinePlaylistScreen(
         BackHandler(onBack = onExitSelectionMode)
     }
 
+    val accent = rememberArtworkAccent(playlist?.thumbnail)
+    val windowInsets = LocalPlayerAwareWindowInsets.current
+    val showHero = playlist != null && songs.isNotEmpty() && !isSearching
+    val topBarHeightPx = with(LocalDensity.current) {
+        windowInsets.only(WindowInsetsSides.Top).asPaddingValues().calculateTopPadding().toPx()
+    }
+    // The app bar stays transparent over the hero and turns solid once the hero has
+    // scrolled up behind it.
+    val scrolledPastHero by remember(topBarHeightPx) {
+        derivedStateOf {
+            val firstItem = lazyListState.layoutInfo.visibleItemsInfo.firstOrNull()
+            when {
+                lazyListState.firstVisibleItemIndex > 0 -> true
+                firstItem != null && firstItem.key == HeroKey ->
+                    lazyListState.firstVisibleItemScrollOffset > firstItem.size - topBarHeightPx
+                else -> false
+            }
+        }
+    }
+    val solidTopBar = isSearching || inSelectMode || scrolledPastHero
+    val topBarColor by animateColorAsState(
+        targetValue = MaterialTheme.colorScheme.surface.copy(alpha = if (solidTopBar) 1f else 0f),
+        animationSpec = tween(300),
+        label = "topBarColor"
+    )
+
     Box(Modifier.fillMaxSize()) {
         LazyColumn(
             state = lazyListState,
-            contentPadding = LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime).asPaddingValues(),
+            contentPadding = (
+                if (showHero) windowInsets.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
+                else windowInsets
+            ).union(WindowInsets.ime).asPaddingValues(),
         ) {
             if (playlist == null || songs.isEmpty()) {
                 if (isLoading) {
@@ -234,7 +285,7 @@ fun OnlinePlaylistScreen(
             } else {
                 playlist?.let { playlist ->
                     if (!isSearching) {
-                        item(key = "playlist_header") {
+                        item(key = HeroKey) {
                             OnlinePlaylistHeader(
                                 playlist = playlist,
                                 songs = songs,
@@ -242,6 +293,15 @@ fun OnlinePlaylistScreen(
                                 navController = navController,
                                 coroutineScope = coroutineScope,
                                 continuation = viewModel.continuation,
+                                accent = accent,
+                                modifier = Modifier.animateItem()
+                            )
+                        }
+
+                        item(key = "songs_section_header") {
+                            CollectionSectionHeader(
+                                title = stringResource(R.string.songs),
+                                accent = accent,
                                 modifier = Modifier.animateItem()
                             )
                         }
@@ -356,10 +416,24 @@ fun OnlinePlaylistScreen(
                             .fillMaxWidth()
                             .focusRequester(focusRequester)
                     )
-                } else if (lazyListState.firstVisibleItemIndex > 0) {
-                    Text(playlist?.title ?: "")
+                } else {
+                    AnimatedVisibility(
+                        visible = scrolledPastHero,
+                        enter = fadeIn(tween(300)),
+                        exit = fadeOut(tween(200))
+                    ) {
+                        Text(
+                            text = playlist?.title ?: "",
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = topBarColor,
+                scrolledContainerColor = topBarColor
+            ),
             navigationIcon = {
                 IconButton(
                     onClick = {
@@ -445,6 +519,7 @@ private fun OnlinePlaylistHeader(
     navController: NavController,
     coroutineScope: CoroutineScope,
     continuation: String?,
+    accent: Color,
     modifier: Modifier = Modifier
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
@@ -452,184 +527,200 @@ private fun OnlinePlaylistHeader(
     val menuState = LocalMenuState.current
     val syncUtils = LocalSyncUtils.current
 
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp, bottom = 20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+    // The list no longer pads its top, so the backdrop runs under the status bar and the
+    // transparent app bar; the artwork starts below them.
+    val heroTopPadding = LocalPlayerAwareWindowInsets.current
+        .only(WindowInsetsSides.Top)
+        .asPaddingValues()
+        .calculateTopPadding()
+
+    val totalDuration = songs.sumOf { it.duration ?: 0 }
+    val loadedSongCount = pluralStringResource(R.plurals.n_song, songs.size, songs.size)
+    val chips = buildList {
+        playlist.songCountText
+            ?.takeIf { it.isNotBlank() && !it.equals(loadedSongCount, ignoreCase = true) }
+            ?.let(::add)
+        add(loadedSongCount)
+        if (totalDuration > 0) add(makeTimeString(totalDuration * 1000L))
+    }
+    val author = playlist.author
+    val isBookmarked = dbPlaylist?.playlist?.bookmarkedAt != null
+
+    CollectionHeroBackdrop(
+        imageUrl = playlist.thumbnail,
+        accent = accent,
+        modifier = modifier,
     ) {
-        Surface(
-            modifier = Modifier
-                .size(240.dp)
-                .shadow(
-                    elevation = 24.dp,
-                    shape = RoundedCornerShape(3.dp),
-                    spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                ),
-            shape = RoundedCornerShape(3.dp)
-        ) {
-            AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current).data(playlist.thumbnail).build(),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Text(
-            text = playlist.title,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 32.dp)
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Metadata - Song Count • Duration
-        val totalDuration = songs.sumOf { it.duration ?: 0 }
-        Text(
-            text = buildString {
-                append(pluralStringResource(R.plurals.n_song, songs.size, songs.size))
-                if (totalDuration > 0) {
-                    append(" • ")
-                    append(makeTimeString(totalDuration * 1000L))
-                }
-            },
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(top = heroTopPadding + 12.dp, bottom = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Like Button - Smaller secondary button
-            Surface(
-                onClick = {
-                    if (dbPlaylist != null) {
-                        database.transaction {
-                            val currentPlaylist = dbPlaylist.playlist
-                            update(currentPlaylist, playlist)
-                            update(currentPlaylist.toggleLike())
-                        }
-                    } else {
-                        database.transaction {
-                            val playlistEntity = PlaylistEntity(
-                                name = playlist.title,
-                                browseId = playlist.id,
-                                thumbnailUrl = playlist.thumbnail,
-                                isEditable = playlist.isEditable,
-                                remoteSongCount = playlist.songCountText?.let {
-                                    Regex("""\d+""").find(it)?.value?.toIntOrNull()
-                                },
-                                playEndpointParams = playlist.playEndpoint?.params,
-                                shuffleEndpointParams = playlist.shuffleEndpoint?.params,
-                                radioEndpointParams = playlist.radioEndpoint?.params
-                            ).toggleLike()
-                            insert(playlistEntity)
-                            coroutineScope.launch(Dispatchers.IO) {
-                                songs.map { it.toMediaMetadata() }
-                                    .onEach(::insert)
-                                    .mapIndexed { index, song ->
-                                        PlaylistSongMap(
-                                            songId = song.id,
-                                            playlistId = playlistEntity.id,
-                                            position = index,
-                                            setVideoId = song.setVideoId
-                                        )
-                                    }
-                                    .forEach(::insert)
-                            }
-                        }
-                    }
-                },
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.size(48.dp)
+            CollectionArtwork(
+                accent = accent,
+                size = 232.dp,
+                shape = RoundedCornerShape(24.dp),
             ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(
-                            if (dbPlaylist?.playlist?.bookmarkedAt != null) R.drawable.favorite else R.drawable.favorite_border
-                        ),
-                        contentDescription = null,
-                        tint = if (dbPlaylist?.playlist?.bookmarkedAt != null)
-                            MaterialTheme.colorScheme.error
-                        else
-                            MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current).data(playlist.thumbnail).build(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
             }
 
-            // Play Button - Larger primary circular button
-            Surface(
-                onClick = {
-                    if (songs.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(28.dp))
+
+            CollectionTitleBlock(
+                title = playlist.title,
+                overline = "Playlist",
+                accent = accent,
+                chips = chips,
+                subtitle = if (author != null) {
+                    {
+                        Text(
+                            text = author.name,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.75f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .clickable(enabled = author.id != null) {
+                                    navController.navigate("artist/${author.id}")
+                                }
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
+                } else {
+                    null
+                }
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                val playLabel = stringResource(R.string.play)
+                val shuffleLabel = stringResource(R.string.shuffle)
+                val labelStyle = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                val textMeasurer = rememberTextMeasurer()
+                val density = LocalDensity.current
+                // Narrow screens, large fonts or long translations collapse Shuffle to an icon
+                // instead of clipping the labels.
+                val shuffleLabelFits = remember(maxWidth, playLabel, shuffleLabel, labelStyle, density) {
+                    val labelsWidth = textMeasurer.measure(playLabel, labelStyle).size.width +
+                        textMeasurer.measure(shuffleLabel, labelStyle).size.width
+                    // Row padding 40, two icon buttons 88, three gaps 36, two pill paddings and icons 148.
+                    with(density) { labelsWidth.toDp() } + 312.dp <= maxWidth
+                }
+
+                val onShuffle: () -> Unit = {
+                    val shuffleEndpoint = playlist.shuffleEndpoint
+                    if (shuffleEndpoint != null) {
+                        playerConnection.playQueue(YouTubeQueue(shuffleEndpoint))
+                    } else if (songs.isNotEmpty()) {
                         playerConnection.playQueue(
-                            YouTubePlaylistQueue(
-                                playlistId = playlist.id,
-                                playlistTitle = playlist.title,
-                                initialSongs = songs,
-                                initialContinuation = continuation
+                            ListQueue(
+                                title = playlist.title,
+                                items = songs.shuffled().map { it.toMediaItem() }
                             )
                         )
                     }
-                },
-                color = MaterialTheme.colorScheme.primary,
-                shape = CircleShape,
-                modifier = Modifier.size(72.dp)
-            ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.play),
-                        contentDescription = stringResource(R.string.play),
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(32.dp)
-                    )
                 }
-            }
 
-            // Menu Button - Smaller secondary button
-            Surface(
-                onClick = {
-                    menuState.show {
-                        YouTubePlaylistMenu(
-                            playlist = playlist,
-                            songs = songs,
-                            coroutineScope = coroutineScope,
-                            onDismiss = menuState::dismiss
+                CollectionActionRow {
+                    HeroIconButton(
+                        icon = if (isBookmarked) R.drawable.favorite else R.drawable.favorite_border,
+                        tint = if (isBookmarked) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground,
+                        onClick = {
+                            if (dbPlaylist != null) {
+                                database.transaction {
+                                    val currentPlaylist = dbPlaylist.playlist
+                                    update(currentPlaylist, playlist)
+                                    update(currentPlaylist.toggleLike())
+                                }
+                            } else {
+                                database.transaction {
+                                    val playlistEntity = PlaylistEntity(
+                                        name = playlist.title,
+                                        browseId = playlist.id,
+                                        thumbnailUrl = playlist.thumbnail,
+                                        isEditable = playlist.isEditable,
+                                        remoteSongCount = playlist.songCountText?.let {
+                                            Regex("""\d+""").find(it)?.value?.toIntOrNull()
+                                        },
+                                        playEndpointParams = playlist.playEndpoint?.params,
+                                        shuffleEndpointParams = playlist.shuffleEndpoint?.params,
+                                        radioEndpointParams = playlist.radioEndpoint?.params
+                                    ).toggleLike()
+                                    insert(playlistEntity)
+                                    coroutineScope.launch(Dispatchers.IO) {
+                                        songs.map { it.toMediaMetadata() }
+                                            .onEach(::insert)
+                                            .mapIndexed { index, song ->
+                                                PlaylistSongMap(
+                                                    songId = song.id,
+                                                    playlistId = playlistEntity.id,
+                                                    position = index,
+                                                    setVideoId = song.setVideoId
+                                                )
+                                            }
+                                            .forEach(::insert)
+                                    }
+                                }
+                            }
+                        }
+                    )
+
+                    HeroPillButton(
+                        text = playLabel,
+                        icon = R.drawable.play,
+                        accent = accent,
+                        filled = true,
+                        onClick = {
+                            if (songs.isNotEmpty()) {
+                                playerConnection.playQueue(
+                                    YouTubePlaylistQueue(
+                                        playlistId = playlist.id,
+                                        playlistTitle = playlist.title,
+                                        initialSongs = songs,
+                                        initialContinuation = continuation
+                                    )
+                                )
+                            }
+                        }
+                    )
+
+                    if (shuffleLabelFits) {
+                        HeroPillButton(
+                            text = shuffleLabel,
+                            icon = R.drawable.shuffle,
+                            accent = accent,
+                            filled = false,
+                            onClick = onShuffle
+                        )
+                    } else {
+                        HeroIconButton(
+                            icon = R.drawable.shuffle,
+                            contentDescription = shuffleLabel,
+                            onClick = onShuffle
                         )
                     }
-                },
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.more_vert),
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp)
+
+                    HeroIconButton(
+                        icon = R.drawable.more_vert,
+                        onClick = {
+                            menuState.show {
+                                YouTubePlaylistMenu(
+                                    playlist = playlist,
+                                    songs = songs,
+                                    coroutineScope = coroutineScope,
+                                    onDismiss = menuState::dismiss
+                                )
+                            }
+                        }
                     )
                 }
             }

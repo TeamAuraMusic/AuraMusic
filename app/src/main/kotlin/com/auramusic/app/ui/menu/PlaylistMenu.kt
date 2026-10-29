@@ -412,8 +412,10 @@ fun PlaylistMenu(
                             onClick = {
                                 val hide = !isHidden
                                 coroutineScope.launch {
-                                    com.auramusic.app.viewmodels.setPlaylistHidden(context, playlist.id, hide)
-                                    playlist.playlist.browseId?.let { com.auramusic.app.viewmodels.setPlaylistHidden(context, it, hide) }
+                                    val title = playlist.playlist.name
+                                    val thumbnail = playlist.playlist.thumbnailUrl ?: playlist.thumbnails.firstOrNull()
+                                    com.auramusic.app.viewmodels.setPlaylistHidden(context, playlist.id, hide, title, thumbnail)
+                                    playlist.playlist.browseId?.let { com.auramusic.app.viewmodels.setPlaylistHidden(context, it, hide, title, thumbnail) }
                                 }
                                 android.widget.Toast.makeText(
                                     context,

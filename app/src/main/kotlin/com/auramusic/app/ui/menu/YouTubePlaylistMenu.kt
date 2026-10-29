@@ -420,7 +420,7 @@ fun YouTubePlaylistMenu(
                             onClick = {
                                 val hide = !isHidden
                                 coroutineScope.launch {
-                                    com.auramusic.app.viewmodels.setPlaylistHidden(context, playlist.id, hide)
+                                    com.auramusic.app.viewmodels.setPlaylistHidden(context, playlist.id, hide, playlist.title, playlist.thumbnail)
                                     dbPlaylist?.playlist?.id?.let { com.auramusic.app.viewmodels.setPlaylistHidden(context, it, hide) }
                                 }
                                 android.widget.Toast.makeText(

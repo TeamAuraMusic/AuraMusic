@@ -892,3 +892,5 @@ val LockScreenPlayerLyricsKey = booleanPreferencesKey("lockScreenPlayerLyrics")
 val LockScreenPlayerExpandedKey = booleanPreferencesKey("lockScreenPlayerExpanded")
 val LockScreenPlayerAodKey = booleanPreferencesKey("lockScreenPlayerAod")
 val HiddenPlaylistIdsKey = androidx.datastore.preferences.core.stringSetPreferencesKey("hiddenPlaylistIds")
+/** JSON list of hidden playlists (id, title, thumbnail), so ones that were never saved can still be listed. */
+val HiddenPlaylistsInfoKey = stringPreferencesKey("hiddenPlaylistsInfo")

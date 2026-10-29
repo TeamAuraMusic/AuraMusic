@@ -68,8 +68,11 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 import java.time.Duration
 import java.time.LocalDateTime
 import javax.inject.Inject
@@ -486,6 +489,16 @@ private fun kotlinx.coroutines.flow.Flow<List<com.auramusic.app.db.entities.Play
 private fun com.auramusic.app.db.entities.Playlist.isHiddenBy(hidden: Set<String>) =
     id in hidden || playlist.browseId in hidden
 
+/** A hidden playlist as listed on the Hidden playlists screen. */
+data class HiddenPlaylist(
+    val id: String,
+    val title: String,
+    val thumbnail: String?,
+    /** Local playlist id when it is saved in the library; null for one only seen online. */
+    val localId: String? = null,
+    val browseId: String? = null,
+)
+
 @HiltViewModel
 class HiddenPlaylistsViewModel
 @Inject
@@ -493,23 +506,88 @@ constructor(
     @ApplicationContext private val context: Context,
     database: MusicDatabase,
 ) : ViewModel() {
+    /**
+     * Every hidden playlist: the saved ones from the library, plus the ones hidden from Home,
+     * artist pages or search, which were never saved and only exist as the stored info.
+     */
     val playlists = kotlinx.coroutines.flow.combine(
         database.playlists(PlaylistSortType.NAME, false),
-        context.dataStore.data.map { it[com.auramusic.app.constants.HiddenPlaylistIdsKey].orEmpty() }.distinctUntilChanged(),
-    ) { playlists, hidden -> playlists.filter { it.isHiddenBy(hidden) } }
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+        context.dataStore.data.map {
+            it[com.auramusic.app.constants.HiddenPlaylistIdsKey].orEmpty() to
+                decodeHiddenInfo(it[com.auramusic.app.constants.HiddenPlaylistsInfoKey])
+        }.distinctUntilChanged(),
+    ) { saved, (hidden, info) ->
+        val local = saved.filter { it.isHiddenBy(hidden) }.map {
+            HiddenPlaylist(
+                id = it.id,
+                title = it.playlist.name,
+                thumbnail = it.playlist.thumbnailUrl ?: it.thumbnails.firstOrNull(),
+                localId = it.id,
+                browseId = it.playlist.browseId,
+            )
+        }
+        val covered = local.flatMap { listOfNotNull(it.id, it.browseId) }.toSet()
+        val online = info.filter { it.id in hidden && it.id !in covered }
+            .map { it.copy(browseId = it.id) }
+        (local + online).sortedBy { it.title.lowercase() }
+    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    fun unhide(playlist: com.auramusic.app.db.entities.Playlist) {
+    init {
+        // Playlists hidden before their details were stored: look each up once so they show.
+        viewModelScope.launch(Dispatchers.IO) {
+            val prefs = context.dataStore.data.first()
+            val hidden = prefs[com.auramusic.app.constants.HiddenPlaylistIdsKey].orEmpty()
+            val known = decodeHiddenInfo(prefs[com.auramusic.app.constants.HiddenPlaylistsInfoKey]).map { it.id }.toSet()
+            val localIds = database.playlists(PlaylistSortType.NAME, false).first()
+                .flatMap { listOfNotNull(it.id, it.playlist.browseId) }.toSet()
+            hidden.filter { it !in known && it !in localIds }.forEach { id ->
+                YouTube.playlist(id).getOrNull()?.playlist?.let { page ->
+                    setPlaylistHidden(context, id, true, page.title, page.thumbnail)
+                }
+            }
+        }
+    }
+
+    fun unhide(playlist: HiddenPlaylist) {
         viewModelScope.launch {
-            setPlaylistHidden(context, playlist.id, false)
-            playlist.playlist.browseId?.let { setPlaylistHidden(context, it, false) }
+            listOfNotNull(playlist.id, playlist.localId, playlist.browseId).distinct()
+                .forEach { setPlaylistHidden(context, it, false) }
         }
     }
 }
 
-suspend fun setPlaylistHidden(context: Context, playlistId: String, hidden: Boolean) {
+private val hiddenJson = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+
+@kotlinx.serialization.Serializable
+private data class HiddenInfo(val id: String, val title: String, val thumbnail: String? = null)
+
+private fun decodeHiddenInfo(raw: String?): List<HiddenPlaylist> =
+    raw?.let { runCatching { hiddenJson.decodeFromString<List<HiddenInfo>>(it) }.getOrNull() }
+        .orEmpty()
+        .map { HiddenPlaylist(id = it.id, title = it.title, thumbnail = it.thumbnail) }
+
+/**
+ * Hides or unhides a playlist by [playlistId] (a local id or a YouTube playlist id). [title] and
+ * [thumbnail] are kept so the Hidden playlists screen can list it even if it was never saved.
+ */
+suspend fun setPlaylistHidden(
+    context: Context,
+    playlistId: String,
+    hidden: Boolean,
+    title: String? = null,
+    thumbnail: String? = null,
+) {
     context.dataStore.edit { prefs ->
         val current = prefs[com.auramusic.app.constants.HiddenPlaylistIdsKey].orEmpty()
         prefs[com.auramusic.app.constants.HiddenPlaylistIdsKey] = if (hidden) current + playlistId else current - playlistId
+
+        val info = decodeHiddenInfo(prefs[com.auramusic.app.constants.HiddenPlaylistsInfoKey])
+            .map { HiddenInfo(it.id, it.title, it.thumbnail) }
+        val updated = when {
+            !hidden -> info.filterNot { it.id == playlistId }
+            title != null -> info.filterNot { it.id == playlistId } + HiddenInfo(playlistId, title, thumbnail)
+            else -> info // keep any details already stored for this id
+        }
+        prefs[com.auramusic.app.constants.HiddenPlaylistsInfoKey] = hiddenJson.encodeToString(updated)
     }
 }

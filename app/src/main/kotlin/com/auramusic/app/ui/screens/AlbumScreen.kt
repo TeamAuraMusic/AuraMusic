@@ -6,28 +6,31 @@
 package com.auramusic.app.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ContainedLoadingIndicator
@@ -36,13 +39,14 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -55,11 +59,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -89,11 +96,18 @@ import com.auramusic.app.constants.HideExplicitKey
 import com.auramusic.app.constants.HideVideoSongsKey
 import com.auramusic.app.db.entities.Album
 import com.auramusic.app.playback.queues.LocalAlbumRadio
+import com.auramusic.app.ui.component.CollectionActionRow
+import com.auramusic.app.ui.component.CollectionArtwork
+import com.auramusic.app.ui.component.CollectionHeroBackdrop
+import com.auramusic.app.ui.component.CollectionSectionHeader
+import com.auramusic.app.ui.component.CollectionTitleBlock
+import com.auramusic.app.ui.component.HeroIconButton
+import com.auramusic.app.ui.component.HeroPillButton
 import com.auramusic.app.ui.component.IconButton
 import com.auramusic.app.ui.component.LocalMenuState
-import com.auramusic.app.ui.component.NavigationTitle
 import com.auramusic.app.ui.component.SongListItem
 import com.auramusic.app.ui.component.YouTubeGridItem
+import com.auramusic.app.ui.component.rememberArtworkAccent
 import com.auramusic.app.ui.menu.AlbumMenu
 import com.auramusic.app.ui.menu.SelectionSongMenu
 import com.auramusic.app.ui.menu.SongMenu
@@ -187,202 +201,200 @@ fun AlbumScreen(
         }
     }
 
+    val accent = rememberArtworkAccent(albumWithSongs?.album?.thumbnailUrl)
+    val lazyListState = rememberLazyListState()
+
+    // The hero is drawn behind the transparent top bar, so the list itself gets no top
+    // padding: the system bar + app bar height is applied inside the backdrop instead.
+    val layoutDirection = LocalLayoutDirection.current
+    val playerAwarePadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
+    val heroTopPadding = playerAwarePadding.calculateTopPadding()
+    val listContentPadding = PaddingValues(
+        start = playerAwarePadding.calculateStartPadding(layoutDirection),
+        end = playerAwarePadding.calculateEndPadding(layoutDirection),
+        bottom = playerAwarePadding.calculateBottomPadding() + 16.dp,
+    )
+
+    // Once the cover and the hero title have scrolled under the top bar it turns solid and
+    // shows the title (12dp top gap + 232dp cover + 28dp spacer + ~28dp of the title).
+    val collapseThresholdPx = with(LocalDensity.current) { 300.dp.roundToPx() }
+    val headerScrolledPast by remember(collapseThresholdPx) {
+        derivedStateOf {
+            lazyListState.firstVisibleItemIndex > 0 ||
+                    lazyListState.firstVisibleItemScrollOffset > collapseThresholdPx
+        }
+    }
+    val solidTopBar = headerScrolledPast || inSelectMode
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val topBarColor by animateColorAsState(
+        targetValue = if (solidTopBar) surfaceColor else surfaceColor.copy(alpha = 0f),
+        label = "albumTopBarColor",
+    )
+    val topBarTitleAlpha by animateFloatAsState(
+        targetValue = if (solidTopBar) 1f else 0f,
+        label = "albumTopBarTitleAlpha",
+    )
+
     LazyColumn(
-        contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
+        state = lazyListState,
+        contentPadding = listContentPadding,
     ) {
         val albumWithSongs = albumWithSongs
         if (albumWithSongs != null && albumWithSongs.songs.isNotEmpty()) {
             item(key = "album_header") {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp, bottom = 20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                CollectionHeroBackdrop(
+                    imageUrl = albumWithSongs.album.thumbnailUrl,
+                    accent = accent,
                 ) {
-                    // Album Thumbnail - Large centered with shadow
-                    Surface(
-                        modifier = Modifier
-                            .size(240.dp)
-                            .shadow(
-                                elevation = 24.dp,
-                                shape = RoundedCornerShape(3.dp),
-                                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                            ),
-                        shape = RoundedCornerShape(3.dp)
-                    ) {
-                        @UnstableApi
-                        AuraCanvasImage(
-                            title = albumWithSongs.album.title,
-                            artist = albumWithSongs.songs.firstOrNull()?.artists?.firstOrNull()?.name,
-                            staticImageUrl = albumWithSongs.album.thumbnailUrl?.toHighQualityThumbnail(),
-                            contentScale = ContentScale.Crop,
-                            candidateTracks = albumWithSongs.songs.take(8).mapNotNull { it.song.id }, // for on-demand remote lookup
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    // Album Name
-                    Text(
-                        text = albumWithSongs.album.title,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(horizontal = 32.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Artist Names - Below the album name
-                    Text(buildAnnotatedString {
-                        withStyle(
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Normal,
-                                color = MaterialTheme.colorScheme.onBackground
-                            ).toSpanStyle()
-                        ) {
-                            albumWithSongs.artists.fastForEachIndexed { index, artist ->
-                                val link = LinkAnnotation.Clickable(artist.id) {
-                                    navController.navigate("artist/${artist.id}")
-                                }
-                                withLink(link) {
-                                    append(artist.name)
-                                }
-                                if (index != albumWithSongs.artists.lastIndex) {
-                                    append(", ")
-                                }
-                            }
-                        }
-                    }, textAlign = TextAlign.Center)
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Metadata - Year first, then song count • duration
-                    val totalDuration = albumWithSongs.songs.sumOf { it.song.duration }
                     Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = heroTopPadding + 12.dp, bottom = 12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // Year
-                        if (albumWithSongs.album.year != null) {
-                            Text(
-                                text = albumWithSongs.album.year.toString(),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                        CollectionArtwork(
+                            accent = accent,
+                            size = 232.dp,
+                            shape = RoundedCornerShape(24.dp),
+                        ) {
+                            @UnstableApi
+                            AuraCanvasImage(
+                                title = albumWithSongs.album.title,
+                                artist = albumWithSongs.songs.firstOrNull()?.artists?.firstOrNull()?.name,
+                                staticImageUrl = albumWithSongs.album.thumbnailUrl?.toHighQualityThumbnail(),
+                                contentScale = ContentScale.Crop,
+                                candidateTracks = albumWithSongs.songs.take(8).mapNotNull { it.song.id }, // for on-demand remote lookup
+                                modifier = Modifier.fillMaxSize()
                             )
                         }
 
-                        // Song Count • Duration
-                        Text(
-                            text = buildString {
-                                append(pluralStringResource(
-                                    R.plurals.n_song,
-                                    albumWithSongs.songs.size,
-                                    albumWithSongs.songs.size
-                                ))
-                                if (totalDuration > 0) {
-                                    append(" • ")
-                                    append(makeTimeString(totalDuration * 1000L))
-                                }
-                            },
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                        Spacer(modifier = Modifier.height(28.dp))
+
+                        // Year, song count and total duration as chips
+                        val totalDuration = albumWithSongs.songs.sumOf { it.song.duration }
+                        val songCount = pluralStringResource(
+                            R.plurals.n_song,
+                            albumWithSongs.songs.size,
+                            albumWithSongs.songs.size
                         )
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Action Buttons Row
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 24.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Like Button - Smaller secondary button
-                        Surface(
-                            onClick = {
-                                database.query {
-                                    update(albumWithSongs.album.toggleLike())
-                                }
-                            },
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            modifier = Modifier.size(48.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    painter = painterResource(
-                                        if (albumWithSongs.album.bookmarkedAt != null) R.drawable.favorite else R.drawable.favorite_border
-                                    ),
-                                    contentDescription = null,
-                                    tint = if (albumWithSongs.album.bookmarkedAt != null)
-                                        MaterialTheme.colorScheme.error
-                                    else
-                                        MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(24.dp)
-                                )
+                        val chips = buildList {
+                            albumWithSongs.album.year?.let { add(it.toString()) }
+                            add(songCount)
+                            if (totalDuration > 0) {
+                                add(makeTimeString(totalDuration * 1000L))
                             }
                         }
 
-                        // Play Button - Larger primary circular button
-                        Surface(
-                            onClick = {
+                        CollectionTitleBlock(
+                            title = albumWithSongs.album.title,
+                            overline = "Album",
+                            accent = accent,
+                            chips = chips,
+                            subtitle = {
+                                // Clickable artist names
+                                Text(
+                                    text = buildAnnotatedString {
+                                        withStyle(
+                                            style = MaterialTheme.typography.titleMedium.copy(
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.9f)
+                                            ).toSpanStyle()
+                                        ) {
+                                            albumWithSongs.artists.fastForEachIndexed { index, artist ->
+                                                val link = LinkAnnotation.Clickable(artist.id) {
+                                                    navController.navigate("artist/${artist.id}")
+                                                }
+                                                withLink(link) {
+                                                    append(artist.name)
+                                                }
+                                                if (index != albumWithSongs.artists.lastIndex) {
+                                                    append(", ")
+                                                }
+                                            }
+                                        }
+                                    },
+                                    textAlign = TextAlign.Center,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            },
+                        )
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // Action buttons: like, play, shuffle, menu.
+                        // On narrow screens shuffle collapses to an icon so the row never overflows.
+                        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                            val compactActions = maxWidth < 400.dp
+                            val isLiked = albumWithSongs.album.bookmarkedAt != null
+                            val onPlay: () -> Unit = {
                                 playerConnection.service.getAutomix(playlistId)
                                 playerConnection.playQueue(
                                     LocalAlbumRadio(albumWithSongs),
                                 )
-                            },
-                            color = MaterialTheme.colorScheme.primary,
-                            shape = CircleShape,
-                            modifier = Modifier.size(72.dp)
-                        ) {
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier.fillMaxSize()
-                            ) {
-                                Icon(
-                                    painter = painterResource(R.drawable.play),
-                                    contentDescription = stringResource(R.string.play),
-                                    tint = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier.size(32.dp)
+                            }
+                            val onShuffle: () -> Unit = {
+                                playerConnection.service.getAutomix(playlistId)
+                                playerConnection.playQueue(
+                                    LocalAlbumRadio(albumWithSongs.copy(songs = albumWithSongs.songs.shuffled())),
                                 )
                             }
-                        }
 
-                        // Menu Button - Smaller secondary button
-                        Surface(
-                            onClick = {
-                                menuState.show {
-                                    AlbumMenu(
-                                        originalAlbum = Album(
-                                            albumWithSongs.album,
-                                            albumWithSongs.artists
-                                        ),
-                                        navController = navController,
-                                        onDismiss = menuState::dismiss
+                            CollectionActionRow {
+                                HeroIconButton(
+                                    icon = if (isLiked) R.drawable.favorite else R.drawable.favorite_border,
+                                    onClick = {
+                                        database.query {
+                                            update(albumWithSongs.album.toggleLike())
+                                        }
+                                    },
+                                    tint = if (isLiked) {
+                                        MaterialTheme.colorScheme.error
+                                    } else {
+                                        MaterialTheme.colorScheme.onBackground
+                                    },
+                                )
+
+                                HeroPillButton(
+                                    text = stringResource(R.string.play),
+                                    icon = R.drawable.play,
+                                    onClick = onPlay,
+                                    accent = accent,
+                                    filled = true,
+                                    modifier = Modifier.weight(1f, fill = false),
+                                )
+
+                                if (compactActions) {
+                                    HeroIconButton(
+                                        icon = R.drawable.shuffle,
+                                        onClick = onShuffle,
+                                        contentDescription = stringResource(R.string.shuffle),
+                                    )
+                                } else {
+                                    HeroPillButton(
+                                        text = stringResource(R.string.shuffle),
+                                        icon = R.drawable.shuffle,
+                                        onClick = onShuffle,
+                                        accent = accent,
+                                        filled = false,
+                                        modifier = Modifier.weight(1f, fill = false),
                                     )
                                 }
-                            },
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            modifier = Modifier.size(48.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    painter = painterResource(R.drawable.more_vert),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(24.dp)
+
+                                HeroIconButton(
+                                    icon = R.drawable.more_vert,
+                                    onClick = {
+                                        menuState.show {
+                                            AlbumMenu(
+                                                originalAlbum = Album(
+                                                    albumWithSongs.album,
+                                                    albumWithSongs.artists
+                                                ),
+                                                navController = navController,
+                                                onDismiss = menuState::dismiss
+                                            )
+                                        }
+                                    },
                                 )
                             }
                         }
@@ -391,6 +403,14 @@ fun AlbumScreen(
             }
 
             if (filteredSongs.isNotEmpty()) {
+                item(key = "songs_title") {
+                    CollectionSectionHeader(
+                        title = stringResource(R.string.songs),
+                        accent = accent,
+                        modifier = Modifier.animateItem(),
+                    )
+                }
+
                 itemsIndexed(
                     items = filteredSongs,
                     key = { _, song -> song.id },
@@ -438,6 +458,8 @@ fun AlbumScreen(
                         Modifier
                             .fillMaxWidth()
                             .animateItem()
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                            .clip(RoundedCornerShape(16.dp))
                             .combinedClickable(
                                 onClick = {
                                     if (inSelectMode) {
@@ -465,9 +487,12 @@ fun AlbumScreen(
 
             if (otherVersions.isNotEmpty()) {
                 item(key = "other_versions_title") {
-                    NavigationTitle(
+                    CollectionSectionHeader(
                         title = stringResource(R.string.other_versions),
-                        modifier = Modifier.animateItem()
+                        accent = accent,
+                        modifier = Modifier
+                            .animateItem()
+                            .padding(top = 12.dp),
                     )
                 }
                 item(key = "other_versions_list") {
@@ -509,7 +534,7 @@ fun AlbumScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(32.dp),
+                        .padding(top = heroTopPadding + 32.dp, start = 32.dp, end = 32.dp, bottom = 32.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     ContainedLoadingIndicator()
@@ -526,8 +551,10 @@ fun AlbumScreen(
                 Text(
                     text = albumWithSongs?.album?.title.orEmpty(),
                     style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.graphicsLayer { alpha = topBarTitleAlpha }
                 )
             }
         },
@@ -584,6 +611,10 @@ fun AlbumScreen(
                     )
                 }
             }
-        }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = topBarColor,
+            scrolledContainerColor = topBarColor,
+        )
     )
 }
