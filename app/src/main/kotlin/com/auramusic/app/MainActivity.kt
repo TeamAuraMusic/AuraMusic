@@ -226,6 +226,18 @@ import java.net.URLEncoder
 import java.util.Locale
 import javax.inject.Inject
 
+/**
+ * Whether [this] destination is part of the search flow pushed by the top bar
+ * search field: the input screen, the online results ("search/{query}") and the
+ * videos tab results ("video_search/{query}"). Used to recognize a tab jump
+ * made from inside a search, where the search stack should be dropped rather
+ * than saved.
+ */
+private fun String?.isInSearchBackStack(): Boolean =
+    this != null && (this == "search_input" ||
+        this.startsWith("search/") ||
+        this.startsWith("video_search/"))
+
 @Suppress("DEPRECATION", "ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -1154,6 +1166,16 @@ class MainActivity : ComponentActivity() {
                                             topAppBarScrollBehavior.state.resetHeightOffset()
                                         }
                                     } else {
+                                        if (screen.route == Screens.Home.route) {
+                                            // Home while a search is on top: clear every search
+                                            // screen (the query, suggestions and results) instead
+                                            // of saving them, so switching tabs later does not
+                                            // bring the last search back. Screens below the
+                                            // search (e.g. the home/library stack) are untouched.
+                                            while (navController.currentBackStackEntry?.destination?.route?.isInSearchBackStack() == true) {
+                                                navController.popBackStack()
+                                            }
+                                        }
                                         navController.navigate(screen.route) {
                                             popUpTo(navController.graph.startDestinationId) {
                                                 saveState = true
@@ -1256,6 +1278,13 @@ class MainActivity : ComponentActivity() {
                                             topAppBarScrollBehavior.state.resetHeightOffset()
                                         }
                                     } else {
+                                        if (screen.route == Screens.Home.route) {
+                                            // Same as the bottom bar: Home from a search clears
+                                            // the whole search stack instead of saving it.
+                                            while (navController.currentBackStackEntry?.destination?.route?.isInSearchBackStack() == true) {
+                                                navController.popBackStack()
+                                            }
+                                        }
                                         navController.navigate(screen.route) {
                                             popUpTo(navController.graph.startDestinationId) {
                                                 saveState = true
