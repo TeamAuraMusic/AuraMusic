@@ -741,6 +741,59 @@ interface DatabaseDao {
                 .reversed(descending)
         }
 
+    // Artists reachable through the downloads screen: every artist with at least
+    // one completed download mapped to it, counting only downloaded songs.
+    @Transaction
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
+    @Query("SELECT *, (SELECT COUNT(1) FROM song_artist_map JOIN song ON song_artist_map.songId = song.id WHERE artistId = artist.id AND song.isDownloaded = 1) AS songCount FROM artist WHERE songCount > 0 ORDER BY rowId")
+    fun downloadedArtistsByCreateDateAsc(): Flow<List<Artist>>
+
+    @Transaction
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
+    @Query("SELECT *, (SELECT COUNT(1) FROM song_artist_map JOIN song ON song_artist_map.songId = song.id WHERE artistId = artist.id AND song.isDownloaded = 1) AS songCount FROM artist WHERE songCount > 0 ORDER BY name")
+    fun downloadedArtistsByNameAsc(): Flow<List<Artist>>
+
+    @Transaction
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
+    @Query("SELECT *, (SELECT COUNT(1) FROM song_artist_map JOIN song ON song_artist_map.songId = song.id WHERE artistId = artist.id AND song.isDownloaded = 1) AS songCount FROM artist WHERE songCount > 0 ORDER BY songCount")
+    fun downloadedArtistsBySongCountAsc(): Flow<List<Artist>>
+
+    @Transaction
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
+    @Query(
+        """
+        SELECT artist.*,
+               (SELECT COUNT(1)
+                FROM song_artist_map
+                         JOIN song ON song_artist_map.songId = song.id
+                WHERE artistId = artist.id
+                  AND song.isDownloaded = 1) AS songCount
+        FROM artist
+                 JOIN(SELECT artistId, SUM(totalPlayTime) AS totalPlayTime
+                      FROM song_artist_map
+                               JOIN song
+                                    ON song_artist_map.songId = song.id
+                      WHERE song.isDownloaded = 1
+                      GROUP BY artistId
+                      ORDER BY totalPlayTime)
+                     ON artist.id = artistId
+        WHERE songCount > 0
+    """
+    )
+    fun downloadedArtistsByPlayTimeAsc(): Flow<List<Artist>>
+
+    fun artistsDownloaded(sortType: ArtistSortType, descending: Boolean) =
+        when (sortType) {
+            ArtistSortType.CREATE_DATE -> downloadedArtistsByCreateDateAsc()
+            ArtistSortType.NAME -> downloadedArtistsByNameAsc()
+            ArtistSortType.SONG_COUNT -> downloadedArtistsBySongCountAsc()
+            ArtistSortType.PLAY_TIME -> downloadedArtistsByPlayTimeAsc()
+        }.map { artists ->
+            artists
+                .filter { it.artist.isYouTubeArtist || it.artist.isLocal } // TODO: add ui to filter by local or remote or something idk
+                .reversed(descending)
+        }
+
     @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
     @Query("SELECT *, (SELECT COUNT(1) FROM song_artist_map JOIN song ON song_artist_map.songId = song.id WHERE artistId = artist.id AND song.inLibrary IS NOT NULL) AS songCount FROM artist WHERE id = :id")
     fun artist(id: String): Flow<Artist?>
@@ -824,6 +877,47 @@ interface DatabaseDao {
     """
     )
     fun albumsLikedByPlayTimeAsc(): Flow<List<Album>>
+
+    // Albums with at least one completed download, for the downloads screens.
+    @Transaction
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
+    @Query("SELECT * FROM album WHERE EXISTS(SELECT * FROM song WHERE song.albumId = album.id AND song.isDownloaded = 1) ORDER BY rowId")
+    fun albumsDownloadedByCreateDateAsc(): Flow<List<Album>>
+
+    @Transaction
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
+    @Query("SELECT * FROM album WHERE EXISTS(SELECT * FROM song WHERE song.albumId = album.id AND song.isDownloaded = 1) ORDER BY title")
+    fun albumsDownloadedByNameAsc(): Flow<List<Album>>
+
+    @Transaction
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
+    @Query("SELECT * FROM album WHERE EXISTS(SELECT * FROM song WHERE song.albumId = album.id AND song.isDownloaded = 1) ORDER BY year")
+    fun albumsDownloadedByYearAsc(): Flow<List<Album>>
+
+    @Transaction
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
+    @Query("SELECT * FROM album WHERE EXISTS(SELECT * FROM song WHERE song.albumId = album.id AND song.isDownloaded = 1) ORDER BY songCount")
+    fun albumsDownloadedBySongCountAsc(): Flow<List<Album>>
+
+    @Transaction
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
+    @Query("SELECT * FROM album WHERE EXISTS(SELECT * FROM song WHERE song.albumId = album.id AND song.isDownloaded = 1) ORDER BY duration")
+    fun albumsDownloadedByLengthAsc(): Flow<List<Album>>
+
+    @Transaction
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
+    @Query(
+        """
+        SELECT album.*
+        FROM album
+                 JOIN song
+                      ON song.albumId = album.id
+        WHERE EXISTS(SELECT * FROM song WHERE song.albumId = album.id AND song.isDownloaded = 1)
+        GROUP BY album.id
+        ORDER BY SUM(song.totalPlayTime)
+    """,
+    )
+    fun albumsDownloadedByPlayTimeAsc(): Flow<List<Album>>
 
         @Transaction
     @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
@@ -913,6 +1007,31 @@ interface DatabaseDao {
         AlbumSortType.SONG_COUNT -> albumsLikedBySongCountAsc()
         AlbumSortType.LENGTH -> albumsLikedByLengthAsc()
         AlbumSortType.PLAY_TIME -> albumsLikedByPlayTimeAsc()
+    }.map { it.reversed(descending) }
+
+    fun albumsDownloaded(
+        sortType: AlbumSortType,
+        descending: Boolean,
+    ) = when (sortType) {
+        AlbumSortType.CREATE_DATE -> albumsDownloadedByCreateDateAsc()
+        AlbumSortType.NAME ->
+            albumsDownloadedByNameAsc().map { albums ->
+                val collator = Collator.getInstance(Locale.getDefault())
+                collator.strength = Collator.PRIMARY
+                albums.sortedWith(compareBy(collator) { it.album.title })
+            }
+
+        AlbumSortType.ARTIST ->
+            albumsDownloadedByCreateDateAsc().map { albums ->
+                val collator = Collator.getInstance(Locale.getDefault())
+                collator.strength = Collator.PRIMARY
+                albums.sortedWith(compareBy(collator) { album -> album.artists.joinToString("") { it.name } })
+            }
+
+        AlbumSortType.YEAR -> albumsDownloadedByYearAsc()
+        AlbumSortType.SONG_COUNT -> albumsDownloadedBySongCountAsc()
+        AlbumSortType.LENGTH -> albumsDownloadedByLengthAsc()
+        AlbumSortType.PLAY_TIME -> albumsDownloadedByPlayTimeAsc()
     }.map { it.reversed(descending) }
 
     fun albumsUploaded(

@@ -118,6 +118,7 @@ fun LibraryAlbumsScreen(
                 listOf(
                     AlbumFilter.LIKED to stringResource(R.string.filter_liked),
                     AlbumFilter.LIBRARY to stringResource(R.string.filter_library),
+                    AlbumFilter.DOWNLOADED to stringResource(R.string.filter_downloaded),
                     // Uploaded feature is temporarily disabled
                     // AlbumFilter.UPLOADED to stringResource(R.string.filter_uploaded)
                 ),
