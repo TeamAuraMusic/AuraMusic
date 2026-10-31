@@ -57,6 +57,7 @@ import com.auramusic.app.constants.AudioQualityKey
 import com.auramusic.app.constants.AutoDownloadOnLikeKey
 import com.auramusic.app.constants.AutomixEnabledKey
 import com.auramusic.app.constants.AutomixBlendPercentKey
+import com.auramusic.app.constants.AuraCanvasEnabledKey
 import com.auramusic.app.constants.AutoLoadMoreKey
 import com.auramusic.app.constants.AutoSkipNextOnErrorKey
 import com.auramusic.app.constants.DisableLoadMoreWhenRepeatAllKey
@@ -167,6 +168,10 @@ fun PlayerSettings(
     val (sbSkipMusicOffTopic, onSbSkipMusicOffTopicChange) = rememberPreference(SponsorBlockSkipMusicOffTopicKey, true)
     val (sbSkipFiller, onSbSkipFillerChange) = rememberPreference(SponsorBlockSkipFillerKey, true)
 
+    val (auraCanvasEnabled, onAuraCanvasEnabledChange) = rememberPreference(
+        AuraCanvasEnabledKey,
+        defaultValue = true
+    )
     val (autoLoadMore, onAutoLoadMoreChange) = rememberPreference(
         AutoLoadMoreKey,
         defaultValue = true
@@ -566,6 +571,29 @@ fun PlayerSettings(
                         }
                     }
                 }
+                // AuraCanvas looping videos in the player: OFF shows the plain
+                // album art, ON lets a matched canvas video fade in over it.
+                add(Material3SettingsItem(
+                    icon = painterResource(R.drawable.slow_motion_video),
+                    title = { Text(stringResource(R.string.aura_canvas)) },
+                    description = { Text(stringResource(R.string.aura_canvas_desc)) },
+                    trailingContent = {
+                        Switch(
+                            checked = auraCanvasEnabled,
+                            onCheckedChange = onAuraCanvasEnabledChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (auraCanvasEnabled) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = { onAuraCanvasEnabledChange(!auraCanvasEnabled) }
+                ))
                 // Only show Cast setting in GMS builds (not in F-Droid/FOSS)
                 if (BuildConfig.CAST_AVAILABLE) {
                     add(Material3SettingsItem(
