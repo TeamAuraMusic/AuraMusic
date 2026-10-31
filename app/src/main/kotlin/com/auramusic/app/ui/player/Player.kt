@@ -716,9 +716,9 @@ fun BottomSheetPlayer(
     }
 
     val backgroundAlpha = state.progress.coerceIn(0f, 1f)
-    // No user-facing toggle anymore (the old one was tied to the removed static
-    // manifest), so canvas is on by default. Existing installs that had explicitly
-    // turned it off keep their stored value.
+    // The user-facing toggle lives in Settings → Player → "AuraCanvas". Canvas stays
+    // on by default, and existing installs that had explicitly turned it off keep
+    // their stored value.
     val auraCanvasEnabled by rememberPreference(AuraCanvasEnabledKey, true)
     var auraCanvasUrl by remember { mutableStateOf<String?>(null) }
     
