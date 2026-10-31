@@ -213,6 +213,7 @@ constructor(
                 when (filter) {
                     ArtistFilter.LIKED -> database.artistsBookmarked(sortType, descending)
                     ArtistFilter.LIBRARY -> database.artists(sortType, descending)
+                    ArtistFilter.DOWNLOADED -> database.artistsDownloaded(sortType, descending)
                 }
             }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
@@ -275,6 +276,7 @@ constructor(
                 when (filter) {
                     AlbumFilter.LIKED -> database.albumsLiked(sortType, descending).map { it.filterExplicitAlbums(hideExplicit) }
                     AlbumFilter.LIBRARY -> database.albums(sortType, descending).map { it.filterExplicitAlbums(hideExplicit) }
+                    AlbumFilter.DOWNLOADED -> database.albumsDownloaded(sortType, descending).map { it.filterExplicitAlbums(hideExplicit) }
                     // Uploaded feature is temporarily disabled
                     AlbumFilter.UPLOADED -> kotlinx.coroutines.flow.flowOf(emptyList())
                     // AlbumFilter.UPLOADED -> database.albumsUploaded(sortType, descending).map { it.filterExplicitAlbums(hideExplicit) }
