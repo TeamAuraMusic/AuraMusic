@@ -79,6 +79,7 @@ import coil3.compose.AsyncImage
 import com.auramusic.app.LocalDatabase
 import com.auramusic.app.R
 import com.auramusic.app.constants.ArtistSongSortType
+import com.auramusic.app.constants.AuraCanvasEnabledKey
 import com.auramusic.app.constants.SongSortType
 import com.auramusic.app.db.entities.AlbumEntity
 import com.auramusic.app.db.entities.ArtistEntity
@@ -109,6 +110,7 @@ import com.auramusic.innertube.pages.ArtistPage
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import com.auramusic.app.utils.makeTimeString
+import com.auramusic.app.utils.rememberPreference
 
 // Unified interface for both local and YouTube songs
 sealed class DisplaySong {
@@ -670,6 +672,12 @@ fun TvCanvasBackdrop(
      */
     scrimColor: Color? = null,
 ) {
+    // The TV used to resolve the canvas whatever the stored value said, because
+    // there was nowhere on a television to surface the setting. A switch now
+    // lives under Settings > Playback, so the stored preference leads here like
+    // everywhere else. The standing default stays on, which is what TV users
+    // have always seen, and those who never open the switch notice nothing.
+    val (auraCanvasEnabled, _) = rememberPreference(AuraCanvasEnabledKey, defaultValue = true)
     Box(modifier = modifier.fillMaxSize()) {
         if (!imageUrl.isNullOrBlank() || !backdropTitle.isNullOrBlank() || !backdropArtist.isNullOrBlank()) {
             @UnstableApi
@@ -679,9 +687,8 @@ fun TvCanvasBackdrop(
                 album = backdropAlbum?.ifBlank { null },
                 staticImageUrl = imageUrl,
                 contentScale = ContentScale.Crop,
-                // Always on here: this is the screen's own artwork rather than a
-                // setting, and a television has nowhere to go and turn one on.
-                alwaysEnabled = true,
+                // Whatever the switch says, without the old hand-forced on.
+                alwaysEnabled = auraCanvasEnabled,
                 modifier = Modifier.fillMaxSize(),
             )
         }
