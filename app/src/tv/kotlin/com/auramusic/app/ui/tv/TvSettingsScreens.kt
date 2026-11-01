@@ -46,6 +46,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.SlowMotionVideo
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.automirrored.filled.Login
@@ -1235,6 +1236,13 @@ fun TvPlaybackSettingsScreen(
     val (seekExtraSeconds, onSeekExtraSecondsChange) = rememberPreference(
         com.auramusic.app.constants.SeekExtraSeconds, false,
     )
+    val (auraCanvasEnabled, onAuraCanvasEnabledChange) = rememberPreference(
+        com.auramusic.app.constants.AuraCanvasEnabledKey,
+        // The TV used to resolve the canvas whatever the stored value said, so ON
+        // stays the standing default: switching to a settings screen must not
+        // change what viewers who never open it see.
+        defaultValue = true,
+    )
 
     val firstFocus = focusRequester ?: remember { FocusRequester() }
     LaunchedEffect(Unit) { runCatching { firstFocus.requestFocus() } }
@@ -1409,6 +1417,16 @@ fun TvPlaybackSettingsScreen(
                 checked = videoModeEnabled,
                 onCheckedChange = onVideoModeEnabledChange,
                 icon = Icons.Filled.MusicNote,
+            )
+        }
+
+        item {
+            TvContentToggleRow(
+                title = "Aura Canvas",
+                subtitle = "Looping music videos behind the player",
+                checked = auraCanvasEnabled,
+                onCheckedChange = onAuraCanvasEnabledChange,
+                icon = Icons.Filled.SlowMotionVideo,
             )
         }
 
