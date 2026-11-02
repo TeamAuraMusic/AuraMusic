@@ -759,6 +759,33 @@ object VideoPlaybackManager {
     }
 
     /**
+     * Plays one video from [videos] and keeps the whole list as the session's queue, so
+     * Up next and autoplay follow it. The Downloads screen uses this to make its videos
+     * behave like the downloaded songs do: one list, starting where the listener tapped.
+     */
+    fun playVideoQueue(
+        context: Context,
+        videos: List<RecommendationItem>,
+        startIndex: Int,
+    ) {
+        val start = videos.getOrNull(startIndex) ?: return
+        // Tapping the list is an explicit start, so anything watched earlier in the
+        // session is not skipped when autoplay walks the list again.
+        playedVideoIds.removeAll(videos.mapTo(HashSet()) { it.videoId })
+        playWithDetails(
+            context = context,
+            videoId = start.videoId,
+            title = start.title,
+            channelName = start.channelName,
+            channelId = start.channelId,
+            thumbnails = listOfNotNull(
+                start.thumbnail?.let { com.auramusic.innertube.models.Thumbnail(it, null, null) },
+            ),
+            queueOnStart = videos,
+        )
+    }
+
+    /**
      * Puts video playback in charge of the screen. The shared player swaps to the video's
      * media source when it arrives, so all this has to do is keep preferences fresh and
      * invalidate any stale give-way teardown from an earlier music takeover.
@@ -786,8 +813,35 @@ object VideoPlaybackManager {
         startDurationMs: Long = 0L,
         startMinimized: Boolean = false,
         startPaused: Boolean = false,
+        /**
+         * The list this video belongs to, when the caller knows it - the downloaded
+         * videos, for instance. It becomes the session's queue, so Up next and autoplay
+         * follow that list instead of a fresh page of recommendations.
+         */
+        queueOnStart: List<RecommendationItem>? = null,
     ) {
         val current = _uiState.value
+        val startingQueue = queueOnStart?.let { list ->
+            val deduped = ArrayList<RecommendationItem>(list.size + 1)
+            val seen = HashSet<String>()
+            list.forEach { item ->
+                if (item.videoId.isNotBlank() && seen.add(item.videoId)) deduped.add(item)
+            }
+            if (deduped.none { it.videoId == videoId }) {
+                deduped.add(
+                    0,
+                    RecommendationItem(
+                        videoId = videoId,
+                        title = title,
+                        channelName = channelName,
+                        channelId = channelId,
+                        thumbnail = thumbnails.maxByOrNull { it.width ?: 0 }?.url,
+                        durationText = null,
+                    ),
+                )
+            }
+            deduped
+        }
         if (current.session?.videoId == videoId) {
             current.error?.let {
                 _uiState.update { s -> s.copy(error = null) }
@@ -797,10 +851,24 @@ object VideoPlaybackManager {
             // shade (giveWayToMusic) the music kept playing and video played on top
             // of it - two players audible at once, with no video notification.
             handOverFromMusic(context)
-            _uiState.update { it.copy(minimized = false, hiddenByMusic = false) }
-            if (sharedConnectionRef?.get()?.service?.guestVideoActive?.value == true) {
-                // The guest source is still on the shared player: just resume it.
-                player?.play()
+            _uiState.update {
+                it.copy(
+                    minimized = false,
+                    hiddenByMusic = false,
+                    queue = startingQueue ?: it.queue,
+                    queueOrder = if (startingQueue != null) null else it.queueOrder,
+                )
+            }
+            val guestActive =
+                sharedConnectionRef?.get()?.service?.guestVideoActive?.value == true
+            val exo = player
+            // A source that is still on the player can be resumed. One that has ended
+            // has to be rewound first - play() at the end does nothing, which is why a
+            // finished video read as "press play and nothing happens". An idle player
+            // has no source any more, so that one falls through to a full reload.
+            if (exo != null && guestActive && exo.playbackState != Player.STATE_IDLE) {
+                if (exo.playbackState == Player.STATE_ENDED) exo.seekTo(0L)
+                exo.play()
                 return
             }
             // Music took the shared player while the session slept; fall through and
@@ -890,9 +958,9 @@ object VideoPlaybackManager {
             // queue never behaved like the music queue, where one list is built once
             // and a pointer moves through it. What is already queued is carried over,
             // and whatever is about to be fetched goes behind it rather than in front.
-            queue = current.queue,
+            queue = startingQueue ?: current.queue,
             recommendations = current.recommendations,
-            queueOrder = current.queueOrder,
+            queueOrder = if (startingQueue != null) null else current.queueOrder,
         )
         // Always reset the high-frequency pair with the session. A video opened from
         // music used to inherit the song's progress for a beat, because the ticker

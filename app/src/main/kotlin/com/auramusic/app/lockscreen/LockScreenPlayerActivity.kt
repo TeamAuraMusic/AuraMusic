@@ -61,6 +61,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Text
@@ -273,9 +274,19 @@ class LockScreenPlayerActivity : ComponentActivity() {
         val metadata = connection.mediaMetadata.value ?: return
         lifecycleScope.launch(Dispatchers.IO) {
             if (database.lyrics(metadata.id).first() != null) return@launch
-            val fetched = runCatching { lyricsHelper.getLyrics(metadata) }.getOrNull() ?: return@launch
+            val fetched = runCatching { lyricsHelper.getLyrics(metadata) }.getOrNull()
             if (database.lyrics(metadata.id).first() == null) {
-                database.query { upsert(LyricsEntity(metadata.id, fetched.lyrics, fetched.provider)) }
+                database.query {
+                    upsert(
+                        if (fetched != null) {
+                            LyricsEntity(metadata.id, fetched.lyrics, fetched.provider)
+                        } else {
+                            // The marker the in-app player uses too, so a failed fetch
+                            // ends the spinner instead of leaving it turning forever.
+                            LyricsEntity(metadata.id, LyricsEntity.LYRICS_NOT_FOUND)
+                        },
+                    )
+                }
             }
         }
     }
@@ -616,6 +627,8 @@ private fun rememberProgress(connection: PlayerConnection): Progress {
     return Progress(position, duration)
 }
 
+private enum class LyricsStage { Artwork, Loading, NotFound, Lyrics }
+
 @Composable
 private fun ExpandedPlayer(
     connection: PlayerConnection,
@@ -631,8 +644,17 @@ private fun ExpandedPlayer(
     var showLyrics by rememberPreference(LockScreenPlayerLyricsKey, true)
     var showQueue by remember { mutableStateOf(false) }
     val lyrics by connection.currentLyrics.collectAsState(initial = null)
-    val lyricsAvailable = lyrics?.lyrics?.let { it.isNotBlank() && it != LyricsEntity.LYRICS_NOT_FOUND } == true
-    val lyricsOnScreen = showLyrics && lyricsAvailable
+    val lyricsText = remember(lyrics) { lyrics?.lyrics?.trim() }
+    // Three states rather than "available or not": lyrics that are still being fetched
+    // now show a spinner, the way the in-app player does, instead of leaving the artwork
+    // up and making the button look like it did nothing.
+    val lyricsStage = when {
+        !showLyrics -> LyricsStage.Artwork
+        lyricsText == null -> LyricsStage.Loading
+        lyricsText == LyricsEntity.LYRICS_NOT_FOUND -> LyricsStage.NotFound
+        else -> LyricsStage.Lyrics
+    }
+    val lyricsOnScreen = lyricsStage != LyricsStage.Artwork
     val currentSong by connection.currentSong.collectAsState(initial = null)
     val liked = currentSong?.song?.liked == true
     val shuffle by connection.shuffleModeEnabled.collectAsState()
@@ -667,32 +689,51 @@ private fun ExpandedPlayer(
                     .pointerInput(Unit) { detectVerticalDragGestures { _, dy -> if (dy > 24) onCollapse() } },
                 contentAlignment = Alignment.Center,
             ) {
-                AnimatedContent(targetState = lyricsOnScreen, label = "stage") { onLyrics ->
-                    if (onLyrics) {
-                        Box(Modifier.fillMaxSize()) {
-                            ProvideTextStyle(MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Center, color = Color.White)) {
-                                MaterialTheme(colorScheme = darkColorScheme(primary = Color.White)) {
-                                    Lyrics(
-                                        sliderPositionProvider = { null },
-                                        modifier = Modifier.fillMaxSize(),
-                                        showLyrics = true,
-                                        disableInteractiveFeatures = true,
-                                    )
+                AnimatedContent(targetState = lyricsStage, label = "stage") { stage ->
+                    when (stage) {
+                        LyricsStage.Lyrics -> {
+                            Box(Modifier.fillMaxSize()) {
+                                ProvideTextStyle(MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Center, color = Color.White)) {
+                                    MaterialTheme(colorScheme = darkColorScheme(primary = Color.White)) {
+                                        Lyrics(
+                                            sliderPositionProvider = { null },
+                                            modifier = Modifier.fillMaxSize(),
+                                            showLyrics = true,
+                                            disableInteractiveFeatures = true,
+                                        )
+                                    }
                                 }
                             }
                         }
-                    } else {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(32.dp))) {
-                                AsyncImage(model = artwork, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                                Box(
-                                    Modifier.fillMaxSize().background(
-                                        Brush.verticalGradient(0.55f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.75f)),
-                                    ),
-                                )
-                                Column(Modifier.align(Alignment.BottomStart).padding(20.dp)) {
-                                    Text(title, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                                    Text(artist, color = Color.White.copy(alpha = 0.8f), fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+
+                        LyricsStage.Loading -> {
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(color = Color.White)
+                            }
+                        }
+
+                        LyricsStage.NotFound -> {
+                            Text(
+                                text = stringResource(R.string.lyrics_not_found),
+                                color = Color.White.copy(alpha = 0.7f),
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(horizontal = 32.dp),
+                            )
+                        }
+
+                        LyricsStage.Artwork -> {
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(32.dp))) {
+                                    AsyncImage(model = artwork, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                                    Box(
+                                        Modifier.fillMaxSize().background(
+                                            Brush.verticalGradient(0.55f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.75f)),
+                                        ),
+                                    )
+                                    Column(Modifier.align(Alignment.BottomStart).padding(20.dp)) {
+                                        Text(title, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                        Text(artist, color = Color.White.copy(alpha = 0.8f), fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    }
                                 }
                             }
                         }

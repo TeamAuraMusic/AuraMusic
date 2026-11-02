@@ -376,18 +376,27 @@ fun LibraryMixScreen(
                                     VideoDownloadThumb(
                                         download = download,
                                         onClick = {
-                                            VideoPlaybackManager.playWithDetails(
-                                                context = context,
-                                                videoId = download.videoId,
-                                                title = download.title,
-                                                channelName = download.channelName,
-                                                channelThumbnail = null,
-                                                thumbnails = listOfNotNull(
-                                                    download.thumbnailUrl?.let {
-                                                        com.auramusic.innertube.models.Thumbnail(it, null, null)
-                                                    },
-                                                ),
-                                            )
+                                            // Play the downloaded videos as one queue so
+                                            // Up next follows the shelf, like downloads music.
+                                            val queue = videoDownloads.map { entry ->
+                                                VideoPlaybackManager.RecommendationItem(
+                                                    videoId = entry.videoId,
+                                                    title = entry.title,
+                                                    channelName = entry.channelName,
+                                                    thumbnail = entry.thumbnailUrl,
+                                                    durationText = null,
+                                                )
+                                            }
+                                            val index = videoDownloads.indexOfFirst {
+                                                it.videoId == download.videoId
+                                            }
+                                            if (index >= 0) {
+                                                VideoPlaybackManager.playVideoQueue(
+                                                    context = context,
+                                                    videos = queue,
+                                                    startIndex = index,
+                                                )
+                                            }
                                         },
                                         onRemove = { VideoDownloadStore.cancel(context, download.videoId) },
                                     )

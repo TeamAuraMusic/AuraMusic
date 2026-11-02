@@ -166,6 +166,7 @@ import com.auramusic.app.utils.rememberEnumPreference
 import com.auramusic.app.utils.rememberPreference
 import com.auramusic.app.constants.FontScaleKey
 import com.auramusic.app.constants.FontBoldnessKey
+import com.auramusic.app.constants.UiScaleKey
 import android.os.Build
 import com.auramusic.innertube.pages.ExplorePage
 import androidx.compose.foundation.layout.width
@@ -883,8 +884,15 @@ fun TvTopBar(
     onSectionSelect: ((TvSection) -> Unit)? = null,
     topBarFocusRequester: FocusRequester? = null,
 ) {
+    // The density provided here already has the Interface Size setting baked in, so
+    // measuring the window with it made the bar lose width as the user scaled the UI
+    // up: at 150% the mini player fell to its smallest size tier - and on a 720p set
+    // it vanished with the compact top bar. Dividing the scale back out asks the same
+    // question every time; the dp sizes then grow with the density like everything
+    // else on screen.
+    val uiScale by rememberPreference(UiScaleKey, defaultValue = 1f)
     val screenWidthDp = with(LocalDensity.current) {
-        LocalWindowInfo.current.containerSize.width / density
+        LocalWindowInfo.current.containerSize.width / density * uiScale
     }
     val compactTopBar = screenWidthDp < 1100f
     val focusRequesters = remember {
@@ -1014,30 +1022,23 @@ fun TvTopBar(
                         targetValue = if (miniInfoFocused) 1.03f else 1f,
                         label = "miniInfoScale",
                     )
-                    // Responsive sizing based on screen width
-                    val miniArtSize = with(LocalDensity.current) {
-                        val screenWidthDp = LocalWindowInfo.current.containerSize.width / density
-                        when {
-                            screenWidthDp > 1280f -> 44.dp
-                            screenWidthDp > 960f -> 36.dp
-                            else -> 32.dp
-                        }
+                    // Responsive sizing based on the unscaled screen width. The dp
+                    // values themselves grow with Interface Size because they are
+                    // measured against the scaled density.
+                    val miniArtSize = when {
+                        screenWidthDp > 1280f -> 44.dp
+                        screenWidthDp > 960f -> 36.dp
+                        else -> 32.dp
                     }
-                    val miniHeight = with(LocalDensity.current) {
-                        val screenWidthDp = LocalWindowInfo.current.containerSize.width / density
-                        when {
-                            screenWidthDp > 1280f -> 56.dp
-                            screenWidthDp > 960f -> 48.dp
-                            else -> 40.dp
-                        }
+                    val miniHeight = when {
+                        screenWidthDp > 1280f -> 56.dp
+                        screenWidthDp > 960f -> 48.dp
+                        else -> 40.dp
                     }
-                    val miniMaxWidth = with(LocalDensity.current) {
-                        val screenWidthDp = LocalWindowInfo.current.containerSize.width / density
-                        when {
-                            screenWidthDp > 1280f -> 420.dp
-                            screenWidthDp > 960f -> 320.dp
-                            else -> 240.dp
-                        }
+                    val miniMaxWidth = when {
+                        screenWidthDp > 1280f -> 420.dp
+                        screenWidthDp > 960f -> 320.dp
+                        else -> 240.dp
                     }
                     Row(
                         modifier = Modifier

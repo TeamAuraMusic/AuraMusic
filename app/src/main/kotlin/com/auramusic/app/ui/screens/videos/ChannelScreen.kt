@@ -742,7 +742,20 @@ private fun ChannelHeaderSection(
     ) {
         // Channel art is far wider than it is tall; the hero keeps enough room for
         // the avatar, name and stats that sit at its foot.
-        val heroHeight = (maxWidth * 0.95f).coerceIn(340.dp, 500.dp)
+        //
+        // The hero is drawn under the app bar, so that shift has to be paid back or
+        // the bottom-anchored identity slides up behind the bar - on a small phone
+        // the avatar ended up under the back button and its top was cut off.
+        val topBarShift = with(LocalDensity.current) { topBarHeightPx.toDp() }
+        val compactHero = maxWidth < 480.dp
+        val heroHeight = (maxWidth * 0.95f)
+            .coerceIn(if (compactHero) 400.dp else 420.dp, 540.dp) + topBarShift
+        val avatarSize = if (compactHero) 68.dp else 84.dp
+        val titleStyle = if (compactHero) {
+            MaterialTheme.typography.headlineMedium
+        } else {
+            MaterialTheme.typography.displaySmall
+        }
 
         Box(
             modifier = Modifier
@@ -826,7 +839,7 @@ private fun ChannelHeaderSection(
                 // name: a large avatar, the channel name at display size, stats beneath.
                 Box(
                     modifier = Modifier
-                        .size(84.dp)
+                        .size(avatarSize)
                         .shadow(
                             elevation = 24.dp,
                             shape = CircleShape,
@@ -872,7 +885,7 @@ private fun ChannelHeaderSection(
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text = channel.title.ifBlank { stringResource(R.string.app_name) },
-                    style = MaterialTheme.typography.displaySmall.copy(
+                    style = titleStyle.copy(
                         shadow = Shadow(
                             color = background.copy(alpha = 0.6f),
                             blurRadius = 24f,
@@ -931,11 +944,14 @@ private fun ChannelHeaderSection(
 
 @Composable
 private fun ChannelHeroSkeleton(topBarHeightPx: Int) {
+    val topBarShift = with(LocalDensity.current) { topBarHeightPx.toDp() }
     Column(modifier = Modifier.fillMaxWidth()) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(380.dp)
+                // Same under-the-bar shift as the real hero, paid back here too so
+                // the placeholder identity is not hidden behind the back button.
+                .height(380.dp + topBarShift)
                 .drawUnderTopBar(topBarHeightPx)
                 .clipToBounds()
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh)

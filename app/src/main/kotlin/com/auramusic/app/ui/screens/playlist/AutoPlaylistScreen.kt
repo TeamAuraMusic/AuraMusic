@@ -755,16 +755,34 @@ fun AutoPlaylistScreen(
     val pendingVideoDownloads by VideoDownloadStore.pendingFlow(context).collectAsState()
 
     val playDownloadedVideo: (VideoDownloadStore.Entry) -> Unit = { download ->
-        VideoPlaybackManager.playWithDetails(
-            context = context,
-            videoId = download.videoId,
-            title = download.title,
-            channelName = download.channelName,
-            channelThumbnail = null,
-            thumbnails = listOfNotNull(
-                download.thumbnailUrl?.let { Thumbnail(it, null, null) },
-            ),
-        )
+        // The downloaded videos are the queue, the way the downloaded songs are:
+        // playing one starts it, and Up next/autoplay follow the same list.
+        val queue = videoDownloads.map { entry ->
+            VideoPlaybackManager.RecommendationItem(
+                videoId = entry.videoId,
+                title = entry.title,
+                channelName = entry.channelName,
+                thumbnail = entry.thumbnailUrl,
+                durationText = entry.durationMs
+                    .takeIf { it > 0 }
+                    ?.let { formatDownloadedVideoDuration(it) },
+            )
+        }
+        val index = videoDownloads.indexOfFirst { it.videoId == download.videoId }
+        if (index >= 0) {
+            VideoPlaybackManager.playVideoQueue(context, queue, index)
+        } else {
+            VideoPlaybackManager.playWithDetails(
+                context = context,
+                videoId = download.videoId,
+                title = download.title,
+                channelName = download.channelName,
+                channelThumbnail = null,
+                thumbnails = listOfNotNull(
+                    download.thumbnailUrl?.let { Thumbnail(it, null, null) },
+                ),
+            )
+        }
     }
 
     val isRefreshing by viewModel.isRefreshing.collectAsState()
