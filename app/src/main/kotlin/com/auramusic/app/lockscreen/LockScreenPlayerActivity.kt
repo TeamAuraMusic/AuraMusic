@@ -768,7 +768,7 @@ private fun ExpandedPlayer(
                             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                 // The same contained loader the rest of the app shows
                                 // while lyrics are being fetched.
-                                ContainedLoadingIndicator(color = Color.White, containerColor = Color.White.copy(alpha = 0.12f))
+                                ContainedLoadingIndicator(indicatorColor = Color.White, containerColor = Color.White.copy(alpha = 0.12f))
                             }
                         }
 
