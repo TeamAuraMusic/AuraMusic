@@ -46,23 +46,14 @@ object ArtistChannelResolver {
     ): Resolved? {
         val targetSubs = artistSubscribersText?.let { parseSubscribers(it) }
 
-        // What the id we were given actually points at. If the page did not load this
-        // stays null, and nothing is decided from it: the old code read a failed fetch
-        // as "not a generated channel" and went straight there, which is one of the
-        // ways a Topic page was opened.
+        // What the id we were given actually points at. This is only ever used as a
+        // fallback. It used to decide the answer up front - "the page loaded and its
+        // title has no Topic suffix, so it must be the artist" - but a Topic channel's
+        // page is still titled with the artist's name, and its header sometimes parses
+        // to nothing at all. Either way the early return sent people to the Topic page,
+        // which is the page they were complaining about.
         val givenPage = artistChannelId?.let { id -> YouTube.youtubeChannel(id).getOrNull() }
         val givenName = givenPage?.title.orEmpty()
-        val givenIsGenerated = givenName.trim().endsWith(TOPIC_SUFFIX, ignoreCase = true)
-
-        // A channel that answered and is not generated is the artist's own, whatever
-        // its name says: this is the id the artist page itself points at.
-        if (artistChannelId != null && givenPage != null && !givenIsGenerated) {
-            return Resolved(
-                channelId = artistChannelId,
-                channelName = givenName,
-                replacedGenerated = false,
-            )
-        }
 
         val name = artistName.ifBlank { givenName.replace(TOPIC_SUFFIX, "", ignoreCase = true).trim() }
         if (name.isBlank()) {
@@ -72,7 +63,8 @@ object ArtistChannelResolver {
         // Only channels named exactly this artist. The old match also accepted names
         // that merely contained it, then took whichever one YouTube returned first -
         // a same-named cover act, a fan page, a label channel. That is the channel
-        // that opened instead of the artist's own.
+        // that opened instead of the artist's own. Topic channels are excluded here,
+        // so whatever survives is a channel a person actually runs.
         val candidates = YouTube.youtubeSearch(name).getOrNull()?.items
             ?.filterIsInstance<YouTubeSearchResultItem.Channel>()
             .orEmpty()
@@ -80,14 +72,27 @@ object ArtistChannelResolver {
             .filter { normalize(it.title) == normalize(name) }
             .distinctBy { it.channelId }
 
-        // When the id we have is unknown, only a confident replacement is worth
-        // making: a matching audience, or the only channel of that exact name.
-        val best = pickChannel(
+        // The id from the artist page is one of the real channels: that is the one.
+        // It can only match here when it is not a Topic channel, because those were
+        // just filtered out.
+        candidates.firstOrNull { it.channelId == artistChannelId }?.let { given ->
+            return Resolved(
+                channelId = given.channelId,
+                channelName = given.title,
+                replacedGenerated = false,
+            )
+        }
+
+        // The id is not a channel people can find - which is what an auto-generated
+        // Topic page looks like from here. Take the best exact-name channel instead:
+        // the audience that agrees with the artist page, or the largest one if no
+        // count can settle it. Guessing between two exact-name channels is still a
+        // better answer than a Topic page.
+        pickChannel(
             candidates = candidates,
             targetSubs = targetSubs,
-            requireConfidence = givenPage == null,
-        )
-        if (best != null) {
+            requireConfidence = false,
+        )?.let { best ->
             return Resolved(
                 channelId = best.channelId,
                 channelName = best.title,

@@ -960,7 +960,15 @@ class MainActivity : ComponentActivity() {
                     val musicPlayer = playerConnection?.player
                     when {
                         videoOverlayVisible -> {
-                            musicPlayer?.pause()
+                            // Music and video share one player. Pausing it "to stop the
+                            // music" paused the video too whenever the video had already
+                            // taken the player over - which is what a downloaded video,
+                            // loading from disk in a few milliseconds, always did. The
+                            // guest flag says who owns the player right now; only music
+                            // needs pausing, and only while it still owns it.
+                            if (playerConnection?.guestVideoActive?.value != true) {
+                                musicPlayer?.pause()
+                            }
                             if (!playerBottomSheetState.isDismissed) {
                                 playerBottomSheetState.dismiss()
                             }

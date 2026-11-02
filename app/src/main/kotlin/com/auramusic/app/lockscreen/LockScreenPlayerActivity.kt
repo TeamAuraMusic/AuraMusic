@@ -61,7 +61,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ContainedLoadingIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Text
@@ -340,6 +341,7 @@ private fun LockScreenPlayer(
 
     if (aod) {
         AlwaysOnDisplay(
+            connection = connection,
             title = song.title,
             artist = song.artists.joinToString { it.name },
             artwork = song.thumbnailUrl,
@@ -423,6 +425,7 @@ private const val AOD_IDLE_MS = 10_000L
  */
 @Composable
 private fun AlwaysOnDisplay(
+    connection: PlayerConnection,
     title: String,
     artist: String,
     artwork: String?,
@@ -473,12 +476,66 @@ private fun AlwaysOnDisplay(
                     Text(title, color = Color.White.copy(alpha = 0.7f), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(artist, color = Color.White.copy(alpha = 0.45f), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                if (isPlaying) {
-                    Spacer(Modifier.width(8.dp))
-                    Icon(painterResource(R.drawable.music_note), contentDescription = null, tint = accent.copy(alpha = 0.6f), modifier = Modifier.size(16.dp))
+                // The app's own mark rather than a generic note: the AOD is the face of
+                // this player, not of the song.
+                Icon(
+                    painter = painterResource(R.drawable.ic_notification_icon),
+                    contentDescription = null,
+                    tint = Color.Unspecified,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+            Spacer(Modifier.height(18.dp))
+            // Transport controls stay available in the AOD: skipping does not require
+            // waking the screen first, and a tap on a button does not wake it either.
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                AodControl(R.drawable.skip_previous, stringResource(R.string.previous)) {
+                    connection.seekToPrevious()
+                }
+                AodControl(
+                    icon = if (isPlaying) R.drawable.pause else R.drawable.play,
+                    description = stringResource(if (isPlaying) R.string.pause else R.string.play),
+                    accent = accent,
+                    emphasized = true,
+                ) {
+                    connection.togglePlayPause()
+                }
+                AodControl(R.drawable.skip_next, stringResource(R.string.next)) {
+                    connection.seekToNext()
                 }
             }
         }
+    }
+}
+
+/** A dim transport button for the AOD face; [emphasized] marks the play/pause one. */
+@Composable
+private fun AodControl(
+    icon: Int,
+    description: String,
+    accent: Color = Color.White,
+    emphasized: Boolean = false,
+    onClick: () -> Unit,
+) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .size(if (emphasized) 52.dp else 46.dp)
+            .clip(CircleShape)
+            .background(
+                if (emphasized) accent.copy(alpha = 0.18f) else Color.White.copy(alpha = 0.06f),
+            )
+            .clickable(onClick = onClick),
+    ) {
+        Icon(
+            painter = painterResource(icon),
+            contentDescription = description,
+            tint = if (emphasized) Color.White.copy(alpha = 0.85f) else Color.White.copy(alpha = 0.6f),
+            modifier = Modifier.size(if (emphasized) 24.dp else 21.dp),
+        )
     }
 }
 
@@ -629,6 +686,7 @@ private fun rememberProgress(connection: PlayerConnection): Progress {
 
 private enum class LyricsStage { Artwork, Loading, NotFound, Lyrics }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ExpandedPlayer(
     connection: PlayerConnection,
@@ -708,7 +766,9 @@ private fun ExpandedPlayer(
 
                         LyricsStage.Loading -> {
                             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator(color = Color.White)
+                                // The same contained loader the rest of the app shows
+                                // while lyrics are being fetched.
+                                ContainedLoadingIndicator(color = Color.White, containerColor = Color.White.copy(alpha = 0.12f))
                             }
                         }
 

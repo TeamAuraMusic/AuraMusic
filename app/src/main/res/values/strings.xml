@@ -514,6 +514,10 @@
     <string name="home_layout_mode">Home layout</string>
     <string name="home_layout_list">List view</string>
     <string name="home_layout_grid">Grid view</string>
+    <string name="home_greeting_morning">Good morning</string>
+    <string name="home_greeting_afternoon">Good afternoon</string>
+    <string name="home_greeting_evening">Good evening</string>
+    <string name="home_greeting_night">Good night</string>
     <string name="mini_player_height">Player height</string>
     <string name="mini_player_corner_radius">Player corner radius</string>
     <string name="mini_player_show_favorite">Show favorite button</string>
