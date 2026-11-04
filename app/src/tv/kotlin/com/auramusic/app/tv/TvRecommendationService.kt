@@ -24,6 +24,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.io.File
 import java.io.ObjectInputStream
@@ -38,6 +39,7 @@ import kotlin.random.Random
 class TvRecommendationService : android.app.Service() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val refreshState = TvRecommendationRefreshState()
 
     override fun onBind(intent: Intent?) = null
 
@@ -64,16 +66,29 @@ class TvRecommendationService : android.app.Service() {
             .build()
         startForeground(NOTIFICATION_ID, notification)
 
+        if (refreshState.request(startId)) {
+            refreshRecommendations(startId)
+        }
+        return START_NOT_STICKY
+    }
+
+    private fun refreshRecommendations(startId: Int) {
         scope.launch {
             try {
                 updateRecommendations()
             } catch (e: Exception) {
                 Timber.e(e, "Failed to update TV recommendations")
             } finally {
-                stopSelf()
+                withContext(Dispatchers.Main.immediate) {
+                    val nextStartId = refreshState.finish()
+                    if (nextStartId != null) {
+                        refreshRecommendations(nextStartId)
+                    } else {
+                        stopSelfResult(startId)
+                    }
+                }
             }
         }
-        return START_NOT_STICKY
     }
 
     private suspend fun updateRecommendations() {
