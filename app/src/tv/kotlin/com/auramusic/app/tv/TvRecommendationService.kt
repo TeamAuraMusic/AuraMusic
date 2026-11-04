@@ -88,14 +88,18 @@ class TvRecommendationService : android.app.Service() {
 
         val channelId = ensureChannel(ctx)
 
-        val programValues = items.mapNotNull { mediaMeta ->
+        val occurrenceByMediaId = mutableMapOf<String, Int>()
+        val programValues = items.mapIndexedNotNull { index, mediaMeta ->
             val title = mediaMeta.title.ifBlank { "Unknown song" }
             val artist = mediaMeta.artists.firstOrNull()?.name.orEmpty()
             val artworkUri = mediaMeta.thumbnailUrl.orEmpty()
             val durationMs = mediaMeta.duration.coerceAtLeast(0)
             val mediaId = mediaMeta.id
 
-            if (mediaId.isBlank()) return@mapNotNull null
+            if (mediaId.isBlank()) return@mapIndexedNotNull null
+            val occurrence = occurrenceByMediaId.getOrDefault(mediaId, 0)
+            occurrenceByMediaId[mediaId] = occurrence + 1
+            val internalProviderId = "auramusic:track:$mediaId:$occurrence"
 
             try {
                 val launchIntent = Intent(Intent.ACTION_VIEW).apply {
@@ -112,6 +116,8 @@ class TvRecommendationService : android.app.Service() {
                     .setLongDescription("Continue listening from $queueTitle")
                     .setIntent(launchIntent)
                     .setContentId(mediaId)
+                    .setInternalProviderId(internalProviderId)
+                    .setWeight(items.size - index)
                     .setDurationMillis(durationMs)
                     .setSearchable(true)
                     .apply {
@@ -134,21 +140,46 @@ class TvRecommendationService : android.app.Service() {
             return
         }
 
-        // Replace the row in one provider transaction so launchers don't observe
-        // the channel after deletion or while only part of the new set is inserted.
-        val operations = ArrayList<ContentProviderOperation>(programValues.size + 1)
-        operations += ContentProviderOperation.newDelete(
-            TvContractCompat.buildPreviewProgramsUriForChannel(channelId)
-        ).build()
-        programValues.forEach { values ->
+        if (channelId <= 0L) {
+            Timber.w("Could not create TV recommendation channel; keeping existing cards")
+            return
+        }
+
+        val existingPrograms = readExistingPrograms(ctx, channelId)
+        val internalIds = programValues.map { values ->
+            values.getAsString(TvContractCompat.PreviewProgramColumns.COLUMN_INTERNAL_PROVIDER_ID)
+        }
+        val plan = planPreviewProgramReconciliation(existingPrograms, internalIds)
+        val valuesByInternalId = programValues.associateBy { values ->
+            values.getAsString(TvContractCompat.PreviewProgramColumns.COLUMN_INTERNAL_PROVIDER_ID)
+        }
+        val operations = ArrayList<ContentProviderOperation>(
+            plan.updates.size + plan.inserts.size + plan.deletes.size
+        )
+        plan.updates.forEach { (programId, internalId) ->
+            operations += ContentProviderOperation.newUpdate(
+                TvContractCompat.buildPreviewProgramUri(programId)
+            ).withValues(valuesByInternalId.getValue(internalId)).build()
+        }
+        plan.inserts.forEach { internalId ->
             operations += ContentProviderOperation.newInsert(
                 TvContractCompat.PreviewPrograms.CONTENT_URI
-            ).withValues(values).build()
+            ).withValues(valuesByInternalId.getValue(internalId)).build()
         }
-        val results = ctx.contentResolver.applyBatch(TvContractCompat.AUTHORITY, operations)
-        val count = results.size - 1
+        plan.deletes.forEach { programId ->
+            operations += ContentProviderOperation.newDelete(
+                TvContractCompat.buildPreviewProgramUri(programId)
+            ).build()
+        }
+        if (operations.isNotEmpty()) {
+            ctx.contentResolver.applyBatch(TvContractCompat.AUTHORITY, operations)
+        }
 
-        Timber.d("Published $count TV recommendations for '$queueTitle'")
+        Timber.d(
+            "Published ${programValues.size} TV recommendations for '$queueTitle' " +
+                "(${plan.inserts.size} added, ${plan.updates.size} updated, " +
+                "${plan.deletes.size} removed)"
+        )
 
         // Update the foreground notification with final info
         val notification: Notification = NotificationCompat.Builder(ctx, NOTIFICATION_CHANNEL_ID)
@@ -161,6 +192,33 @@ class TvRecommendationService : android.app.Service() {
 
         val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         nm.notify(NOTIFICATION_ID, notification)
+    }
+
+    private fun readExistingPrograms(context: Context, channelId: Long): List<ExistingPreviewProgram> {
+        val uri = TvContractCompat.buildPreviewProgramsUriForChannel(channelId)
+        val projection = arrayOf(
+            TvContractCompat.PreviewPrograms._ID,
+            TvContractCompat.PreviewProgramColumns.COLUMN_INTERNAL_PROVIDER_ID,
+        )
+        val cursor = context.contentResolver.query(uri, projection, null, null, null)
+            ?: error("TV provider returned no preview-program cursor")
+
+        return cursor.use {
+            val idColumn = it.getColumnIndexOrThrow(TvContractCompat.PreviewPrograms._ID)
+            val internalIdColumn = it.getColumnIndexOrThrow(
+                TvContractCompat.PreviewProgramColumns.COLUMN_INTERNAL_PROVIDER_ID
+            )
+            buildList {
+                while (it.moveToNext()) {
+                    add(
+                        ExistingPreviewProgram(
+                            programId = it.getLong(idColumn),
+                            internalProviderId = it.getString(internalIdColumn),
+                        )
+                    )
+                }
+            }
+        }
     }
 
     private fun ensureChannel(ctx: Context): Long {
