@@ -14,6 +14,7 @@ class TvBootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         if (intent?.action == Intent.ACTION_BOOT_COMPLETED) {
             Timber.d("Boot completed, refreshing TV recommendations")
+            TvRecommendationWorkScheduler.ensureScheduled(context.applicationContext)
             TvRecommendationService.start(context)
         }
     }

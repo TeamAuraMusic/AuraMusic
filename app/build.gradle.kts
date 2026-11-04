@@ -360,6 +360,8 @@ dependencies {
     ksp(libs.room.compiler)
     implementation(libs.room.ktx)
 
+    "tvImplementation"(libs.work.runtime)
+
     implementation(libs.apache.lang3)
 
     implementation(libs.hilt)
