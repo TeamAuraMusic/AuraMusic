@@ -1177,4 +1177,8 @@
     <string name="hidden_playlists_empty">Aucune playlists masquées</string>
     <string name="playlist_hidden">Playlist masquée</string>
     <string name="playlist_unhidden">La playlist est à nouveau visible</string>
+    <string name="home_greeting_morning">Bonjour</string>
+    <string name="home_greeting_afternoon">Bonjour</string>
+    <string name="home_greeting_evening">Bonsoir</string>
+    <string name="home_greeting_night">Bonsoir</string>
 </resources>
