@@ -48,6 +48,7 @@ import com.auramusic.app.models.toMediaMetadata
  import com.auramusic.app.playback.PlayerConnection
 import com.auramusic.app.video.VideoPlaybackManager
 import com.auramusic.app.playback.queues.YouTubeQueue
+import com.auramusic.app.tv.TvRecommendationHelper
  import com.auramusic.app.ui.component.LocalMenuState
  import com.auramusic.app.ui.theme.AuraMusicTheme
 import com.auramusic.app.ui.theme.DefaultThemeColor
@@ -179,6 +180,8 @@ class TvMainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        TvRecommendationHelper.scheduleUpdate(applicationContext)
         
         // Initialize sync on TV launch
         lifecycleScope.launch {
