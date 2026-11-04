@@ -13,10 +13,16 @@ import androidx.tvprovider.media.tv.PreviewChannel
 import androidx.tvprovider.media.tv.PreviewProgram
 import androidx.tvprovider.media.tv.TvContractCompat
 import com.auramusic.app.R
+import com.auramusic.app.constants.HideVideoSongsKey
+import com.auramusic.app.extensions.filterVideoSongs
 import com.auramusic.app.models.PersistQueue
+import com.auramusic.app.ui.tv.tvDatabase
+import com.auramusic.app.utils.dataStore
+import com.auramusic.app.utils.get
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.io.File
@@ -72,31 +78,46 @@ class TvRecommendationService : android.app.Service() {
     private suspend fun updateRecommendations() {
         val ctx = this
 
-        val persistQueue = readPersistQueue(ctx) ?: run {
-            Timber.d("No persisted queue for recommendations")
-            return
+        val persistQueue = readPersistQueue(ctx)
+        val queueTitle = persistQueue?.title?.takeIf(String::isNotBlank) ?: "Continue Listening"
+        val queueItems = persistQueue?.let { queue ->
+            val currentIndex = queue.mediaItemIndex.coerceIn(0, queue.items.lastIndex.coerceAtLeast(0))
+            queue.items.drop(currentIndex)
+        }.orEmpty()
+        val quickPickItems = try {
+            val hideVideoSongs = ctx.dataStore.get(HideVideoSongsKey, false)
+            ctx.tvDatabase().quickPicks().first().filterVideoSongs(hideVideoSongs).shuffled()
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to load TV Quick Picks; publishing the saved queue only")
+            emptyList()
         }
+        val queueItemsById = queueItems.associateBy { it.id }
+        val quickPickItemsById = quickPickItems.associateBy { it.id }
+        val selectedMediaIds = selectTvRecommendationMediaIds(
+            queueMediaIds = queueItems.map { it.id },
+            quickPickMediaIds = quickPickItems.map { it.id },
+            limit = MAX_RECOMMENDATIONS,
+        )
 
-        val queueTitle = persistQueue.title ?: "Continue Listening"
-        val currentIndex = persistQueue.mediaItemIndex.coerceIn(0, (persistQueue.items.lastIndex).coerceAtLeast(0))
-        val items = persistQueue.items.drop(currentIndex).take(MAX_RECOMMENDATIONS)
-
-        if (items.isEmpty()) {
-            Timber.d("Empty queue, skipping recommendations")
+        if (selectedMediaIds.isEmpty()) {
+            Timber.d("No queue or Quick Picks available for TV recommendations")
             return
         }
 
         val channelId = ensureChannel(ctx)
 
         val occurrenceByMediaId = mutableMapOf<String, Int>()
-        val programValues = items.mapIndexedNotNull { index, mediaMeta ->
-            val title = mediaMeta.title.ifBlank { "Unknown song" }
-            val artist = mediaMeta.artists.firstOrNull()?.name.orEmpty()
-            val artworkUri = mediaMeta.thumbnailUrl.orEmpty()
-            val durationMs = mediaMeta.duration.coerceAtLeast(0)
-            val mediaId = mediaMeta.id
-
-            if (mediaId.isBlank()) return@mapIndexedNotNull null
+        val programValues = selectedMediaIds.mapIndexedNotNull { index, mediaId ->
+            val queueItem = queueItemsById[mediaId]
+            val quickPick = quickPickItemsById[mediaId]
+            val title = (quickPick?.title ?: queueItem?.title).orEmpty().ifBlank { "Unknown song" }
+            val artist = quickPick?.artists?.firstOrNull()?.name
+                ?: queueItem?.artists?.firstOrNull()?.name.orEmpty()
+            val artworkUri = quickPick?.thumbnailUrl ?: queueItem?.thumbnailUrl.orEmpty()
+            val durationMs = quickPick?.song?.duration?.coerceAtLeast(0)?.times(1000)
+                ?: queueItem?.duration?.coerceAtLeast(0)
+                ?: 0
+            val isQuickPick = quickPick != null
             val occurrence = occurrenceByMediaId.getOrDefault(mediaId, 0)
             occurrenceByMediaId[mediaId] = occurrence + 1
             val internalProviderId = "auramusic:track:$mediaId:$occurrence"
@@ -112,12 +133,15 @@ class TvRecommendationService : android.app.Service() {
                     .setChannelId(channelId)
                     .setType(TvContractCompat.PreviewProgramColumns.TYPE_TRACK)
                     .setTitle(title)
-                    .setDescription("$artist • $queueTitle")
-                    .setLongDescription("Continue listening from $queueTitle")
+                    .setDescription("$artist • ${if (isQuickPick) "Quick Picks" else queueTitle}")
+                    .setLongDescription(
+                        if (isQuickPick) "Recommended from your listening history"
+                        else "Continue listening from $queueTitle"
+                    )
                     .setIntent(launchIntent)
                     .setContentId(mediaId)
                     .setInternalProviderId(internalProviderId)
-                    .setWeight(items.size - index)
+                    .setWeight(selectedMediaIds.size - index)
                     .setDurationMillis(durationMs)
                     .setSearchable(true)
                     .apply {
@@ -175,9 +199,10 @@ class TvRecommendationService : android.app.Service() {
             ctx.contentResolver.applyBatch(TvContractCompat.AUTHORITY, operations)
         }
 
+        val quickPickCount = selectedMediaIds.count(quickPickItemsById::containsKey)
         Timber.d(
             "Published ${programValues.size} TV recommendations for '$queueTitle' " +
-                "(${plan.inserts.size} added, ${plan.updates.size} updated, " +
+                "($quickPickCount Quick Picks; ${plan.inserts.size} added, ${plan.updates.size} updated, " +
                 "${plan.deletes.size} removed)"
         )
 
