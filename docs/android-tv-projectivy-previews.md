@@ -4,6 +4,10 @@ Checked 2026-11-04 on a Chromecast (`sabrina`, Android 14) with Projectivy 4.73 
 
 AuraMusic's channel is visible on the Projectivy home screen and contains Quick Picks. The service logged 10 published programs, updated in place on refresh. With the normal build, focusing a card enlarges its artwork. AuraMusic publishes poster and thumbnail artwork only; it does not set either preview URI.
 
+**The AuraMusic channel is the bottom-most content row on this Projectivy home layout, below the app row.** On 2026-11-04, ADB focus was moved to “Save a Prayer (2009 Remaster)” in that bottom row without selecting it. It showed enlarged, static artwork; the installed production publisher has both preview URIs set to null.
+
+![Live Projectivy home with the bottom AuraMusic row focused](../pr-evidence/projectivy-home-aura-bottom-focused-static-20261104-live.png)
+
 ![AuraMusic Quick Picks row with a focused card in Projectivy](../pr-evidence/projectivy-home-aura-focused-20261104.png)
 
 ![AuraMusic bottom recommendation row with Luv Letter focused](../pr-evidence/projectivy-home-aura-bottom-focused-static-20261104.png)
