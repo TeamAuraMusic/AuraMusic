@@ -117,8 +117,10 @@ import com.auramusic.app.constants.SkipSilenceKey
 import com.auramusic.app.constants.VideoModeEnabledKey
 import com.auramusic.app.constants.VisitorDataKey
 import com.auramusic.app.ui.screens.findActivityOrNull
+import com.auramusic.app.utils.TvUpdatePhase
 import com.auramusic.app.utils.rememberEnumPreference
 import com.auramusic.app.utils.rememberPreference
+import com.auramusic.app.utils.rememberTvUpdateInstallController
 import com.auramusic.app.utils.reportException
 import com.auramusic.app.viewmodels.AccountSettingsViewModel
 import com.auramusic.app.viewmodels.HomeViewModel
@@ -763,6 +765,7 @@ import kotlin.math.roundToInt
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val installer = rememberTvUpdateInstallController()
 
     var isChecking by remember { mutableStateOf(false) }
     var releaseInfo by remember { mutableStateOf<com.auramusic.app.utils.ReleaseInfo?>(null) }
@@ -911,6 +914,10 @@ import kotlin.math.roundToInt
                                     maxLines = 8,
                                 )
                             }
+                            if (installer.phase != TvUpdatePhase.Idle) {
+                                Spacer(Modifier.height(8.dp))
+                                TvUpdateInstallStatus(installer.phase)
+                            }
                         }
                         else -> {
                             Text(
@@ -939,24 +946,43 @@ import kotlin.math.roundToInt
                     primary = false,
                 )
                 if (hasUpdate && releaseInfo != null) {
+                    // TV devices rarely have a browser, so the update is fetched
+                    // and installed in place instead of opening the release page.
+                    val phase = installer.phase
                     TvUpdaterButton(
-                        label = "Download AuraMusic Tv",
+                        label = when (phase) {
+                            is TvUpdatePhase.Downloading -> "Cancel download"
+                            TvUpdatePhase.Installing -> "Installing…"
+                            TvUpdatePhase.NeedsPermission -> "Allow permission"
+                            TvUpdatePhase.Launched -> "Install again"
+                            is TvUpdatePhase.Failed -> "Try again"
+                            else -> "Update & install"
+                        },
                         onClick = {
                             val info = releaseInfo ?: return@TvUpdaterButton
-                            val url = com.auramusic.app.utils.Updater
-                                .getDownloadUrlForCurrentVariant(info, preferredVariant = "tv")
-                            if (url != null) {
-                                runCatching {
-                                    val intent = android.content.Intent(
-                                        android.content.Intent.ACTION_VIEW,
-                                        android.net.Uri.parse(url),
-                                    ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                                    context.startActivity(intent)
-                                }
+                            when (phase) {
+                                is TvUpdatePhase.Downloading -> installer.reset()
+                                TvUpdatePhase.NeedsPermission -> installer.allowPermission(context)
+                                TvUpdatePhase.Launched -> installer.retryInstall(context)
+                                else -> installer.start(
+                                    context,
+                                    com.auramusic.app.utils.Updater.getDownloadUrlForCurrentVariant(
+                                        info,
+                                        preferredVariant = "tv",
+                                        preferredArchitecture = "automatic",
+                                    ),
+                                )
                             }
                         },
                         primary = true,
                     )
+                    if (phase == TvUpdatePhase.NeedsPermission) {
+                        TvUpdaterButton(
+                            label = "Install again",
+                            onClick = { installer.retryInstall(context) },
+                            primary = false,
+                        )
+                    }
                 }
             }
         }

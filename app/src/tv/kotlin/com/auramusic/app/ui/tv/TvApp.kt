@@ -162,8 +162,12 @@ import com.auramusic.innertube.pages.HomePage
 import com.auramusic.app.constants.DarkModeKey
 import com.auramusic.app.ui.screens.settings.DarkMode
 import com.auramusic.app.ui.screens.settings.AppFont
+import com.auramusic.app.constants.CheckForUpdatesKey
+import com.auramusic.app.utils.ReleaseInfo
+import com.auramusic.app.utils.Updater
 import com.auramusic.app.utils.rememberEnumPreference
 import com.auramusic.app.utils.rememberPreference
+import com.auramusic.app.utils.rememberTvUpdateInstallController
 import com.auramusic.app.constants.FontScaleKey
 import com.auramusic.app.constants.FontBoldnessKey
 import com.auramusic.app.constants.UiScaleKey
@@ -272,9 +276,15 @@ enum class TvSection(val label: String) {
     // video/lyrics reach every edge of the display.
     var playerFullscreen by remember { mutableStateOf(false) }
 
+    // TV has no notification shade worth relying on, so an available release is
+    // surfaced as a dialog when the app starts instead of a notification.
+    val (checkForUpdates, _) = rememberPreference(CheckForUpdatesKey, true)
+    var availableUpdate by remember { mutableStateOf<ReleaseInfo?>(null) }
+    var showUpdateDialog by remember { mutableStateOf(false) }
+
       // Handle remote back button: go back in navigator, or show exit dialog
       // Only handle back when no overlay/dialog is showing to avoid conflicts
-      androidx.activity.compose.BackHandler(enabled = !showExitDialog) {
+      androidx.activity.compose.BackHandler(enabled = !showExitDialog && !showUpdateDialog) {
           val nav = navigator
           if (nav.current is TvDestination.Player) {
               nav.popBack()
@@ -347,6 +357,32 @@ enum class TvSection(val label: String) {
                    }
                   }
               },
+          )
+      }
+
+      // Check for a newer release once per launch. The updater already caches
+      // misses for two hours, and forceRefresh makes this first check truthful
+      // even if a manual check happened in the previous session.
+      LaunchedEffect(checkForUpdates) {
+          if (!checkForUpdates) return@LaunchedEffect
+          val result = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+              Updater.checkForUpdate(forceRefresh = true)
+          }
+          result.onSuccess { (releaseInfo, hasUpdate) ->
+              if (hasUpdate && releaseInfo != null) {
+                  availableUpdate = releaseInfo
+                  showUpdateDialog = true
+              }
+          }
+      }
+
+      val updateInfo = availableUpdate
+      if (showUpdateDialog && updateInfo != null) {
+          val updateInstaller = rememberTvUpdateInstallController()
+          TvUpdateDialog(
+              info = updateInfo,
+              installer = updateInstaller,
+              onDismiss = { showUpdateDialog = false },
           )
       }
 
