@@ -164,6 +164,8 @@ class TvRecommendationService : android.app.Service() {
                     .setDurationMillis(durationMs)
                     .setSearchable(true)
                     .apply {
+                        setPreviewVideoUri(null)
+                        setPreviewAudioUri(null)
                         if (artworkUri.isNotBlank()) {
                             setPosterArtUri(Uri.parse(artworkUri))
                             setThumbnailUri(Uri.parse(artworkUri))
