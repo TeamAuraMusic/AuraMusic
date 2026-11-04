@@ -1,5 +1,10 @@
 package com.auramusic.app.tv
 
+internal const val QUICK_PICKS_ROTATION_INTERVAL_MILLIS = 4 * 60 * 60 * 1000L
+
+internal fun tvRecommendationRotationSeed(nowMillis: Long): Int =
+    (nowMillis / QUICK_PICKS_ROTATION_INTERVAL_MILLIS).toInt()
+
 /** Publishes distinct personalized picks first, then uses the saved queue to fill gaps. */
 internal fun selectTvRecommendationMediaIds(
     queueMediaIds: List<String>,

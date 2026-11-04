@@ -27,6 +27,7 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.io.File
 import java.io.ObjectInputStream
+import kotlin.random.Random
 
 /**
  * Android TV Recommendations service.
@@ -84,9 +85,12 @@ class TvRecommendationService : android.app.Service() {
             val currentIndex = queue.mediaItemIndex.coerceIn(0, queue.items.lastIndex.coerceAtLeast(0))
             queue.items.drop(currentIndex)
         }.orEmpty()
+        val rotationSeed = tvRecommendationRotationSeed(System.currentTimeMillis())
         val quickPickItems = try {
             val hideVideoSongs = ctx.dataStore.get(HideVideoSongsKey, false)
-            ctx.tvDatabase().quickPicks().first().filterVideoSongs(hideVideoSongs).shuffled()
+            ctx.tvDatabase().quickPicks().first()
+                .filterVideoSongs(hideVideoSongs)
+                .shuffled(Random(rotationSeed))
         } catch (e: Exception) {
             Timber.w(e, "Failed to load TV Quick Picks; publishing the saved queue only")
             emptyList()
