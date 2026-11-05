@@ -3,6 +3,8 @@ package com.auramusic.app.tv
 internal data class ExistingPreviewProgram(
     val programId: Long,
     val internalProviderId: String?,
+    val contentId: String? = null,
+    val previewVideoUri: String? = null,
 )
 
 internal data class PreviewProgramReconciliationPlan(

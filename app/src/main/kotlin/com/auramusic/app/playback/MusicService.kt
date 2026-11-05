@@ -2834,6 +2834,8 @@ class MusicService :
             }
 
             if (!playWhenReady && !isPausedByVolumeMute) {
+                // A later focus gain must not undo an explicit user pause.
+                wasPlayingBeforeAudioFocusLoss = false
                 wasPlayingBeforeVolumeMute = false
             }
         }

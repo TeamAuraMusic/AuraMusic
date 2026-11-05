@@ -15,9 +15,15 @@ import com.auramusic.app.models.PersistQueue
 import com.auramusic.app.ui.tv.tvDatabase
 import com.auramusic.app.utils.dataStore
 import com.auramusic.app.utils.get
+import com.auramusic.auravideo.AuraVideo
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -67,6 +73,15 @@ internal object TvRecommendationPublisher {
         }
 
         val channelId = ensureChannel(context)
+        if (channelId <= 0L) {
+            Timber.w("Could not create TV recommendation channel; keeping existing cards")
+            return null
+        }
+        val existingPrograms = readExistingPrograms(context, channelId)
+        val previewAudioUris = resolvePreviewAudioUris(
+            selectedMediaIds,
+            existingPrograms,
+        )
         val occurrenceByMediaId = mutableMapOf<String, Int>()
         val programValues = selectedMediaIds.mapIndexedNotNull { index, mediaId ->
             val queueItem = queueItemsById[mediaId]
@@ -75,6 +90,7 @@ internal object TvRecommendationPublisher {
             val artist = quickPick?.artists?.firstOrNull()?.name
                 ?: queueItem?.artists?.firstOrNull()?.name.orEmpty()
             val artworkUri = quickPick?.thumbnailUrl ?: queueItem?.thumbnailUrl.orEmpty()
+            val previewUri = previewAudioUris[mediaId]
             val durationMs = quickPick?.song?.duration?.coerceAtLeast(0)?.times(1000)
                 ?: queueItem?.duration?.coerceAtLeast(0)
                 ?: 0
@@ -106,8 +122,10 @@ internal object TvRecommendationPublisher {
                     .setDurationMillis(durationMs)
                     .setSearchable(true)
                     .apply {
-                        setPreviewVideoUri(null)
-                        setPreviewAudioUri(null)
+                        // Projectivy 4.73 starts audio previews from previewVideoUri; keep the
+                        // semantic audio field populated for launchers that honor it.
+                        setPreviewVideoUri(previewUri)
+                        setPreviewAudioUri(previewUri)
                         if (artworkUri.isNotBlank()) {
                             setPosterArtUri(Uri.parse(artworkUri))
                             setThumbnailUri(Uri.parse(artworkUri))
@@ -125,12 +143,6 @@ internal object TvRecommendationPublisher {
             Timber.w("No valid TV recommendations to publish; keeping existing cards")
             return null
         }
-        if (channelId <= 0L) {
-            Timber.w("Could not create TV recommendation channel; keeping existing cards")
-            return null
-        }
-
-        val existingPrograms = readExistingPrograms(context, channelId)
         val internalIds = programValues.map { values ->
             values.getAsString(TvContractCompat.PreviewProgramColumns.COLUMN_INTERNAL_PROVIDER_ID)
         }
@@ -159,12 +171,12 @@ internal object TvRecommendationPublisher {
         if (operations.isNotEmpty()) {
             context.contentResolver.applyBatch(TvContractCompat.AUTHORITY, operations)
         }
-
         val quickPickCount = selectedMediaIds.count(quickPickItemsById::containsKey)
         Timber.d(
             "Published ${programValues.size} TV recommendations for '$queueTitle' " +
                 "($quickPickCount Quick Picks; ${plan.inserts.size} added, ${plan.updates.size} updated, " +
-                "${plan.deletes.size} removed)"
+                "${plan.deletes.size} removed; " +
+                "${previewAudioUris.size} focus previews in previewVideoUri and previewAudioUri)"
         )
         return queueTitle
     }
@@ -174,6 +186,8 @@ internal object TvRecommendationPublisher {
         val projection = arrayOf(
             TvContractCompat.PreviewPrograms._ID,
             TvContractCompat.PreviewProgramColumns.COLUMN_INTERNAL_PROVIDER_ID,
+            TvContractCompat.PreviewProgramColumns.COLUMN_CONTENT_ID,
+            TvContractCompat.PreviewProgramColumns.COLUMN_PREVIEW_VIDEO_URI,
         )
         val cursor = context.contentResolver.query(uri, projection, null, null, null)
             ?: error("TV provider returned no preview-program cursor")
@@ -189,11 +203,63 @@ internal object TvRecommendationPublisher {
                         ExistingPreviewProgram(
                             programId = it.getLong(idColumn),
                             internalProviderId = it.getString(internalIdColumn),
+                            contentId = it.getString(
+                                it.getColumnIndexOrThrow(
+                                    TvContractCompat.PreviewProgramColumns.COLUMN_CONTENT_ID
+                                )
+                            ),
+                            previewVideoUri = it.getString(
+                                it.getColumnIndexOrThrow(
+                                    TvContractCompat.PreviewProgramColumns.COLUMN_PREVIEW_VIDEO_URI
+                                )
+                            ),
                         )
                     )
                 }
             }
         }
+    }
+
+    private suspend fun resolvePreviewAudioUris(
+        mediaIds: List<String>,
+        existingPrograms: List<ExistingPreviewProgram>,
+    ): Map<String, Uri> = coroutineScope {
+        val existingByContentId = existingPrograms
+            .filter { !it.contentId.isNullOrBlank() }
+            .associateBy { it.contentId!! }
+        val now = System.currentTimeMillis()
+        val resolveLimit = Semaphore(2)
+        mediaIds.distinct().map { mediaId ->
+            async {
+                val previousUri = existingByContentId[mediaId]?.previewVideoUri
+                    ?.let { rawUri -> runCatching { Uri.parse(rawUri) }.getOrNull() }
+                if (previousUri != null && canReuseTvAudioPreview(
+                        scheme = previousUri.scheme,
+                        mimeType = previousUri.getQueryParameter("mime"),
+                        expiresAtSeconds = previousUri.getQueryParameter("expire"),
+                        nowMillis = now,
+                    )
+                ) {
+                    return@async mediaId to previousUri
+                }
+
+                val source = resolveLimit.withPermit {
+                    runCatching { AuraVideo.getAudioPreviewSource(mediaId).getOrNull() }.getOrNull()
+                } ?: return@async null
+                val url = source.url
+                val uri = runCatching { Uri.parse(url) }.getOrNull()
+                    ?.takeIf {
+                        canPublishTvPreview(
+                            scheme = it.scheme,
+                            host = it.host,
+                            expiresAtSeconds = it.getQueryParameter("expire"),
+                            nowMillis = System.currentTimeMillis(),
+                        )
+                    }
+                    ?: return@async null
+                mediaId to uri
+            }
+        }.awaitAll().filterNotNull().toMap()
     }
 
     private fun ensureChannel(context: Context): Long {
