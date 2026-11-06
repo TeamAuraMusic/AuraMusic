@@ -751,7 +751,7 @@
     <string name="enable_video_mode">Режим видео</string>
     <string name="enable_video_mode_desc">Включить автоматическое переключение на видео, если в песне есть видео</string>
     <string name="aura_canvas">AuraCanvas</string>
-    <string name="aura_canvas_desc">Показывать повторяющиеся AuraCanvas позади обложки альбома, если есть совпадение в манифесте сообщества. Экспериментальная функция.</string>
+    <string name="aura_canvas_desc">Показывать повторяющиеся canvas вместо статичного изображения альбома в плеере, если такие имеются.</string>
     <string name="closed_captions">Субтитры</string>
     <string name="closed_captions_desc">Показывать субтитры во время проигрывания видео</string>
     <string name="subtitle_font_size">Размер субтитров</string>
@@ -1179,4 +1179,22 @@
     <string name="hide">Спрятать</string>
     <string name="unhide">Раскрыть</string>
     <string name="hide_playlist_desc">Поместить плейлист в список скрытых плейлистов вашей библиотеки</string>
+    <string name="channel">Канал</string>
+    <string name="auto_playlist">Автоматический плейлист</string>
+    <string name="subscribed_artists">Артисты, на которых вы подписаны</string>
+    <string name="liked_albums">Понравившиеся альбомы</string>
+    <string name="liked_playlists">Понравившиеся плейлисты</string>
+    <string name="from_your_wrapped">Из вашего Wrapped</string>
+    <string name="library_music_subtitle">Артисты, альбомы и плейлисты, которые вы слушаете</string>
+    <string name="library_video_subtitle">История, подписки и видео, которые вы сохранили</string>
+    <string name="home_greeting_morning">Доброе утро</string>
+    <string name="home_greeting_afternoon">Добрый день</string>
+    <string name="home_greeting_evening">Добрый вечер</string>
+    <string name="home_greeting_night">Доброй ночи</string>
+    <string name="unhide_playlist">Раскрыть плейлист</string>
+    <string name="hidden_playlists">Скрытые плейлисты</string>
+    <string name="hidden_playlists_empty">Нет скрытых плейлистов</string>
+    <string name="playlist_hidden">Плейлист добавлен в \"скрытые\"</string>
+    <string name="playlist_unhidden">Плейлист убран из \"скрытых\"</string>
+    <string name="your_shortcuts">Быстрый доступ</string>
 </resources>
