@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ADB='/mnt/i/AndroidTVSdk/platform-tools/adb.exe'
-ADB_PORT=5038
+ADB="${TVCTL_ADB:-/mnt/i/AndroidTVSdk/platform-tools/adb.exe}"
+ADB_PORT="${TVCTL_ADB_PORT:-5038}"
 EMULATOR="${TVCTL_EMULATOR:-/mnt/i/AndroidTVSdk/emulator/emulator.exe}"
 AVD="${TVCTL_AVD:-AuraMusicTVApi36}"
 AVD_HOME="${TVCTL_AVD_HOME:-/mnt/i/AndroidTVAvd}"
 SCRCPY='/mnt/c/Users/nos/AppData/Local/Microsoft/WinGet/Packages/Genymobile.scrcpy_Microsoft.Winget.Source_8wekyb3d8bbwe/scrcpy-win64-v4.1/scrcpy.exe'
 SERIAL="${TVCTL_SERIAL:-emulator-5554}"
 OUT="${TVCTL_OUT:-$PWD/evidence}"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
 die() { printf 'tvctl: %s\n' "$*" >&2; exit 2; }
 need_adb() { [[ -x "$ADB" ]] || die "Windows ADB missing: $ADB"; }
@@ -110,6 +111,15 @@ case "$cmd" in
     adb shell input keyevent "$keycode" ;;
   install)
     apk="${1:-}"; [[ -f "$apk" ]] || die "APK not found: $apk"; win_apk="$(wslpath -w "$apk")"; adb install -r "$win_apk" ;;
+  test)
+    flavor="${1:-standalone}"; test_class="${2:-}"; shift || true; shift || true
+    [[ "$flavor" =~ ^(standalone|foss)$ ]] || die 'flavor must be standalone or foss'
+    (($# == 0)) || die 'usage: tvctl test [standalone|foss] [FocusedCardWaveformViewInstrumentedTest|TvPreviewAudioTranscoderInstrumentedTest|TvRecommendationClickIntentInstrumentedTest|TvPreviewContentProviderInstrumentedTest]'
+    test_args=(--serial "$SERIAL" --adb "$ADB" --adb-port "$ADB_PORT" --output "$OUT" --flavor "$flavor")
+    [[ -z "${TVCTL_APP_APK:-}" ]] || test_args+=(--app-apk "$TVCTL_APP_APK")
+    [[ -z "${TVCTL_TEST_APK:-}" ]] || test_args+=(--test-apk "$TVCTL_TEST_APK")
+    [[ -z "$test_class" ]] || test_args+=(--class "com.auramusic.app.tv.$test_class")
+    python3 "$SCRIPT_DIR/run_tv_instrumentation.py" "${test_args[@]}" ;;
   capture-audio) capture_with_scrcpy audio "${1:-}" "${2:-}" ;;
   capture-video) capture_with_scrcpy video "${1:-}" "${2:-}" ;;
   foreground)
@@ -117,6 +127,6 @@ case "$cmd" in
   logs)
     dir="$(run_dir)"; mkdir -p "$OUT/$dir"; adb logcat -d -t 3000 > "$OUT/$dir/logcat.txt"; adb shell dumpsys media.audio_flinger > "$OUT/$dir/audioflinger.txt"; echo "$OUT/$dir" ;;
   help|*)
-    echo 'usage: tvctl {doctor|boot|snapshot [save|load|list] [NAME]|screenshot|hierarchy|key KEY|install APK|capture-audio SECONDS FILE.wav|capture-video SECONDS FILE.mp4|foreground|logs}'
+    echo 'usage: tvctl {doctor|boot|snapshot [save|load|list] [NAME]|screenshot|hierarchy|key KEY|install APK|test [standalone|foss] [FocusedCardWaveformViewInstrumentedTest|TvPreviewAudioTranscoderInstrumentedTest|TvRecommendationClickIntentInstrumentedTest|TvPreviewContentProviderInstrumentedTest]|capture-audio SECONDS FILE.wav|capture-video SECONDS FILE.mp4|foreground|logs}'
     ;;
 esac

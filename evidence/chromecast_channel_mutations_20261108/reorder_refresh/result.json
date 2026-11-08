@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "startedUtc": "2026-11-08T19:17:19.751640+00:00",
+  "device": {
+    "serial": "192.168.3.2:5555",
+    "model": "Chromecast",
+    "device": "sabrina",
+    "api": "34"
+  },
+  "publisherApkSha256": "d68bf235d11d7af99ad4f15df8aca7c399231271ef2f6fbe46359887ec1b06ac",
+  "reorderAfterProjectivyRestart": {
+    "requestedOrder": [
+      "B",
+      "A",
+      "C"
+    ],
+    "providerTitlesInQueryOrder": [
+      "Preview B",
+      "Preview A",
+      "Preview C \u2014 Animated video waveform test"
+    ],
+    "providerCount": 3,
+    "projectivyFocusAfterRestart": "Preview B",
+    "projectivyVisibleOrder": [
+      "Preview B",
+      "Preview A",
+      "Preview C \u2014 Animated video waveform test"
+    ],
+    "navigationPath": [
+      "Playlist\uff5cR&B\uff5c\u6b27\u7f8e\u65e5\u97e9\uff5c\u7535\u53f0",
+      "To Be Hero X",
+      "The Quintessential Quintuplets Movie",
+      "Bungo Stray Dogs",
+      "CNN",
+      "AuraMusic Tv",
+      "Send Files To TV",
+      "Ancestry",
+      "Preview B"
+    ],
+    "projectivyFocusedFirstCardB": true,
+    "outcome": "PASS"
+  },
+  "restoration": {
+    "outcome": "PASS",
+    "projectivyFocus": "Ancestry",
+    "focusReturnedToAuraMusic": true,
+    "probeRowObservedAtRestore": [
+      "Preview A",
+      "Preview B",
+      "Preview C \u2014 Animated video waveform test",
+      "Preview D",
+      "Preview E"
+    ],
+    "evidence": [
+      "final-screen.xml",
+      "final-screen.png"
+    ],
+    "details": "The initial navigation attempt overshot by one DPAD step. One DOWN restored focus to AuraMusic Ancestry; screenshot confirms original artwork and animated waveform."
+  },
+  "outcome": "PASS"
+}

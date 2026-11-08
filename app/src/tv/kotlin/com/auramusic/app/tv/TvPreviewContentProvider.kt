@@ -56,7 +56,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-/** Serves a cancellable, progressive H.264 preview composition to Projectivy. */
+/** Serves Projectivy preview audio, artwork, and generated video content from bounded caches. */
 @OptIn(UnstableApi::class)
 class TvPreviewContentProvider : ContentProvider() {
     override fun onCreate(): Boolean {
@@ -325,6 +325,8 @@ class TvPreviewContentProvider : ContentProvider() {
                 try {
                     val (audio, audioFile) = audioDownloadGate.runWithSource(
                         resolve = { resolveAudio(record) },
+                        refresh = { resolveAudio(record, forceRefresh = true) },
+                        shouldRefresh = ::shouldRefreshPreviewAudioSource,
                     ) { source ->
                         prepareAudioOnlyFile(context, source, output)
                     }
@@ -516,6 +518,8 @@ class TvPreviewContentProvider : ContentProvider() {
                     // preparation slot, then hold it through duration probing and download.
                     val (audio, prepared) = audioDownloadGate.runWithSource(
                         resolve = { resolveAudio(record) },
+                        refresh = { resolveAudio(record, forceRefresh = true) },
+                        shouldRefresh = ::shouldRefreshPreviewAudioSource,
                     ) { source ->
                         val durationMs = record.durationMs.takeIf { it > 0L }
                             ?: source.durationMs.takeIf { it > 0L }
@@ -578,50 +582,6 @@ class TvPreviewContentProvider : ContentProvider() {
         return candidate
     }
 
-    private suspend fun streamGrowingFile(
-        generation: Generation,
-        output: java.io.OutputStream,
-        onFirstBytes: (Long) -> Unit,
-    ) {
-        val partialFile = generation.partialFile
-        while (!partialFile.isFile && !generation.result.isCompleted) delay(STREAM_POLL_MS)
-        val fileInput = try {
-            if (partialFile.isFile) FileInputStream(partialFile)
-            else FileInputStream(generation.result.await())
-        } catch (missingPartial: java.io.FileNotFoundException) {
-            // The transformer can finish and atomically rename the partial between the
-            // existence check and open. Late readers must switch to the completed file.
-            if (!generation.result.isCompleted) throw missingPartial
-            FileInputStream(generation.result.await())
-        }
-        fileInput.use {
-            val channel = it.channel
-            val buffer = ByteArray(STREAM_BUFFER_BYTES)
-            var position = 0L
-            while (true) {
-                val available = channel.size()
-                if (position < available) {
-                    val count = minOf(buffer.size.toLong(), available - position).toInt()
-                    channel.position(position)
-                    val read = fileInput.read(buffer, 0, count)
-                    if (read < 0) continue
-                    output.write(buffer, 0, read)
-                    output.flush()
-                    position += read
-                    if (position == read.toLong()) onFirstBytes(position)
-                    continue
-                }
-                if (generation.result.isCompleted) {
-                    val finalFile = generation.result.await()
-                    val finalLength = finalFile.length()
-                    if (position >= finalLength) break
-                    continue
-                }
-                delay(STREAM_POLL_MS)
-            }
-        }
-    }
-
     private suspend fun transform(
         artworkFile: File,
         audioFile: File,
@@ -632,9 +592,12 @@ class TvPreviewContentProvider : ContentProvider() {
         TvPreviewMediaCodecEncoder.encode(artworkFile, audioFile, durationMs, generation.partialFile)
     }
 
-    private suspend fun resolveAudio(record: ProgramRecord): AuraVideo.AudioPreviewSource {
+    private suspend fun resolveAudio(
+        record: ProgramRecord,
+        forceRefresh: Boolean = false,
+    ): AuraVideo.AudioPreviewSource {
         val existing = record.audioUri?.let { runCatching { Uri.parse(it) }.getOrNull() }
-        if (existing != null && canReuseTvAudioPreview(
+        if (!forceRefresh && existing != null && canReuseTvAudioPreview(
                 scheme = existing.scheme,
                 mimeType = existing.getQueryParameter("mime"),
                 expiresAtSeconds = existing.getQueryParameter("expire"),
@@ -993,8 +956,6 @@ class TvPreviewContentProvider : ContentProvider() {
         private const val NETWORK_TIMEOUT_MS = 15_000
         private const val PREVIEW_VIDEO_WIDTH = 320
         private const val PREVIEW_VIDEO_HEIGHT = 180
-        private const val STREAM_BUFFER_BYTES = 32 * 1024
-        private const val STREAM_POLL_MS = 40L
         private const val COLUMN_POSTER_ART_URI = "poster_art_uri"
         private const val COLUMN_THUMBNAIL_URI = "thumbnail_uri"
         private const val COLUMN_TITLE = "title"

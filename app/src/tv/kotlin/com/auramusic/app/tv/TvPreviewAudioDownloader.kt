@@ -21,6 +21,11 @@ import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 
+internal class PreviewAudioHttpException(val statusCode: Int) : IOException("Preview audio HTTP $statusCode")
+
+internal fun shouldRefreshPreviewAudioSource(error: Throwable): Boolean =
+    (error as? PreviewAudioHttpException)?.statusCode in setOf(401, 403, 404, 410)
+
 /** Bounded audio fetch that resumes a partial source after transient connection loss. */
 internal object TvPreviewAudioDownloader {
     private const val CONNECT_TIMEOUT_MS = 15_000
@@ -57,6 +62,9 @@ internal object TvPreviewAudioDownloader {
                         return@withContext output
                     } catch (cancelled: CancellationException) {
                         throw cancelled
+                    } catch (error: PreviewAudioHttpException) {
+                        partial.delete()
+                        throw error
                     } catch (error: IOException) {
                         partial.delete()
                         Timber.w(error, "TV preview parallel range download failed; falling back to sequential transfer")
@@ -81,6 +89,7 @@ internal object TvPreviewAudioDownloader {
                         }
 
                         val status = activeConnection.responseCode
+                        if (status in REFRESHABLE_SOURCE_STATUSES) throw PreviewAudioHttpException(status)
                         check(status == HttpURLConnection.HTTP_OK || status == HTTP_PARTIAL_CONTENT) {
                             "Preview audio HTTP $status"
                         }
@@ -138,6 +147,7 @@ internal object TvPreviewAudioDownloader {
                     } catch (cancelled: CancellationException) {
                         throw cancelled
                     } catch (error: IOException) {
+                        if (error is PreviewAudioHttpException) throw error
                         downloaded = partial.length()
                         if (retries >= MAX_RESUME_RETRIES) throw error
                         retries++
@@ -177,6 +187,7 @@ internal object TvPreviewAudioDownloader {
             connection.setRequestProperty("Accept-Encoding", "identity")
             connection.setRequestProperty("Range", "bytes=0-0")
             val status = connection.responseCode
+            if (status in REFRESHABLE_SOURCE_STATUSES) throw PreviewAudioHttpException(status)
             if (status == HttpURLConnection.HTTP_OK) {
                 handedOff = true
                 return RangeProbe(initialResponse = connection)
@@ -194,6 +205,7 @@ internal object TvPreviewAudioDownloader {
             val firstByte = connection.inputStream.use { it.read() }
             return RangeProbe(rangeLength = total.takeIf { firstByte >= 0 })
         } catch (error: IOException) {
+            if (error is PreviewAudioHttpException) throw error
             // Probe failure must not prevent the established sequential/resume path.
             Timber.w(error, "TV preview range capability probe failed; using sequential download")
             return RangeProbe()
@@ -249,6 +261,7 @@ internal object TvPreviewAudioDownloader {
                 connection.setRequestProperty("Accept-Encoding", "identity")
                 connection.setRequestProperty("Range", "bytes=$start-$end")
                 val status = connection.responseCode
+                if (status in REFRESHABLE_SOURCE_STATUSES) throw PreviewAudioHttpException(status)
                 if (status != HTTP_PARTIAL_CONTENT) {
                     throw IOException("Parallel preview audio range returned HTTP $status")
                 }
@@ -281,6 +294,7 @@ internal object TvPreviewAudioDownloader {
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: IOException) {
+                if (error is PreviewAudioHttpException) throw error
                 lastError = error
                 if (attempt == MAX_RESUME_RETRIES) throw error
             } finally {
@@ -291,6 +305,7 @@ internal object TvPreviewAudioDownloader {
     }
 
     private const val HTTP_PARTIAL_CONTENT = 206
+    private val REFRESHABLE_SOURCE_STATUSES = setOf(401, 403, 404, 410)
     private val CONTENT_RANGE = Regex("bytes ([0-9]+)-([0-9]+)/([0-9]+)")
 
     private data class RangeProbe(

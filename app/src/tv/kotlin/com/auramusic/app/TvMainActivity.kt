@@ -44,6 +44,7 @@ import com.auramusic.app.constants.UiScaleKey
  import com.auramusic.app.listentogether.ListenTogetherManager
 import com.auramusic.app.models.toMediaMetadata
  import com.auramusic.app.playback.MusicService
+import com.auramusic.app.tv.tvRecommendationMediaId
  import com.auramusic.app.playback.MusicService.MusicBinder
  import com.auramusic.app.playback.PlayerConnection
 import com.auramusic.app.video.VideoPlaybackManager
@@ -274,7 +275,7 @@ class TvMainActivity : ComponentActivity() {
     }
 
     private fun handleProgramIntent(intent: Intent, connection: PlayerConnection) {
-        val mediaId = intent.getStringExtra("media_id") ?: return
+        val mediaId = tvRecommendationMediaId(intent) ?: return
         if (handledMediaId == mediaId) return
         handledMediaId = mediaId
 

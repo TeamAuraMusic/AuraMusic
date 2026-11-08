@@ -120,11 +120,7 @@ internal object TvRecommendationPublisher {
             sourceArtworkByInternalId[internalProviderId] = artworkUri
 
             try {
-                val launchIntent = Intent(Intent.ACTION_VIEW).apply {
-                    setClassName(context, "com.auramusic.app.TvMainActivity")
-                    putExtra("media_id", mediaId)
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                }
+                val launchIntent = tvRecommendationClickIntent(context, mediaId)
 
                 PreviewProgram.Builder()
                     .setChannelId(channelId)
@@ -150,15 +146,13 @@ internal object TvRecommendationPublisher {
                         )
                         setPreviewAudioUri(previewAudio?.uri)
                         if (artworkUri.isNotBlank()) {
-                            // Projectivy 4.73 accepts AAC/MP4 as a preview source. The provider
-                            // normalizes other audio containers to AAC/MP4; the focused-card
-                            // accessibility overlay supplies motion over the original poster.
-                            val previewUri = if (projectivyAudioPreviewPreparation(previewAudio?.mimeType) !=
-                                ProjectivyAudioPreviewPreparation.UNSUPPORTED
-                            ) {
-                                TvPreviewUri.forAudioOnlyProgram(context, internalProviderId, revision)
-                            } else {
-                                TvPreviewUri.forProgram(context, internalProviderId, revision)
+                            // Projectivy plays audio-only MP4 quickly; the accessibility overlay
+                            // restores the poster and draws its focus-driven waveform.
+                            val previewUri = when (projectivyPreviewUriMode(previewAudio?.mimeType)) {
+                                ProjectivyPreviewUriMode.AUDIO_ONLY_PROVIDER ->
+                                    TvPreviewUri.forAudioOnlyProgram(context, internalProviderId, revision)
+                                ProjectivyPreviewUriMode.GENERATED_VIDEO_PROVIDER ->
+                                    TvPreviewUri.forProgram(context, internalProviderId, revision)
                             }
                             setPreviewVideoUri(
                                 previewUri

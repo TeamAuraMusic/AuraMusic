@@ -1,0 +1,60 @@
+{
+  "test": "Chromecast Projectivy PreviewProbe focus/audio diagnostic",
+  "device": {
+    "serial": "192.168.3.2:5555",
+    "model": "Google Chromecast",
+    "android": "14",
+    "api": 34,
+    "projectivy": "4.73"
+  },
+  "method": "D-pad only; no Select. Projectivy remained foreground. scrcpy 4.1 output WAV capture attempted.",
+  "assertions": {
+    "focusA": {
+      "status": "PASS",
+      "hierarchy": {
+        "description": "Preview A",
+        "bounds": "[0,485][486,725]"
+      },
+      "screenshot": "screen-focused-a.png"
+    },
+    "focusB": {
+      "status": "PASS",
+      "hierarchy": {
+        "description": "Preview B",
+        "bounds": "[0,485][486,725]"
+      },
+      "screenshot": "screen-focused-b-ab.png"
+    },
+    "projectivyAudioTrackA": {
+      "status": "PASS",
+      "sampleRateHz": 44100
+    },
+    "projectivyAudioTrackB": {
+      "status": "PASS",
+      "sampleRateHz": 44100
+    },
+    "toneIdentity440_880Hz": {
+      "status": "INCONCLUSIVE",
+      "reason": "PCM capture unavailable: scrcpy server handshake failed; see scrcpy-capture.log"
+    },
+    "focusLossStopsAudio": {
+      "status": "PASS",
+      "hierarchy": {
+        "description": "Send Files To TV",
+        "bounds": "[0,193][236,397]"
+      }
+    },
+    "projectivyRemainsForeground": {
+      "status": "PASS"
+    },
+    "previewCAnimation": {
+      "status": "INCONCLUSIVE",
+      "note": "Four ADB screencaps of C had identical SHA-256; no changing frame observed. C was not used as substitute for AuraMusic overlay."
+    }
+  },
+  "overall": "INCONCLUSIVE",
+  "notes": [
+    "This probe does not verify current AuraMusic real-track behavior. AuraMusic Quick Picks data is absent after the Gradle connected-test uninstall/reinstall incident.",
+    "A/B focus starts distinct Projectivy AudioTrack sessions; after focus loss none remains active."
+  ]
+}

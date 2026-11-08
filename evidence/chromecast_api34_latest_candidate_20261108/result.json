@@ -1,0 +1,266 @@
+{
+  "schema": 1,
+  "missionStatus": "INCOMPLETE",
+  "scopedRunOutcome": "PASS",
+  "test": "AuraMusic Projectivy home-screen previews on physical Chromecast",
+  "startedLocal": "2026-11-08 18:13 Europe/Oslo",
+  "device": {
+    "serial": "192.168.3.2:5555",
+    "model": "Chromecast",
+    "device": "sabrina",
+    "androidVersion": "14",
+    "api": 34,
+    "fingerprint": "google/sabrina_prod_stable/sabrina:14/UTTC.250917.004/14193937:user/release-keys"
+  },
+  "apps": {
+    "projectivy": {
+      "package": "com.spocky.projengmenu",
+      "version": "4.73",
+      "versionCode": 98
+    },
+    "auramusic": {
+      "package": "com.auramusic.app.debug",
+      "version": "3.2.0",
+      "versionCode": 29,
+      "candidateSha256": "11e4939da4ad29152dcbe1c4007a564fb2f06d1484abd8cd1c1aa9833122c57e",
+      "installedAfterSha256": "11e4939da4ad29152dcbe1c4007a564fb2f06d1484abd8cd1c1aa9833122c57e",
+      "preInstallSha256": "1a517f04ed5707692eadbdbc62bb376fba209ac8b00f3fb07db3aa589ee2e779"
+    }
+  },
+  "source": {
+    "worktree": "/tmp/auramusic-projectivy-implementation",
+    "branch": "codex/projectivy-preview-implementation",
+    "commit": "bbb4f64f70485cf674a1a4049429b378420b5ce9",
+    "dirty": true
+  },
+  "actions": {
+    "selectPressedDuringPreviewTests": false,
+    "deepLinkSelectPressedOnlyForDedicatedTest": true,
+    "ownerDataCleared": false,
+    "appInstalledInPlace": true,
+    "candidateHashVerifiedAfterInstall": true,
+    "physicalSerialExplicit": true
+  },
+  "assertions": [
+    {
+      "id": "candidate_apk_identity",
+      "outcome": "PASS",
+      "details": "Pre-install APK hash differed despite same version code. In-place candidate install preserved app data; pulling the installed base.apk afterward exactly matched the tested candidate hash.",
+      "evidence": [
+        "apk-hash-comparison.txt",
+        "install-candidate.txt",
+        "post-install-apk-hash-comparison.txt",
+        "auramusic-package-after-install.txt"
+      ]
+    },
+    {
+      "id": "real_song_a_focus_audio_wave",
+      "outcome": "PASS",
+      "program": "click \u2014 C418 \u2022 Quick Picks",
+      "details": "Projectivy stayed foreground. DPAD focus only. Focused card preserved its art and showed pink waveform; Projectivy AudioTrack started at 44.1kHz. Synchronized H.264/AAC screen+device-output capture; WAV RMS 6501.74.",
+      "evidence": [
+        "focused-real-song-screen-only.mp4",
+        "focused-real-song-audio-assertion.json",
+        "focused-real-song-animation-assertion.json",
+        "focused-real-song-first-frame.png"
+      ]
+    },
+    {
+      "id": "real_song_b_focus_audio_wave",
+      "outcome": "PASS",
+      "program": "Wending \u2014 Lena Raine \u2022 Quick Picks",
+      "details": "DPAD focus only. Projectivy AudioTrack started at 44.1kHz; synchronized H.264/AAC capture; WAV RMS 3535.15. Pink waveform was present in all 479 sampled frames with 455 distinct row profiles.",
+      "evidence": [
+        "wending-screen-only.mp4",
+        "wending-screen-audio.ffprobe.json",
+        "wending-focus.png",
+        "wending-animation-assertion.json"
+      ]
+    },
+    {
+      "id": "rapid_ab_10_rounds",
+      "outcome": "PASS",
+      "details": "20 no-Select focus transitions between two real AuraMusic cards. Launcher foreground, correct row/card, visible waveform, audio active, no multiple Projectivy tracks, no AuraMusic overlap.",
+      "metrics": {
+        "medianTransitionUpperBoundSeconds": 0.281,
+        "p95UpperBoundSeconds": 0.426,
+        "maxUpperBoundSeconds": 1.122
+      },
+      "evidence": [
+        "real-song-ab-10x/transition-result.json",
+        "real-song-ab-10x/focus-events.log"
+      ]
+    },
+    {
+      "id": "focus_loss_and_return",
+      "outcome": "PASS",
+      "details": "DPAD focus loss stopped preview; return to same title restarted Projectivy audio and animated indicator, no overlap.",
+      "metrics": {
+        "audioStopUpperBoundSeconds": 0.119,
+        "distinctWaveProfiles": 5
+      },
+      "evidence": [
+        "focus-loss-return-after-ab/result.json",
+        "focus-loss-return-after-ab/focus-service-logcat.txt"
+      ]
+    },
+    {
+      "id": "continuous_focus_60s",
+      "outcome": "PASS",
+      "details": "Focused real card held for 65.25 seconds; 7/7 checks show exact card focused, Projectivy foreground, Projectivy AudioTrack active, indicator visible and changing.",
+      "evidence": [
+        "focused-window-60s/focused-window-result.json",
+        "focused-window-60s/sample-01.png",
+        "focused-window-60s/sample-07.png"
+      ]
+    },
+    {
+      "id": "select_deep_link",
+      "outcome": "PASS",
+      "details": "Select launched AuraMusic TvMainActivity; app media session metadata showed click / C418 and PlaybackState PLAYING. The track was then paused; Projectivy was restored.",
+      "evidence": [
+        "select-screen-after-settle.png",
+        "select-activities.txt",
+        "select-media-sessions.txt",
+        "select-audio-after-settle.txt",
+        "select-media-sessions-paused.txt"
+      ]
+    },
+    {
+      "id": "projectivy_foreground_and_current_card",
+      "outcome": "PASS",
+      "details": "After tests and ADB capture-server shutdown, WSL ADB still sees the explicit Chromecast serial. Projectivy is foreground with Wending card focused and preview AudioTrack active.",
+      "evidence": [
+        "final-screen.png",
+        "final-audio-dumpsys.txt"
+      ]
+    },
+    {
+      "id": "android14_reboot_and_channel_restore",
+      "outcome": "PASS",
+      "details": "Chromecast rebooted without data clearing. Android 14/API34 boot completed; AuraMusic v29 and accessibility grant persisted. Projectivy relaunched, AuraMusic row remained published; DPAD focus restored waveform and Projectivy AudioTrack.",
+      "evidence": [
+        "post-reboot-accessibility.txt",
+        "post-reboot-screen.png",
+        "post-reboot-aura-focus.xml",
+        "post-reboot-aura-audio.txt",
+        "reboot-navigation/navigation.tsv"
+      ]
+    },
+    {
+      "id": "projectivy_process_restart",
+      "outcome": "PASS",
+      "details": "Projectivy force-stopped/relaunched; AuraMusic channel persisted and focus returned to a card with preview.",
+      "evidence": [
+        "projectivy-restart-activities.txt",
+        "projectivy-restart-navigation/focused.xml",
+        "projectivy-restart-after-focus.png",
+        "projectivy-restart-audio-after-focus.txt"
+      ]
+    },
+    {
+      "id": "resource_snapshot_after_reboot",
+      "outcome": "INCONCLUSIVE",
+      "measurements": {
+        "auramusicTotalPssKiB": 184462,
+        "auramusicTotalRssKiB": 168036,
+        "projectivyTotalPssKiB": 126855,
+        "projectivyTotalRssKiB": 185832,
+        "cpu5SamplesPercent": {
+          "projectivy": [
+            2,
+            1,
+            3,
+            1,
+            3
+          ],
+          "auramusic": [
+            1,
+            0,
+            0,
+            1,
+            0
+          ]
+        },
+        "previewAudioCacheKiB": 38008,
+        "totalAuraMusicCacheKiB": 70720
+      },
+      "details": "A point-in-time snapshot only; growth/eviction trend not established.",
+      "evidence": [
+        "resource-profile-after-reboot/auramusic-meminfo.txt",
+        "resource-profile-after-reboot/projectivy-meminfo.txt",
+        "resource-profile-after-reboot/top-5-samples.txt",
+        "resource-profile-after-reboot/cache-size-kb.txt"
+      ]
+    },
+    {
+      "id": "previewprobe_projectivy_channel_mutations",
+      "outcome": "PASS",
+      "details": "On Chromecast API34/Projectivy 4.73, PreviewProbe TvProvider add A/B and remove-to-B each converged to the correct visible row. B/A/C reorder plus add was visible in exact order after Projectivy restart. Probe row A-E and AuraMusic Ancestry focus were restored. Projectivy stayed foreground for all home captures; no Select was pressed. This is a test-publisher boundary check; AuraMusic-specific isolated metadata mutation is not fully covered.",
+      "evidence": [
+        "../chromecast_channel_mutations_20261108/README.md",
+        "../chromecast_channel_mutations_20261108/installed_probe_candidate/result.json",
+        "../chromecast_channel_mutations_20261108/reorder_refresh/result.json",
+        "../chromecast_channel_mutations_20261108/reorder_refresh/reorder-nav-8.xml",
+        "../chromecast_channel_mutations_20261108/reorder_refresh/reorder-projectivy-screen.png",
+        "../chromecast_channel_mutations_20261108/reorder_refresh/final-screen.xml",
+        "../chromecast_channel_mutations_20261108/reorder_refresh/final-screen.png"
+      ]
+    },
+    {
+      "id": "waveform_optimized_candidate_validation",
+      "outcome": "INCONCLUSIVE",
+      "details": "Optimized APK exact hash installed. 67 JVM tests and one focused Chromecast view instrumentation test pass. Connected AndroidTest removed the target package; reinstall had no backup restore and the AuraMusic Quick Picks channel is absent. New Projectivy real-song focus/audio/wave integration has not been reverified.",
+      "evidence": [
+        "../waveform_render_optimization_20261108/result.json",
+        "../waveform_render_optimization_20261108/installed-package-state.txt",
+        "../waveform_render_optimization_20261108/backup-restore-log.txt",
+        "../waveform_render_optimization_20261108/projectivy-after-reinstall.png"
+      ]
+    },
+    {
+      "id": "chromecast_previewprobe_audio_capture_followup",
+      "outcome": "INCONCLUSIVE",
+      "details": "On current Chromecast install, Projectivy stayed foreground; focus A/B started distinct Projectivy-owned 44.1 kHz AudioTracks; focus loss left no started Projectivy track. scrcpy 4.1 failed its server handshake, so 440/880 Hz identity was not measured. PreviewProbe C screenshots did not change.",
+      "evidence": [
+        "../chromecast_synthetic_audio_20261108T/result.json",
+        "../chromecast_synthetic_audio_20261108T/screen-focused-a.png",
+        "../chromecast_synthetic_audio_20261108T/screen-focused-b-ab.png",
+        "../chromecast_synthetic_audio_20261108T/dumpsys-audio-a.txt",
+        "../chromecast_synthetic_audio_20261108T/dumpsys-audio-b-ab.txt",
+        "../chromecast_synthetic_audio_20261108T/dumpsys-audio-after-focus-loss.txt",
+        "../chromecast_synthetic_audio_20261108T/scrcpy-capture.log"
+      ]
+    }
+  ],
+  "testInfraNotes": [
+    "The tested APK was installed in place with adb install -r; no app data was cleared. Previous installed APK was preserved.",
+    "Windows ADB capture used a temporary server on port 5039 with the already-authorized Linux ADB key. A first attempt on port 5038 showed an authorization prompt; it was canceled, no new key was approved, and that server was disconnected. Port 5039 was shut down after capture.",
+    "No other physical device was targeted."
+  ],
+  "remainingGates": [
+    "Restore/rebuild AuraMusic Quick Picks safely and verify optimized candidate with real songs on Projectivy",
+    "Compare optimized candidate CPU/memory against the real-preview baseline",
+    "AuraMusic-specific isolated channel metadata mutations",
+    "Device-level external media/server/network failure and recovery",
+    "Longitudinal cache growth/eviction",
+    "Trusted HTTPS path if required"
+  ],
+  "commands": {
+    "realSongAb": "python3 /tmp/auramusic-projectivy-implementation/scripts/verify-projectivy-real-song-transitions.py --serial 192.168.3.2:5555 --adb /home/nos/android-sdk/platform-tools/adb --adb-port 5037 --allow-physical --title-a click --title-b Wending --channel-name AuraMusic --cycles 10 --focus-timeout-seconds 8 --audio-timeout-seconds 10 --settle-seconds 0.5 --indicator-timeout-seconds 3 --evidence-dir evidence/chromecast_resume_20261108T181305Z/real-song-ab-10x",
+    "focusLossReturn": "python3 /tmp/auramusic-projectivy-implementation/scripts/verify-projectivy-focus-loss-return.py --serial 192.168.3.2:5555 --adb /home/nos/android-sdk/platform-tools/adb --adb-port 5037 --allow-physical --title click --evidence-dir evidence/chromecast_resume_20261108T181305Z/focus-loss-return-after-ab",
+    "continuous60": "python3 /tmp/auramusic-projectivy-implementation/scripts/verify-projectivy-focused-window.py --serial 192.168.3.2:5555 --adb /home/nos/android-sdk/platform-tools/adb --adb-port 5037 --allow-physical --title click --seconds 60 --interval-seconds 10 --evidence-dir evidence/chromecast_resume_20261108T181305Z/focused-window-60s"
+  },
+  "latestInstalledCandidate": {
+    "sha256": "c2beed295b6a43506cea5cc2ee470808bc730af655818e4d8fdbf17f981afc8e",
+    "projectivyRealSongOutcome": "INCONCLUSIVE",
+    "reason": "Fresh install had no backup restore; prior local listening history and AuraMusic channel absent. PreviewProbe A/B confirms active launcher tracks only; physical tone identity and optimized real-song animation remain unverified."
+  },
+  "publicEvidenceNote": "Screen-only MP4s have their song audio stream removed before publication. Raw device WAV and original screen+audio captures remain local and are referenced in local evidence only.",
+  "localEvidenceOnly": [
+    "focused-real-song-output.wav",
+    "focused-real-song-screen-audio.mp4",
+    "wending-output.wav",
+    "wending-screen-audio.mp4"
+  ]
+}

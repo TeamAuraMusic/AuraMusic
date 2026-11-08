@@ -1,0 +1,10 @@
+{
+  "frames": 476,
+  "framePairs": 475,
+  "pinkPixelsMin": 209,
+  "pinkPixelsMax": 231,
+  "framesWithVisiblePink": 476,
+  "distinctWaveProfiles": 16,
+  "framePairsChangedInCardRoi": 1,
+  "roi": "accessibility-derived card artwork waveform area [107,352]-[379,433]"
+}

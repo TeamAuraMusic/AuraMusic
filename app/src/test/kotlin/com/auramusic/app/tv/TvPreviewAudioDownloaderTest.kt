@@ -47,14 +47,16 @@ class TvPreviewAudioDownloaderTest {
             val directory = temporaryFolder.newFolder()
             val cacheName = "expired-source"
             val url = "http://127.0.0.1:${server.address.port}/audio"
-            var failed = false
+            var failure: Exception? = null
             try {
                 TvPreviewAudioDownloader.download(url, directory, cacheName)
-            } catch (_: Exception) {
-                failed = true
+            } catch (error: Exception) {
+                failure = error
             }
 
-            assertTrue("A stale source URL must fail cleanly", failed)
+            assertTrue("A stale source URL must fail cleanly", failure is PreviewAudioHttpException)
+            assertEquals(404, (failure as? PreviewAudioHttpException)?.statusCode)
+            assertTrue(shouldRefreshPreviewAudioSource(failure!!))
             assertEquals(false, directory.resolve("$cacheName.audio").exists())
             assertEquals(false, directory.resolve("$cacheName.audio.partial").exists())
 
@@ -64,6 +66,137 @@ class TvPreviewAudioDownloaderTest {
             assertEquals(false, directory.resolve("$cacheName.audio.partial").exists())
         } finally {
             server.stop(0)
+        }
+    }
+
+    @Test
+    fun classifiesSourceRejectionAfterSuccessfulRangeProbeWithoutRetryingSameUrl() = runBlocking {
+        val requests = AtomicInteger()
+        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        server.createContext("/audio") { exchange ->
+            if (requests.incrementAndGet() == 1) {
+                exchange.responseHeaders.add("Content-Range", "bytes 0-0/524288")
+                exchange.sendResponseHeaders(206, 1)
+                exchange.responseBody.use { it.write(0x5a) }
+            } else {
+                exchange.sendResponseHeaders(403, -1)
+                exchange.close()
+            }
+        }
+        server.start()
+        try {
+            var failure: Exception? = null
+            try {
+                TvPreviewAudioDownloader.download(
+                    "http://127.0.0.1:${server.address.port}/audio",
+                    temporaryFolder.newFolder(),
+                    "late-expiry",
+                )
+            } catch (error: Exception) {
+                failure = error
+            }
+
+            assertEquals(2, requests.get())
+            assertEquals(403, (failure as? PreviewAudioHttpException)?.statusCode)
+        } finally {
+            server.stop(0)
+        }
+    }
+
+    @Test
+    fun staleHttpSourceIsResolvedAgainAndDownloaderPublishesRefreshedBytes() = runBlocking {
+        val expected = ByteArray(768 * 1024) { (it * 17).toByte() }
+        val expiredRequests = AtomicInteger()
+        val refreshedRequests = AtomicInteger()
+        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        server.createContext("/expired") { exchange ->
+            expiredRequests.incrementAndGet()
+            exchange.sendResponseHeaders(403, -1)
+            exchange.close()
+        }
+        server.createContext("/refreshed") { exchange ->
+            refreshedRequests.incrementAndGet()
+            exchange.sendResponseHeaders(200, expected.size.toLong())
+            exchange.responseBody.use { it.write(expected) }
+        }
+        server.start()
+        try {
+            val directory = temporaryFolder.newFolder()
+            val base = "http://127.0.0.1:${server.address.port}"
+            val gate = TvPreviewAudioDownloadGate(maxConcurrentDownloads = 1)
+            val (resolvedUrl, output) = gate.runWithSource(
+                resolve = { "$base/expired" },
+                refresh = { "$base/refreshed" },
+                shouldRefresh = ::shouldRefreshPreviewAudioSource,
+            ) { url ->
+                TvPreviewAudioDownloader.download(url, directory, "refreshed-source")
+            }
+
+            assertEquals("$base/refreshed", resolvedUrl)
+            assertEquals(1, expiredRequests.get())
+            assertEquals(1, refreshedRequests.get())
+            assertArrayEquals(expected, Files.readAllBytes(output.toPath()))
+            assertFalse(directory.resolve("refreshed-source.audio.partial").exists())
+        } finally {
+            server.stop(0)
+        }
+    }
+
+    @Test
+    fun expiredSourceDuringParallelRangesRefreshesAndPublishesExactReplacement() = runBlocking {
+        val expected = ByteArray(2 * 1024 * 1024) { (it * 29).toByte() }
+        val expiredRequests = AtomicInteger()
+        val refreshedRequests = AtomicInteger()
+        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        val executor = Executors.newFixedThreadPool(8)
+        server.executor = executor
+        server.createContext("/expired") { exchange ->
+            expiredRequests.incrementAndGet()
+            if (exchange.requestHeaders.getFirst("Range") == "bytes=0-0") {
+                exchange.responseHeaders.add("Content-Range", "bytes 0-0/${expected.size}")
+                exchange.sendResponseHeaders(206, 1)
+                exchange.responseBody.use { it.write(expected[0].toInt()) }
+            } else {
+                exchange.sendResponseHeaders(403, -1)
+                exchange.close()
+            }
+        }
+        server.createContext("/refreshed") { exchange ->
+            refreshedRequests.incrementAndGet()
+            val range = exchange.requestHeaders.getFirst("Range").orEmpty()
+            val match = Regex("bytes=([0-9]+)-([0-9]+)").matchEntire(range)
+            if (match == null) {
+                exchange.sendResponseHeaders(400, -1)
+                exchange.close()
+            } else {
+                val start = match.groupValues[1].toInt()
+                val end = match.groupValues[2].toInt()
+                val bytes = expected.copyOfRange(start, end + 1)
+                exchange.responseHeaders.add("Content-Range", "bytes $start-$end/${expected.size}")
+                exchange.sendResponseHeaders(206, bytes.size.toLong())
+                exchange.responseBody.use { it.write(bytes) }
+            }
+        }
+        server.start()
+        try {
+            val directory = temporaryFolder.newFolder()
+            val base = "http://127.0.0.1:${server.address.port}"
+            val gate = TvPreviewAudioDownloadGate(maxConcurrentDownloads = 1)
+            val (_, output) = gate.runWithSource(
+                resolve = { "$base/expired" },
+                refresh = { "$base/refreshed" },
+                shouldRefresh = ::shouldRefreshPreviewAudioSource,
+            ) { url ->
+                TvPreviewAudioDownloader.download(url, directory, "parallel-refreshed-source")
+            }
+
+            assertTrue("Expected an expired range request after the successful probe", expiredRequests.get() > 1)
+            assertEquals(5, refreshedRequests.get()) // probe plus four complete byte ranges
+            assertArrayEquals(expected, Files.readAllBytes(output.toPath()))
+            assertFalse(directory.resolve("parallel-refreshed-source.audio.partial").exists())
+        } finally {
+            server.stop(0)
+            executor.shutdownNow()
         }
     }
 

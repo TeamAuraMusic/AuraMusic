@@ -1,0 +1,11 @@
+'\\wsl.localhost\Ubuntu-SSD\tmp\auramusic-projectivy-implementation'
+CMD.EXE was started with the above path as the current directory.
+UNC paths are not supported.  Defaulting to Windows directory.
+scrcpy 4.1 <https://github.com/Genymobile/scrcpy>
+No video mirroring, SDK mouse disabled
+INFO: ADB device found:
+INFO:     --> (tcpip)  192.168.3.2:5555                device  Chromecast
+C:\Users\nos\AppData\Local\Microsoft\WinGet\Packages\Genymobile.scrcpy_Microsoft.Winget.Source_8wekyb3d8bbwe\scrcpy-win64-v4.1\scrcpy-server: 1 file pushed, 0 skipped. 55.0 MB/s (733706 bytes in 0.013s)
+[server] INFO: Device: [Google] google Chromecast (Android 14)
+ERROR: Server connection failed
+exit=1 end=2026-11-08T20:01:50Z

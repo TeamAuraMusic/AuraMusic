@@ -9,7 +9,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.PixelFormat
 import android.graphics.Rect
-import android.os.Build
 import android.net.Uri
 import android.os.Handler
 import android.os.IBinder
@@ -40,7 +39,6 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
     private var currentArtworkUri: Uri? = null
     private var focusedProgramTitle: String? = null
     private var playbackMonitor: AudioPlaybackMonitor? = null
-    private var hasActiveMediaPlayback = Build.VERSION.SDK_INT < Build.VERSION_CODES.O
     private var musicServiceBinding = false
     private var musicService: MusicService? = null
     private val artworkCache = object : LruCache<String, Bitmap>(4) {}
@@ -63,16 +61,6 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
         }
     }
     private val refreshFocusedCard = Runnable { refreshFocusedNode() }
-    private val playbackRefreshLoop = FocusedPlaybackRefreshLoop(
-        intervalMs = PLAYBACK_REFRESH_MS,
-        isFocused = { playbackMonitor != null && indicator != null && focusedProgramTitle != null },
-        refresh = {
-            runCatching { playbackMonitor?.refresh() }
-                .onFailure { Timber.w(it, "Could not refresh Projectivy playback state") }
-        },
-        postDelayed = { runnable, delay -> mainHandler.postDelayed(runnable, delay) },
-        removeCallbacks = { runnable -> mainHandler.removeCallbacks(runnable) },
-    )
     private val activeWindowCheck = object : Runnable {
         override fun run() {
             if (indicator == null) return
@@ -87,23 +75,17 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         windowManager = getSystemService(WindowManager::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            runCatching {
-                playbackMonitor = AudioPlaybackMonitor(this, mainHandler, ::updatePlaybackState)
-            }.onFailure {
-                Timber.w(it, "Could not monitor active playback for the Projectivy indicator; using focus state")
-                hasActiveMediaPlayback = true
-            }
+        runCatching {
+            playbackMonitor = AudioPlaybackMonitor(this, mainHandler, ::updatePlaybackState)
+        }.onFailure {
+            Timber.w(it, "Could not monitor Projectivy media playback for diagnostics")
         }
         Timber.i("TV preview focus indicator service connected")
         scheduleFocusedCardRefresh()
     }
 
     private fun updatePlaybackState(active: Boolean) {
-        if (active == hasActiveMediaPlayback) return
-        hasActiveMediaPlayback = active
-        Timber.i("TV preview media playback state active=%s", active)
-        indicator?.setPlaybackActive(active)
+        Timber.d("TV preview media playback state active=%s focusedTitle=%s", active, focusedProgramTitle)
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -263,7 +245,7 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
             x = card.left
             y = card.top
         }
-        view.setPlaybackActive(hasActiveMediaPlayback)
+        view.setPreviewFocused(true)
         try {
             if (existing == null) manager.addView(view, params) else manager.updateViewLayout(view, params)
         } catch (error: Exception) {
@@ -291,7 +273,6 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
         }
         Timber.d("TV preview focus indicator shown title=%s bounds=%s", title, card)
         mainHandler.postDelayed(activeWindowCheck, ACTIVE_WINDOW_CHECK_MS)
-        playbackRefreshLoop.start()
     }
 
     private fun loadArtwork(uri: Uri): Bitmap? {
@@ -347,7 +328,6 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
 
     private fun hideIndicator(reason: String) {
         mainHandler.removeCallbacks(activeWindowCheck)
-        playbackRefreshLoop.stop()
         indicator?.let { view -> runCatching { windowManager?.removeView(view) } }
         if (indicator != null) Timber.d("TV preview focus indicator hidden reason=%s", reason)
         indicator = null
@@ -402,7 +382,6 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
 
     override fun onDestroy() {
         mainHandler.removeCallbacks(refreshFocusedCard)
-        playbackRefreshLoop.stop()
         hideIndicator("service destroyed")
         artworkExecutor.shutdownNow()
         runCatching { playbackMonitor?.close() }
@@ -414,7 +393,6 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
         const val PROJECTIVY_PACKAGE = "com.spocky.projengmenu"
         const val TITLES_CACHE_MS = 10_000L
         const val ACTIVE_WINDOW_CHECK_MS = 500L
-        const val PLAYBACK_REFRESH_MS = 500L
         const val FOCUS_REFRESH_DELAY_MS = 100L
         const val MAX_FOCUS_TREE_DEPTH = 30
         const val MAX_CHANNEL_ANCESTOR_DEPTH = 16

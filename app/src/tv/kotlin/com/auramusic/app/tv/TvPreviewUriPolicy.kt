@@ -30,13 +30,26 @@ internal enum class ProjectivyAudioPreviewPreparation {
     UNSUPPORTED,
 }
 
-/** Projectivy 4.73 was verified with audio-only AAC/MP4; other audio is normalized to that format. */
+internal enum class ProjectivyPreviewUriMode {
+    AUDIO_ONLY_PROVIDER,
+    GENERATED_VIDEO_PROVIDER,
+}
+
+/** Projectivy 4.73 accepts audio-only AAC/MP4; the focus overlay supplies in-card artwork and motion. */
 internal fun projectivyAudioPreviewPreparation(mimeType: String?): ProjectivyAudioPreviewPreparation = when {
     mimeType.equals("audio/mp4", ignoreCase = true) -> ProjectivyAudioPreviewPreparation.DIRECT_MP4
     mimeType?.startsWith("audio/", ignoreCase = true) == true ->
         ProjectivyAudioPreviewPreparation.TRANSCODE_TO_MP4
     else -> ProjectivyAudioPreviewPreparation.UNSUPPORTED
 }
+
+/** Use the fast audio-only provider; the focused-card overlay supplies the animated artwork. */
+internal fun projectivyPreviewUriMode(mimeType: String?): ProjectivyPreviewUriMode =
+    if (projectivyAudioPreviewPreparation(mimeType) == ProjectivyAudioPreviewPreparation.UNSUPPORTED) {
+        ProjectivyPreviewUriMode.GENERATED_VIDEO_PROVIDER
+    } else {
+        ProjectivyPreviewUriMode.AUDIO_ONLY_PROVIDER
+    }
 
 internal fun hasProjectivyCompatibleAudioOnlyTracks(trackMimeTypes: List<String>): Boolean =
     trackMimeTypes.size == 1 && trackMimeTypes.single().equals("audio/mp4a-latm", ignoreCase = true)

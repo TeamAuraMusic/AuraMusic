@@ -74,6 +74,14 @@ class TvPreviewUriPolicyTest {
     }
 
     @Test
+    fun publisherKeepsFastAudioProviderAndOnlyUsesVideoFallbackForUnsupportedSources() {
+        assertEquals(ProjectivyPreviewUriMode.AUDIO_ONLY_PROVIDER, projectivyPreviewUriMode("audio/mp4"))
+        assertEquals(ProjectivyPreviewUriMode.AUDIO_ONLY_PROVIDER, projectivyPreviewUriMode("audio/webm"))
+        assertEquals(ProjectivyPreviewUriMode.GENERATED_VIDEO_PROVIDER, projectivyPreviewUriMode("video/mp4"))
+        assertEquals(ProjectivyPreviewUriMode.GENERATED_VIDEO_PROVIDER, projectivyPreviewUriMode(null))
+    }
+
+    @Test
     fun normalizedOutputMustContainOnlyOneAacTrack() {
         assertTrue(hasProjectivyCompatibleAudioOnlyTracks(listOf("audio/mp4a-latm")))
         assertFalse(hasProjectivyCompatibleAudioOnlyTracks(emptyList()))

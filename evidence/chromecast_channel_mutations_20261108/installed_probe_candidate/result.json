@@ -1,0 +1,93 @@
+{
+  "schema": 1,
+  "startedUtc": "2026-11-08T19:12:35.252441+00:00",
+  "device": {
+    "serial": "192.168.3.2:5555",
+    "model": "Chromecast",
+    "device": "sabrina",
+    "api": "34"
+  },
+  "probeApkSha256": "d68bf235d11d7af99ad4f15df8aca7c399231271ef2f6fbe46359887ec1b06ac",
+  "scope": "PreviewProbe TvProvider mutation and Projectivy row convergence only; AuraMusic channel untouched.",
+  "noSelectPressed": true,
+  "stages": [
+    {
+      "stage": "initial_AB",
+      "requestedOrder": [
+        "A",
+        "B"
+      ],
+      "providerChannel": "11-08 20:11:05.507  9626  9626 I PreviewProbe: channel id=3969 name=PreviewProbe A/B browsable=0",
+      "providerCountLine": "11-08 20:11:05.530  9626  9626 I PreviewProbe: provider programs channel=3969 count=2",
+      "providerTitles": [
+        "Preview A",
+        "Preview B"
+      ],
+      "providerOutcome": "PASS",
+      "projectivyVisibleCards": [
+        "Preview A",
+        "Preview B"
+      ],
+      "projectivyForeground": true,
+      "projectivyMatchesExpected": true,
+      "outcome": "PASS"
+    },
+    {
+      "stage": "reorder_add_BAC",
+      "requestedOrder": [
+        "B",
+        "A",
+        "C"
+      ],
+      "providerChannel": "11-08 20:11:28.148  9783  9783 I PreviewProbe: channel id=3969 name=PreviewProbe A/B browsable=0",
+      "providerCountLine": "11-08 20:11:28.161  9783  9783 I PreviewProbe: provider programs channel=3969 count=3",
+      "providerTitles": [
+        "Preview A",
+        "Preview B",
+        "Preview C \u2014 Animated video waveform test"
+      ],
+      "providerOutcome": "FAIL_TEST_INFRA",
+      "projectivyVisibleCards": [
+        "Preview A",
+        "Preview B"
+      ],
+      "projectivyForeground": true,
+      "projectivyMatchesExpected": false,
+      "outcome": "INCONCLUSIVE"
+    },
+    {
+      "stage": "remove_to_B",
+      "requestedOrder": [
+        "B"
+      ],
+      "providerChannel": "11-08 20:11:51.146  9950  9950 I PreviewProbe: channel id=3969 name=PreviewProbe A/B browsable=0",
+      "providerCountLine": "11-08 20:11:51.162  9950  9950 I PreviewProbe: provider programs channel=3969 count=1",
+      "providerTitles": [
+        "Preview B"
+      ],
+      "providerOutcome": "PASS",
+      "projectivyVisibleCards": [
+        "Preview B"
+      ],
+      "projectivyForeground": true,
+      "projectivyMatchesExpected": true,
+      "outcome": "PASS"
+    }
+  ],
+  "restoration": {
+    "providerOutcome": "FAIL_TEST_INFRA",
+    "providerTitles": [
+      "Preview B",
+      "Preview A",
+      "Preview C \u2014 Animated video waveform test",
+      "Preview D",
+      "Preview E"
+    ],
+    "projectivyVisibleCards": [
+      "Preview B"
+    ],
+    "projectivyForeground": true,
+    "outcome": "INCONCLUSIVE"
+  },
+  "outcome": "INCONCLUSIVE"
+}

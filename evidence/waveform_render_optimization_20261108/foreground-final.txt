@@ -1,0 +1,1 @@
+    topResumedActivity=ActivityRecord{20fcc37 u0 com.spocky.projengmenu/.ui.home.MainActivity t26443}

@@ -4,7 +4,6 @@
 import argparse
 import json
 import re
-import subprocess
 import time
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
@@ -12,19 +11,20 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+from tv_adb import DEFAULT_ADB_EXECUTABLE, DEFAULT_ADB_SERVER_PORT, is_allowed_target, run_adb
 
 
-ADB = "/home/nos/android-sdk/platform-tools/adb"
+ADB = DEFAULT_ADB_EXECUTABLE
+ADB_PORT = DEFAULT_ADB_SERVER_PORT
 PROJECTIVY = "com.spocky.projengmenu"
 AURA = "com.auramusic.app.debug"
 SERVICE = "com.auramusic.app.tv.TvPreviewFocusAccessibilityService"
 
 
 def adb(serial: str, *args: str, binary: bool = False, timeout: int = 45):
-    result = subprocess.run(
-        [ADB, "-s", serial, *args], check=True, capture_output=True, timeout=timeout
+    return run_adb(
+        serial, *args, executable=ADB, server_port=ADB_PORT, timeout=timeout, binary=binary
     )
-    return result.stdout if binary else result.stdout.decode(errors="replace")
 
 
 def focused_node(xml: str) -> dict | None:
@@ -91,13 +91,27 @@ def is_projectivy_foreground(raw: str) -> bool:
 
 
 def main() -> None:
+    global ADB, ADB_PORT
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--serial", required=True, help="Explicit ADB serial; no device fallback")
+    parser.add_argument("--adb", type=Path, default=ADB,
+                        help="Authoritative Windows ADB executable (default: TVCTL_ADB or I: SDK ADB)")
+    parser.add_argument("--adb-port", type=int, default=ADB_PORT,
+                        help="ADB server port used by tvctl (default: TVCTL_ADB_PORT or 5038)")
+    parser.add_argument("--allow-physical", action="store_true",
+                        help="Explicitly permit non-emulator serials after emulator acceptance")
     parser.add_argument("--title", required=True, help="Exact focused AuraMusic card title")
     parser.add_argument("--evidence-dir", required=True, type=Path)
     parser.add_argument("--focus-timeout-seconds", type=float, default=8.0)
     parser.add_argument("--audio-timeout-seconds", type=float, default=8.0)
     args = parser.parse_args()
+    if not is_allowed_target(args.serial, args.allow_physical):
+        parser.error("serial is outside the emulator allowlist; physical access is gated")
+    if not args.adb.is_file():
+        parser.error(f"Windows ADB executable not found: {args.adb}")
+    if not 1 <= args.adb_port <= 65535:
+        parser.error("ADB server port must be in 1..65535")
+    ADB, ADB_PORT = args.adb, args.adb_port
     evidence = args.evidence_dir
     evidence.mkdir(parents=True, exist_ok=True)
 

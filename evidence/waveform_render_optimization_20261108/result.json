@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "missionStatus": "INCOMPLETE",
+  "build": {
+    "variant": "Standalone TV Universal Debug",
+    "apkSha256": "c2beed295b6a43506cea5cc2ee470808bc730af655818e4d8fdbf17f981afc8e",
+    "command": "./gradlew :app:testStandaloneTvUniversalDebugUnitTest :app:assembleStandaloneTvUniversalDebug"
+  },
+  "unitTests": {
+    "outcome": "PASS",
+    "tests": 67,
+    "failures": 0,
+    "errors": 0,
+    "reportCount": 15
+  },
+  "instrumentation": {
+    "outcome": "PASS",
+    "device": "Chromecast sabrina Android 14/API34",
+    "test": "FocusedCardWaveformViewInstrumentedTest.focusedCardKeepsArtworkAndDrawsAnimatedWaveformWhileFocused",
+    "tests": 1,
+    "evidence": "reports/com.auramusic.app.tv.FocusedCardWaveformViewInstrumentedTest.html",
+    "scope": "Direct view drawing/animation test; does not exercise Projectivy rendering."
+  },
+  "performanceBaseline": {
+    "outcome": "PASS",
+    "evidence": "../chromecast_resource_hold_20261108/performance-result.json",
+    "durationSeconds": 73.4,
+    "samples": 12,
+    "projectivyCpuMedianPercent": 42.3,
+    "projectivyCpuP95Percent": 63.3,
+    "auraMusicCpuMedianPercent": 13.3,
+    "auraMusicCpuP95Percent": 17.2,
+    "projectivyPssMedianKiB": 111487,
+    "auraMusicPssMedianKiB": 172213,
+    "audioCacheBytesBefore": 38920192,
+    "audioCacheBytesAfter": 38920192,
+    "audioCacheDeltaBytes": 0,
+    "projectivyAudioTrackOneAndNoAuraOverlap": true,
+    "note": "Captured before waveform split, during real AuraMusic focus. This is the optimization baseline; not a controlled power benchmark."
+  },
+  "optimization": {
+    "change": "Split static artwork into an ImageView and animated bars into a separate child View, so 20 fps waveform invalidations do not redraw the artwork view.",
+    "dirtyRectApiDecision": "Did not use dirty-rectangle invalidation because Android documents that it is ignored on API 21+ hardware-accelerated drawing.",
+    "candidateInstalledSha256": "c2beed295b6a43506cea5cc2ee470808bc730af655818e4d8fdbf17f981afc8e",
+    "projectivyIntegrationOutcome": "INCONCLUSIVE",
+    "reason": "No AuraMusic Quick Picks channel remained after the connected Gradle test removed the target package; current data could not reproduce real AuraMusic focus on the optimized build."
+  },
+  "deviceTestSideEffect": {
+    "outcome": "FAIL_TEST_INFRA",
+    "details": "The connected AndroidTest task removed com.auramusic.app.debug from the Chromecast after its focused test passed. Reinstalled the candidate APK immediately. Android reported firstInstallTime 2026-11-08 20:30:02, restoreSet=0, and no backup transport client. The previous private listening-history/Quick Picks state and AccessibilityService grant were not restored.",
+    "recovery": "Reinstalled candidate APK; re-enabled AuraMusic focused preview indicator through Android Settings; returned Projectivy to foreground. The app opens to generic Take it easy/New releases rows, while the old Quick Picks Projectivy channel is absent.",
+    "evidence": [
+      "installed-package-state.txt",
+      "backup-restore-log.txt",
+      "accessibility-services-final.txt",
+      "foreground-final.txt",
+      "aura-fresh-install.png",
+      "projectivy-after-reinstall.png",
+      "projectivy-after-reinstall.xml"
+    ]
+  },
+  "currentDevice": {
+    "serial": "192.168.3.2:5555",
+    "model": "Chromecast",
+    "device": "sabrina",
+    "api": 34,
+    "projectivyForeground": true,
+    "accessibilityServiceEnabled": true,
+    "auramusicPackageInstalledHash": "c2beed295b6a43506cea5cc2ee470808bc730af655818e4d8fdbf17f981afc8e",
+    "auraMusicQuickPicksChannelPresent": false
+  },
+  "remainingGates": [
+    "Restore/rebuild AuraMusic listening history or Quick Picks so the optimized APK can be verified against real cards on Projectivy",
+    "Compare post-optimization CPU/memory with the 60-second real-preview baseline",
+    "Device-level external media/server/network failure and recovery",
+    "Longitudinal cache growth and eviction",
+    "AuraMusic-specific isolated channel metadata mutation"
+  ]
+}

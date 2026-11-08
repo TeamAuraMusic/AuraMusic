@@ -14,7 +14,7 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class FocusedCardWaveformViewInstrumentedTest {
     @Test
-    fun focusedCardKeepsArtworkAndDrawsAnimatedWaveformOnlyDuringPlayback() {
+    fun focusedCardKeepsArtworkAndDrawsAnimatedWaveformWhileFocused() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val artwork = Bitmap.createBitmap(320, 180, Bitmap.Config.ARGB_8888).apply {
             eraseColor(ARTWORK_COLOR)
@@ -28,7 +28,7 @@ class FocusedCardWaveformViewInstrumentedTest {
             )
             view.layout(0, 0, CARD_WIDTH, CARD_HEIGHT)
             view.setArtwork(artwork)
-            view.setPlaybackActive(true)
+            view.setPreviewFocused(true)
         }
 
         val firstFrame = render(instrumentation, view)
@@ -46,7 +46,7 @@ class FocusedCardWaveformViewInstrumentedTest {
 
         lateinit var inactiveFrame: Bitmap
         instrumentation.runOnMainSync {
-            view.setPlaybackActive(false)
+            view.setPreviewFocused(false)
             inactiveFrame = Bitmap.createBitmap(CARD_WIDTH, CARD_HEIGHT, Bitmap.Config.ARGB_8888)
             view.draw(Canvas(inactiveFrame))
         }

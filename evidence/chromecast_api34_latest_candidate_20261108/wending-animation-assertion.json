@@ -1,0 +1,9 @@
+{
+  "frames": 479,
+  "durationSeconds": 14.804,
+  "framesWithVisiblePink": 479,
+  "pinkPixelsMin": 1874,
+  "pinkPixelsMax": 2488,
+  "distinctWaveProfiles": 455,
+  "cardRoi": "program focus bounds [0,330][486,570], waveform safe region [107,483]-[379,564]"
+}

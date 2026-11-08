@@ -1,0 +1,27 @@
+{
+  "dateLocal": "2026-11-08",
+  "branch": "codex/projectivy-preview-final",
+  "tests": {
+    "command": "rtk test ./gradlew :app:testStandaloneTvUniversalDebugUnitTest :app:assembleStandaloneTvUniversalDebug --console=plain",
+    "outcome": "PASS",
+    "testCases": 67,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "reportFiles": 15,
+    "log": "rtk-test-build.log"
+  },
+  "pythonHarness": {
+    "command": "rtk test python3 -m unittest discover -s scripts -p 'test_*.py'",
+    "outcome": "PASS",
+    "tests": 39,
+    "log": "python-harness-tests.log"
+  },
+  "apk": {
+    "path": "app/build/outputs/apk/standaloneTvUniversal/debug/app-standalone-tv-universal-debug.apk",
+    "sha256": "c2beed295b6a43506cea5cc2ee470808bc730af655818e4d8fdbf17f981afc8e",
+    "bytes": 100688596,
+    "packaged": false
+  },
+  "deviceIntegration": "INCONCLUSIVE on optimized candidate: data was lost after connected test removed app; prior candidate real-song proof remains separately recorded."
+}
