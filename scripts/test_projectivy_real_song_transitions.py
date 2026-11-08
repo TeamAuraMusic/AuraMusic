@@ -1,5 +1,8 @@
 """Unit tests for focused-card hierarchy parsing used by the live transition verifier."""
 import importlib.util
+import subprocess
+import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -29,6 +32,29 @@ class FocusedProgramInfoTest(unittest.TestCase):
     def test_physical_serial_requires_explicit_opt_in(self):
         self.assertFalse(VERIFIER.is_allowed_target("192.168.3.2:5555", allow_physical=False))
         self.assertTrue(VERIFIER.is_allowed_target("192.168.3.2:5555", allow_physical=True))
+
+    def test_every_device_verifier_rejects_physical_serial_before_adb(self):
+        scripts = Path(__file__).parent
+        invocations = {
+            "verify-projectivy-real-song-transitions.py": ["--title-a", "A", "--title-b", "B"],
+            "verify-projectivy-track-continuity.py": [
+                "--title", "A", "--duration-seconds", "60",
+            ],
+            "verify-projectivy-focused-window.py": ["--title", "A"],
+            "verify-projectivy-audio-only-startup.py": ["--title", "A", "--key", "RIGHT"],
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            for name, arguments in invocations.items():
+                with self.subTest(verifier=name):
+                    evidence = Path(temporary) / name
+                    result = subprocess.run(
+                        [sys.executable, str(scripts / name), "--serial", "192.0.2.55:5555",
+                         *arguments, "--evidence-dir", str(evidence)],
+                        capture_output=True, text=True, check=False,
+                    )
+                    self.assertEqual(2, result.returncode, result.stdout + result.stderr)
+                    self.assertIn("serial is outside the emulator allowlist", result.stderr)
+                    self.assertFalse(evidence.exists())
 
     def test_returns_channel_ancestor_for_focused_card(self):
         hierarchy = """<hierarchy><node content-desc="AuraMusic"><node focused="true" content-desc="Song A" bounds="[1,2][3,4]"/></node></hierarchy>"""

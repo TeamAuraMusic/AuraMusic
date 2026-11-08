@@ -1,0 +1,21 @@
+{
+  "outcome": "PASS",
+  "scope": "Offline CLI enforcement of the Android TV verifier emulator allowlist",
+  "git_commit": "7bf114c71675e650be01b73ddef8d11c74987776",
+  "tests": {"suite_count": 3, "test_count": 20, "failures": 0},
+  "physical_serial_cli_rejection": {
+    "verifiers": [
+      "verify-projectivy-real-song-transitions.py",
+      "verify-projectivy-track-continuity.py",
+      "verify-projectivy-focused-window.py",
+      "verify-projectivy-audio-only-startup.py"
+    ],
+    "exit_code": 2,
+    "adb_invoked": false,
+    "evidence_directory_created": false
+  },
+  "py_compile": "PASS",
+  "diff_check": "PASS",
+  "device_accessed": false,
+  "logs": ["unit-tests.log", "py-compile.txt"]
+}
