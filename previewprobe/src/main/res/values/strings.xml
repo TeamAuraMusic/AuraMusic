@@ -1,0 +1,3 @@
+<resources>
+    <string name="probe_accessibility_description">Draw a test waveform over the focused PreviewProbe program card in Projectivy.</string>
+</resources>

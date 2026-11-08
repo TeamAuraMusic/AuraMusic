@@ -18,6 +18,7 @@ object AuraVideo {
     data class AudioPreviewSource(
         val url: String,
         val mimeType: String,
+        val durationMs: Long = 0L,
     )
 
     /**
@@ -478,7 +479,11 @@ object AuraVideo {
         require(mimeType?.startsWith("audio/", ignoreCase = true) == true) {
             "Resolved preview stream was not audio-only for $videoId"
         }
-        AudioPreviewSource(url, mimeType)
+        AudioPreviewSource(
+            url = url,
+            mimeType = mimeType,
+            durationMs = streamInfo.duration.coerceAtLeast(0L) * 1000L,
+        )
     }
 
     /**

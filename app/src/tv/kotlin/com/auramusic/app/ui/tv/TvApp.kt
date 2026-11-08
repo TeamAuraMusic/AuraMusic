@@ -639,6 +639,7 @@ enum class TvSection(val label: String) {
                                        onContentClick = { navigator.navigate(TvDestination.ContentSettings) },
                                        onStorageClick = { navigator.navigate(TvDestination.StorageSettings) },
                                        onSystemClick = { navigator.navigate(TvDestination.SystemSettings) },
+                                       onProjectivyPreviewsClick = { navigator.navigate(TvDestination.ProjectivyPreviewSettings) },
                                        onUpdaterClick = { navigator.navigate(TvDestination.UpdaterScreen) },
                                        onAboutClick = { navigator.navigate(TvDestination.AboutScreen) },
                                        onLastFMClick = { navigator.navigate(TvDestination.LastFMSettings) },
@@ -724,6 +725,11 @@ enum class TvSection(val label: String) {
                                              onNavigateUp = onUp,
                                          )
                                          TvDestination.SystemSettings -> TvSystemSettingsScreen(
+                                             onBackClick = { navigator.popBack() },
+                                             focusRequester = overlayFocusRequester,
+                                             onNavigateUp = onUp,
+                                         )
+                                         TvDestination.ProjectivyPreviewSettings -> TvProjectivyPreviewSettingsScreen(
                                              onBackClick = { navigator.popBack() },
                                              focusRequester = overlayFocusRequester,
                                              onNavigateUp = onUp,
@@ -3757,6 +3763,7 @@ fun TvSettingsScreen(
     onContentClick: () -> Unit = {},
     onStorageClick: () -> Unit = {},
     onSystemClick: () -> Unit = {},
+    onProjectivyPreviewsClick: () -> Unit = {},
     onUpdaterClick: () -> Unit = {},
     onAboutClick: () -> Unit = {},
     onLastFMClick: () -> Unit = {},
@@ -3781,7 +3788,7 @@ fun TvSettingsScreen(
     val firstItemFocus = focusRequester ?: remember { FocusRequester() }
     // FocusRequesters for all settings items
     val allFocusRequesters = remember {
-        listOf(firstItemFocus) + List(8) { FocusRequester() }
+        listOf(firstItemFocus) + List(10) { FocusRequester() }
     }
 
     // Re-claim focus on the previously focused item whenever a sub-settings overlay
@@ -3920,6 +3927,18 @@ fun TvSettingsScreen(
             )
         }
 
+        item(key = "projectivy_preview_settings") {
+            TvSettingsCategoryItem(
+                title = "Projectivy Previews",
+                subtitle = "Enable the focused-card artwork and playback indicator",
+                onClick = onProjectivyPreviewsClick,
+                icon = Icons.Filled.PlayArrow,
+                modifier = Modifier
+                    .onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 8 }
+                    .focusRequester(allFocusRequesters[8]),
+            )
+        }
+
         item(key = "info_label") { TvSettingsSectionLabel("Information") }
 
         item(key = "updater_settings") {
@@ -3929,8 +3948,8 @@ fun TvSettingsScreen(
                 onClick = onUpdaterClick,
                 icon = Icons.Filled.Refresh,
                 modifier = Modifier
-                    .onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 7 }
-                    .focusRequester(allFocusRequesters[7]),
+                    .onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 9 }
+                    .focusRequester(allFocusRequesters[9]),
             )
         }
 
@@ -3941,8 +3960,8 @@ fun TvSettingsScreen(
                 onClick = onAboutClick,
                 icon = Icons.Filled.Info,
                 modifier = Modifier
-                    .onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 8 }
-                    .focusRequester(allFocusRequesters[8]),
+                    .onFocusChanged { state -> if (state.hasFocus) focusedItemIndex = 10 }
+                    .focusRequester(allFocusRequesters[10]),
             )
         }
     }

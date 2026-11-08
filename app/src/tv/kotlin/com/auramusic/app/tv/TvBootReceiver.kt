@@ -6,16 +6,21 @@ import android.content.Intent
 import timber.log.Timber
 
 /**
- * Triggered on device boot to refresh TV home screen recommendations.
- * This ensures the "Continue Listening" row is always up-to-date
- * when the user turns on their TV.
+ * Refresh TV home screen recommendations after boot and app replacement.
  */
 class TvBootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
-        if (intent?.action == Intent.ACTION_BOOT_COMPLETED) {
-            Timber.d("Boot completed, refreshing TV recommendations")
-            TvRecommendationWorkScheduler.ensureScheduled(context.applicationContext)
-            TvRecommendationService.start(context)
+        when (intent?.action) {
+            Intent.ACTION_BOOT_COMPLETED -> {
+                Timber.d("Boot completed, refreshing TV recommendations")
+                TvRecommendationWorkScheduler.ensureScheduled(context.applicationContext)
+                TvRecommendationWorkScheduler.enqueueBootRefresh(context.applicationContext)
+            }
+            Intent.ACTION_MY_PACKAGE_REPLACED -> {
+                Timber.d("AuraMusic updated, refreshing TV recommendations")
+                TvRecommendationWorkScheduler.ensureScheduled(context.applicationContext)
+                TvRecommendationWorkScheduler.enqueueRefresh(context.applicationContext)
+            }
         }
     }
 }

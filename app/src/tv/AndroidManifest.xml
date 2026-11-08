@@ -15,6 +15,25 @@
         android:label="@string/app_name_tv"
         tools:replace="android:banner,android:label">
 
+        <provider
+            android:name=".tv.TvPreviewContentProvider"
+            android:authorities="${applicationId}.tvpreview"
+            android:exported="true"
+            android:grantUriPermissions="true" />
+
+        <service
+            android:name=".tv.TvPreviewFocusAccessibilityService"
+            android:exported="true"
+            android:label="@string/tv_preview_indicator_service"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/tv_preview_indicator_accessibility_service" />
+        </service>
+
         <activity
             android:name=".TvMainActivity"
             android:exported="true"
@@ -30,12 +49,6 @@
             </intent-filter>
         </activity>
 
-        <!-- TV Recommendations: "Continue Listening" row on Google TV home screen -->
-        <service
-            android:name=".tv.TvRecommendationService"
-            android:foregroundServiceType="mediaPlayback"
-            android:exported="false" />
-
         <!-- Refresh recommendations on device boot -->
         <receiver
             android:name=".tv.TvBootReceiver"
@@ -43,6 +56,7 @@
             android:enabled="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
 

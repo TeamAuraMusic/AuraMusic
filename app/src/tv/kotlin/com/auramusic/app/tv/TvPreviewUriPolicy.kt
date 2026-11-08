@@ -24,6 +24,23 @@ internal fun canPublishTvPreview(
         ?.let { it > nowMillis + TV_PREVIEW_EXPIRY_SAFETY_MS } == true
 }
 
+internal enum class ProjectivyAudioPreviewPreparation {
+    DIRECT_MP4,
+    TRANSCODE_TO_MP4,
+    UNSUPPORTED,
+}
+
+/** Projectivy 4.73 was verified with audio-only AAC/MP4; other audio is normalized to that format. */
+internal fun projectivyAudioPreviewPreparation(mimeType: String?): ProjectivyAudioPreviewPreparation = when {
+    mimeType.equals("audio/mp4", ignoreCase = true) -> ProjectivyAudioPreviewPreparation.DIRECT_MP4
+    mimeType?.startsWith("audio/", ignoreCase = true) == true ->
+        ProjectivyAudioPreviewPreparation.TRANSCODE_TO_MP4
+    else -> ProjectivyAudioPreviewPreparation.UNSUPPORTED
+}
+
+internal fun hasProjectivyCompatibleAudioOnlyTracks(trackMimeTypes: List<String>): Boolean =
+    trackMimeTypes.size == 1 && trackMimeTypes.single().equals("audio/mp4a-latm", ignoreCase = true)
+
 private fun previewExpiryMillis(expiresAtSeconds: String?): Long? =
     expiresAtSeconds?.toLongOrNull()?.let { seconds ->
         seconds.takeIf { it > 0L && it <= Long.MAX_VALUE / 1000L }?.times(1000L)

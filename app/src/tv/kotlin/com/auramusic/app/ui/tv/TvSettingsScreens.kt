@@ -5,7 +5,12 @@
 
 package com.auramusic.app.ui.tv
 
+import android.accessibilityservice.AccessibilityServiceInfo
+import android.content.Context
+import android.content.Intent
+import android.view.accessibility.AccessibilityManager
 import android.annotation.SuppressLint
+import android.provider.Settings
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
 import android.webkit.WebSettings
@@ -62,6 +67,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.res.painterResource
@@ -87,6 +93,9 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -2048,6 +2057,111 @@ fun TvSettingsHeader(
 
         Spacer(modifier = Modifier.size(64.dp))
     }
+}
+
+/* --------------------- Projectivy Preview Settings -------------------- */
+
+@Composable
+fun TvProjectivyPreviewSettingsScreen(
+    onBackClick: () -> Unit,
+    focusRequester: FocusRequester? = null,
+    onNavigateUp: (() -> Unit)? = null,
+) {
+    BackHandler { onBackClick() }
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var serviceEnabled by remember { mutableStateOf(isTvPreviewAccessibilityServiceEnabled(context)) }
+    val firstFocus = focusRequester ?: remember { FocusRequester() }
+    var backButtonFocused by remember { mutableStateOf(false) }
+
+    DisposableEffect(lifecycleOwner, context) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                serviceEnabled = isTvPreviewAccessibilityServiceEnabled(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    LaunchedEffect(Unit) { runCatching { firstFocus.requestFocus() } }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .onPreviewKeyEvent { event ->
+                if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionUp && backButtonFocused) {
+                    onNavigateUp?.invoke()
+                    true
+                } else false
+            },
+        contentPadding = PaddingValues(start = 48.dp, top = 95.dp, end = 48.dp, bottom = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        item {
+            TvSettingsHeader(
+                title = "Projectivy Previews",
+                onBackClick = onBackClick,
+                focusRequester = firstFocus,
+                onFocusChange = { backButtonFocused = it },
+            )
+        }
+        item {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surface,
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text(
+                        text = if (serviceEnabled) "Indicator enabled" else "Indicator needs permission",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = if (serviceEnabled) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = "The animated artwork indicator on Projectivy song cards requires AuraMusic's accessibility service. Android requires you to enable it in system settings.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = "While Projectivy is active, AuraMusic reads the focused card label and bounds to match its published song, then draws that song's artwork and a small equalizer inside the card. It does not select cards or move focus. You can turn the service off at any time.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = "If AuraMusic is already playing in the background, focusing a song card pauses it so the preview does not overlap. It stays paused when you leave the card; resume it in AuraMusic if you want to continue.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+        item {
+            TvSettingsCategoryItem(
+                title = if (serviceEnabled) "Review Accessibility Settings" else "Open Accessibility Settings",
+                subtitle = "Find AuraMusic focused preview indicator and enable it",
+                onClick = {
+                    runCatching { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
+                },
+                icon = Icons.Filled.Tune,
+            )
+        }
+    }
+}
+
+private fun isTvPreviewAccessibilityServiceEnabled(context: Context): Boolean {
+    val manager = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as? AccessibilityManager
+        ?: return false
+    return manager.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
+        .any { info ->
+            val service = info.resolveInfo?.serviceInfo ?: return@any false
+            service.packageName == context.packageName &&
+                service.name.endsWith("TvPreviewFocusAccessibilityService")
+        }
 }
 
 /* -------------------------- System Settings -------------------------- */

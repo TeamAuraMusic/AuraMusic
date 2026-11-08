@@ -1,5 +1,6 @@
 package com.auramusic.app.tv
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -54,5 +55,29 @@ class TvPreviewUriPolicyTest {
                 nowMillis,
             )
         )
+    }
+
+    @Test
+    fun audioOnlyProjectivyPreviewNormalizesOtherAudioFormats() {
+        assertEquals(ProjectivyAudioPreviewPreparation.DIRECT_MP4,
+            projectivyAudioPreviewPreparation("audio/mp4"))
+        assertEquals(ProjectivyAudioPreviewPreparation.DIRECT_MP4,
+            projectivyAudioPreviewPreparation("AUDIO/MP4"))
+        assertEquals(ProjectivyAudioPreviewPreparation.TRANSCODE_TO_MP4,
+            projectivyAudioPreviewPreparation("audio/webm"))
+        assertEquals(ProjectivyAudioPreviewPreparation.TRANSCODE_TO_MP4,
+            projectivyAudioPreviewPreparation("audio/mpeg"))
+        assertEquals(ProjectivyAudioPreviewPreparation.UNSUPPORTED,
+            projectivyAudioPreviewPreparation("video/mp4"))
+        assertEquals(ProjectivyAudioPreviewPreparation.UNSUPPORTED,
+            projectivyAudioPreviewPreparation(null))
+    }
+
+    @Test
+    fun normalizedOutputMustContainOnlyOneAacTrack() {
+        assertTrue(hasProjectivyCompatibleAudioOnlyTracks(listOf("audio/mp4a-latm")))
+        assertFalse(hasProjectivyCompatibleAudioOnlyTracks(emptyList()))
+        assertFalse(hasProjectivyCompatibleAudioOnlyTracks(listOf("audio/opus")))
+        assertFalse(hasProjectivyCompatibleAudioOnlyTracks(listOf("audio/mp4a-latm", "video/avc")))
     }
 }

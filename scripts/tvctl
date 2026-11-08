@@ -1,0 +1,122 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ADB='/mnt/i/AndroidTVSdk/platform-tools/adb.exe'
+ADB_PORT=5038
+EMULATOR="${TVCTL_EMULATOR:-/mnt/i/AndroidTVSdk/emulator/emulator.exe}"
+AVD="${TVCTL_AVD:-AuraMusicTVApi36}"
+AVD_HOME="${TVCTL_AVD_HOME:-/mnt/i/AndroidTVAvd}"
+SCRCPY='/mnt/c/Users/nos/AppData/Local/Microsoft/WinGet/Packages/Genymobile.scrcpy_Microsoft.Winget.Source_8wekyb3d8bbwe/scrcpy-win64-v4.1/scrcpy.exe'
+SERIAL="${TVCTL_SERIAL:-emulator-5554}"
+OUT="${TVCTL_OUT:-$PWD/evidence}"
+
+die() { printf 'tvctl: %s\n' "$*" >&2; exit 2; }
+need_adb() { [[ -x "$ADB" ]] || die "Windows ADB missing: $ADB"; }
+check_device() {
+  need_adb
+  case "$SERIAL" in emulator-5554|emulator-5556) ;; *) die "serial not allowlisted: $SERIAL" ;; esac
+  "$ADB" -P "$ADB_PORT" devices | tr -d '\r' | rg -q "^${SERIAL}[[:space:]]+device$" || die "allowlisted emulator unavailable: $SERIAL (ADB port $ADB_PORT)"
+}
+adb() { check_device; "$ADB" -P "$ADB_PORT" -s "$SERIAL" "$@"; }
+run_dir() { mkdir -p "$OUT"; date -u +%Y%m%dT%H%M%SZ; }
+capture_with_scrcpy() {
+  local kind="$1" seconds="$2" output="$3" temp_name temp_path win_temp win_scrcpy win_command
+  [[ "$seconds" =~ ^[0-9]+$ ]] && (( seconds >= 1 && seconds <= 120 )) || die 'capture duration must be 1..120 seconds'
+  [[ -n "$output" ]] || die 'capture output path is required'
+  [[ -f "$SCRCPY" ]] || die "scrcpy missing: $SCRCPY"
+  check_device
+  mkdir -p "$(dirname "$output")" /mnt/i/temp
+  temp_name="tvctl-${SERIAL}-${kind}-$(date -u +%Y%m%dT%H%M%S)-$$.$([[ "$kind" == audio ]] && echo wav || echo mp4)"
+  temp_path="/mnt/i/temp/$temp_name"
+  win_temp="$(wslpath -w "$temp_path")"
+  win_scrcpy="$(wslpath -w "$SCRCPY")"
+  if [[ "$kind" == audio ]]; then
+    win_command="set ADB_SERVER_SOCKET=tcp:127.0.0.1:$ADB_PORT&& $win_scrcpy --serial=$SERIAL --no-video --audio-source=output --audio-codec=raw --record=$win_temp --record-format=wav --time-limit=$seconds"
+  else
+    win_command="set ADB_SERVER_SOCKET=tcp:127.0.0.1:$ADB_PORT&& $win_scrcpy --serial=$SERIAL --no-audio --record=$win_temp --time-limit=$seconds"
+  fi
+  cmd.exe /C "$win_command" || die "scrcpy $kind capture failed"
+  [[ -s "$temp_path" ]] || die "scrcpy produced no $kind capture"
+  cp "$temp_path" "$output"
+  rm -f "$temp_path"
+  printf '%s\n' "$output"
+}
+
+cmd="${1:-help}"; shift || true
+case "$cmd" in
+  doctor)
+    need_adb
+    "$ADB" -P "$ADB_PORT" start-server >/dev/null
+    check_device
+    sdk="$(adb shell getprop ro.build.version.sdk | tr -d '\r')"
+    boot="$(adb shell getprop sys.boot_completed | tr -d '\r')"
+    features="$(adb shell pm list features | tr -d '\r')"
+    [[ "$boot" == 1 ]] || die "boot incomplete: $boot"
+    grep -q android.hardware.type.television <<<"$features" || die "device lacks TV feature"
+    grep -q android.software.leanback <<<"$features" || die "device lacks Leanback"
+    model="$(adb shell getprop ro.product.model | tr -d '\r')"
+    image="$(adb shell getprop ro.build.fingerprint | tr -d '\r')"
+    projectivy="$(adb shell dumpsys package com.spocky.projengmenu | rg 'versionName=' | head -1 | sed 's/.*versionName=//;s/ .*//' | tr -d '\r')"
+    printf '{"status":"PASS","serial":"%s","model":"%s","api":%s,"image":"%s","tv":true,"leanback":true,"projectivy":"%s","adbPort":%s}\n' "$SERIAL" "$model" "$sdk" "$image" "$projectivy" "$ADB_PORT"
+    ;;
+  boot)
+    need_adb
+    "$ADB" -P "$ADB_PORT" start-server >/dev/null
+    state="$("$ADB" -P "$ADB_PORT" devices | tr -d '\r' | awk -v serial="$SERIAL" '$1 == serial { print $2; exit }')"
+    if [[ "$state" != device ]]; then
+      qemu_running=0
+      powershell.exe -NoProfile -Command 'if (Get-Process qemu-system-x86_64 -ErrorAction SilentlyContinue) { exit 0 }; exit 1' >/dev/null 2>&1 && qemu_running=1 || true
+      if (( ! qemu_running )); then
+        "$ADB" -P "$ADB_PORT" kill-server >/dev/null 2>&1 || true
+        "$ADB" -P "$ADB_PORT" start-server >/dev/null
+      fi
+    fi
+    if [[ "$state" != device ]] && (( ! qemu_running )); then
+      [[ -x "$EMULATOR" ]] || die "Windows emulator missing: $EMULATOR"
+      win_sdk_root="$(wslpath -w "$(dirname "$(dirname "$EMULATOR")")")"
+      win_avd_home="$(wslpath -w "$AVD_HOME")"
+      [[ "$AVD" =~ ^[A-Za-z0-9._-]{1,64}$ ]] || die "invalid AVD name: $AVD"
+      win_launcher="$(wslpath -w "$PWD/scripts/start-windows-emulator.ps1")"
+      launcher_args=(-NoProfile -ExecutionPolicy Bypass -File "$win_launcher" -Avd "$AVD" -SdkRoot "$win_sdk_root" -AvdHome "$win_avd_home" -AdbPort "$ADB_PORT")
+      [[ "${TVCTL_NO_SNAPSHOT:-0}" == 1 ]] && launcher_args+=(-NoSnapshot)
+      powershell.exe "${launcher_args[@]}" || die "failed to start $AVD"
+    fi
+    timeout 180 "$ADB" -P "$ADB_PORT" -s "$SERIAL" wait-for-device || die "emulator did not attach: $SERIAL"
+    for _ in $(seq 1 180); do
+      [[ "$("$ADB" -P "$ADB_PORT" -s "$SERIAL" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == 1 ]] && { echo "PASS $SERIAL boot completed"; exit 0; }
+      sleep 1
+    done
+    die 'emulator boot timed out after 180 seconds'
+    ;;
+  snapshot)
+    action="${1:-list}"; name="${2:-}"
+    [[ "$action" =~ ^(save|load|list)$ ]] || die 'snapshot action must be save, load, or list'
+    [[ "$action" == list || "$name" =~ ^[A-Za-z0-9._-]{1,64}$ ]] || die 'snapshot name must use 1..64 letters, digits, dot, underscore or dash'
+    if [[ "$action" == list ]]; then adb emu avd snapshot list
+    else adb emu avd snapshot "$action" "$name"; fi
+    ;;
+  screenshot)
+    dir="$(run_dir)"; mkdir -p "$OUT/$dir"; adb exec-out screencap -p > "$OUT/$dir/screenshot.png"; echo "$OUT/$dir/screenshot.png" ;;
+  hierarchy)
+    dir="$(run_dir)"; mkdir -p "$OUT/$dir"; adb shell uiautomator dump /sdcard/window.xml >/dev/null; adb pull /sdcard/window.xml "$OUT/$dir/window.xml" >/dev/null; echo "$OUT/$dir/window.xml" ;;
+  key)
+    key="${1:-}"; [[ "$key" =~ ^(UP|DOWN|LEFT|RIGHT|CENTER|BACK|HOME)$ ]] || die "key must be UP DOWN LEFT RIGHT CENTER BACK HOME"
+    case "$key" in
+      UP|DOWN|LEFT|RIGHT) keycode="KEYCODE_DPAD_$key" ;;
+      CENTER) keycode=KEYCODE_DPAD_CENTER ;;
+      BACK) keycode=KEYCODE_BACK ;;
+      HOME) keycode=KEYCODE_HOME ;;
+    esac
+    adb shell input keyevent "$keycode" ;;
+  install)
+    apk="${1:-}"; [[ -f "$apk" ]] || die "APK not found: $apk"; win_apk="$(wslpath -w "$apk")"; adb install -r "$win_apk" ;;
+  capture-audio) capture_with_scrcpy audio "${1:-}" "${2:-}" ;;
+  capture-video) capture_with_scrcpy video "${1:-}" "${2:-}" ;;
+  foreground)
+    adb shell dumpsys activity activities | tr -d '\r' | rg 'mResumedActivity|topResumedActivity' | head -3 ;;
+  logs)
+    dir="$(run_dir)"; mkdir -p "$OUT/$dir"; adb logcat -d -t 3000 > "$OUT/$dir/logcat.txt"; adb shell dumpsys media.audio_flinger > "$OUT/$dir/audioflinger.txt"; echo "$OUT/$dir" ;;
+  help|*)
+    echo 'usage: tvctl {doctor|boot|snapshot [save|load|list] [NAME]|screenshot|hierarchy|key KEY|install APK|capture-audio SECONDS FILE.wav|capture-video SECONDS FILE.mp4|foreground|logs}'
+    ;;
+esac

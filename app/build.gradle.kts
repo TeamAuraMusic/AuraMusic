@@ -308,6 +308,8 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
 
 dependencies {
     testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.junit)
 
     implementation(libs.guava)
     implementation(libs.coroutines.guava)
@@ -348,6 +350,10 @@ dependencies {
     implementation(libs.media3.ui)
     implementation(libs.media3.session)
     implementation(libs.media3.okhttp)
+    "tvImplementation"(libs.media3.transformer)
+    "tvImplementation"(libs.media3.effect)
+    "tvImplementation"(libs.media3.muxer)
+    "tvImplementation"("com.squareup:gifencoder:0.10.1")
 
     // Google Cast - only included in GMS flavor (not available in F-Droid/FOSS builds)
     "gmsImplementation"(libs.media3.cast)

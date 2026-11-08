@@ -343,6 +343,12 @@ class MusicService :
     @Volatile
     private var videoTakeoverActive = false
 
+    @Volatile
+    private var projectivyPreviewFocused = false
+
+    @Volatile
+    private var projectivyPreviewTitle: String? = null
+
     private var automixEnabled = false
     private var automixBlendPercent = 90f
     
@@ -1799,6 +1805,31 @@ class MusicService :
         }
     }
 
+    /** Set the focused-card audio owner and pause any AuraMusic playback already running. */
+    fun setProjectivyPreviewFocus(focused: Boolean, title: String? = null): Boolean {
+        projectivyPreviewFocused = focused
+        projectivyPreviewTitle = if (focused) title else null
+        return focused && pauseForProjectivyPreview()
+    }
+
+    /** Pause AuraMusic playback when a Projectivy card preview takes focus. */
+    fun pauseForProjectivyPreview(): Boolean {
+        return try {
+            if (castConnectionHandler?.isCasting?.value == true) {
+                castConnectionHandler?.pause()
+                true
+            } else if (playerInitialized.value && (player.playWhenReady || player.isPlaying)) {
+                player.pause()
+                true
+            } else {
+                false
+            }
+        } catch (error: Exception) {
+            Timber.tag(TAG).w(error, "Could not pause AuraMusic for a Projectivy preview")
+            false
+        }
+    }
+
     fun playQueue(
         queue: Queue,
         playWhenReady: Boolean = true,
@@ -2800,6 +2831,15 @@ class MusicService :
     }
 
     override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+        if (playWhenReady && projectivyPreviewFocused) {
+            Timber.tag(TAG).i(
+                "Keeping AuraMusic paused while Projectivy song card is focused title=%s",
+                projectivyPreviewTitle,
+            )
+            pauseForProjectivyPreview()
+            return
+        }
+
         // Safety net: if local player tries to start while casting, immediately pause it
         if (playWhenReady && castConnectionHandler?.isCasting?.value == true) {
             player.pause()
