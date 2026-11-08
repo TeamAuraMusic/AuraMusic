@@ -1,0 +1,21 @@
+{
+  "outcome": "INCONCLUSIVE",
+  "scope": "Read-only comparison of historical Chromecast proof against current APK candidates",
+  "device_accessed": false,
+  "historical_chromecast_run": {
+    "device": "sabrina, Android 14/API 34",
+    "projectivy": "4.73/code 98",
+    "auramusic_version": "3.2.0/code 29",
+    "apk_sha256": "3699408bce0ccf1be20226a1d8ce5984e9a3f3755015b1fadc4b865376835359",
+    "evidence": "evidence/chromecast_settings_build_20261107T181931Z/result.json",
+    "visual_capture": "evidence/chromecast_settings_build_20261107T181931Z/awake-focused-card.mp4",
+    "visual_result": "PASS",
+    "audio_identity_in_capture": "NOT_MEASURED"
+  },
+  "current_candidates": {
+    "Standalone": "c0ef94e673da462183acd8bf07c18661909acb2a253189572224516ff5ee8dd1",
+    "FOSS": "93e8a8c5ac2f2b04957e7fba169a7092e4ec9f8425bb71c481f783cf9de72045"
+  },
+  "current_candidates_installed_or_tested_on_chromecast": false,
+  "next_gate": "After device use is authorized, install the exact current Standalone APK and repeat focus audio, waveform, transition, focus-loss, and deep-link checks; capture actual audio identity."
+}
