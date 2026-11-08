@@ -3,6 +3,8 @@ import importlib.util
 import unittest
 from pathlib import Path
 
+import numpy as np
+
 SPEC = importlib.util.spec_from_file_location(
     "verify_projectivy_real_song_transitions",
     Path(__file__).with_name("verify-projectivy-real-song-transitions.py"),
@@ -43,6 +45,32 @@ class FocusedProgramInfoTest(unittest.TestCase):
             "TV preview selected program title=Other contentIdHash=xyz",
         ))
         self.assertEqual(3, VERIFIER.count_preview_provider_opens(log))
+
+    def test_indicator_analysis_counts_pink_pixels_inside_card_safe_area(self):
+        image = np.zeros((400, 400, 3), dtype=np.uint8)
+        image[230, 150] = (100, 10, 240)  # OpenCV BGR; within the focused-card ROI.
+        image[230, 120] = (100, 10, 240)  # Same color, outside the ROI.
+
+        pixels, profile, roi = VERIFIER.analyze_indicator(image, "[100,100][300,300]")
+
+        self.assertEqual(1, pixels)
+        self.assertEqual(1, sum(profile))
+        self.assertEqual({"x": 144, "y": 228, "width": 112, "height": 68}, roi)
+
+    def test_indicator_analysis_rejects_non_pink_pixels(self):
+        image = np.zeros((400, 400, 3), dtype=np.uint8)
+        image[230, 150] = (20, 100, 200)
+
+        pixels, _, roi = VERIFIER.analyze_indicator(image, "[100,100][300,300]")
+
+        self.assertEqual(0, pixels)
+        self.assertIsNotNone(roi)
+
+    def test_indicator_analysis_handles_missing_or_bad_bounds(self):
+        image = np.zeros((10, 10, 3), dtype=np.uint8)
+
+        self.assertEqual((0, [], None), VERIFIER.analyze_indicator(image, None))
+        self.assertEqual((0, [], None), VERIFIER.analyze_indicator(image, "invalid"))
 
 
 if __name__ == "__main__":

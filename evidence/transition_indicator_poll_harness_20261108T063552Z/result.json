@@ -1,0 +1,13 @@
+{
+  "outcome": "PASS",
+  "scope": "Transition verifier unit tests and help; no device interaction",
+  "command": "python3 scripts/test_projectivy_real_song_transitions.py",
+  "tests": {"count": 9, "failures": 0},
+  "py_compile": "PASS",
+  "help": "PASS",
+  "device_accessed": false,
+  "change": "After detecting Projectivy AudioTrack, sample the focused-card ROI for up to 1 second; record poll count, indicator appearance upper bound, and actual wait time. Missing pixels after the bounded wait still fails.",
+  "historical_trigger": "The earlier 20-transition capture sampled the screen immediately after first seeing audio. A 19/20 pass and one 0-pixel sample triggered the 500 ms focused playback state refresh, but the older capture did not wait for that refresh.",
+  "archived_failure_sample_recheck": [9030, 0, 9332],
+  "logs": ["unit-tests.log", "help.txt", "archived-failure-sample-recheck.txt"]
+}

@@ -493,3 +493,9 @@ Still open: C:/I: local HTTPS server and Projectivy trust/connectivity; repeated
 
 - GitHub reports TeamAuraMusic/AuraMusic PR #37 still OPEN and mergeable: head `feat/tv-periodic-refresh` at `22ce2beb8c3710c2ea1dbed576a896160eda0d6a`, base `main` at `60f5b1803acad0c53c6d98fa91936700b38eab2c`. Current `origin/main` has advanced to `aaf5ef09` by one translation commit.
 - At evidence capture, local implementation branch `codex/projectivy-preview-implementation` was at `5b908f22`, based on the PR head plus local implementation commits; it was nine commits ahead and one behind current `main`. The provenance note was then committed locally as `d00b8693`. No rebase, push, or PR mutation performed. Evidence: `evidence/pr37_state_20261108T062408Z/result.json` and `pr.json`.
+
+## Real-song transition verifier timing (2026-11-08)
+
+- Reviewed the saved 20-transition real-song capture. It had one zero-pixel waveform sample after a focused title and active Projectivy AudioTrack were observed; the verifier took its only screenshot immediately after that AudioTrack poll. The product's playback-state fallback polls every 500 ms. This makes the single sample inconclusive about a persistent visual failure, while preserving the historical run's recorded `FAIL_PRODUCT` result.
+- Updated `scripts/verify-projectivy-real-song-transitions.py` to poll the card ROI for up to one second after audio appears, record screenshot poll count, actual wait, and waveform startup upper bound. No waveform after that bound remains a product failure. Added pure tests for ROI placement, pink detection, and malformed/missing bounds.
+- Verifier tests: 9/9 pass; Python compilation and `--help` pass; `git diff --check` passes. Evidence: `evidence/transition_indicator_poll_harness_20261108T063552Z/result.json` and logs. This is a harness change only; no emulator/Chromecast access and no current-candidate device pass implied.

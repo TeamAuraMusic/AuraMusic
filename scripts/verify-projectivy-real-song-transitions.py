@@ -61,6 +61,31 @@ def count_preview_provider_opens(log_text: str) -> int:
     return len(re.findall(pattern, log_text))
 
 
+def analyze_indicator(image: np.ndarray | None, bounds: str | None) -> tuple[int, list[int], dict | None]:
+    if image is None or not bounds:
+        return 0, [], None
+    parsed = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
+    if not parsed:
+        return 0, [], None
+    left, top, right, bottom = map(int, parsed.groups())
+    x = max(0, round(left + (right - left) * 0.22))
+    y = max(0, round(top + (bottom - top) * 0.64))
+    width = min(image.shape[1] - x, round((right - left) * 0.56))
+    height = min(image.shape[0] - y, round((bottom - top) * 0.34))
+    if width <= 0 or height <= 0:
+        return 0, [], None
+    crop = image[y:y + height, x:x + width]
+    if crop.size == 0:
+        return 0, [], None
+    blue, green, red = cv2.split(crop)
+    pink = (red > 150) & (red > green * 1.35) & (blue > 60) & (green < 150)
+    return (
+        int(pink.sum()),
+        pink.sum(axis=1).astype(int).tolist(),
+        {"x": x, "y": y, "width": width, "height": height},
+    )
+
+
 def main() -> None:
     global ADB_EXECUTABLE, ADB_SERVER_PORT
     parser = argparse.ArgumentParser(description=__doc__)
@@ -79,6 +104,8 @@ def main() -> None:
     parser.add_argument("--audio-timeout-seconds", type=float, default=5,
                         help="wait for the focused preview AudioTrack before sampling the transition")
     parser.add_argument("--settle-seconds", type=float, default=0.5)
+    parser.add_argument("--indicator-timeout-seconds", type=float, default=1.0,
+                        help="bounded time after audio starts for the focused-card waveform to appear")
     parser.add_argument("--evidence-dir", required=True, type=Path)
     args = parser.parse_args()
     if not is_allowed_target(args.serial, args.allow_physical):
@@ -89,6 +116,7 @@ def main() -> None:
         parser.error("ADB server port must be in 1..65535")
     ADB_EXECUTABLE, ADB_SERVER_PORT = args.adb, args.adb_port
     if (args.cycles < 1 or args.focus_timeout_seconds <= 0 or args.audio_timeout_seconds <= 0
+            or args.indicator_timeout_seconds <= 0
             or args.settle_seconds < 0):
         parser.error("cycles and timeouts must be positive; settle cannot be negative")
     evidence = args.evidence_dir
@@ -225,28 +253,30 @@ def main() -> None:
                                   and "type:android.media.AudioTrack" in line
                                   and re.search(rf"u/pid:{aura_uid}/\d+ state:started", line)]
 
-            raw = adb(serial, "exec-out", "screencap", "-p", binary=True)
+            indicator_deadline = time.monotonic() + (
+                args.indicator_timeout_seconds if audio_started_at is not None else 0
+            )
+            indicator_polls = 0
+            indicator_visible_at = None
+            raw = b""
+            pink_pixels = 0
+            profile = []
+            roi = None
+            while True:
+                raw = adb(serial, "exec-out", "screencap", "-p", binary=True)
+                indicator_polls += 1
+                image = cv2.imdecode(np.frombuffer(raw, np.uint8), cv2.IMREAD_COLOR)
+                pink_pixels, profile, roi = analyze_indicator(image, bounds)
+                if pink_pixels > 100:
+                    indicator_visible_at = time.monotonic()
+                    break
+                remaining = indicator_deadline - time.monotonic()
+                if audio_started_at is None or remaining <= 0:
+                    break
+                time.sleep(min(0.1, remaining))
+            indicator_sampled_at = time.monotonic()
             screenshot_name = f"transition-{step + 1:02d}.png"
             (evidence / screenshot_name).write_bytes(raw)
-            image = cv2.imdecode(np.frombuffer(raw, np.uint8), cv2.IMREAD_COLOR)
-            pink_pixels = 0
-            roi = None
-            profile = []
-            if image is not None and bounds:
-                parsed = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
-                if parsed:
-                    left, top, right, bottom = map(int, parsed.groups())
-                    x = max(0, round(left + (right - left) * 0.22))
-                    y = max(0, round(top + (bottom - top) * 0.64))
-                    width = min(image.shape[1] - x, round((right - left) * 0.56))
-                    height = min(image.shape[0] - y, round((bottom - top) * 0.34))
-                    crop = image[y:y + height, x:x + width]
-                    if crop.size:
-                        blue, green, red = cv2.split(crop)
-                        pink = (red > 150) & (red > green * 1.35) & (blue > 60) & (green < 150)
-                        pink_pixels = int(pink.sum())
-                        profile = pink.sum(axis=1).astype(int).tolist()
-                        roi = {"x": x, "y": y, "width": width, "height": height}
 
             sample = {
                 "step": step + 1,
@@ -269,6 +299,16 @@ def main() -> None:
                 ),
                 "activeAuraMusicAudioTracks": active_aura_tracks,
                 "pinkIndicatorPixels": pink_pixels,
+                "indicatorPollCount": indicator_polls,
+                "indicatorVisibleAfterAudio": pink_pixels > 100 and audio_started_at is not None,
+                "indicatorStartupSecondsUpperBound": (
+                    round(indicator_visible_at - audio_started_at, 3)
+                    if indicator_visible_at is not None and audio_started_at is not None else None
+                ),
+                "indicatorWaitSeconds": (
+                    round(indicator_sampled_at - audio_started_at, 3)
+                    if audio_started_at is not None else None
+                ),
                 "pinkRowProfile": profile,
                 "indicatorRegion": roi,
                 "screenshot": screenshot_name,
@@ -304,6 +344,15 @@ def main() -> None:
                  if sample["focusLatencySecondsUpperBound"] is not None]
     ordered = sorted(latencies)
     p95 = ordered[min(len(ordered) - 1, round((len(ordered) - 1) * 0.95))] if ordered else None
+    indicator_latencies = [sample["indicatorStartupSecondsUpperBound"] for sample in samples
+                           if sample["indicatorStartupSecondsUpperBound"] is not None]
+    ordered_indicator_latencies = sorted(indicator_latencies)
+    indicator_p95 = (
+        ordered_indicator_latencies[
+            min(len(ordered_indicator_latencies) - 1,
+                round((len(ordered_indicator_latencies) - 1) * 0.95))
+        ] if ordered_indicator_latencies else None
+    )
     functional_checks = (
         "allRequestedTransitionsCompleted",
         "projectivyStayedForeground",
@@ -342,6 +391,12 @@ def main() -> None:
             "p95UpperBound": p95,
             "maxUpperBound": max(latencies) if latencies else None,
             "samples": latencies,
+        },
+        "indicatorStartupSeconds": {
+            "medianUpperBound": float(np.median(indicator_latencies)) if indicator_latencies else None,
+            "p95UpperBound": indicator_p95,
+            "maxUpperBound": max(indicator_latencies) if indicator_latencies else None,
+            "samples": indicator_latencies,
         },
         "samples": samples,
         "limitations": [

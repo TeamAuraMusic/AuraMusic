@@ -1,0 +1,6 @@
+Re-ran the updated ROI detector against saved screenshots from the earlier 20-transition fail:
+step=4 title=Messy pink_pixels=9030 roi={'x': 107, 'y': 484, 'width': 272, 'height': 82}
+step=5 title=Restart pink_pixels=0 roi={'x': 107, 'y': 484, 'width': 272, 'height': 82}
+step=6 title=Messy pink_pixels=9332 roi={'x': 107, 'y': 484, 'width': 272, 'height': 82}
+
+This confirms the revised detector preserves the recorded missing-frame observation. It does not reinterpret the historical FAIL_PRODUCT or prove the newer candidate.
