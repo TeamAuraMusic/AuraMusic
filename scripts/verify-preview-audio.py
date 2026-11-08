@@ -10,6 +10,8 @@ import numpy as np
 
 MIN_TONE_WINDOWS = 3
 MIN_SILENCE_SECONDS = 3.0
+TRANSITION_WINDOW_SECONDS = 0.5
+MIN_TRANSITION_STABLE_WINDOWS = 3
 
 
 def read_wav(path: Path) -> tuple[np.ndarray, int]:
@@ -85,21 +87,124 @@ def analyze_silence(path: Path) -> dict:
     }
 
 
+def analyze_tone_transition(path: Path, first_hz: int = 440, second_hz: int = 880) -> dict:
+    samples, rate = read_wav(path)
+    window_size = max(1, round(rate * TRANSITION_WINDOW_SECONDS))
+    windows = []
+    for start in range(0, len(samples) - window_size + 1, window_size):
+        chunk = samples[start : start + window_size]
+        rms = float(np.sqrt(np.mean(chunk * chunk))) if len(chunk) else 0.0
+        dbfs = 20 * math.log10(max(rms, 1e-9) / 32768)
+        spectrum = np.abs(np.fft.rfft(chunk * np.hanning(len(chunk))))
+        frequencies = np.fft.rfftfreq(len(chunk), 1 / rate)
+        peak_index = int(np.argmax(spectrum[1:]) + 1) if len(spectrum) > 1 else 0
+        peak_hz = float(frequencies[peak_index]) if len(frequencies) else 0.0
+        first_index = int(np.argmin(np.abs(frequencies - first_hz)))
+        second_index = int(np.argmin(np.abs(frequencies - second_hz)))
+        first_magnitude = float(spectrum[first_index])
+        second_magnitude = float(spectrum[second_index])
+
+        if dbfs <= -70:
+            state = "SILENCE"
+        elif abs(peak_hz - first_hz) <= 3 and first_magnitude > second_magnitude * 4:
+            state = "FIRST"
+        elif abs(peak_hz - second_hz) <= 3 and second_magnitude > first_magnitude * 4:
+            state = "SECOND"
+        elif min(first_magnitude, second_magnitude) > 0 and max(first_magnitude, second_magnitude) <= min(
+            first_magnitude, second_magnitude
+        ) * 4:
+            state = "MIXED"
+        else:
+            state = "OTHER"
+        windows.append({
+            "startSeconds": round(start / rate, 3),
+            "state": state,
+            "peakHz": round(peak_hz, 2),
+            "rmsDbfs": round(dbfs, 2),
+            "firstMagnitude": round(first_magnitude, 1),
+            "secondMagnitude": round(second_magnitude, 1),
+        })
+
+    first_start = next((index for index, item in enumerate(windows) if item["state"] == "FIRST"), None)
+    second_start = next((index for index, item in enumerate(windows)
+                         if first_start is not None and index > first_start and item["state"] == "SECOND"), None)
+    if first_start is None or second_start is None:
+        status = "INCONCLUSIVE"
+        reason = "Could not observe both expected tones in order"
+        first_stable = second_stable = 0
+        boundary_states = []
+    else:
+        first_end = first_start
+        while first_end + 1 < second_start and windows[first_end + 1]["state"] == "FIRST":
+            first_end += 1
+        second_end = second_start
+        while second_end + 1 < len(windows) and windows[second_end + 1]["state"] == "SECOND":
+            second_end += 1
+        first_stable = first_end - first_start + 1
+        second_stable = second_end - second_start + 1
+        boundary_states = [item["state"] for item in windows[first_end + 1 : second_start]]
+        stale_first_after_second = any(item["state"] == "FIRST" for item in windows[second_start + 1 :])
+        mixed_count = boundary_states.count("MIXED")
+        silence_count = boundary_states.count("SILENCE")
+        other_count = boundary_states.count("OTHER")
+
+        if stale_first_after_second or mixed_count > 1:
+            status = "FAIL_PRODUCT"
+            reason = "Stale first tone or sustained mixed-tone overlap observed"
+        elif first_stable < MIN_TRANSITION_STABLE_WINDOWS or second_stable < MIN_TRANSITION_STABLE_WINDOWS:
+            status = "INCONCLUSIVE"
+            reason = "Expected tone was not sustained for enough windows"
+        elif mixed_count or silence_count > 1 or other_count:
+            status = "INCONCLUSIVE"
+            reason = "Transition boundary is mixed, interrupted, or contains unexpected audio"
+        else:
+            status = "PASS"
+            reason = "Observed sustained first then second tone with no mixed-tone window"
+
+    return {
+        "file": str(path),
+        "durationSeconds": round(len(samples) / rate, 3),
+        "sampleRateHz": rate,
+        "firstHz": first_hz,
+        "secondHz": second_hz,
+        "windowSeconds": TRANSITION_WINDOW_SECONDS,
+        "minimumStableWindowsPerTone": MIN_TRANSITION_STABLE_WINDOWS,
+        "firstStableWindows": first_stable,
+        "secondStableWindows": second_stable,
+        "boundaryStates": boundary_states,
+        "status": status,
+        "reason": reason,
+        "windows": windows,
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--a", type=Path, required=True)
-    parser.add_argument("--b", type=Path, required=True)
-    parser.add_argument("--focus-loss", type=Path, required=True)
+    parser.add_argument("--a", type=Path, help="Standalone A capture (440 Hz)")
+    parser.add_argument("--b", type=Path, help="Standalone B capture (880 Hz)")
+    parser.add_argument("--focus-loss", type=Path, help="Standalone silence capture after focus leaves")
+    parser.add_argument("--transition", type=Path,
+                        help="Optional continuous A→B WAV capture; mixed or ambiguous handoff does not pass")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    result = {
-        "test": "Projectivy PreviewProbe card audio and focus-loss assertions",
-        "outcome": "PASS",
-        "assertions": {
+    separate_captures = (args.a, args.b, args.focus_loss)
+    if any(separate_captures) and not all(separate_captures):
+        parser.error("--a, --b, and --focus-loss must be supplied together")
+    if not args.transition and not all(separate_captures):
+        parser.error("provide either all of --a/--b/--focus-loss or a --transition capture")
+    assertions = {}
+    if all(separate_captures):
+        assertions.update({
             "focusA440Hz": analyze_tone(args.a, 440),
             "focusB880Hz": analyze_tone(args.b, 880),
             "focusLossSilence": analyze_silence(args.focus_loss),
-        },
+        })
+    if args.transition:
+        assertions["focusAToBNoOverlap"] = analyze_tone_transition(args.transition)
+    result = {
+        "test": "Projectivy PreviewProbe card audio and focus-loss assertions",
+        "outcome": "PASS",
+        "assertions": assertions,
     }
     statuses = {value["status"] for value in result["assertions"].values()}
     if "FAIL_PRODUCT" in statuses:

@@ -40,6 +40,26 @@ class PreviewAudioAnalysisTest(unittest.TestCase):
             output.writeframes(samples.astype("<i2").tobytes())
         return path
 
+    def write_sequence(self, name: str, segments: list[tuple[tuple[int, ...] | None, float]]) -> Path:
+        rate = 48_000
+        pieces = []
+        for frequencies, duration in segments:
+            count = round(rate * duration)
+            time = np.arange(count, dtype=np.float64) / rate
+            signal = np.zeros(count, dtype=np.float64)
+            if frequencies:
+                amplitude = 12_000 / len(frequencies)
+                for frequency in frequencies:
+                    signal += amplitude * np.sin(2 * np.pi * frequency * time)
+            pieces.append(np.rint(signal).astype("<i2"))
+        path = self.directory / name
+        with wave.open(str(path), "wb") as output:
+            output.setnchannels(1)
+            output.setsampwidth(2)
+            output.setframerate(rate)
+            output.writeframes(np.concatenate(pieces).tobytes())
+        return path
+
     def test_440_hz_fixture_passes_a_assertion(self):
         result = VERIFIER.analyze_tone(self.write_wav("a.wav", 440), 440)
 
@@ -93,6 +113,69 @@ class PreviewAudioAnalysisTest(unittest.TestCase):
 
         self.assertEqual(1, result.returncode)
         self.assertEqual("INCONCLUSIVE", json.loads(output.read_text())["outcome"])
+
+    def test_clean_440_to_880_transition_passes_without_overlap(self):
+        capture = self.write_sequence("clean-transition.wav", [((440,), 2), ((880,), 2)])
+
+        result = VERIFIER.analyze_tone_transition(capture)
+
+        self.assertEqual("PASS", result["status"])
+        self.assertEqual(4, result["firstStableWindows"])
+        self.assertEqual(4, result["secondStableWindows"])
+        self.assertEqual([], result["boundaryStates"])
+
+    def test_one_mixed_transition_window_is_inconclusive(self):
+        capture = self.write_sequence(
+            "boundary-mix.wav", [((440,), 2), ((440, 880), 0.5), ((880,), 2)],
+        )
+
+        result = VERIFIER.analyze_tone_transition(capture)
+
+        self.assertEqual("INCONCLUSIVE", result["status"])
+        self.assertEqual(["MIXED"], result["boundaryStates"])
+
+    def test_sustained_mixed_tones_fail_overlap_assertion(self):
+        capture = self.write_sequence(
+            "overlap.wav", [((440,), 2), ((440, 880), 1), ((880,), 2)],
+        )
+
+        result = VERIFIER.analyze_tone_transition(capture)
+
+        self.assertEqual("FAIL_PRODUCT", result["status"])
+        self.assertEqual(2, result["boundaryStates"].count("MIXED"))
+
+    def test_stale_first_tone_after_second_fails_transition(self):
+        capture = self.write_sequence(
+            "stale-a.wav", [((440,), 2), ((880,), 2), ((440,), 1)],
+        )
+
+        result = VERIFIER.analyze_tone_transition(capture)
+
+        self.assertEqual("FAIL_PRODUCT", result["status"])
+        self.assertEqual("Stale first tone or sustained mixed-tone overlap observed", result["reason"])
+
+    def test_capture_without_ordered_tones_is_inconclusive(self):
+        capture = self.write_sequence("missing-b.wav", [((440,), 2)])
+
+        result = VERIFIER.analyze_tone_transition(capture)
+
+        self.assertEqual("INCONCLUSIVE", result["status"])
+        self.assertIn("both expected tones", result["reason"])
+
+    def test_cli_accepts_a_single_continuous_transition_capture(self):
+        capture = self.write_sequence("cli-transition.wav", [((440,), 2), ((880,), 2)])
+        output = self.directory / "transition-result.json"
+        script = Path(__file__).with_name("verify-preview-audio.py")
+
+        result = subprocess.run(
+            [sys.executable, str(script), "--transition", str(capture), "--output", str(output)],
+            capture_output=True, text=True, check=False,
+        )
+
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        decoded = json.loads(output.read_text())
+        self.assertEqual("PASS", decoded["outcome"])
+        self.assertEqual("PASS", decoded["assertions"]["focusAToBNoOverlap"]["status"])
 
 
 if __name__ == "__main__":

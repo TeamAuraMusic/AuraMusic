@@ -1,0 +1,45 @@
+{
+  "archived_a_to_b": {
+    "file": "evidence/previewprobe_ab_transition.wav",
+    "durationSeconds": 33.856,
+    "sampleRateHz": 48000,
+    "firstHz": 440,
+    "secondHz": 880,
+    "windowSeconds": 0.5,
+    "minimumStableWindowsPerTone": 3,
+    "firstStableWindows": 0,
+    "secondStableWindows": 0,
+    "boundaryStates": [],
+    "status": "INCONCLUSIVE",
+    "reason": "Could not observe both expected tones in order"
+  },
+  "archived_b_to_a": {
+    "file": "evidence/previewprobe_b_transition.wav",
+    "durationSeconds": 27.136,
+    "sampleRateHz": 48000,
+    "firstHz": 880,
+    "secondHz": 440,
+    "windowSeconds": 0.5,
+    "minimumStableWindowsPerTone": 3,
+    "firstStableWindows": 29,
+    "secondStableWindows": 5,
+    "boundaryStates": [
+      "SILENCE",
+      "SILENCE",
+      "SILENCE",
+      "SILENCE",
+      "SILENCE",
+      "SILENCE",
+      "SILENCE",
+      "SILENCE",
+      "SILENCE",
+      "MIXED",
+      "SILENCE",
+      "SILENCE",
+      "SILENCE",
+      "SILENCE"
+    ],
+    "status": "INCONCLUSIVE",
+    "reason": "Transition boundary is mixed, interrupted, or contains unexpected audio"
+  }
+}

@@ -18,6 +18,27 @@ The earlier 2026-11-05 report below is a historical baseline; later device runs 
 - PreviewProbe now supports deterministic add/update/reorder/remove/clear publications through launch extras. Its argument parser passes six unit tests (default, clear, ordering/case, duplicate, unknown, empty entry); latest APK hash `d68bf235d11d7af99ad4f15df8aca7c399231271ef2f6fbe46359887ec1b06ac`. Evidence: [`PreviewProbe mutation unit/build result`](../evidence/previewprobe_mutation_unit_20261108T052020Z/result.json). AuraMusic Standalone and FOSS TV suites pass 58/58 each; hashes `01520ff6d1c8cb27c8d4ce7c167154a7495a98259a4083b73c27d36b320d6ca1` / `f468cfbe687fe4ae8a2b8c0be3de57745a55d36b8b0bb1578b1b01aef31013b2`, with [evidence](../evidence/current_tv_build_tests_20261108T051631Z/result.json). Projectivy provider mutation and visible reorder have not been run on a device.
 - Local HTTPS host loopback harness passes 17/17 checks with TLS verification enabled, including range handling and request diagnostics. This proves host server behavior only. Evidence: [`result.json`](../evidence/preview_https_loopback_20261108T052000Z/result.json).
 - Latest local-only build now normalizes non-`audio/mp4` real sources to audio-only AAC/MP4 using Media3 Transformer; output policy requires one AAC track/no video before atomic caching. Standalone/FOSS each pass 59 tests across 15 suites. APK hashes `5dbe7df38ba22df2ecf2e28725ca4b9f76be284b6d0b53fbe56f568c17d9387f` / `4836ca47271a717dbc78772f0cf457fdfe6bd8888a998a03af11bcc396749e76`; [build/test evidence](../evidence/audio_only_normalization_policy_20261108T054138Z/result.json). Not device-tested: runtime conversion, Projectivy playback, and startup latency remain unverified. The prior 88.445-second cold full-video path and failed fragmented-pipe experiment remain historical evidence in the [source-format audit](implementation/PROJECTIVY_PREVIEW_EXECUTION_PLAN.md).
+- **Current local candidate (2026-11-08):** Standalone/FOSS TV APKs rebuilt successfully; each passes 59 tests across 15 suites. SHA-256: `c0ef94e673da462183acd8bf07c18661909acb2a253189572224516ff5ee8dd1` / `93e8a8c5ac2f2b04957e7fba169a7092e4ec9f8425bb71c481f783cf9de72045`. The AndroidTest packages also compile and include the waveform-view and AAC-transcoder tests, but neither has been installed or run. Exact-candidate Projectivy playback remains unverified. Evidence: [`final_candidate_build_20261108T065050Z`](../evidence/final_candidate_build_20261108T065050Z/) and [`focused_card_view_test_package_20261108T065106Z`](../evidence/focused_card_view_test_package_20261108T065106Z/).
+- Python test discovery now passes 33 tests. All device verifiers use the configured Windows ADB binary, server port, and explicit serial; physical serials require `--allow-physical`. The PreviewProbe audio analyzer can check a continuous A→B WAV for ordered 440/880 Hz audio and mixed-tone overlap. Existing transition WAVs are inconclusive; they do not establish a clean handoff. Latest evidence and status are in the [execution plan](implementation/PROJECTIVY_PREVIEW_EXECUTION_PLAN.md).
+
+### Capture an A→B PreviewProbe audio transition
+
+Use the emulator, with PreviewProbe's A/B channel enabled and A focused on Projectivy's home screen. Keep A and B adjacent in the row. This records one continuous output-audio capture, waits three seconds on A, then moves right to B without Select. `tvctl` enforces its emulator-only serial allowlist.
+
+```sh
+evidence_dir="evidence/previewprobe_transition_$(date -u +%Y%m%dT%H%M%SZ)"
+mkdir -p "$evidence_dir"
+TVCTL_SERIAL=emulator-5554 scripts/tvctl capture-audio 8 "$evidence_dir/a-to-b.wav" &
+capture_pid=$!
+sleep 3
+TVCTL_SERIAL=emulator-5554 scripts/tvctl key RIGHT
+wait "$capture_pid"
+python3 scripts/verify-preview-audio.py \
+  --transition "$evidence_dir/a-to-b.wav" \
+  --output "$evidence_dir/audio-assertions.json"
+```
+
+The analyzer uses non-overlapping 500 ms windows. It requires at least three stable windows of each tone. A clean ordered handoff with no mixed-tone window passes; a single ambiguous boundary window is `INCONCLUSIVE`; sustained overlap or A audio returning after B is `FAIL_PRODUCT`. Capture with too little audio to show both tones is `INCONCLUSIVE`. A separate focus-loss capture can still be checked with `--a`, `--b`, and `--focus-loss`.
 
 ## Historical device baseline (2026-11-05)
 
