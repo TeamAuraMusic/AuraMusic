@@ -488,3 +488,8 @@ Still open: C:/I: local HTTPS server and Projectivy trust/connectivity; repeated
 - Historical Chromecast evidence proves waveform motion inside the focused card on Projectivy 4.73/API 34, and separate focus-loss evidence proves stop/restart. The visual run installed APK SHA-256 `3699408bce0ccf1be20226a1d8ce5984e9a3f3755015b1fadc4b865376835359`; its captured run did not measure audio identity.
 - Current Standalone/FOSS APK hashes are `c0ef94e673da462183acd8bf07c18661909acb2a253189572224516ff5ee8dd1` / `93e8a8c5ac2f2b04957e7fba169a7092e4ec9f8425bb71c481f783cf9de72045`. They are newer, have not been installed or runtime-tested on Chromecast, and are not covered by the historical device evidence. Instrumented AAC transcoder tests are built but unrun.
 - Read-only gap audit: `evidence/current_candidate_device_gap_20261108T062143Z/result.json`. Chromecast and emulator were not accessed. Do not claim the current candidate passed Chromecast acceptance based on the earlier APK run.
+
+## PR provenance refresh (2026-11-08)
+
+- GitHub reports TeamAuraMusic/AuraMusic PR #37 still OPEN and mergeable: head `feat/tv-periodic-refresh` at `22ce2beb8c3710c2ea1dbed576a896160eda0d6a`, base `main` at `60f5b1803acad0c53c6d98fa91936700b38eab2c`. Current `origin/main` has advanced to `aaf5ef09` by one translation commit.
+- Local implementation branch `codex/projectivy-preview-implementation` is at `5b908f22`, based on the PR head plus local implementation commits; it is nine commits ahead and one behind current `main`. No rebase, push, or PR mutation performed. Evidence: `evidence/pr37_state_20261108T062408Z/result.json` and `pr.json`.
