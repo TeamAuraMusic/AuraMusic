@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.auramusic.app.tv.PreviewProgramReconciliationTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-11-08T06:45:35.335Z" hostname="DESKTOP" time="0.018">
+  <properties/>
+  <testcase name="reusesUnchangedProgramsAndOnlyAddsOrRemovesTheDifference" classname="com.auramusic.app.tv.PreviewProgramReconciliationTest" time="0.013"/>
+  <testcase name="confirmedEmptySelectionDeletesEveryExistingProgram" classname="com.auramusic.app.tv.PreviewProgramReconciliationTest" time="0.002"/>
+  <testcase name="removesLegacyAndDuplicateRowsWithoutReplacingTheRetainedRow" classname="com.auramusic.app.tv.PreviewProgramReconciliationTest" time="0.0"/>
+  <testcase name="preservesStableIdsWhileReorderingAndApplyingAddRemoveChanges" classname="com.auramusic.app.tv.PreviewProgramReconciliationTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

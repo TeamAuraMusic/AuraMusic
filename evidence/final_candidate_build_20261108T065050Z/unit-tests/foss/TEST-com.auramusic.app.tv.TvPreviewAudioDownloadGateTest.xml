@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.auramusic.app.tv.TvPreviewAudioDownloadGateTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-11-08T06:45:42.976Z" hostname="DESKTOP" time="0.122">
+  <properties/>
+  <testcase name="resolvesSourceOnlyAfterAcquiringPreparationPermit" classname="com.auramusic.app.tv.TvPreviewAudioDownloadGateTest" time="0.014"/>
+  <testcase name="boundsConcurrentDistinctSongDownloads" classname="com.auramusic.app.tv.TvPreviewAudioDownloadGateTest" time="0.107"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
