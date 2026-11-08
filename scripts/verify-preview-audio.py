@@ -8,6 +8,9 @@ from pathlib import Path
 
 import numpy as np
 
+MIN_TONE_WINDOWS = 3
+MIN_SILENCE_SECONDS = 3.0
+
 
 def read_wav(path: Path) -> tuple[np.ndarray, int]:
     with wave.open(str(path), "rb") as handle:
@@ -22,6 +25,7 @@ def read_wav(path: Path) -> tuple[np.ndarray, int]:
 def analyze_tone(path: Path, expected_hz: int) -> dict:
     samples, rate = read_wav(path)
     rms = float(np.sqrt(np.mean(samples * samples))) if len(samples) else 0.0
+    duration_seconds = len(samples) / rate
     windows = []
     for start in range(rate, len(samples) - rate + 1, rate):
         chunk = samples[start : start + rate]
@@ -44,9 +48,13 @@ def analyze_tone(path: Path, expected_hz: int) -> dict:
     passing = sum(w["expectedDominates"] and w["expectedPeak"] for w in windows)
     median_peak = float(np.median([w["peakHz"] for w in windows])) if windows else 0.0
     dbfs = 20 * math.log10(max(rms, 1e-9) / 32768)
+    if len(windows) < MIN_TONE_WINDOWS:
+        status = "INCONCLUSIVE"
+    else:
+        status = "PASS" if passing / len(windows) >= 0.8 and dbfs > -70 else "FAIL_PRODUCT"
     return {
         "file": str(path),
-        "durationSeconds": round(len(samples) / rate, 3),
+        "durationSeconds": round(duration_seconds, 3),
         "sampleRateHz": rate,
         "rms": round(rms, 2),
         "rmsDbfs": round(dbfs, 2),
@@ -54,7 +62,7 @@ def analyze_tone(path: Path, expected_hz: int) -> dict:
         "medianPeakHz": round(median_peak, 2),
         "matchingWindows": passing,
         "windows": len(windows),
-        "status": "PASS" if len(windows) >= 3 and passing / len(windows) >= 0.8 and dbfs > -70 else "FAIL_PRODUCT",
+        "status": status,
     }
 
 
@@ -62,13 +70,18 @@ def analyze_silence(path: Path) -> dict:
     samples, rate = read_wav(path)
     rms = float(np.sqrt(np.mean(samples * samples))) if len(samples) else 0.0
     peak = float(np.max(np.abs(samples))) if len(samples) else 0.0
+    duration_seconds = len(samples) / rate
+    if duration_seconds < MIN_SILENCE_SECONDS:
+        status = "INCONCLUSIVE"
+    else:
+        status = "PASS" if rms < 1 and peak < 2 else "FAIL_PRODUCT"
     return {
         "file": str(path),
-        "durationSeconds": round(len(samples) / rate, 3),
+        "durationSeconds": round(duration_seconds, 3),
         "sampleRateHz": rate,
         "rms": round(rms, 3),
         "peak": round(peak, 3),
-        "status": "PASS" if rms < 1 and peak < 2 else "FAIL_PRODUCT",
+        "status": status,
     }
 
 
@@ -88,8 +101,11 @@ def main() -> None:
             "focusLossSilence": analyze_silence(args.focus_loss),
         },
     }
-    if any(value["status"] != "PASS" for value in result["assertions"].values()):
+    statuses = {value["status"] for value in result["assertions"].values()}
+    if "FAIL_PRODUCT" in statuses:
         result["outcome"] = "FAIL_PRODUCT"
+    elif "INCONCLUSIVE" in statuses:
+        result["outcome"] = "INCONCLUSIVE"
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2) + "\n")
     print(json.dumps(result, indent=2))

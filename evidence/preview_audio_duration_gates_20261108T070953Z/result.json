@@ -1,0 +1,12 @@
+{
+  "outcome": "PASS",
+  "scope": "Audio assertion duration-gate tests and archived PreviewProbe WAV recheck",
+  "git_commit": "ab0a896a38bfaaf3dc8cac0018b838d738d99330",
+  "tests": {"analyzer_specific": 7, "all_python": 27, "failures": 0},
+  "py_compile": "PASS",
+  "historical_capture_recheck": "PASS",
+  "change": "Tone captures with fewer than three valid one-second windows and silence captures shorter than three seconds now return INCONCLUSIVE. The CLI propagates INCONCLUSIVE rather than converting missing evidence into a product failure or pass.",
+  "device_accessed": false,
+  "current_candidate_verified": false,
+  "logs": ["unit-tests.log", "all-python-tests.log", "historical-capture-stdout.json", "historical-capture-recheck.json"]
+}
