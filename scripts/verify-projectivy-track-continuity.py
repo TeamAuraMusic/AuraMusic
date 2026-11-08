@@ -4,19 +4,24 @@ import argparse
 import json
 import re
 import shlex
-import subprocess
 import time
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from pathlib import Path
+from tv_adb import (
+    DEFAULT_ADB_EXECUTABLE,
+    DEFAULT_ADB_SERVER_PORT,
+    is_allowed_target,
+    run_adb,
+)
 
+ADB_EXECUTABLE = DEFAULT_ADB_EXECUTABLE
+ADB_SERVER_PORT = DEFAULT_ADB_SERVER_PORT
 
 def adb(serial: str, *args: str, timeout: int = 30) -> str:
-    result = subprocess.run(
-        ["adb", "-s", serial, *args], check=True, capture_output=True,
-        text=True, errors="replace", timeout=timeout,
-    )
-    return result.stdout.replace("\r", "")
+    return run_adb(
+        serial, *args, executable=ADB_EXECUTABLE, server_port=ADB_SERVER_PORT, timeout=timeout,
+    ).replace("\r", "")
 
 
 def utc_now() -> str:
@@ -32,8 +37,12 @@ def median(values: list[float]) -> float | None:
 
 
 def main() -> None:
+    global ADB_EXECUTABLE, ADB_SERVER_PORT
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--serial", required=True, help="Explicit ADB serial; no device fallback")
+    parser.add_argument("--adb", type=Path, default=ADB_EXECUTABLE, help="Windows ADB executable")
+    parser.add_argument("--adb-port", type=int, default=ADB_SERVER_PORT)
+    parser.add_argument("--allow-physical", action="store_true", help="Permit non-emulator serials explicitly")
     parser.add_argument("--title", required=True, help="Exact focused Projectivy program title")
     parser.add_argument("--duration-seconds", required=True, type=float, help="Expected source track duration")
     parser.add_argument("--interval-seconds", type=float, default=30)
@@ -44,6 +53,9 @@ def main() -> None:
     )
     parser.add_argument("--evidence-dir", required=True, type=Path)
     args = parser.parse_args()
+    if not is_allowed_target(args.serial, args.allow_physical):
+        parser.error("serial is outside the emulator allowlist; pass --allow-physical only for the gated Chromecast phase")
+    ADB_EXECUTABLE, ADB_SERVER_PORT = args.adb, args.adb_port
     args.evidence_dir.mkdir(parents=True, exist_ok=True)
 
     started = time.monotonic()

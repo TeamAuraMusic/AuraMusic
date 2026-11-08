@@ -4,7 +4,6 @@
 import argparse
 import hashlib
 import json
-import os
 import re
 import select
 import subprocess
@@ -16,26 +15,17 @@ from typing import Callable
 
 import cv2
 import numpy as np
+from tv_adb import DEFAULT_ADB_EXECUTABLE, DEFAULT_ADB_SERVER_PORT, adb_command, is_allowed_target, run_adb
 
-ADB_EXECUTABLE = Path(os.environ.get("TVCTL_ADB", "/mnt/i/AndroidTVSdk/platform-tools/adb.exe"))
-ADB_SERVER_PORT = int(os.environ.get("TVCTL_ADB_PORT", "5038"))
-EMULATOR_SERIAL_ALLOWLIST = {"emulator-5554", "emulator-5556"}
-
-
-def is_allowed_target(serial: str, allow_physical: bool) -> bool:
-    return serial in EMULATOR_SERIAL_ALLOWLIST or allow_physical
-
-
-def adb_command(executable: Path, server_port: int, serial: str, *args: str) -> list[str]:
-    return [str(executable), "-P", str(server_port), "-s", serial, *args]
+ADB_EXECUTABLE = DEFAULT_ADB_EXECUTABLE
+ADB_SERVER_PORT = DEFAULT_ADB_SERVER_PORT
 
 
 def adb(serial: str, *args: str, timeout: int = 30, binary: bool = False):
-    result = subprocess.run(
-        adb_command(ADB_EXECUTABLE, ADB_SERVER_PORT, serial, *args), check=True, capture_output=True,
-        text=not binary, errors="replace" if not binary else None, timeout=timeout,
+    return run_adb(
+        serial, *args, executable=ADB_EXECUTABLE, server_port=ADB_SERVER_PORT,
+        timeout=timeout, binary=binary,
     )
-    return result.stdout
 
 
 def focus_nodes(xml: str) -> list[dict]:

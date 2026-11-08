@@ -5,7 +5,6 @@ import argparse
 import hashlib
 import json
 import re
-import subprocess
 import time
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
@@ -13,14 +12,21 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+from tv_adb import (
+    DEFAULT_ADB_EXECUTABLE,
+    DEFAULT_ADB_SERVER_PORT,
+    is_allowed_target,
+    run_adb,
+)
 
+ADB_EXECUTABLE = DEFAULT_ADB_EXECUTABLE
+ADB_SERVER_PORT = DEFAULT_ADB_SERVER_PORT
 
 def adb(serial: str, *args: str, timeout: int = 30, binary: bool = False):
-    result = subprocess.run(
-        ["adb", "-s", serial, *args], check=True, capture_output=True,
-        text=not binary, errors="replace" if not binary else None, timeout=timeout,
+    return run_adb(
+        serial, *args, executable=ADB_EXECUTABLE, server_port=ADB_SERVER_PORT,
+        timeout=timeout, binary=binary,
     )
-    return result.stdout
 
 
 def utc_now() -> str:
@@ -28,13 +34,20 @@ def utc_now() -> str:
 
 
 def main() -> None:
+    global ADB_EXECUTABLE, ADB_SERVER_PORT
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--serial", required=True, help="Explicit ADB serial; no device fallback")
+    parser.add_argument("--adb", type=Path, default=ADB_EXECUTABLE, help="Windows ADB executable")
+    parser.add_argument("--adb-port", type=int, default=ADB_SERVER_PORT)
+    parser.add_argument("--allow-physical", action="store_true", help="Permit non-emulator serials explicitly")
     parser.add_argument("--title", required=True, help="Exact focused Projectivy program title")
     parser.add_argument("--seconds", type=float, default=65)
     parser.add_argument("--interval-seconds", type=float, default=5)
     parser.add_argument("--evidence-dir", required=True, type=Path)
     args = parser.parse_args()
+    if not is_allowed_target(args.serial, args.allow_physical):
+        parser.error("serial is outside the emulator allowlist; pass --allow-physical only for the gated Chromecast phase")
+    ADB_EXECUTABLE, ADB_SERVER_PORT = args.adb, args.adb_port
     if args.seconds < 10 or args.interval_seconds <= 0:
         parser.error("seconds must be at least 10 and interval-seconds must be positive")
     args.evidence_dir.mkdir(parents=True, exist_ok=True)
