@@ -177,6 +177,34 @@ class PreviewAudioAnalysisTest(unittest.TestCase):
         self.assertEqual("PASS", decoded["outcome"])
         self.assertEqual("PASS", decoded["assertions"]["focusAToBNoOverlap"]["status"])
 
+    def test_malformed_wav_is_classified_as_test_infrastructure_failure(self):
+        malformed = self.directory / "malformed.wav"
+        malformed.write_bytes(b"not a WAV file")
+
+        result = VERIFIER.evaluate_assertion(VERIFIER.analyze_tone, malformed, 440)
+
+        self.assertEqual("FAIL_TEST_INFRA", result["status"])
+        self.assertIn("error", result)
+
+    def test_cli_preserves_product_failure_and_reports_missing_capture_as_infra(self):
+        wrong_a = self.write_wav("wrong-a.wav", 880)
+        focus_loss = self.write_wav("loss.wav", None)
+        missing_b = self.directory / "missing-b.wav"
+        output = self.directory / "infra-result.json"
+        script = Path(__file__).with_name("verify-preview-audio.py")
+
+        result = subprocess.run(
+            [sys.executable, str(script), "--a", str(wrong_a), "--b", str(missing_b),
+             "--focus-loss", str(focus_loss), "--output", str(output)],
+            capture_output=True, text=True, check=False,
+        )
+
+        self.assertEqual(1, result.returncode)
+        decoded = json.loads(output.read_text())
+        self.assertEqual("FAIL_TEST_INFRA", decoded["outcome"])
+        self.assertEqual("FAIL_PRODUCT", decoded["assertions"]["focusA440Hz"]["status"])
+        self.assertEqual("FAIL_TEST_INFRA", decoded["assertions"]["focusB880Hz"]["status"])
+
 
 if __name__ == "__main__":
     unittest.main()

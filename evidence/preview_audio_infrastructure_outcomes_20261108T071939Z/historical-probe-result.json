@@ -1,0 +1,590 @@
+{
+  "test": "Projectivy PreviewProbe card audio and focus-loss assertions",
+  "outcome": "INCONCLUSIVE",
+  "assertions": {
+    "focusA440Hz": {
+      "file": "evidence/previewprobe_a.wav",
+      "durationSeconds": 11.84,
+      "sampleRateHz": 48000,
+      "rms": 28.59,
+      "rmsDbfs": -61.18,
+      "expectedHz": 440,
+      "medianPeakHz": 440.0,
+      "matchingWindows": 10,
+      "windows": 10,
+      "status": "PASS"
+    },
+    "focusB880Hz": {
+      "file": "evidence/previewprobe_b.wav",
+      "durationSeconds": 9.771,
+      "sampleRateHz": 48000,
+      "rms": 27.47,
+      "rmsDbfs": -61.53,
+      "expectedHz": 880,
+      "medianPeakHz": 880.0,
+      "matchingWindows": 8,
+      "windows": 8,
+      "status": "PASS"
+    },
+    "focusLossSilence": {
+      "file": "evidence/probe_focus_loss.wav",
+      "durationSeconds": 8.213,
+      "sampleRateHz": 48000,
+      "rms": 0.0,
+      "peak": 0.0,
+      "status": "PASS"
+    },
+    "focusAToBNoOverlap": {
+      "file": "evidence/previewprobe_ab_transition.wav",
+      "durationSeconds": 33.856,
+      "sampleRateHz": 48000,
+      "firstHz": 440,
+      "secondHz": 880,
+      "windowSeconds": 0.5,
+      "minimumStableWindowsPerTone": 3,
+      "firstStableWindows": 0,
+      "secondStableWindows": 0,
+      "boundaryStates": [],
+      "status": "INCONCLUSIVE",
+      "reason": "Could not observe both expected tones in order",
+      "windows": [
+        {
+          "startSeconds": 0.0,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 0.5,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 1.0,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 1.5,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 2.0,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 2.5,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 3.0,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 3.5,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 4.0,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 4.5,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 5.0,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 5.5,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 6.0,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 6.5,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 7.0,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 7.5,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 8.0,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 8.5,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 9.0,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 9.5,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 10.0,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 10.5,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 11.0,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 11.5,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 12.0,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 12.5,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 13.0,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 13.5,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 14.0,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 14.5,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 15.0,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 15.5,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 16.0,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 16.5,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 17.0,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 17.5,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 18.0,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 18.5,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 19.0,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 19.5,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 20.0,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 20.5,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 21.0,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 21.5,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 22.0,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 22.5,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 23.0,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 23.5,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 24.0,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 24.5,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 25.0,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 25.5,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 26.0,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 26.5,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 27.0,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 27.5,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 28.0,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 28.5,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 29.0,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 29.5,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 30.0,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 30.5,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 31.0,
+          "state": "MIXED",
+          "peakHz": 768.0,
+          "rmsDbfs": -65.54,
+          "firstMagnitude": 40.7,
+          "secondMagnitude": 55.1
+        },
+        {
+          "startSeconds": 31.5,
+          "state": "SILENCE",
+          "peakHz": 712.0,
+          "rmsDbfs": -88.36,
+          "firstMagnitude": 25.9,
+          "secondMagnitude": 43.6
+        },
+        {
+          "startSeconds": 32.0,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 32.5,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        },
+        {
+          "startSeconds": 33.0,
+          "state": "SILENCE",
+          "peakHz": 2.0,
+          "rmsDbfs": -270.31,
+          "firstMagnitude": 0.0,
+          "secondMagnitude": 0.0
+        }
+      ]
+    }
+  }
+}

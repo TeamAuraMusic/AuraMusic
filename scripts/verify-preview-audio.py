@@ -178,6 +178,17 @@ def analyze_tone_transition(path: Path, first_hz: int = 440, second_hz: int = 88
     }
 
 
+def evaluate_assertion(analyzer, path: Path, *args) -> dict:
+    try:
+        return analyzer(path, *args)
+    except (OSError, EOFError, wave.Error, ValueError) as error:
+        return {
+            "file": str(path),
+            "status": "FAIL_TEST_INFRA",
+            "error": f"{type(error).__name__}: {error}",
+        }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--a", type=Path, help="Standalone A capture (440 Hz)")
@@ -195,19 +206,21 @@ def main() -> None:
     assertions = {}
     if all(separate_captures):
         assertions.update({
-            "focusA440Hz": analyze_tone(args.a, 440),
-            "focusB880Hz": analyze_tone(args.b, 880),
-            "focusLossSilence": analyze_silence(args.focus_loss),
+            "focusA440Hz": evaluate_assertion(analyze_tone, args.a, 440),
+            "focusB880Hz": evaluate_assertion(analyze_tone, args.b, 880),
+            "focusLossSilence": evaluate_assertion(analyze_silence, args.focus_loss),
         })
     if args.transition:
-        assertions["focusAToBNoOverlap"] = analyze_tone_transition(args.transition)
+        assertions["focusAToBNoOverlap"] = evaluate_assertion(analyze_tone_transition, args.transition)
     result = {
         "test": "Projectivy PreviewProbe card audio and focus-loss assertions",
         "outcome": "PASS",
         "assertions": assertions,
     }
     statuses = {value["status"] for value in result["assertions"].values()}
-    if "FAIL_PRODUCT" in statuses:
+    if "FAIL_TEST_INFRA" in statuses:
+        result["outcome"] = "FAIL_TEST_INFRA"
+    elif "FAIL_PRODUCT" in statuses:
         result["outcome"] = "FAIL_PRODUCT"
     elif "INCONCLUSIVE" in statuses:
         result["outcome"] = "INCONCLUSIVE"
