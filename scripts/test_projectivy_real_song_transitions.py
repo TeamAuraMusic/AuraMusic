@@ -72,6 +72,43 @@ class FocusedProgramInfoTest(unittest.TestCase):
         self.assertEqual((0, [], None), VERIFIER.analyze_indicator(image, None))
         self.assertEqual((0, [], None), VERIFIER.analyze_indicator(image, "invalid"))
 
+    def test_wait_for_indicator_retries_until_waveform_is_visible(self):
+        black = np.zeros((400, 400, 3), dtype=np.uint8)
+        pink = black.copy()
+        pink[228:248, 144:154] = (100, 10, 240)
+        frames = iter([(b"1", black), (b"2", black), (b"3", pink)])
+        now = [0.0]
+
+        result = VERIFIER.wait_for_indicator(
+            lambda: next(frames), "[100,100][300,300]", 1.0,
+            clock=lambda: now[0], sleep=lambda duration: now.__setitem__(0, now[0] + duration),
+        )
+
+        self.assertTrue(result["visible"])
+        self.assertEqual(b"3", result["raw"])
+        self.assertEqual(200, result["pinkPixels"])
+        self.assertEqual(3, result["pollCount"])
+        self.assertAlmostEqual(0.2, result["elapsedSeconds"])
+
+    def test_wait_for_indicator_stops_at_deadline(self):
+        black = np.zeros((400, 400, 3), dtype=np.uint8)
+        now = [0.0]
+
+        result = VERIFIER.wait_for_indicator(
+            lambda: (b"black", black), "[100,100][300,300]", 0.25, 0.1,
+            clock=lambda: now[0], sleep=lambda duration: now.__setitem__(0, now[0] + duration),
+        )
+
+        self.assertFalse(result["visible"])
+        self.assertEqual(4, result["pollCount"])
+        self.assertAlmostEqual(0.25, result["elapsedSeconds"])
+
+    def test_wait_for_indicator_rejects_invalid_timing(self):
+        with self.assertRaises(ValueError):
+            VERIFIER.wait_for_indicator(lambda: (b"", None), None, -0.1)
+        with self.assertRaises(ValueError):
+            VERIFIER.wait_for_indicator(lambda: (b"", None), None, 1, 0)
+
 
 if __name__ == "__main__":
     unittest.main()

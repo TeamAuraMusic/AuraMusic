@@ -12,6 +12,7 @@ import time
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Callable
 
 import cv2
 import numpy as np
@@ -84,6 +85,38 @@ def analyze_indicator(image: np.ndarray | None, bounds: str | None) -> tuple[int
         pink.sum(axis=1).astype(int).tolist(),
         {"x": x, "y": y, "width": width, "height": height},
     )
+
+
+def wait_for_indicator(
+    capture: Callable[[], tuple[bytes, np.ndarray | None]],
+    bounds: str | None,
+    timeout_seconds: float,
+    poll_interval_seconds: float = 0.1,
+    clock: Callable[[], float] = time.monotonic,
+    sleep: Callable[[float], None] = time.sleep,
+) -> dict:
+    if timeout_seconds < 0 or poll_interval_seconds <= 0:
+        raise ValueError("timeout must be non-negative and polling interval must be positive")
+    started_at = clock()
+    deadline = started_at + timeout_seconds
+    poll_count = 0
+    while True:
+        raw, image = capture()
+        poll_count += 1
+        pixels, profile, roi = analyze_indicator(image, bounds)
+        sampled_at = clock()
+        visible = pixels > 100
+        if visible or sampled_at >= deadline:
+            return {
+                "raw": raw,
+                "pinkPixels": pixels,
+                "profile": profile,
+                "roi": roi,
+                "visible": visible,
+                "pollCount": poll_count,
+                "elapsedSeconds": max(0.0, sampled_at - started_at),
+            }
+        sleep(min(poll_interval_seconds, deadline - sampled_at))
 
 
 def main() -> None:
@@ -253,28 +286,16 @@ def main() -> None:
                                   and "type:android.media.AudioTrack" in line
                                   and re.search(rf"u/pid:{aura_uid}/\d+ state:started", line)]
 
-            indicator_deadline = time.monotonic() + (
-                args.indicator_timeout_seconds if audio_started_at is not None else 0
+            indicator_wait = wait_for_indicator(
+                lambda: (raw := adb(serial, "exec-out", "screencap", "-p", binary=True),
+                         cv2.imdecode(np.frombuffer(raw, np.uint8), cv2.IMREAD_COLOR)),
+                bounds,
+                args.indicator_timeout_seconds if audio_started_at is not None else 0,
             )
-            indicator_polls = 0
-            indicator_visible_at = None
-            raw = b""
-            pink_pixels = 0
-            profile = []
-            roi = None
-            while True:
-                raw = adb(serial, "exec-out", "screencap", "-p", binary=True)
-                indicator_polls += 1
-                image = cv2.imdecode(np.frombuffer(raw, np.uint8), cv2.IMREAD_COLOR)
-                pink_pixels, profile, roi = analyze_indicator(image, bounds)
-                if pink_pixels > 100:
-                    indicator_visible_at = time.monotonic()
-                    break
-                remaining = indicator_deadline - time.monotonic()
-                if audio_started_at is None or remaining <= 0:
-                    break
-                time.sleep(min(0.1, remaining))
-            indicator_sampled_at = time.monotonic()
+            raw = indicator_wait["raw"]
+            pink_pixels = indicator_wait["pinkPixels"]
+            profile = indicator_wait["profile"]
+            roi = indicator_wait["roi"]
             screenshot_name = f"transition-{step + 1:02d}.png"
             (evidence / screenshot_name).write_bytes(raw)
 
@@ -299,14 +320,12 @@ def main() -> None:
                 ),
                 "activeAuraMusicAudioTracks": active_aura_tracks,
                 "pinkIndicatorPixels": pink_pixels,
-                "indicatorPollCount": indicator_polls,
-                "indicatorVisibleAfterAudio": pink_pixels > 100 and audio_started_at is not None,
-                "indicatorStartupSecondsUpperBound": (
-                    round(indicator_visible_at - audio_started_at, 3)
-                    if indicator_visible_at is not None and audio_started_at is not None else None
-                ),
+                "indicatorPollCount": indicator_wait["pollCount"],
+                "indicatorVisibleAfterAudio": indicator_wait["visible"] and audio_started_at is not None,
+                "indicatorStartupSecondsUpperBound": round(indicator_wait["elapsedSeconds"], 3)
+                    if indicator_wait["visible"] and audio_started_at is not None else None,
                 "indicatorWaitSeconds": (
-                    round(indicator_sampled_at - audio_started_at, 3)
+                    round(indicator_wait["elapsedSeconds"], 3)
                     if audio_started_at is not None else None
                 ),
                 "pinkRowProfile": profile,
