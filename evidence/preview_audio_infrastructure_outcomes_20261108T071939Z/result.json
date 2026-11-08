@@ -1,0 +1,22 @@
+{
+  "outcome": "PASS",
+  "scope": "Audio assertion infrastructure-error classification tests and archived PreviewProbe WAV recheck",
+  "git_commit": "645a506842a8b2660ab50ba4d5820bfcfd9a0b16",
+  "tests": {"analyzer_specific": 15, "all_python": 35, "failures": 0},
+  "py_compile": "PASS",
+  "failure_classification": {
+    "missing_or_malformed_wav": "FAIL_TEST_INFRA",
+    "insufficient_duration": "INCONCLUSIVE",
+    "measured_wrong_tone_or_sustained_overlap": "FAIL_PRODUCT"
+  },
+  "archived_capture_recheck": {
+    "A_440Hz": "PASS",
+    "B_880Hz": "PASS",
+    "focus_loss_silence": "PASS",
+    "continuous_A_to_B": "INCONCLUSIVE",
+    "overall": "INCONCLUSIVE"
+  },
+  "device_accessed": false,
+  "current_candidate_verified": false,
+  "logs": ["analyzer-tests.log", "all-python-tests.log", "historical-cli-stdout.json", "historical-cli-stderr.txt", "historical-probe-result.json"]
+}

@@ -1,0 +1,2 @@
+standalone: {'suites': 15, 'tests': 59, 'failures': 0, 'errors': 0, 'skipped': 0}
+foss: {'suites': 15, 'tests': 59, 'failures': 0, 'errors': 0, 'skipped': 0}

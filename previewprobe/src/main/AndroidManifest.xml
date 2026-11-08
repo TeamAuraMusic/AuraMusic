@@ -1,0 +1,41 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-feature android:name="android.software.leanback" android:required="true" />
+    <uses-feature android:name="android.software.live_tv" android:required="false" />
+    <uses-permission android:name="android.permission.WRITE_EPG_DATA" />
+    <application android:theme="@android:style/Theme.Material.NoActionBar" android:label="PreviewProbe" android:banner="@drawable/banner">
+        <provider
+            android:name=".ProbeMediaProvider"
+            android:authorities="${applicationId}.previewmedia"
+            android:exported="true" />
+        <service
+            android:name=".ProbeAccessibilityService"
+            android:label="PreviewProbe card animation experiment"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/probe_accessibility_service" />
+        </service>
+        <service
+            android:name=".ProbeTvInputService"
+            android:label="PreviewProbe Surface Test"
+            android:permission="android.permission.BIND_TV_INPUT"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.media.tv.TvInputService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.media.tv.input"
+                android:resource="@xml/tv_input" />
+        </service>
+        <activity android:name=".MainActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

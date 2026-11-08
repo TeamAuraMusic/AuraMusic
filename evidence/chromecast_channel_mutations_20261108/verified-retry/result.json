@@ -1,0 +1,92 @@
+{
+  "schema": 1,
+  "startedUtc": "2026-11-08T19:06:44.906224+00:00",
+  "device": {
+    "serial": "192.168.3.2:5555",
+    "model": "Chromecast",
+    "device": "sabrina",
+    "api": "34"
+  },
+  "scope": "PreviewProbe TvProvider + Projectivy visible-row convergence. AuraMusic channel not modified.",
+  "publisherForceStoppedEachStage": true,
+  "projectivyRelaunchedOnlyForRestoration": true,
+  "noSelectPressed": true,
+  "stages": [
+    {
+      "stage": "initial_AB",
+      "requestedOrder": [
+        "A",
+        "B"
+      ],
+      "providerExpectedCount": 2,
+      "providerProgramLogCount": 0,
+      "providerAssertions": false,
+      "expectedVisible": [
+        "Preview A",
+        "Preview B"
+      ],
+      "observedVisible": [
+        "Preview A",
+        "Preview B",
+        "Preview C \u2014 Animated video waveform test",
+        "Preview D",
+        "Preview E"
+      ],
+      "projectivyForeground": true,
+      "outcome": "INCONCLUSIVE"
+    },
+    {
+      "stage": "reorder_add_BAC",
+      "requestedOrder": [
+        "B",
+        "A",
+        "C"
+      ],
+      "providerExpectedCount": 3,
+      "providerProgramLogCount": 0,
+      "providerAssertions": false,
+      "expectedVisible": [
+        "Preview B",
+        "Preview A",
+        "Preview C \u2014 Animated video waveform test"
+      ],
+      "observedVisible": [
+        "Preview A",
+        "Preview B",
+        "Preview C \u2014 Animated video waveform test",
+        "Preview D",
+        "Preview E"
+      ],
+      "projectivyForeground": true,
+      "outcome": "INCONCLUSIVE"
+    },
+    {
+      "stage": "remove_to_B",
+      "requestedOrder": [
+        "B"
+      ],
+      "providerExpectedCount": 1,
+      "providerProgramLogCount": 0,
+      "providerAssertions": false,
+      "expectedVisible": [
+        "Preview B"
+      ],
+      "observedVisible": [
+        "Preview A",
+        "Preview B",
+        "Preview C \u2014 Animated video waveform test",
+        "Preview D",
+        "Preview E"
+      ],
+      "projectivyForeground": true,
+      "outcome": "INCONCLUSIVE"
+    }
+  ],
+  "restoration": {
+    "providerCountFive": false,
+    "observedVisible": [],
+    "projectivyForeground": true,
+    "outcome": "INCONCLUSIVE"
+  },
+  "outcome": "INCONCLUSIVE"
+}

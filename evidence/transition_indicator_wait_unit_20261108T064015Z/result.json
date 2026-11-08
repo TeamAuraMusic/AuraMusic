@@ -1,0 +1,17 @@
+{
+  "outcome": "PASS",
+  "scope": "Offline Projectivy transition verifier tests; no device interaction",
+  "command": "rtk python3 scripts/test_projectivy_real_song_transitions.py",
+  "tests": {"count": 12, "failures": 0},
+  "py_compile": "PASS",
+  "help": "PASS",
+  "diff_check": "PASS",
+  "device_accessed": false,
+  "change": "The live transition verifier now uses a deterministic-testable bounded screenshot poll helper. It retries the focused-card ROI for up to one second after Projectivy audio starts and records polls, appearance upper bound, and wait duration.",
+  "coverage": [
+    "indicator detected on third capture",
+    "capture loop stops at exact timeout",
+    "negative timeout and non-positive polling interval rejected"
+  ],
+  "logs": ["unit-tests.log", "help.txt"]
+}

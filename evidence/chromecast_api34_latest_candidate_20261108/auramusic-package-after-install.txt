@@ -1,0 +1,599 @@
+Activity Resolver Table:
+  Full MIME Types:
+      text/plain:
+        df1f666 com.auramusic.app.debug/com.auramusic.app.MainActivity filter edc6fc0
+          Action: "android.intent.action.SEND"
+          Category: "android.intent.category.DEFAULT"
+          StaticType: "text/plain"
+
+  Base MIME Types:
+      text:
+        df1f666 com.auramusic.app.debug/com.auramusic.app.MainActivity filter edc6fc0
+          Action: "android.intent.action.SEND"
+          Category: "android.intent.category.DEFAULT"
+          StaticType: "text/plain"
+
+  Schemes:
+      auramusic:
+        df1f666 com.auramusic.app.debug/com.auramusic.app.MainActivity filter eff6c3e
+          Action: "android.intent.action.VIEW"
+          Category: "android.intent.category.DEFAULT"
+          Category: "android.intent.category.BROWSABLE"
+          Scheme: "auramusic"
+          Authority: "play": -1
+      auramusicdiscord:
+        bb02a9f com.auramusic.app.debug/com.auramusic.app.discord.DiscordOAuthActivity filter cf8c7ec
+          Action: "android.intent.action.VIEW"
+          Category: "android.intent.category.DEFAULT"
+          Category: "android.intent.category.BROWSABLE"
+          Scheme: "auramusicdiscord"
+          Authority: "oauth2": -1
+      vnd.youtube:
+        df1f666 com.auramusic.app.debug/com.auramusic.app.MainActivity filter 5c4fd43
+          Action: "android.intent.action.VIEW"
+          Action: "android.media.action.MEDIA_PLAY_FROM_SEARCH"
+          Action: "android.nfc.action.NDEF_DISCOVERED"
+          Category: "android.intent.category.DEFAULT"
+          Category: "android.intent.category.BROWSABLE"
+          Scheme: "vnd.youtube"
+          Scheme: "vnd.youtube.launch"
+      http:
+        df1f666 com.auramusic.app.debug/com.auramusic.app.MainActivity filter 3d845fd
+          Action: "android.intent.action.VIEW"
+          Action: "android.media.action.MEDIA_PLAY_FROM_SEARCH"
+          Action: "android.nfc.action.NDEF_DISCOVERED"
+          Category: "android.intent.category.DEFAULT"
+          Category: "android.intent.category.BROWSABLE"
+          Scheme: "http"
+          Scheme: "https"
+          Authority: "youtube.com": -1
+          Authority: "m.youtube.com": -1
+          Authority: "www.youtube.com": -1
+          Authority: "music.youtube.com": -1
+          Path: "PatternMatcher{PREFIX: /v/}"
+          Path: "PatternMatcher{PREFIX: /embed/}"
+          Path: "PatternMatcher{PREFIX: /watch}"
+          Path: "PatternMatcher{PREFIX: /channel/}"
+          Path: "PatternMatcher{PREFIX: /user/}"
+          Path: "PatternMatcher{PREFIX: /c/}"
+          Path: "PatternMatcher{PREFIX: /playlist}"
+          Path: "PatternMatcher{PREFIX: /browse/}"
+          Path: "PatternMatcher{PREFIX: /search}"
+          AutoVerify=true
+        df1f666 com.auramusic.app.debug/com.auramusic.app.MainActivity filter 71712f2
+          Action: "android.intent.action.VIEW"
+          Action: "android.media.action.MEDIA_PLAY_FROM_SEARCH"
+          Action: "android.nfc.action.NDEF_DISCOVERED"
+          Category: "android.intent.category.DEFAULT"
+          Category: "android.intent.category.BROWSABLE"
+          Scheme: "http"
+          Scheme: "https"
+          Authority: "youtu.be": -1
+          Path: "PatternMatcher{PREFIX: /}"
+          AutoVerify=true
+      https:
+        df1f666 com.auramusic.app.debug/com.auramusic.app.MainActivity filter 2df8254
+          Action: "android.intent.action.VIEW"
+          Category: "android.intent.category.DEFAULT"
+          Category: "android.intent.category.BROWSABLE"
+          Scheme: "https"
+          Authority: "api.auramusic.site": -1
+          Path: "PatternMatcher{PREFIX: /listen}"
+          AutoVerify=true
+        df1f666 com.auramusic.app.debug/com.auramusic.app.MainActivity filter 3d845fd
+          Action: "android.intent.action.VIEW"
+          Action: "android.media.action.MEDIA_PLAY_FROM_SEARCH"
+          Action: "android.nfc.action.NDEF_DISCOVERED"
+          Category: "android.intent.category.DEFAULT"
+          Category: "android.intent.category.BROWSABLE"
+          Scheme: "http"
+          Scheme: "https"
+          Authority: "youtube.com": -1
+          Authority: "m.youtube.com": -1
+          Authority: "www.youtube.com": -1
+          Authority: "music.youtube.com": -1
+          Path: "PatternMatcher{PREFIX: /v/}"
+          Path: "PatternMatcher{PREFIX: /embed/}"
+          Path: "PatternMatcher{PREFIX: /watch}"
+          Path: "PatternMatcher{PREFIX: /channel/}"
+          Path: "PatternMatcher{PREFIX: /user/}"
+          Path: "PatternMatcher{PREFIX: /c/}"
+          Path: "PatternMatcher{PREFIX: /playlist}"
+          Path: "PatternMatcher{PREFIX: /browse/}"
+          Path: "PatternMatcher{PREFIX: /search}"
+          AutoVerify=true
+        df1f666 com.auramusic.app.debug/com.auramusic.app.MainActivity filter 71712f2
+          Action: "android.intent.action.VIEW"
+          Action: "android.media.action.MEDIA_PLAY_FROM_SEARCH"
+          Action: "android.nfc.action.NDEF_DISCOVERED"
+          Category: "android.intent.category.DEFAULT"
+          Category: "android.intent.category.BROWSABLE"
+          Scheme: "http"
+          Scheme: "https"
+          Authority: "youtu.be": -1
+          Path: "PatternMatcher{PREFIX: /}"
+          AutoVerify=true
+        df1f666 com.auramusic.app.debug/com.auramusic.app.MainActivity filter c6844f9
+          Action: "android.intent.action.VIEW"
+          Category: "android.intent.category.DEFAULT"
+          Category: "android.intent.category.BROWSABLE"
+          Scheme: "https"
+          Authority: "www.auramusic.site": -1
+          Path: "PatternMatcher{PREFIX: /play/}"
+          AutoVerify=true
+      vnd.youtube.launch:
+        df1f666 com.auramusic.app.debug/com.auramusic.app.MainActivity filter 5c4fd43
+          Action: "android.intent.action.VIEW"
+          Action: "android.media.action.MEDIA_PLAY_FROM_SEARCH"
+          Action: "android.nfc.action.NDEF_DISCOVERED"
+          Category: "android.intent.category.DEFAULT"
+          Category: "android.intent.category.BROWSABLE"
+          Scheme: "vnd.youtube"
+          Scheme: "vnd.youtube.launch"
+
+  Non-Data Actions:
+      android.intent.action.MAIN:
+        dbcd3a8 com.auramusic.app.debug/com.auramusic.app.TvMainActivity filter dd37ec1
+          Action: "android.intent.action.MAIN"
+          Category: "android.intent.category.LAUNCHER"
+          Category: "android.intent.category.LEANBACK_LAUNCHER"
+        df1f666 com.auramusic.app.debug/com.auramusic.app.MainActivity filter 1fd2da7
+          Action: "android.intent.action.MAIN"
+          Action: "android.intent.action.VIEW"
+          Action: "android.intent.action.MUSIC_PLAYER"
+          Category: "android.intent.category.APP_MUSIC"
+          Category: "android.intent.category.DEFAULT"
+      android.intent.action.VIEW:
+        df1f666 com.auramusic.app.debug/com.auramusic.app.MainActivity filter 1fd2da7
+          Action: "android.intent.action.MAIN"
+          Action: "android.intent.action.VIEW"
+          Action: "android.intent.action.MUSIC_PLAYER"
+          Category: "android.intent.category.APP_MUSIC"
+          Category: "android.intent.category.DEFAULT"
+      android.intent.action.MUSIC_PLAYER:
+        df1f666 com.auramusic.app.debug/com.auramusic.app.MainActivity filter 1fd2da7
+          Action: "android.intent.action.MAIN"
+          Action: "android.intent.action.VIEW"
+          Action: "android.intent.action.MUSIC_PLAYER"
+          Category: "android.intent.category.APP_MUSIC"
+          Category: "android.intent.category.DEFAULT"
+
+  MIME Typed Actions:
+      android.intent.action.SEND:
+        df1f666 com.auramusic.app.debug/com.auramusic.app.MainActivity filter edc6fc0
+          Action: "android.intent.action.SEND"
+          Category: "android.intent.category.DEFAULT"
+          StaticType: "text/plain"
+
+Receiver Resolver Table:
+  Non-Data Actions:
+      com.auramusic.app.widget.COMPACT_SQUARE_NEXT:
+        c2ba86d com.auramusic.app.debug/com.auramusic.app.widget.CompactSquareWidgetReceiver filter d361ca2
+          Action: "com.auramusic.app.widget.COMPACT_SQUARE_NEXT"
+          Action: "com.auramusic.app.widget.COMPACT_SQUARE_UPDATE"
+          Action: "android.appwidget.action.APPWIDGET_UPDATE"
+          Action: "com.auramusic.app.widget.COMPACT_SQUARE_PLAY_PAUSE"
+          Action: "com.auramusic.app.widget.COMPACT_SQUARE_PREVIOUS"
+      com.auramusic.app.widget.PREVIOUS:
+        36ce97 com.auramusic.app.debug/com.auramusic.app.widget.MusicWidgetReceiver filter a122884
+          Action: "com.auramusic.app.widget.PREVIOUS"
+          Action: "com.auramusic.app.widget.PLAY_PAUSE"
+          Action: "com.auramusic.app.widget.LIKE"
+          Action: "com.auramusic.app.widget.NEXT"
+          Action: "android.appwidget.action.APPWIDGET_UPDATE"
+          Action: "com.auramusic.app.widget.UPDATE_WIDGET"
+      com.auramusic.app.widget.COMPACT_WIDE_LIKE:
+        40fbd33 com.auramusic.app.debug/com.auramusic.app.widget.CompactWideWidgetReceiver filter ecb48f0
+          Action: "com.auramusic.app.widget.COMPACT_WIDE_LIKE"
+          Action: "com.auramusic.app.widget.COMPACT_WIDE_PLAY_PAUSE"
+          Action: "com.auramusic.app.widget.COMPACT_WIDE_UPDATE"
+          Action: "android.appwidget.action.APPWIDGET_UPDATE"
+      android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED:
+        6675e69 com.auramusic.app.debug/com.auramusic.app.alarm.AlarmReceiver filter 6fd60ee
+          Action: "android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED"
+          Action: "android.intent.action.QUICKBOOT_POWERON"
+          Action: "com.auramusic.app.alarm.ACTION_FIRE"
+          Action: "android.intent.action.LOCKED_BOOT_COMPLETED"
+          Action: "android.intent.action.BOOT_COMPLETED"
+          Action: "com.auramusic.app.alarm.ACTION_DISMISS"
+          Action: "com.auramusic.app.alarm.ACTION_SNOOZE"
+      com.auramusic.app.widget.PLAY_PAUSE:
+        36ce97 com.auramusic.app.debug/com.auramusic.app.widget.MusicWidgetReceiver filter a122884
+          Action: "com.auramusic.app.widget.PREVIOUS"
+          Action: "com.auramusic.app.widget.PLAY_PAUSE"
+          Action: "com.auramusic.app.widget.LIKE"
+          Action: "com.auramusic.app.widget.NEXT"
+          Action: "android.appwidget.action.APPWIDGET_UPDATE"
+          Action: "com.auramusic.app.widget.UPDATE_WIDGET"
+      android.intent.action.QUICKBOOT_POWERON:
+        6675e69 com.auramusic.app.debug/com.auramusic.app.alarm.AlarmReceiver filter 6fd60ee
+          Action: "android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED"
+          Action: "android.intent.action.QUICKBOOT_POWERON"
+          Action: "com.auramusic.app.alarm.ACTION_FIRE"
+          Action: "android.intent.action.LOCKED_BOOT_COMPLETED"
+          Action: "android.intent.action.BOOT_COMPLETED"
+          Action: "com.auramusic.app.alarm.ACTION_DISMISS"
+          Action: "com.auramusic.app.alarm.ACTION_SNOOZE"
+      com.auramusic.app.widget.COMPACT_WIDE_PLAY_PAUSE:
+        40fbd33 com.auramusic.app.debug/com.auramusic.app.widget.CompactWideWidgetReceiver filter ecb48f0
+          Action: "com.auramusic.app.widget.COMPACT_WIDE_LIKE"
+          Action: "com.auramusic.app.widget.COMPACT_WIDE_PLAY_PAUSE"
+          Action: "com.auramusic.app.widget.COMPACT_WIDE_UPDATE"
+          Action: "android.appwidget.action.APPWIDGET_UPDATE"
+      com.auramusic.app.alarm.ACTION_FIRE:
+        6675e69 com.auramusic.app.debug/com.auramusic.app.alarm.AlarmReceiver filter 6fd60ee
+          Action: "android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED"
+          Action: "android.intent.action.QUICKBOOT_POWERON"
+          Action: "com.auramusic.app.alarm.ACTION_FIRE"
+          Action: "android.intent.action.LOCKED_BOOT_COMPLETED"
+          Action: "android.intent.action.BOOT_COMPLETED"
+          Action: "com.auramusic.app.alarm.ACTION_DISMISS"
+          Action: "com.auramusic.app.alarm.ACTION_SNOOZE"
+      androidx.profileinstaller.action.SAVE_PROFILE:
+        afb9fab com.auramusic.app.debug/androidx.profileinstaller.ProfileInstallReceiver filter aac9fc6
+          Action: "androidx.profileinstaller.action.SAVE_PROFILE"
+      com.auramusic.app.widget.LIKE:
+        36ce97 com.auramusic.app.debug/com.auramusic.app.widget.MusicWidgetReceiver filter a122884
+          Action: "com.auramusic.app.widget.PREVIOUS"
+          Action: "com.auramusic.app.widget.PLAY_PAUSE"
+          Action: "com.auramusic.app.widget.LIKE"
+          Action: "com.auramusic.app.widget.NEXT"
+          Action: "android.appwidget.action.APPWIDGET_UPDATE"
+          Action: "com.auramusic.app.widget.UPDATE_WIDGET"
+      com.auramusic.app.widget.NEXT:
+        36ce97 com.auramusic.app.debug/com.auramusic.app.widget.MusicWidgetReceiver filter a122884
+          Action: "com.auramusic.app.widget.PREVIOUS"
+          Action: "com.auramusic.app.widget.PLAY_PAUSE"
+          Action: "com.auramusic.app.widget.LIKE"
+          Action: "com.auramusic.app.widget.NEXT"
+          Action: "android.appwidget.action.APPWIDGET_UPDATE"
+          Action: "com.auramusic.app.widget.UPDATE_WIDGET"
+      com.auramusic.app.widget.COMPACT_WIDE_UPDATE:
+        40fbd33 com.auramusic.app.debug/com.auramusic.app.widget.CompactWideWidgetReceiver filter ecb48f0
+          Action: "com.auramusic.app.widget.COMPACT_WIDE_LIKE"
+          Action: "com.auramusic.app.widget.COMPACT_WIDE_PLAY_PAUSE"
+          Action: "com.auramusic.app.widget.COMPACT_WIDE_UPDATE"
+          Action: "android.appwidget.action.APPWIDGET_UPDATE"
+      android.intent.action.LOCKED_BOOT_COMPLETED:
+        6675e69 com.auramusic.app.debug/com.auramusic.app.alarm.AlarmReceiver filter 6fd60ee
+          Action: "android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED"
+          Action: "android.intent.action.QUICKBOOT_POWERON"
+          Action: "com.auramusic.app.alarm.ACTION_FIRE"
+          Action: "android.intent.action.LOCKED_BOOT_COMPLETED"
+          Action: "android.intent.action.BOOT_COMPLETED"
+          Action: "com.auramusic.app.alarm.ACTION_DISMISS"
+          Action: "com.auramusic.app.alarm.ACTION_SNOOZE"
+      com.auramusic.app.widget.COMPACT_SQUARE_UPDATE:
+        c2ba86d com.auramusic.app.debug/com.auramusic.app.widget.CompactSquareWidgetReceiver filter d361ca2
+          Action: "com.auramusic.app.widget.COMPACT_SQUARE_NEXT"
+          Action: "com.auramusic.app.widget.COMPACT_SQUARE_UPDATE"
+          Action: "android.appwidget.action.APPWIDGET_UPDATE"
+          Action: "com.auramusic.app.widget.COMPACT_SQUARE_PLAY_PAUSE"
+          Action: "com.auramusic.app.widget.COMPACT_SQUARE_PREVIOUS"
+      com.auramusic.app.notifications.ACTION_CHECK_NEW_RELEASES:
+        3f6d1bb com.auramusic.app.debug/com.auramusic.app.notifications.NewReleaseNotificationReceiver filter 5a076d8
+          Action: "com.auramusic.app.notifications.ACTION_CHECK_NEW_RELEASES"
+          Action: "android.intent.action.BOOT_COMPLETED"
+      androidx.profileinstaller.action.INSTALL_PROFILE:
+        afb9fab com.auramusic.app.debug/androidx.profileinstaller.ProfileInstallReceiver filter 10b4608
+          Action: "androidx.profileinstaller.action.INSTALL_PROFILE"
+      androidx.profileinstaller.action.SKIP_FILE:
+        afb9fab com.auramusic.app.debug/androidx.profileinstaller.ProfileInstallReceiver filter 35371a1
+          Action: "androidx.profileinstaller.action.SKIP_FILE"
+      androidx.profileinstaller.action.BENCHMARK_OPERATION:
+        afb9fab com.auramusic.app.debug/androidx.profileinstaller.ProfileInstallReceiver filter d528b87
+          Action: "androidx.profileinstaller.action.BENCHMARK_OPERATION"
+      android.intent.action.BOOT_COMPLETED:
+        f5f37b5 com.auramusic.app.debug/com.auramusic.app.tv.TvBootReceiver filter 9820e4a
+          Action: "android.intent.action.BOOT_COMPLETED"
+          Action: "android.intent.action.MY_PACKAGE_REPLACED"
+        3f6d1bb com.auramusic.app.debug/com.auramusic.app.notifications.NewReleaseNotificationReceiver filter 5a076d8
+          Action: "com.auramusic.app.notifications.ACTION_CHECK_NEW_RELEASES"
+          Action: "android.intent.action.BOOT_COMPLETED"
+        6675e69 com.auramusic.app.debug/com.auramusic.app.alarm.AlarmReceiver filter 6fd60ee
+          Action: "android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED"
+          Action: "android.intent.action.QUICKBOOT_POWERON"
+          Action: "com.auramusic.app.alarm.ACTION_FIRE"
+          Action: "android.intent.action.LOCKED_BOOT_COMPLETED"
+          Action: "android.intent.action.BOOT_COMPLETED"
+          Action: "com.auramusic.app.alarm.ACTION_DISMISS"
+          Action: "com.auramusic.app.alarm.ACTION_SNOOZE"
+        37ef98f com.auramusic.app.debug/androidx.work.impl.background.systemalarm.RescheduleReceiver filter b4041c
+          Action: "android.intent.action.BOOT_COMPLETED"
+      com.auramusic.app.alarm.ACTION_DISMISS:
+        6675e69 com.auramusic.app.debug/com.auramusic.app.alarm.AlarmReceiver filter 6fd60ee
+          Action: "android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED"
+          Action: "android.intent.action.QUICKBOOT_POWERON"
+          Action: "com.auramusic.app.alarm.ACTION_FIRE"
+          Action: "android.intent.action.LOCKED_BOOT_COMPLETED"
+          Action: "android.intent.action.BOOT_COMPLETED"
+          Action: "com.auramusic.app.alarm.ACTION_DISMISS"
+          Action: "com.auramusic.app.alarm.ACTION_SNOOZE"
+      com.auramusic.app.alarm.ACTION_SNOOZE:
+        6675e69 com.auramusic.app.debug/com.auramusic.app.alarm.AlarmReceiver filter 6fd60ee
+          Action: "android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED"
+          Action: "android.intent.action.QUICKBOOT_POWERON"
+          Action: "com.auramusic.app.alarm.ACTION_FIRE"
+          Action: "android.intent.action.LOCKED_BOOT_COMPLETED"
+          Action: "android.intent.action.BOOT_COMPLETED"
+          Action: "com.auramusic.app.alarm.ACTION_DISMISS"
+          Action: "com.auramusic.app.alarm.ACTION_SNOOZE"
+      android.appwidget.action.APPWIDGET_UPDATE:
+        36ce97 com.auramusic.app.debug/com.auramusic.app.widget.MusicWidgetReceiver filter a122884
+          Action: "com.auramusic.app.widget.PREVIOUS"
+          Action: "com.auramusic.app.widget.PLAY_PAUSE"
+          Action: "com.auramusic.app.widget.LIKE"
+          Action: "com.auramusic.app.widget.NEXT"
+          Action: "android.appwidget.action.APPWIDGET_UPDATE"
+          Action: "com.auramusic.app.widget.UPDATE_WIDGET"
+        c2ba86d com.auramusic.app.debug/com.auramusic.app.widget.CompactSquareWidgetReceiver filter d361ca2
+          Action: "com.auramusic.app.widget.COMPACT_SQUARE_NEXT"
+          Action: "com.auramusic.app.widget.COMPACT_SQUARE_UPDATE"
+          Action: "android.appwidget.action.APPWIDGET_UPDATE"
+          Action: "com.auramusic.app.widget.COMPACT_SQUARE_PLAY_PAUSE"
+          Action: "com.auramusic.app.widget.COMPACT_SQUARE_PREVIOUS"
+        40fbd33 com.auramusic.app.debug/com.auramusic.app.widget.CompactWideWidgetReceiver filter ecb48f0
+          Action: "com.auramusic.app.widget.COMPACT_WIDE_LIKE"
+          Action: "com.auramusic.app.widget.COMPACT_WIDE_PLAY_PAUSE"
+          Action: "com.auramusic.app.widget.COMPACT_WIDE_UPDATE"
+          Action: "android.appwidget.action.APPWIDGET_UPDATE"
+      com.auramusic.app.widget.UPDATE_WIDGET:
+        36ce97 com.auramusic.app.debug/com.auramusic.app.widget.MusicWidgetReceiver filter a122884
+          Action: "com.auramusic.app.widget.PREVIOUS"
+          Action: "com.auramusic.app.widget.PLAY_PAUSE"
+          Action: "com.auramusic.app.widget.LIKE"
+          Action: "com.auramusic.app.widget.NEXT"
+          Action: "android.appwidget.action.APPWIDGET_UPDATE"
+          Action: "com.auramusic.app.widget.UPDATE_WIDGET"
+      androidx.work.diagnostics.REQUEST_DIAGNOSTICS:
+        f8e7825 com.auramusic.app.debug/androidx.work.impl.diagnostics.DiagnosticsReceiver filter 9e29dfa
+          Action: "androidx.work.diagnostics.REQUEST_DIAGNOSTICS"
+      com.auramusic.app.widget.COMPACT_SQUARE_PLAY_PAUSE:
+        c2ba86d com.auramusic.app.debug/com.auramusic.app.widget.CompactSquareWidgetReceiver filter d361ca2
+          Action: "com.auramusic.app.widget.COMPACT_SQUARE_NEXT"
+          Action: "com.auramusic.app.widget.COMPACT_SQUARE_UPDATE"
+          Action: "android.appwidget.action.APPWIDGET_UPDATE"
+          Action: "com.auramusic.app.widget.COMPACT_SQUARE_PLAY_PAUSE"
+          Action: "com.auramusic.app.widget.COMPACT_SQUARE_PREVIOUS"
+      android.intent.action.MY_PACKAGE_REPLACED:
+        f5f37b5 com.auramusic.app.debug/com.auramusic.app.tv.TvBootReceiver filter 9820e4a
+          Action: "android.intent.action.BOOT_COMPLETED"
+          Action: "android.intent.action.MY_PACKAGE_REPLACED"
+      com.auramusic.app.widget.COMPACT_SQUARE_PREVIOUS:
+        c2ba86d com.auramusic.app.debug/com.auramusic.app.widget.CompactSquareWidgetReceiver filter d361ca2
+          Action: "com.auramusic.app.widget.COMPACT_SQUARE_NEXT"
+          Action: "com.auramusic.app.widget.COMPACT_SQUARE_UPDATE"
+          Action: "android.appwidget.action.APPWIDGET_UPDATE"
+          Action: "com.auramusic.app.widget.COMPACT_SQUARE_PLAY_PAUSE"
+          Action: "com.auramusic.app.widget.COMPACT_SQUARE_PREVIOUS"
+      android.intent.action.MEDIA_BUTTON:
+        c989a31 com.auramusic.app.debug/androidx.media3.session.MediaButtonReceiver filter edac516
+          Action: "android.intent.action.MEDIA_BUTTON"
+
+Service Resolver Table:
+  Non-Data Actions:
+      androidx.media3.session.MediaSessionService:
+        1c2f252 com.auramusic.app.debug/com.auramusic.app.playback.MusicService filter 3425923
+          Action: "androidx.media3.session.MediaSessionService"
+          Action: "androidx.media3.session.MediaLibraryService"
+          Action: "android.media.browse.MediaBrowserService"
+      androidx.media3.session.MediaLibraryService:
+        1c2f252 com.auramusic.app.debug/com.auramusic.app.playback.MusicService filter 3425923
+          Action: "androidx.media3.session.MediaSessionService"
+          Action: "androidx.media3.session.MediaLibraryService"
+          Action: "android.media.browse.MediaBrowserService"
+      androidx.media3.exoplayer.downloadService.action.RESTART:
+        e7ace20 com.auramusic.app.debug/com.auramusic.app.playback.ExoDownloadService filter 1d7b3d9
+          Action: "androidx.media3.exoplayer.downloadService.action.RESTART"
+          Category: "android.intent.category.DEFAULT"
+      android.accessibilityservice.AccessibilityService:
+        412bab4 com.auramusic.app.debug/com.auramusic.app.tv.TvPreviewFocusAccessibilityService filter c1486dd permission android.permission.BIND_ACCESSIBILITY_SERVICE
+          Action: "android.accessibilityservice.AccessibilityService"
+      android.media.browse.MediaBrowserService:
+        1c2f252 com.auramusic.app.debug/com.auramusic.app.playback.MusicService filter 3425923
+          Action: "androidx.media3.session.MediaSessionService"
+          Action: "androidx.media3.session.MediaLibraryService"
+          Action: "android.media.browse.MediaBrowserService"
+
+Domain verification status:
+  com.auramusic.app.debug:
+    ID: 83124f51-3bc2-40d0-814b-df2764038982
+    Signatures: [8C:75:9B:53:8A:DC:D8:12:E2:2B:20:26:4E:9E:69:66:BC:7B:01:C6:8E:09:01:F1:E4:50:69:91:5A:2A:B7:FD]
+    Domain verification state:
+      api.auramusic.site: none
+      youtu.be: none
+      m.youtube.com: none
+      youtube.com: none
+      www.youtube.com: none
+      music.youtube.com: none
+      www.auramusic.site: none
+    User all:
+      Verification link handling allowed: true
+      Selection state:
+        Disabled:
+          api.auramusic.site
+          youtu.be
+          m.youtube.com
+          youtube.com
+          www.youtube.com
+          music.youtube.com
+          www.auramusic.site
+
+Permissions:
+  Permission [com.auramusic.app.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION] (bda0ad2):
+    sourcePackage=com.auramusic.app.debug
+    uid=10014 gids=[] type=0 prot=signature
+    perm=PermissionInfo{b8ec7a3 com.auramusic.app.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION}
+    flags=0x0
+
+Registered ContentProviders:
+  com.auramusic.app.debug/androidx.core.content.FileProvider:
+    Provider{7b0daa0 com.auramusic.app.debug/androidx.core.content.FileProvider}
+  com.auramusic.app.debug/androidx.startup.InitializationProvider:
+    Provider{aa0659 com.auramusic.app.debug/androidx.startup.InitializationProvider}
+  com.auramusic.app.debug/com.auramusic.app.tv.TvPreviewContentProvider:
+    Provider{82a021e com.auramusic.app.debug/com.auramusic.app.tv.TvPreviewContentProvider}
+
+ContentProvider Authorities:
+  [com.auramusic.app.debug.androidx-startup]:
+    Provider{aa0659 com.auramusic.app.debug/androidx.startup.InitializationProvider}
+      applicationInfo=ApplicationInfo{7bc3aff com.auramusic.app.debug}
+  [com.auramusic.app.debug.tvpreview]:
+    Provider{82a021e com.auramusic.app.debug/com.auramusic.app.tv.TvPreviewContentProvider}
+      applicationInfo=ApplicationInfo{57b5db8 com.auramusic.app.debug}
+  [com.auramusic.app.debug.FileProvider]:
+    Provider{7b0daa0 com.auramusic.app.debug/androidx.core.content.FileProvider}
+      applicationInfo=ApplicationInfo{652791 com.auramusic.app.debug}
+
+Key Set Manager:
+  [com.auramusic.app.debug]
+      Signing KeySets: 184
+
+Packages:
+  Package [com.auramusic.app.debug] (4e4e77e):
+    appId=10014
+    pkg=Package{d7324df com.auramusic.app.debug}
+    codePath=/data/app/~~3NGOHPr2mzujZu-27iAhdg==/com.auramusic.app.debug-t-QzYW_x0kpKHumVfDDOqA==
+    resourcePath=/data/app/~~3NGOHPr2mzujZu-27iAhdg==/com.auramusic.app.debug-t-QzYW_x0kpKHumVfDDOqA==
+    legacyNativeLibraryDir=/data/app/~~3NGOHPr2mzujZu-27iAhdg==/com.auramusic.app.debug-t-QzYW_x0kpKHumVfDDOqA==/lib
+    extractNativeLibs=false
+    primaryCpuAbi=armeabi-v7a
+    secondaryCpuAbi=null
+    cpuAbiOverride=null
+    versionCode=29 minSdk=23 targetSdk=36
+    minExtensionVersions=[]
+    versionName=3.2.0
+    usesNonSdkApi=false
+    splits=[base]
+    apkSigningVersion=2
+    flags=[ DEBUGGABLE HAS_CODE ALLOW_CLEAR_USER_DATA ALLOW_BACKUP ]
+    privateFlags=[ PRIVATE_FLAG_ACTIVITIES_RESIZE_MODE_RESIZEABLE_VIA_SDK_VERSION ALLOW_AUDIO_PLAYBACK_CAPTURE HAS_DOMAIN_URLS PARTIALLY_DIRECT_BOOT_AWARE PRIVATE_FLAG_ALLOW_NATIVE_HEAP_POINTER_TAGGING ]
+    forceQueryable=false
+    queriesIntents=[Intent { act=android.media.action.DISPLAY_AUDIO_EFFECT_CONTROL_PANEL }]
+    dataDir=/data/user/0/com.auramusic.app.debug
+    supportsScreens=[small, medium, large, xlarge, resizeable, anyDensity]
+    usesOptionalLibraries:
+      org.apache.http.legacy
+      androidx.window.extensions
+      androidx.window.sidecar
+    usesLibraryFiles:
+      /system/framework/org.apache.http.legacy.jar
+    timeStamp=2026-11-08 19:15:26
+    lastUpdateTime=2026-11-08 19:15:30
+    installerPackageName=null
+    installerPackageUid=-1
+    initiatingPackageName=com.android.shell
+    originatingPackageName=null
+    packageSource=1
+    appMetadataFilePath=null
+    signatures=PackageSignatures{e31ace0 version:2, signatures:[1f3264ad], past signatures:[]}
+    installPermissionsFixed=true
+    pkgFlags=[ DEBUGGABLE HAS_CODE ALLOW_CLEAR_USER_DATA ALLOW_BACKUP ]
+    privatePkgFlags=[ PRIVATE_FLAG_ACTIVITIES_RESIZE_MODE_RESIZEABLE_VIA_SDK_VERSION ALLOW_AUDIO_PLAYBACK_CAPTURE HAS_DOMAIN_URLS PARTIALLY_DIRECT_BOOT_AWARE PRIVATE_FLAG_ALLOW_NATIVE_HEAP_POINTER_TAGGING ]
+    apexModuleName=null
+    declared permissions:
+      com.auramusic.app.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION: prot=signature
+    requested permissions:
+      android.permission.INTERNET
+      android.permission.REQUEST_INSTALL_PACKAGES
+      android.permission.GET_ACCOUNTS
+      android.permission.POST_NOTIFICATIONS
+      android.permission.ACCESS_NETWORK_STATE
+      android.permission.RECEIVE_BOOT_COMPLETED
+      android.permission.WAKE_LOCK
+      android.permission.FOREGROUND_SERVICE
+      android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK
+      android.permission.FOREGROUND_SERVICE_DATA_SYNC
+      android.permission.RECORD_AUDIO
+      android.permission.MODIFY_AUDIO_SETTINGS
+      android.permission.FOREGROUND_SERVICE_MICROPHONE
+      android.permission.BLUETOOTH_CONNECT
+      android.permission.BLUETOOTH_SCAN
+      android.permission.SCHEDULE_EXACT_ALARM
+      android.permission.USE_EXACT_ALARM
+      android.permission.USE_FULL_SCREEN_INTENT
+      android.permission.VIBRATE
+      android.permission.DISABLE_KEYGUARD
+      android.permission.SYSTEM_ALERT_WINDOW
+      com.android.providers.tv.permission.WRITE_EPG_DATA
+      com.android.providers.tv.permission.READ_EPG_DATA
+      com.auramusic.app.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+    install permissions:
+      android.permission.MODIFY_AUDIO_SETTINGS: granted=true
+      android.permission.SYSTEM_ALERT_WINDOW: granted=false
+      android.permission.FOREGROUND_SERVICE: granted=true
+      android.permission.RECEIVE_BOOT_COMPLETED: granted=true
+      com.auramusic.app.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION: granted=true
+      com.android.providers.tv.permission.READ_EPG_DATA: granted=true
+      android.permission.INTERNET: granted=true
+      com.android.providers.tv.permission.WRITE_EPG_DATA: granted=true
+      android.permission.USE_EXACT_ALARM: granted=true
+      android.permission.USE_FULL_SCREEN_INTENT: granted=true
+      android.permission.FOREGROUND_SERVICE_DATA_SYNC: granted=true
+      android.permission.ACCESS_NETWORK_STATE: granted=true
+      android.permission.DISABLE_KEYGUARD: granted=true
+      android.permission.FOREGROUND_SERVICE_MICROPHONE: granted=true
+      android.permission.SCHEDULE_EXACT_ALARM: granted=false
+      android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK: granted=true
+      android.permission.VIBRATE: granted=true
+      android.permission.REQUEST_INSTALL_PACKAGES: granted=false
+      android.permission.WAKE_LOCK: granted=true
+    User 0: ceDataInode=186730 installed=true hidden=false suspended=false distractionFlags=0 stopped=false notLaunched=false enabled=0 instant=false virtual=false
+      installReason=0
+      firstInstallTime=2026-10-20 09:57:57
+      uninstallReason=0
+      overlay paths:
+        /data/resource-cache/com.android.systemui-neutral-sKls.frro
+        /data/resource-cache/com.android.systemui-accent-d6gd.frro
+        /data/resource-cache/com.android.systemui-dynamic-4Eto.frro
+      gids=[3003]
+      runtime permissions:
+        android.permission.POST_NOTIFICATIONS: granted=true, flags=[ USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]
+        android.permission.BLUETOOTH_CONNECT: granted=false, flags=[ USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]
+        android.permission.GET_ACCOUNTS: granted=false, flags=[ USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]
+        android.permission.RECORD_AUDIO: granted=true, flags=[ USER_SET|USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]
+        android.permission.BLUETOOTH_SCAN: granted=false, flags=[ USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]
+      enabledComponents:
+        androidx.work.impl.background.systemalarm.RescheduleReceiver
+        androidx.work.impl.background.systemjob.SystemJobService
+    User 10: ceDataInode=0 installed=true hidden=false suspended=false distractionFlags=0 stopped=true notLaunched=true enabled=0 instant=false virtual=false
+      installReason=0
+      firstInstallTime=2026-10-20 09:57:57
+      uninstallReason=0
+      gids=[3003]
+      runtime permissions:
+        android.permission.POST_NOTIFICATIONS: granted=true
+        android.permission.BLUETOOTH_CONNECT: granted=false
+        android.permission.GET_ACCOUNTS: granted=false
+        android.permission.RECORD_AUDIO: granted=false
+        android.permission.BLUETOOTH_SCAN: granted=false
+
+Queries:
+  system apps queryable: false
+  queries via forceQueryable:
+  queries via package name:
+  queries via component:
+    com.android.settings.intelligence:
+      com.auramusic.app.debug
+    org.smarttube.stable:
+      com.auramusic.app.debug
+    com.google.android.play.games:
+      com.auramusic.app.debug
+    com.xiaodianshi.tv.yst:
+      com.auramusic.app.debug
+    com.spocky.projengmenu:
+      com.auramusic.app.debug
+  queryable via interaction:
+    User 0:
+    User 10:
+  queryable via uses-library:
+
+Dexopt state:
+  [com.auramusic.app.debug]
+    path: /data/app/~~3NGOHPr2mzujZu-27iAhdg==/com.auramusic.app.debug-t-QzYW_x0kpKHumVfDDOqA==/base.apk
+      arm: [status=run-from-apk] [reason=unknown] [primary-abi]
+        [location is error]
+
+Compiler stats:
+  [com.auramusic.app.debug]
+     base.apk - 59759

@@ -60,6 +60,7 @@ import java.net.PasswordAuthentication
 import java.net.Proxy
 import java.util.Locale
 import javax.inject.Inject
+import javax.inject.Provider
 
 @HiltAndroidApp
 class App : Application(), SingletonImageLoader.Factory {
@@ -69,18 +70,26 @@ class App : Application(), SingletonImageLoader.Factory {
     lateinit var applicationScope: CoroutineScope
 
     @Inject
-    lateinit var voiceFeedbackManager: VoiceFeedbackManager
+    lateinit var voiceFeedbackManagerProvider: Provider<VoiceFeedbackManager>
 
     @Inject
-    lateinit var database: MusicDatabase
+    lateinit var databaseProvider: Provider<MusicDatabase>
 
     override fun onCreate() {
         super.onCreate()
+
+        Timber.plant(Timber.DebugTree())
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P &&
+            Application.getProcessName() == "$packageName:tvpreview"
+        ) {
+            // Keep the Projectivy preview provider small. Full app startup initializes
+            // account sync, voice, download indexing, and lyrics that the video provider
+            // does not need; those allocations compete with Media3's audio/video codecs.
+            return
+        }
         
         // Install crash handler first
         CrashHandler.install(this)
-        
-        Timber.plant(Timber.DebugTree())
 
         // Initialize Paxsenix synchronously so lyrics can be fetched immediately
         com.auramusic.paxsenix.Paxsenix.init(this)
@@ -113,7 +122,7 @@ class App : Application(), SingletonImageLoader.Factory {
         }
         
         // Initialize voice feedback manager (TTS)
-        voiceFeedbackManager.initialize()
+        voiceFeedbackManagerProvider.get().initialize()
     }
 
     private suspend fun initializeSettings() {
@@ -197,7 +206,7 @@ class App : Application(), SingletonImageLoader.Factory {
 
         if (settings[NewReleaseNotificationsEnabledKey] ?: true) {
             NewReleaseNotificationScheduler.schedule(this)
-            NewReleaseNotificationChecker.check(this, database)
+            NewReleaseNotificationChecker.check(this, databaseProvider.get())
         } else {
             NewReleaseNotificationScheduler.cancel(this)
         }
@@ -274,7 +283,7 @@ class App : Application(), SingletonImageLoader.Factory {
                 .collect { enabled ->
                     if (enabled) {
                         NewReleaseNotificationScheduler.schedule(this@App)
-                        NewReleaseNotificationChecker.check(this@App, database)
+        NewReleaseNotificationChecker.check(this@App, databaseProvider.get())
                     } else {
                         NewReleaseNotificationScheduler.cancel(this@App)
                     }

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.auramusic.app.tv.TvPreviewAudioCachePolicyTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-11-08T06:45:35.525Z" hostname="DESKTOP" time="0.03">
+  <properties/>
+  <testcase name="cacheReturnsUnderLimitAfterAllOpenPinsAreReleased" classname="com.auramusic.app.tv.TvPreviewAudioCachePolicyTest" time="0.026"/>
+  <testcase name="evictsOldestCompletedEntriesAndProtectsJustWrittenTrack" classname="com.auramusic.app.tv.TvPreviewAudioCachePolicyTest" time="0.0"/>
+  <testcase name="doesNotEvictWhenAlreadyWithinLimit" classname="com.auramusic.app.tv.TvPreviewAudioCachePolicyTest" time="0.0"/>
+  <testcase name="preservesMultipleFilesPinnedByConcurrentProviderOpens" classname="com.auramusic.app.tv.TvPreviewAudioCachePolicyTest" time="0.0"/>
+  <testcase name="evictsAllUnprotectedEntriesWhenNecessary" classname="com.auramusic.app.tv.TvPreviewAudioCachePolicyTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

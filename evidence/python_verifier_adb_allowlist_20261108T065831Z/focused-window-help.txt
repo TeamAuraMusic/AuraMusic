@@ -1,0 +1,19 @@
+usage: verify-projectivy-focused-window.py [-h] --serial SERIAL [--adb ADB]
+                                           [--adb-port ADB_PORT]
+                                           [--allow-physical] --title TITLE
+                                           [--seconds SECONDS]
+                                           [--interval-seconds INTERVAL_SECONDS]
+                                           --evidence-dir EVIDENCE_DIR
+
+Verify a focused AuraMusic card keeps Projectivy audio and its overlay active.
+
+options:
+  -h, --help            show this help message and exit
+  --serial SERIAL       Explicit ADB serial; no device fallback
+  --adb ADB             Windows ADB executable
+  --adb-port ADB_PORT
+  --allow-physical      Permit non-emulator serials explicitly
+  --title TITLE         Exact focused Projectivy program title
+  --seconds SECONDS
+  --interval-seconds INTERVAL_SECONDS
+  --evidence-dir EVIDENCE_DIR

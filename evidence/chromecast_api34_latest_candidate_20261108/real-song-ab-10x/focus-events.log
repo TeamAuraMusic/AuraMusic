@@ -1,0 +1,734 @@
+--------- beginning of main
+11-08 19:15:58.181 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator hidden reason=service destroyed
+11-08 19:16:00.168 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=null
+11-08 19:16:00.169 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focus indicator service connected
+11-08 19:16:00.213 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOWS_CHANGED package=null source=null description=null
+11-08 19:16:00.361 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Comforting Memories
+11-08 19:16:00.531 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Comforting Memories bounds=Rect(0, 199 - 486, 439)
+11-08 19:16:00.969 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=Comforting Memories size=600x600
+11-08 19:16:01.197 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-08 19:16:01.322 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Comforting Memories
+11-08 19:16:01.335 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Comforting Memories bounds=Rect(0, 199 - 486, 439)
+11-08 19:17:24.736 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator hidden reason=service destroyed
+11-08 19:17:26.054 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=null
+11-08 19:17:26.055 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focus indicator service connected
+11-08 19:17:26.064 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOWS_CHANGED package=null source=null description=null
+11-08 19:17:26.182 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Comforting Memories
+11-08 19:17:26.262 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Comforting Memories bounds=Rect(0, 199 - 486, 439)
+11-08 19:17:26.642 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=Comforting Memories size=600x600
+11-08 19:17:26.869 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-08 19:17:26.987 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Comforting Memories
+11-08 19:17:26.993 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Comforting Memories bounds=Rect(0, 199 - 486, 439)
+11-08 19:18:53.281 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator hidden reason=service destroyed
+11-08 19:18:54.759 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=null
+11-08 19:18:54.760 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focus indicator service connected
+11-08 19:18:54.762 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOWS_CHANGED package=null source=null description=null
+11-08 19:18:54.887 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Comforting Memories
+11-08 19:18:54.960 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Comforting Memories bounds=Rect(0, 199 - 486, 439)
+11-08 19:18:55.310 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=Comforting Memories size=600x600
+11-08 19:18:55.564 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-08 19:18:55.679 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Comforting Memories
+11-08 19:18:55.685 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Comforting Memories bounds=Rect(0, 199 - 486, 439)
+11-08 19:19:29.148 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-08 19:19:29.162 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:19:29.210 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:19:29.265 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(50, 199 - 548, 439)
+11-08 19:19:29.294 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:19:29.300 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 500, 439)
+11-08 19:19:29.348 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:19:29.392 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:19:29.483 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:19:29.599 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:19:29.611 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:19:29.806 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Black Sheep
+11-08 19:19:29.811 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=click size=600x600
+11-08 19:19:29.893 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Black Sheep
+11-08 19:19:30.005 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:19:30.011 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:19:30.173 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:19:30.185 29405 29676 I TvPreviewContentProvider: TV preview open request=4e04097 key=6ee1887b callerUid=10150
+11-08 19:19:30.263 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:19:30.368 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:19:30.372 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:19:32.119 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator hidden reason=service destroyed
+11-08 19:19:33.286 29405 29676 I TvPreviewContentProvider: TV preview audio-only open request=4e04097 key=6ee1887b bytes=8288624
+11-08 19:19:33.783 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-08 19:19:33.798 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focus indicator service connected
+11-08 19:19:33.810 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOWS_CHANGED package=null source=null description=null
+11-08 19:19:33.930 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:19:34.047 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:19:34.431 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=click size=600x600
+11-08 19:19:34.650 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-08 19:19:34.777 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:19:34.787 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:20:14.517 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator hidden reason=service destroyed
+11-08 19:20:15.845 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-08 19:20:15.845 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focus indicator service connected
+11-08 19:20:15.873 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOWS_CHANGED package=null source=null description=null
+11-08 19:20:15.982 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:20:16.078 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:20:16.413 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=click size=600x600
+11-08 19:20:16.688 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-08 19:20:16.808 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:20:16.811 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:20:17.657 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-08 19:20:17.730 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:20:17.798 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:20:17.836 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 503, 439)
+11-08 19:20:17.860 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:20:17.880 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:20:17.903 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:20:17.908 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Wending
+11-08 19:20:17.973 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Wending
+11-08 19:20:17.980 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Wending
+11-08 19:20:17.997 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:20:18.022 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:20:18.147 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:20:18.150 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:20:18.336 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=Wending size=600x600
+11-08 19:20:18.609 29405 29441 I TvPreviewContentProvider: TV preview open request=4e0fdec key=2d62f35a callerUid=10150
+11-08 19:20:18.657 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:20:18.762 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:20:18.868 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:20:18.878 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:20:19.849 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator hidden reason=service destroyed
+11-08 19:20:22.065 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=null
+11-08 19:20:22.066 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focus indicator service connected
+11-08 19:20:22.070 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOWS_CHANGED package=null source=null description=null
+11-08 19:20:22.181 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:20:22.251 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:20:22.450 29405 29441 I TvPreviewContentProvider: TV preview audio-only open request=4e0fdec key=2d62f35a bytes=5096321
+11-08 19:20:22.732 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=Wending size=600x600
+11-08 19:20:22.778 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Wending
+11-08 19:20:22.779 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Wending
+11-08 19:20:22.794 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Wending
+11-08 19:20:22.867 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-08 19:20:23.027 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:20:23.066 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:20:25.365 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-08 19:20:25.400 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:20:25.449 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:20:25.453 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 426, 439)
+11-08 19:20:25.510 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:20:25.535 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 470, 439)
+11-08 19:20:25.599 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:20:25.601 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=click
+11-08 19:20:25.602 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=click
+11-08 19:20:25.603 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=click
+11-08 19:20:25.635 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:20:25.786 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:20:25.818 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:20:25.835 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:20:25.852 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=click size=600x600
+11-08 19:20:25.968 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:20:26.019 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:20:26.315 29405 29676 I TvPreviewContentProvider: TV preview open request=4e11c09 key=6ee1887b callerUid=10150
+11-08 19:20:26.380 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:20:26.404 29405 29676 I TvPreviewContentProvider: TV preview audio-only open request=4e11c09 key=6ee1887b bytes=8288624
+11-08 19:20:26.463 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:20:26.591 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:20:26.615 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:20:26.786 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=click
+11-08 19:20:26.799 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=click
+11-08 19:20:26.800 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=click
+11-08 19:20:27.051 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator hidden reason=service destroyed
+11-08 19:20:28.502 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-08 19:20:28.514 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focus indicator service connected
+11-08 19:20:28.526 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOWS_CHANGED package=null source=null description=null
+11-08 19:20:28.639 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:20:28.735 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:20:29.057 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=click size=600x600
+11-08 19:20:29.347 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-08 19:20:29.468 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:20:29.476 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:20:31.649 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-08 19:20:31.681 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:20:31.719 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:20:31.769 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(8, 199 - 534, 439)
+11-08 19:20:31.815 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:20:31.819 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 491, 439)
+11-08 19:20:31.900 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:20:31.915 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Wending
+11-08 19:20:31.916 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Wending
+11-08 19:20:31.917 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Wending
+11-08 19:20:31.931 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:20:32.003 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:20:32.117 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:20:32.132 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:20:32.236 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=Wending size=600x600
+11-08 19:20:32.613 29405 30230 I TvPreviewContentProvider: TV preview open request=4e134a2 key=2d62f35a callerUid=10150
+11-08 19:20:32.693 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:20:32.731 29405 30230 I TvPreviewContentProvider: TV preview audio-only open request=4e134a2 key=2d62f35a bytes=5096321
+11-08 19:20:32.812 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:20:32.923 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:20:32.935 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:20:33.184 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Wending
+11-08 19:20:33.235 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Wending
+11-08 19:20:33.238 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Wending
+11-08 19:20:33.471 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator hidden reason=service destroyed
+11-08 19:20:34.931 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-08 19:20:34.932 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focus indicator service connected
+11-08 19:20:34.968 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOWS_CHANGED package=null source=null description=null
+11-08 19:20:35.087 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:20:35.173 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:20:35.498 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=Wending size=600x600
+11-08 19:20:35.812 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-08 19:20:35.929 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:20:35.939 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:20:38.145 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-08 19:20:38.185 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:20:38.233 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:20:38.284 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 443, 439)
+11-08 19:20:38.329 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:20:38.333 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 484, 439)
+11-08 19:20:38.347 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:20:38.378 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:20:38.431 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=click
+11-08 19:20:38.432 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=click
+11-08 19:20:38.435 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=click
+11-08 19:20:38.447 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:20:38.473 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:20:38.598 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:20:38.603 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:20:38.779 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=click size=600x600
+11-08 19:20:39.095 29405 29441 I TvPreviewContentProvider: TV preview open request=4e14def key=6ee1887b callerUid=10150
+11-08 19:20:39.140 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:20:39.167 29405 29441 I TvPreviewContentProvider: TV preview audio-only open request=4e14def key=6ee1887b bytes=8288624
+11-08 19:20:39.252 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:20:39.379 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:20:39.382 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:20:39.530 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=click
+11-08 19:20:39.536 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=click
+11-08 19:20:39.563 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=click
+11-08 19:20:40.133 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator hidden reason=service destroyed
+11-08 19:20:41.453 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-08 19:20:41.454 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focus indicator service connected
+11-08 19:20:41.500 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOWS_CHANGED package=null source=null description=null
+11-08 19:20:41.618 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:20:41.697 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:20:42.023 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=click size=600x600
+11-08 19:20:42.297 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-08 19:20:42.406 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:20:42.416 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:20:44.648 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-08 19:20:44.700 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:20:44.753 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:20:44.811 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 517, 439)
+11-08 19:20:44.831 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:20:44.834 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 487, 439)
+11-08 19:20:44.849 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:20:44.850 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Wending
+11-08 19:20:44.902 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Wending
+11-08 19:20:44.903 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Wending
+11-08 19:20:44.939 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:20:44.985 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:20:45.094 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:20:45.116 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:20:45.218 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=Wending size=600x600
+11-08 19:20:45.583 29405 29676 I TvPreviewContentProvider: TV preview open request=4e1674b key=2d62f35a callerUid=10150
+11-08 19:20:45.622 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:20:45.669 29405 29676 I TvPreviewContentProvider: TV preview audio-only open request=4e1674b key=2d62f35a bytes=5096321
+11-08 19:20:45.765 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:20:45.777 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:20:45.796 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:20:45.908 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:20:45.955 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:20:46.049 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Wending
+11-08 19:20:46.064 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Wending
+11-08 19:20:46.074 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Wending
+11-08 19:20:46.505 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator hidden reason=service destroyed
+11-08 19:20:48.108 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-08 19:20:48.114 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focus indicator service connected
+11-08 19:20:48.166 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOWS_CHANGED package=null source=null description=null
+11-08 19:20:48.279 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:20:48.448 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:20:48.862 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=Wending size=600x600
+11-08 19:20:49.093 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-08 19:20:49.211 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:20:49.228 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:20:51.919 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-08 19:20:51.987 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:20:52.011 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:20:52.046 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 464, 439)
+11-08 19:20:52.068 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:20:52.085 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 483, 439)
+11-08 19:20:52.171 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:20:52.186 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=click
+11-08 19:20:52.199 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=click
+11-08 19:20:52.203 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=click
+11-08 19:20:52.215 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:20:52.246 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:20:52.362 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:20:52.370 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:20:52.504 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=click size=600x600
+11-08 19:20:52.869 29405 29433 I TvPreviewContentProvider: TV preview open request=4e183c2 key=6ee1887b callerUid=10150
+11-08 19:20:52.920 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:20:52.966 29405 29433 I TvPreviewContentProvider: TV preview audio-only open request=4e183c2 key=6ee1887b bytes=8288624
+11-08 19:20:53.015 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:20:53.120 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:20:53.150 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:20:53.403 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=click
+11-08 19:20:53.404 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=click
+11-08 19:20:53.408 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=click
+11-08 19:20:53.969 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator hidden reason=service destroyed
+11-08 19:20:55.297 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-08 19:20:55.303 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focus indicator service connected
+11-08 19:20:55.340 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOWS_CHANGED package=null source=null description=null
+11-08 19:20:55.455 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:20:55.546 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:20:55.842 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=click size=600x600
+11-08 19:20:56.166 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-08 19:20:56.287 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:20:56.300 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:20:58.610 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-08 19:20:58.651 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:20:58.679 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:20:58.720 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 515, 439)
+11-08 19:20:58.767 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:20:58.779 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 488, 439)
+11-08 19:20:58.788 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:20:58.811 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Wending
+11-08 19:20:58.812 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Wending
+11-08 19:20:58.834 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Wending
+11-08 19:20:58.856 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:20:58.921 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:20:59.034 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:20:59.042 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:20:59.126 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=Wending size=600x600
+11-08 19:20:59.534 29405 29581 I TvPreviewContentProvider: TV preview open request=4e19dcb key=2d62f35a callerUid=10150
+11-08 19:20:59.591 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:20:59.613 29405 29581 I TvPreviewContentProvider: TV preview audio-only open request=4e19dcb key=2d62f35a bytes=5096321
+11-08 19:20:59.681 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:20:59.803 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:20:59.808 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:00.036 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Wending
+11-08 19:21:00.046 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Wending
+11-08 19:21:00.053 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Wending
+11-08 19:21:00.686 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator hidden reason=service destroyed
+11-08 19:21:02.086 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-08 19:21:02.087 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focus indicator service connected
+11-08 19:21:02.110 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOWS_CHANGED package=null source=null description=null
+11-08 19:21:02.230 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:21:02.314 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:02.629 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=Wending size=600x600
+11-08 19:21:02.932 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-08 19:21:03.046 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:21:03.053 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:05.240 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-08 19:21:05.292 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:21:05.355 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:21:05.408 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 472, 439)
+11-08 19:21:05.422 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:21:05.430 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:05.442 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:21:05.446 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=click
+11-08 19:21:05.449 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=click
+11-08 19:21:05.450 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=click
+11-08 19:21:05.479 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:21:05.569 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:21:05.686 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:21:05.727 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:05.780 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=click size=600x600
+11-08 19:21:06.170 29405 29434 I TvPreviewContentProvider: TV preview open request=4e1b7b7 key=6ee1887b callerUid=10150
+11-08 19:21:06.219 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:21:06.241 29405 29434 I TvPreviewContentProvider: TV preview audio-only open request=4e1b7b7 key=6ee1887b bytes=8288624
+11-08 19:21:06.324 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:21:06.438 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:21:06.447 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:06.629 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=click
+11-08 19:21:06.646 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=click
+11-08 19:21:06.651 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=click
+11-08 19:21:07.085 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator hidden reason=service destroyed
+11-08 19:21:08.478 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-08 19:21:08.479 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focus indicator service connected
+11-08 19:21:08.533 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOWS_CHANGED package=null source=null description=null
+11-08 19:21:08.641 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:21:08.751 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:09.043 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=click size=600x600
+11-08 19:21:09.360 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-08 19:21:09.476 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:21:09.481 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:11.870 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-08 19:21:11.914 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:21:11.960 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:21:12.021 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 525, 439)
+11-08 19:21:12.066 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:21:12.070 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 487, 439)
+11-08 19:21:12.101 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:21:12.132 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Wending
+11-08 19:21:12.133 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Wending
+11-08 19:21:12.134 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Wending
+11-08 19:21:12.148 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:21:12.213 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:21:12.328 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:21:12.334 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:12.412 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=Wending size=600x600
+11-08 19:21:12.826 29405 29581 I TvPreviewContentProvider: TV preview open request=4e1d1b1 key=2d62f35a callerUid=10150
+11-08 19:21:12.878 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:21:12.900 29405 29581 I TvPreviewContentProvider: TV preview audio-only open request=4e1d1b1 key=2d62f35a bytes=5096321
+11-08 19:21:13.012 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:21:13.126 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:21:13.151 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:13.285 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Wending
+11-08 19:21:13.294 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Wending
+11-08 19:21:13.297 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Wending
+11-08 19:21:13.646 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator hidden reason=service destroyed
+11-08 19:21:14.998 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-08 19:21:14.998 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focus indicator service connected
+11-08 19:21:15.075 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOWS_CHANGED package=null source=null description=null
+11-08 19:21:15.183 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:21:15.270 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:15.598 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=Wending size=600x600
+11-08 19:21:15.880 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-08 19:21:16.015 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:21:16.026 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:19.037 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-08 19:21:19.097 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:21:19.183 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:21:19.233 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 477, 439)
+11-08 19:21:19.257 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:21:19.266 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:19.282 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:21:19.327 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=click
+11-08 19:21:19.332 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=click
+11-08 19:21:19.342 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=click
+11-08 19:21:19.383 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:21:19.403 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:21:19.527 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:21:19.543 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:19.737 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=click size=600x600
+11-08 19:21:19.945 29405 29753 I TvPreviewContentProvider: TV preview open request=4e1ed85 key=6ee1887b callerUid=10150
+11-08 19:21:19.995 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:21:20.031 29405 29753 I TvPreviewContentProvider: TV preview audio-only open request=4e1ed85 key=6ee1887b bytes=8288624
+11-08 19:21:20.128 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:21:20.131 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:20.154 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:21:20.279 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:21:20.295 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:20.421 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=click
+11-08 19:21:20.430 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=click
+11-08 19:21:20.432 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=click
+11-08 19:21:20.910 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator hidden reason=service destroyed
+11-08 19:21:22.244 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-08 19:21:22.245 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focus indicator service connected
+11-08 19:21:22.280 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOWS_CHANGED package=null source=null description=null
+11-08 19:21:22.393 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:21:22.562 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:22.925 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=click size=600x600
+11-08 19:21:23.187 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-08 19:21:23.307 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:21:23.316 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:25.543 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-08 19:21:25.601 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:21:25.621 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:21:25.650 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 504, 439)
+11-08 19:21:25.680 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:21:25.686 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 488, 439)
+11-08 19:21:25.727 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:21:25.764 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Wending
+11-08 19:21:25.768 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Wending
+11-08 19:21:25.769 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Wending
+11-08 19:21:25.802 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:21:25.844 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:21:25.956 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:21:25.979 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:26.001 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=Wending size=600x600
+11-08 19:21:26.467 29405 29434 I TvPreviewContentProvider: TV preview open request=4e20701 key=2d62f35a callerUid=10150
+11-08 19:21:26.536 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:21:26.552 29405 29434 I TvPreviewContentProvider: TV preview audio-only open request=4e20701 key=2d62f35a bytes=5096321
+11-08 19:21:26.631 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:21:26.736 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:21:26.749 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:26.931 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Wending
+11-08 19:21:26.933 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Wending
+11-08 19:21:26.951 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Wending
+11-08 19:21:27.169 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator hidden reason=service destroyed
+11-08 19:21:28.653 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-08 19:21:28.653 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focus indicator service connected
+11-08 19:21:28.678 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOWS_CHANGED package=null source=null description=null
+11-08 19:21:28.797 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:21:28.890 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:29.147 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=Wending size=600x600
+11-08 19:21:29.495 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-08 19:21:29.615 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:21:29.619 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:31.778 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-08 19:21:31.815 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:21:31.862 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:21:31.865 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 411, 439)
+11-08 19:21:31.914 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:21:31.918 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 466, 439)
+11-08 19:21:32.002 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:21:32.025 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:21:32.027 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=click
+11-08 19:21:32.029 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=click
+11-08 19:21:32.032 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=click
+11-08 19:21:32.047 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:21:32.118 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:21:32.231 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:21:32.237 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:32.283 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=click size=600x600
+11-08 19:21:32.731 29405 29434 I TvPreviewContentProvider: TV preview open request=4e21f79 key=6ee1887b callerUid=10150
+11-08 19:21:32.774 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:21:32.831 29405 29434 I TvPreviewContentProvider: TV preview audio-only open request=4e21f79 key=6ee1887b bytes=8288624
+11-08 19:21:32.880 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:21:32.996 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:21:33.033 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:33.200 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=click
+11-08 19:21:33.202 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=click
+11-08 19:21:33.224 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=click
+11-08 19:21:33.447 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator hidden reason=service destroyed
+11-08 19:21:34.975 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-08 19:21:34.976 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focus indicator service connected
+11-08 19:21:34.987 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOWS_CHANGED package=null source=null description=null
+11-08 19:21:35.105 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:21:35.197 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:35.483 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=click size=600x600
+11-08 19:21:35.795 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-08 19:21:35.915 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:21:35.936 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:38.132 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-08 19:21:38.166 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:21:38.216 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:21:38.220 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(16, 199 - 536, 439)
+11-08 19:21:38.283 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:21:38.288 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 501, 439)
+11-08 19:21:38.350 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:21:38.368 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:21:38.369 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Wending
+11-08 19:21:38.382 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Wending
+11-08 19:21:38.384 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Wending
+11-08 19:21:38.396 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:21:38.406 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:21:38.516 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:21:38.628 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:21:38.633 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:38.634 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=Wending size=600x600
+11-08 19:21:39.087 29405 29753 I TvPreviewContentProvider: TV preview open request=4e2384d key=2d62f35a callerUid=10150
+11-08 19:21:39.137 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:21:39.153 29405 29753 I TvPreviewContentProvider: TV preview audio-only open request=4e2384d key=2d62f35a bytes=5096321
+11-08 19:21:39.261 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:21:39.371 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:21:39.379 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:39.528 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Wending
+11-08 19:21:39.532 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Wending
+11-08 19:21:39.575 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Wending
+11-08 19:21:39.794 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator hidden reason=service destroyed
+11-08 19:21:41.281 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-08 19:21:41.281 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focus indicator service connected
+11-08 19:21:41.310 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOWS_CHANGED package=null source=null description=null
+11-08 19:21:41.420 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:21:41.496 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:41.755 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=Wending size=600x600
+11-08 19:21:42.102 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-08 19:21:42.248 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:21:42.253 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:44.348 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-08 19:21:44.381 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:21:44.418 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:21:44.444 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 402, 439)
+11-08 19:21:44.481 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:21:44.488 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 472, 439)
+11-08 19:21:44.551 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:21:44.554 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=click
+11-08 19:21:44.566 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=click
+11-08 19:21:44.567 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=click
+11-08 19:21:44.587 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:21:44.701 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:21:44.796 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=click size=600x600
+11-08 19:21:44.845 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:21:44.848 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:45.285 29405 29434 I TvPreviewContentProvider: TV preview open request=4e25082 key=6ee1887b callerUid=10150
+11-08 19:21:45.336 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:21:45.350 29405 29434 I TvPreviewContentProvider: TV preview audio-only open request=4e25082 key=6ee1887b bytes=8288624
+11-08 19:21:45.474 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:21:45.612 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:21:45.617 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:45.714 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=click
+11-08 19:21:45.715 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=click
+11-08 19:21:45.725 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=click
+11-08 19:21:46.002 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator hidden reason=service destroyed
+11-08 19:21:47.492 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-08 19:21:47.493 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focus indicator service connected
+11-08 19:21:47.545 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOWS_CHANGED package=null source=null description=null
+11-08 19:21:47.678 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:21:47.813 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:48.334 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=click size=600x600
+11-08 19:21:48.432 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-08 19:21:48.572 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:21:48.579 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:50.745 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-08 19:21:50.798 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:21:50.831 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:21:50.872 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 510, 439)
+11-08 19:21:50.903 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:21:50.919 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 489, 439)
+11-08 19:21:50.948 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:21:50.994 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Wending
+11-08 19:21:51.001 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Wending
+11-08 19:21:51.003 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Wending
+11-08 19:21:51.020 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:21:51.035 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:21:51.070 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:21:51.190 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:21:51.218 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:51.221 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=Wending size=600x600
+11-08 19:21:51.674 29405 30796 I TvPreviewContentProvider: TV preview open request=4e26976 key=2d62f35a callerUid=10150
+11-08 19:21:51.730 29405 30796 I TvPreviewContentProvider: TV preview audio-only open request=4e26976 key=2d62f35a bytes=5096321
+11-08 19:21:51.742 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:21:51.836 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:21:51.970 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:21:51.983 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:52.143 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Wending
+11-08 19:21:52.166 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Wending
+11-08 19:21:52.167 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Wending
+11-08 19:21:52.396 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator hidden reason=service destroyed
+11-08 19:21:53.873 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-08 19:21:53.883 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focus indicator service connected
+11-08 19:21:53.910 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOWS_CHANGED package=null source=null description=null
+11-08 19:21:54.019 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:21:54.111 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:54.373 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=Wending size=600x600
+11-08 19:21:54.731 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-08 19:21:54.846 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:21:54.851 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:57.025 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-08 19:21:57.070 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:21:57.112 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:21:57.135 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 460, 439)
+11-08 19:21:57.161 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:21:57.164 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 479, 439)
+11-08 19:21:57.187 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:21:57.232 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=click
+11-08 19:21:57.235 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=click
+11-08 19:21:57.239 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=click
+11-08 19:21:57.250 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:21:57.344 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:21:57.463 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:21:57.478 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:57.509 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=click size=600x600
+11-08 19:21:57.971 29405 30796 I TvPreviewContentProvider: TV preview open request=4e28210 key=6ee1887b callerUid=10150
+11-08 19:21:58.042 29405 30796 I TvPreviewContentProvider: TV preview audio-only open request=4e28210 key=6ee1887b bytes=8288624
+11-08 19:21:58.049 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:21:58.145 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:21:58.262 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:21:58.309 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:21:58.433 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=click
+11-08 19:21:58.436 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=click
+11-08 19:21:58.448 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=click
+11-08 19:21:58.662 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator hidden reason=service destroyed
+11-08 19:22:00.236 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-08 19:22:00.238 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focus indicator service connected
+11-08 19:22:00.292 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOWS_CHANGED package=null source=null description=null
+11-08 19:22:00.406 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:22:00.518 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:22:00.798 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=click size=600x600
+11-08 19:22:01.131 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-08 19:22:01.249 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:22:01.252 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:22:03.362 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-08 19:22:03.399 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:22:03.445 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:22:03.450 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(15, 199 - 537, 439)
+11-08 19:22:03.482 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:22:03.485 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 509, 439)
+11-08 19:22:03.580 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:22:03.599 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Wending
+11-08 19:22:03.601 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Wending
+11-08 19:22:03.611 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Wending
+11-08 19:22:03.627 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:22:03.714 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:22:03.827 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:22:03.835 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:22:03.866 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=Wending size=600x600
+11-08 19:22:04.337 29405 29434 I TvPreviewContentProvider: TV preview open request=4e29aee key=2d62f35a callerUid=10150
+11-08 19:22:04.385 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:22:04.419 29405 29434 I TvPreviewContentProvider: TV preview audio-only open request=4e29aee key=2d62f35a bytes=5096321
+11-08 19:22:04.502 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:22:04.647 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:22:04.666 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:22:04.803 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Wending
+11-08 19:22:04.805 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Wending
+11-08 19:22:04.814 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Wending
+11-08 19:22:05.010 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator hidden reason=service destroyed
+11-08 19:22:06.547 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-08 19:22:06.548 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focus indicator service connected
+11-08 19:22:06.627 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOWS_CHANGED package=null source=null description=null
+11-08 19:22:06.735 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:22:06.833 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:22:07.099 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=Wending size=600x600
+11-08 19:22:07.486 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-08 19:22:07.614 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:22:07.618 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:22:09.760 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-08 19:22:09.814 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:22:09.849 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:22:09.913 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 470, 439)
+11-08 19:22:09.921 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:22:09.930 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 485, 439)
+11-08 19:22:09.935 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:22:09.937 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=click
+11-08 19:22:09.943 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=click
+11-08 19:22:09.946 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=click
+11-08 19:22:09.991 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:22:10.057 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:22:10.167 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:22:10.186 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:22:10.305 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=click size=600x600
+11-08 19:22:10.700 29405 29434 I TvPreviewContentProvider: TV preview open request=4e2b3bc key=6ee1887b callerUid=10150
+11-08 19:22:10.736 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:22:10.763 29405 29434 I TvPreviewContentProvider: TV preview audio-only open request=4e2b3bc key=6ee1887b bytes=8288624
+11-08 19:22:10.833 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click
+11-08 19:22:10.942 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:22:10.979 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:22:11.116 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=click
+11-08 19:22:11.119 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=click
+11-08 19:22:11.141 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=click
+11-08 19:22:11.419 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator hidden reason=service destroyed
+11-08 19:22:12.918 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-08 19:22:12.920 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focus indicator service connected
+11-08 19:22:12.958 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOWS_CHANGED package=null source=null description=null
+11-08 19:22:13.075 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:22:13.181 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:22:13.477 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=click size=600x600
+11-08 19:22:13.820 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-08 19:22:13.930 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=click
+11-08 19:22:13.943 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=click bounds=Rect(0, 199 - 486, 439)
+11-08 19:22:16.134 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-08 19:22:16.156 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:22:16.203 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:22:16.257 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(13, 199 - 535, 439)
+11-08 19:22:16.298 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:22:16.316 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 495, 439)
+11-08 19:22:16.385 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:22:16.404 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:22:16.419 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Wending
+11-08 19:22:16.420 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Wending
+11-08 19:22:16.427 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Wending
+11-08 19:22:16.441 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:22:16.478 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-08 19:22:16.592 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:22:16.601 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:22:16.648 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=Wending size=600x600
+11-08 19:22:17.080 29405 29434 I TvPreviewContentProvider: TV preview open request=4e2ccb5 key=2d62f35a callerUid=10150
+11-08 19:22:17.136 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:22:17.152 29405 29434 I TvPreviewContentProvider: TV preview audio-only open request=4e2ccb5 key=2d62f35a bytes=5096321
+11-08 19:22:17.235 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Wending
+11-08 19:22:17.362 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:22:17.382 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:22:17.587 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Wending
+11-08 19:22:17.588 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Wending
+11-08 19:22:17.596 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Wending
+11-08 19:22:18.347 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator hidden reason=service destroyed
+11-08 19:22:19.719 29405 29405 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-08 19:22:19.720 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focus indicator service connected
+11-08 19:22:19.735 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOWS_CHANGED package=null source=null description=null
+11-08 19:22:19.849 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:22:19.936 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:22:20.201 29405 29405 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=Wending size=600x600
+11-08 19:22:20.559 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-08 19:22:20.683 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Wending
+11-08 19:22:20.693 29405 29405 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Wending bounds=Rect(0, 199 - 486, 439)
+11-08 19:22:22.828 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-08 19:22:22.869 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-08 19:22:22.897 29405 29405 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=click

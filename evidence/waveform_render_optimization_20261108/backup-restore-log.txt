@@ -1,0 +1,7 @@
+--------- beginning of system
+11-08 20:28:31.546   651   814 V BackupManagerService: [UserID:0] restoreAtInstall pkg=com.auramusic.app.debug.test token=3 restoreSet=0
+11-08 20:28:31.549   651   814 W BackupManagerService: [UserID:0] No transport client
+11-08 20:28:31.552   651   814 V BackupManagerService: [UserID:0] Finishing install immediately
+11-08 20:30:03.232   651   814 V BackupManagerService: [UserID:0] restoreAtInstall pkg=com.auramusic.app.debug token=4 restoreSet=0
+11-08 20:30:03.232   651   814 W BackupManagerService: [UserID:0] No transport client
+11-08 20:30:03.232   651   814 V BackupManagerService: [UserID:0] Finishing install immediately

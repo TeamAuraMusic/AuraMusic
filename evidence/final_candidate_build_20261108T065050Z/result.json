@@ -1,0 +1,41 @@
+{
+  "outcome": "PASS",
+  "scope": "AuraMusic TV unit tests and APK builds only; no device install or runtime test",
+  "git_commit": "fdcd1715fb36d6f2e981cfa7a1b076d7f50b0024",
+  "tracked_worktree_clean": true,
+  "test_command": "./gradlew :app:testStandaloneTvUniversalDebugUnitTest :app:testFossTvUniversalDebugUnitTest --rerun-tasks --console=plain",
+  "tests": {
+    "standalone": {
+      "suites": 15,
+      "tests": 59,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "foss": {
+      "suites": 15,
+      "tests": 59,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "apk_command": "./gradlew :app:assembleStandaloneTvUniversalDebug :app:assembleFossTvUniversalDebug --console=plain",
+  "apks": {
+    "standalone": {
+      "path": "app/build/outputs/apk/standaloneTvUniversal/debug/app-standalone-tv-universal-debug.apk",
+      "sha256": "c0ef94e673da462183acd8bf07c18661909acb2a253189572224516ff5ee8dd1"
+    },
+    "foss": {
+      "path": "app/build/outputs/apk/fossTvUniversal/debug/app-foss-tv-universal-debug.apk",
+      "sha256": "93e8a8c5ac2f2b04957e7fba169a7092e4ec9f8425bb71c481f783cf9de72045"
+    }
+  },
+  "build_log": "apk-build.log",
+  "test_reports": [
+    "unit-tests/standalone/TEST-*.xml",
+    "unit-tests/foss/TEST-*.xml"
+  ],
+  "emulator_accessed": false,
+  "chromecast_accessed": false
+}

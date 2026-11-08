@@ -1,0 +1,62 @@
+Applications Memory Usage (in Kilobytes):
+Uptime: 368143 Realtime: 368143
+
+** MEMINFO in pid 1653 [com.spocky.projengmenu] **
+                   Pss  Private  Private  SwapPss      Rss     Heap     Heap     Heap
+                 Total    Dirty    Clean    Dirty    Total     Size    Alloc     Free
+                ------   ------   ------   ------   ------   ------   ------   ------
+  Native Heap    15374    15348       16     4350    16072    41896    27577     5532
+  Dalvik Heap    61777    61752        0     2611    62456    58895    34319    24576
+ Dalvik Other     1306     1220        0       21     1732                           
+        Stack     1416     1416        0      364     1420                           
+       Ashmem      994        4        0        0     2312                           
+    Other dev       76       12       64        0      388                           
+     .so mmap     4075      236      856       60    27172                           
+    .jar mmap     1850        0      320        0    18972                           
+    .apk mmap     1180       20      304        8     4424                           
+    .ttf mmap       16        0       12        0       20                           
+    .dex mmap    11307       16    11284        4    11896                           
+    .oat mmap      941        0      244        0     8044                           
+    .art mmap     4007     3520      148      332    15176                           
+   Other mmap      227      172       28        0     1040                           
+    GL mtrack    13968    13968        0        0    13968                           
+      Unknown      507      500        4       84      740                           
+        TOTAL   126855    98184    13280     7834   185832   100791    61896    30108
+ 
+ App Summary
+                       Pss(KB)                        Rss(KB)
+                        ------                         ------
+           Java Heap:    65420                          77632
+         Native Heap:    15348                          16072
+                Code:    13300                          70712
+               Stack:     1416                           1420
+            Graphics:    13968                          13968
+       Private Other:     2012
+              System:    15391
+             Unknown:                                    6028
+ 
+           TOTAL PSS:   126855            TOTAL RSS:   185832       TOTAL SWAP PSS:     7834
+ 
+ Objects
+               Views:      227         ViewRootImpl:        1
+         AppContexts:       16           Activities:        1
+              Assets:       21        AssetManagers:        0
+       Local Binders:       64        Proxy Binders:       54
+       Parcel memory:       29         Parcel count:      111
+    Death Recipients:        1             WebViews:        0
+ 
+ SQL
+         MEMORY_USED:      362
+  PAGECACHE_OVERFLOW:      144          MALLOC_SIZE:       46
+ 
+ DATABASES
+      pgsz     dbsz   Lookaside(b) cache hits cache misses cache size  Dbname
+PER CONNECTION STATS
+         4      104            111     4    31     6  /data/user/0/com.spocky.projengmenu/no_backup/androidx.work.workdb
+         4        8                    0     0     0    (attached) temp
+         4      104             32     4    15     3  /data/user/0/com.spocky.projengmenu/no_backup/androidx.work.workdb (2)
+         4       56            122    56    62    17  /data/user/0/com.spocky.projengmenu/databases/com.google.android.datatransport.events
+POOL STATS
+     cache hits  cache misses    cache size  Dbname
+             10            68            78  /data/user/0/com.spocky.projengmenu/no_backup/androidx.work.workdb
+             56            63           119  /data/user/0/com.spocky.projengmenu/databases/com.google.android.datatransport.events

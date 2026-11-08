@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.auramusic.app.tv.TvPreviewAudioDownloaderTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-11-08T06:45:35.702Z" hostname="DESKTOP" time="1.154">
+  <properties/>
+  <testcase name="resumesAfterShortBodyWithRangeAndPublishesExactFile" classname="com.auramusic.app.tv.TvPreviewAudioDownloaderTest" time="0.632"/>
+  <testcase name="staleUrlCleansPartialCacheAndSameSourceCanRecover" classname="com.auramusic.app.tv.TvPreviewAudioDownloaderTest" time="0.045"/>
+  <testcase name="cancellationCleansPartialAndKeepsPreviousCompleteCache" classname="com.auramusic.app.tv.TvPreviewAudioDownloaderTest" time="0.021"/>
+  <testcase name="fallsBackToSequentialTransferAfterParallelRangesFail" classname="com.auramusic.app.tv.TvPreviewAudioDownloaderTest" time="0.121"/>
+  <testcase name="restartsWhenServerIgnoresRangeWithoutDuplicatingPrefix" classname="com.auramusic.app.tv.TvPreviewAudioDownloaderTest" time="0.037"/>
+  <testcase name="replacesExistingCacheOnlyAfterCompleteDownload" classname="com.auramusic.app.tv.TvPreviewAudioDownloaderTest" time="0.042"/>
+  <testcase name="rejectsOversizedDeclaredSourceAndPreservesExistingCache" classname="com.auramusic.app.tv.TvPreviewAudioDownloaderTest" time="0.013"/>
+  <testcase name="downloadsLargeRangeCapableSourceConcurrentlyAndPublishesExactFile" classname="com.auramusic.app.tv.TvPreviewAudioDownloaderTest" time="0.241"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

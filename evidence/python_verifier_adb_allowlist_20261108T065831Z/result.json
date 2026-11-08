@@ -1,0 +1,34 @@
+{
+  "outcome": "PASS",
+  "scope": "Offline safety and CLI audit for Python Android TV verifiers",
+  "git_commit": "314e7c8b372d200e8c5425c60250d57c2bb75074",
+  "tests": {
+    "suite_count": 3,
+    "test_count": 19,
+    "failures": 0
+  },
+  "py_compile": "PASS",
+  "cli_help": {
+    "real_song_transitions": "PASS",
+    "track_continuity": "PASS",
+    "focused_window": "PASS",
+    "audio_only_startup": "PASS"
+  },
+  "bare_adb_subprocess_scan": "PASS: no Python verifier invokes an unqualified adb executable",
+  "adb_policy": "Shared helper uses configured Windows SDK adb.exe, configured server port, and required explicit serial. Physical serials rejected unless --allow-physical is passed.",
+  "device_accessed": false,
+  "files": [
+    "scripts/tv_adb.py",
+    "scripts/verify-projectivy-real-song-transitions.py",
+    "scripts/verify-projectivy-track-continuity.py",
+    "scripts/verify-projectivy-focused-window.py",
+    "scripts/verify-projectivy-audio-only-startup.py"
+  ],
+  "logs": [
+    "unit-tests.log",
+    "real-transition-help.txt",
+    "continuity-help.txt",
+    "focused-window-help.txt",
+    "audio-startup-help.txt"
+  ]
+}

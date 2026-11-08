@@ -1,0 +1,13 @@
+{
+  "outcome": "PASS",
+  "scope": "Offline command-construction tests for the live transition verifier; no device interaction",
+  "git_commit": "9d084a3dc852f69c8dc4754ab18d52d2814c51bd",
+  "tests": {"count": 13, "failures": 0},
+  "py_compile": "PASS",
+  "help": "PASS",
+  "diff_check": "PASS",
+  "device_accessed": false,
+  "fix": "All verifier ADB operations, including streaming logcat, now use the configured executable, explicit ADB server port, and explicit serial. This removes the previous bare-ADB/default-server path.",
+  "test_assertion": "Windows SDK adb.exe, server port 5038, and emulator-5554 appear in the exact generated command.",
+  "logs": ["unit-tests.log", "help.txt"]
+}

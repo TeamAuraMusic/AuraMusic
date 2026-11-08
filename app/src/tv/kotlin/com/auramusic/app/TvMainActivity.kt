@@ -44,11 +44,13 @@ import com.auramusic.app.constants.UiScaleKey
  import com.auramusic.app.listentogether.ListenTogetherManager
 import com.auramusic.app.models.toMediaMetadata
  import com.auramusic.app.playback.MusicService
+import com.auramusic.app.tv.tvRecommendationMediaId
  import com.auramusic.app.playback.MusicService.MusicBinder
  import com.auramusic.app.playback.PlayerConnection
 import com.auramusic.app.video.VideoPlaybackManager
 import com.auramusic.app.playback.queues.YouTubeQueue
 import com.auramusic.app.tv.TvRecommendationHelper
+import com.auramusic.app.tv.TvRecommendationWorkScheduler
  import com.auramusic.app.ui.component.LocalMenuState
  import com.auramusic.app.ui.theme.AuraMusicTheme
 import com.auramusic.app.ui.theme.DefaultThemeColor
@@ -181,6 +183,7 @@ class TvMainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        TvRecommendationWorkScheduler.ensureScheduled(applicationContext)
         TvRecommendationHelper.scheduleUpdate(applicationContext)
         
         // Initialize sync on TV launch
@@ -272,7 +275,7 @@ class TvMainActivity : ComponentActivity() {
     }
 
     private fun handleProgramIntent(intent: Intent, connection: PlayerConnection) {
-        val mediaId = intent.getStringExtra("media_id") ?: return
+        val mediaId = tvRecommendationMediaId(intent) ?: return
         if (handledMediaId == mediaId) return
         handledMediaId = mediaId
 

@@ -1,0 +1,210 @@
+"""Offline tests for deterministic Projectivy output-audio assertions."""
+import importlib.util
+import json
+import subprocess
+import sys
+import tempfile
+import unittest
+import wave
+from pathlib import Path
+
+import numpy as np
+
+SPEC = importlib.util.spec_from_file_location(
+    "verify_preview_audio",
+    Path(__file__).with_name("verify-preview-audio.py"),
+)
+VERIFIER = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(VERIFIER)
+
+
+class PreviewAudioAnalysisTest(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.directory = Path(self.temporary.name)
+
+    def tearDown(self):
+        self.temporary.cleanup()
+
+    def write_wav(self, name: str, frequency: int | None, seconds: int = 5) -> Path:
+        path = self.directory / name
+        rate = 48_000
+        time = np.arange(rate * seconds, dtype=np.float64) / rate
+        samples = np.zeros(len(time), dtype=np.int16)
+        if frequency is not None:
+            samples = np.rint(12_000 * np.sin(2 * np.pi * frequency * time)).astype(np.int16)
+        with wave.open(str(path), "wb") as output:
+            output.setnchannels(1)
+            output.setsampwidth(2)
+            output.setframerate(rate)
+            output.writeframes(samples.astype("<i2").tobytes())
+        return path
+
+    def write_sequence(self, name: str, segments: list[tuple[tuple[int, ...] | None, float]]) -> Path:
+        rate = 48_000
+        pieces = []
+        for frequencies, duration in segments:
+            count = round(rate * duration)
+            time = np.arange(count, dtype=np.float64) / rate
+            signal = np.zeros(count, dtype=np.float64)
+            if frequencies:
+                amplitude = 12_000 / len(frequencies)
+                for frequency in frequencies:
+                    signal += amplitude * np.sin(2 * np.pi * frequency * time)
+            pieces.append(np.rint(signal).astype("<i2"))
+        path = self.directory / name
+        with wave.open(str(path), "wb") as output:
+            output.setnchannels(1)
+            output.setsampwidth(2)
+            output.setframerate(rate)
+            output.writeframes(np.concatenate(pieces).tobytes())
+        return path
+
+    def test_440_hz_fixture_passes_a_assertion(self):
+        result = VERIFIER.analyze_tone(self.write_wav("a.wav", 440), 440)
+
+        self.assertEqual("PASS", result["status"])
+        self.assertEqual(440.0, result["medianPeakHz"])
+        self.assertEqual(result["windows"], result["matchingWindows"])
+
+    def test_880_hz_fixture_passes_b_assertion(self):
+        result = VERIFIER.analyze_tone(self.write_wav("b.wav", 880), 880)
+
+        self.assertEqual("PASS", result["status"])
+        self.assertEqual(880.0, result["medianPeakHz"])
+        self.assertEqual(result["windows"], result["matchingWindows"])
+
+    def test_wrong_tone_fails_expected_fixture_assertion(self):
+        result = VERIFIER.analyze_tone(self.write_wav("wrong.wav", 880), 440)
+
+        self.assertEqual("FAIL_PRODUCT", result["status"])
+        self.assertEqual(880.0, result["medianPeakHz"])
+
+    def test_short_capture_does_not_pass_without_three_windows(self):
+        result = VERIFIER.analyze_tone(self.write_wav("short.wav", 440, seconds=2), 440)
+
+        self.assertEqual("INCONCLUSIVE", result["status"])
+        self.assertLess(result["windows"], 3)
+
+    def test_silence_passes_loss_assertion_and_fails_tone_assertion(self):
+        silence = self.write_wav("silence.wav", None)
+
+        self.assertEqual("PASS", VERIFIER.analyze_silence(silence)["status"])
+        self.assertEqual("FAIL_PRODUCT", VERIFIER.analyze_tone(silence, 440)["status"])
+
+    def test_too_short_silence_capture_is_inconclusive(self):
+        self.assertEqual(
+            "INCONCLUSIVE",
+            VERIFIER.analyze_silence(self.write_wav("short-silence.wav", None, seconds=2))["status"],
+        )
+
+    def test_cli_propagates_insufficient_capture_as_inconclusive(self):
+        audio_a = self.write_wav("short-a.wav", 440, seconds=2)
+        audio_b = self.write_wav("short-b.wav", 880, seconds=2)
+        focus_loss = self.write_wav("short-loss.wav", None, seconds=2)
+        output = self.directory / "result.json"
+        script = Path(__file__).with_name("verify-preview-audio.py")
+
+        result = subprocess.run(
+            [sys.executable, str(script), "--a", str(audio_a), "--b", str(audio_b),
+             "--focus-loss", str(focus_loss), "--output", str(output)],
+            capture_output=True, text=True, check=False,
+        )
+
+        self.assertEqual(1, result.returncode)
+        self.assertEqual("INCONCLUSIVE", json.loads(output.read_text())["outcome"])
+
+    def test_clean_440_to_880_transition_passes_without_overlap(self):
+        capture = self.write_sequence("clean-transition.wav", [((440,), 2), ((880,), 2)])
+
+        result = VERIFIER.analyze_tone_transition(capture)
+
+        self.assertEqual("PASS", result["status"])
+        self.assertEqual(4, result["firstStableWindows"])
+        self.assertEqual(4, result["secondStableWindows"])
+        self.assertEqual([], result["boundaryStates"])
+
+    def test_one_mixed_transition_window_is_inconclusive(self):
+        capture = self.write_sequence(
+            "boundary-mix.wav", [((440,), 2), ((440, 880), 0.5), ((880,), 2)],
+        )
+
+        result = VERIFIER.analyze_tone_transition(capture)
+
+        self.assertEqual("INCONCLUSIVE", result["status"])
+        self.assertEqual(["MIXED"], result["boundaryStates"])
+
+    def test_sustained_mixed_tones_fail_overlap_assertion(self):
+        capture = self.write_sequence(
+            "overlap.wav", [((440,), 2), ((440, 880), 1), ((880,), 2)],
+        )
+
+        result = VERIFIER.analyze_tone_transition(capture)
+
+        self.assertEqual("FAIL_PRODUCT", result["status"])
+        self.assertEqual(2, result["boundaryStates"].count("MIXED"))
+
+    def test_stale_first_tone_after_second_fails_transition(self):
+        capture = self.write_sequence(
+            "stale-a.wav", [((440,), 2), ((880,), 2), ((440,), 1)],
+        )
+
+        result = VERIFIER.analyze_tone_transition(capture)
+
+        self.assertEqual("FAIL_PRODUCT", result["status"])
+        self.assertEqual("Stale first tone or sustained mixed-tone overlap observed", result["reason"])
+
+    def test_capture_without_ordered_tones_is_inconclusive(self):
+        capture = self.write_sequence("missing-b.wav", [((440,), 2)])
+
+        result = VERIFIER.analyze_tone_transition(capture)
+
+        self.assertEqual("INCONCLUSIVE", result["status"])
+        self.assertIn("both expected tones", result["reason"])
+
+    def test_cli_accepts_a_single_continuous_transition_capture(self):
+        capture = self.write_sequence("cli-transition.wav", [((440,), 2), ((880,), 2)])
+        output = self.directory / "transition-result.json"
+        script = Path(__file__).with_name("verify-preview-audio.py")
+
+        result = subprocess.run(
+            [sys.executable, str(script), "--transition", str(capture), "--output", str(output)],
+            capture_output=True, text=True, check=False,
+        )
+
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        decoded = json.loads(output.read_text())
+        self.assertEqual("PASS", decoded["outcome"])
+        self.assertEqual("PASS", decoded["assertions"]["focusAToBNoOverlap"]["status"])
+
+    def test_malformed_wav_is_classified_as_test_infrastructure_failure(self):
+        malformed = self.directory / "malformed.wav"
+        malformed.write_bytes(b"not a WAV file")
+
+        result = VERIFIER.evaluate_assertion(VERIFIER.analyze_tone, malformed, 440)
+
+        self.assertEqual("FAIL_TEST_INFRA", result["status"])
+        self.assertIn("error", result)
+
+    def test_cli_preserves_product_failure_and_reports_missing_capture_as_infra(self):
+        wrong_a = self.write_wav("wrong-a.wav", 880)
+        focus_loss = self.write_wav("loss.wav", None)
+        missing_b = self.directory / "missing-b.wav"
+        output = self.directory / "infra-result.json"
+        script = Path(__file__).with_name("verify-preview-audio.py")
+
+        result = subprocess.run(
+            [sys.executable, str(script), "--a", str(wrong_a), "--b", str(missing_b),
+             "--focus-loss", str(focus_loss), "--output", str(output)],
+            capture_output=True, text=True, check=False,
+        )
+
+        self.assertEqual(1, result.returncode)
+        decoded = json.loads(output.read_text())
+        self.assertEqual("FAIL_TEST_INFRA", decoded["outcome"])
+        self.assertEqual("FAIL_PRODUCT", decoded["assertions"]["focusA440Hz"]["status"])
+        self.assertEqual("FAIL_TEST_INFRA", decoded["assertions"]["focusB880Hz"]["status"])
+
+
+if __name__ == "__main__":
+    unittest.main()

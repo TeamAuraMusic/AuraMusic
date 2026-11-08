@@ -1,0 +1,28 @@
+usage: verify-projectivy-track-continuity.py [-h] --serial SERIAL [--adb ADB]
+                                             [--adb-port ADB_PORT]
+                                             [--allow-physical] --title TITLE
+                                             --duration-seconds
+                                             DURATION_SECONDS
+                                             [--interval-seconds INTERVAL_SECONDS]
+                                             [--post-end-seconds POST_END_SECONDS]
+                                             [--playback-started-before-test-seconds PLAYBACK_STARTED_BEFORE_TEST_SECONDS]
+                                             --evidence-dir EVIDENCE_DIR
+
+Capture focus, Projectivy audio state, and card-surface cadence during a real
+track.
+
+options:
+  -h, --help            show this help message and exit
+  --serial SERIAL       Explicit ADB serial; no device fallback
+  --adb ADB             Windows ADB executable
+  --adb-port ADB_PORT
+  --allow-physical      Permit non-emulator serials explicitly
+  --title TITLE         Exact focused Projectivy program title
+  --duration-seconds DURATION_SECONDS
+                        Expected source track duration
+  --interval-seconds INTERVAL_SECONDS
+  --post-end-seconds POST_END_SECONDS
+  --playback-started-before-test-seconds PLAYBACK_STARTED_BEFORE_TEST_SECONDS
+                        Measured offset when audio started before this sampler
+                        (from device player lifecycle logs)
+  --evidence-dir EVIDENCE_DIR

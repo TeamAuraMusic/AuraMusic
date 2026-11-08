@@ -29,11 +29,7 @@ object TvRecommendationHelper {
         pendingJob?.cancel()
         pendingJob = scope.launch {
             delay(2000) // Debounce 2 seconds
-            try {
-                TvRecommendationService.start(context.applicationContext)
-            } catch (_: Exception) {
-                // Best effort — don't crash if the system rejects it
-            }
+            TvRecommendationWorkScheduler.enqueueRefresh(context.applicationContext)
         }
     }
 }

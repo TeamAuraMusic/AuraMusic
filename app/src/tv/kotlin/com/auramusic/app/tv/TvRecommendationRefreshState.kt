@@ -1,6 +1,6 @@
 package com.auramusic.app.tv
 
-/** Coalesces overlapping service starts into one follow-up refresh. */
+/** Coalesces refresh requests received during an active or queued publication. */
 internal class TvRecommendationRefreshState {
     private var refreshing = false
     private var pendingStartId: Int? = null
@@ -14,6 +14,12 @@ internal class TvRecommendationRefreshState {
 
         refreshing = true
         return true
+    }
+
+    /** A worker is starting now and will read the latest state, so older queued requests collapse. */
+    fun markStarted() {
+        refreshing = true
+        pendingStartId = null
     }
 
     /** Returns the newest queued start ID, or null when the service can stop. */

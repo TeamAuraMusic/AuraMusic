@@ -1,0 +1,16 @@
+{
+  "outcome": "PASS",
+  "scope": "Read-only current PR and local branch provenance",
+  "repository": "TeamAuraMusic/AuraMusic",
+  "pr": 37,
+  "pr_state": "OPEN",
+  "pr_mergeable": true,
+  "pr_head": "22ce2beb8c3710c2ea1dbed576a896160eda0d6a",
+  "pr_base": "60f5b1803acad0c53c6d98fa91936700b38eab2c",
+  "current_origin_main": "aaf5ef09",
+  "local_branch": "codex/projectivy-preview-implementation",
+  "local_head": "5b908f22",
+  "local_vs_current_main_ahead_behind": "9 1",
+  "remote_mutation": false,
+  "log": "pr.json"
+}

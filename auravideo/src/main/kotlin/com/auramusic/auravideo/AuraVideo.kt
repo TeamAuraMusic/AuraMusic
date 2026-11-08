@@ -15,6 +15,12 @@ object AuraVideo {
         val mimeType: String
     )
 
+    data class AudioPreviewSource(
+        val url: String,
+        val mimeType: String,
+        val durationMs: Long = 0L,
+    )
+
     /**
      * A richer description of how to play a video. YouTube only offers muxed
      * (audio+video) streams up to 720p, so to reach 1080p or higher we must
@@ -459,6 +465,25 @@ object AuraVideo {
         }
         return mp4Audios.maxByOrNull { it.averageBitrate }
             ?: audioStreams.maxByOrNull { it.averageBitrate }
+    }
+
+    suspend fun getAudioPreviewSource(videoId: String): Result<AudioPreviewSource> = runCatching {
+        val streamInfo = NewPipeExtractor.getStreamInfo(videoId)
+            ?: error("Could not resolve audio preview for $videoId")
+        val stream = pickBestAudioStream(streamInfo.audioStreams)
+            ?: error("No audio-only stream available for $videoId")
+        val url = stream.content?.takeIf(String::isNotBlank)
+            ?: stream.url?.takeIf(String::isNotBlank)
+            ?: error("Resolved audio preview URL was blank for $videoId")
+        val mimeType = stream.format?.mimeType?.substringBefore(';')?.trim()
+        require(mimeType?.startsWith("audio/", ignoreCase = true) == true) {
+            "Resolved preview stream was not audio-only for $videoId"
+        }
+        AudioPreviewSource(
+            url = url,
+            mimeType = mimeType,
+            durationMs = streamInfo.duration.coerceAtLeast(0L) * 1000L,
+        )
     }
 
     /**

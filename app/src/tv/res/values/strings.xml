@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tv_preview_indicator_service">AuraMusic focused preview indicator</string>
+    <string name="tv_preview_indicator_service_description">Shows a small animated indicator over AuraMusic song cards while they are focused in Projectivy Launcher. Reads focused card labels and bounds only to match AuraMusic programs.</string>
+</resources>

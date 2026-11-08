@@ -1,0 +1,23 @@
+usage: verify-projectivy-audio-only-startup.py [-h] --serial SERIAL
+                                               [--adb ADB]
+                                               [--adb-port ADB_PORT]
+                                               [--allow-physical] --title
+                                               TITLE --key {LEFT,RIGHT}
+                                               [--timeout-seconds TIMEOUT_SECONDS]
+                                               [--poll-seconds POLL_SECONDS]
+                                               --evidence-dir EVIDENCE_DIR
+
+Measure audio-only preview startup on an already-published Projectivy card.
+
+options:
+  -h, --help            show this help message and exit
+  --serial SERIAL       Explicit emulator serial; physical targets require
+                        opt-in
+  --adb ADB             Windows ADB executable
+  --adb-port ADB_PORT
+  --allow-physical      Permit non-emulator serials explicitly
+  --title TITLE
+  --key {LEFT,RIGHT}
+  --timeout-seconds TIMEOUT_SECONDS
+  --poll-seconds POLL_SECONDS
+  --evidence-dir EVIDENCE_DIR

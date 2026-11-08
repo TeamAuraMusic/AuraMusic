@@ -1,0 +1,63 @@
+Applications Memory Usage (in Kilobytes):
+Uptime: 367595 Realtime: 367595
+
+** MEMINFO in pid 2973 [com.auramusic.app.debug] **
+                   Pss  Private  Private  SwapPss      Rss     Heap     Heap     Heap
+                 Total    Dirty    Clean    Dirty    Total     Size    Alloc     Free
+                ------   ------   ------   ------   ------   ------   ------   ------
+  Native Heap    16322    16312        0      190    17032    48384    14549    23587
+  Dalvik Heap     8997     8876       80      115     9704    16683     8342     8341
+ Dalvik Other     7106     3996        0        4    10488                           
+        Stack     1616     1616        0       76     1620                           
+       Ashmem        5        0        0        0      200                           
+    Other dev       30        4       24        0      332                           
+     .so mmap    10689      184     6116       53    36444                           
+    .jar mmap     6152        0     2960        0    27416                           
+    .apk mmap      899        0      704        0     1576                           
+    .dex mmap    40247    40236        0    78212    40872                           
+    .oat mmap      226        0      112        0     1532                           
+    .art mmap     3813     3160      272     3059    12956                           
+   Other mmap      379        8      216        0     1356                           
+    GL mtrack     5764     5764        0        0     5764                           
+      Unknown      472      448        8       36      744                           
+        TOTAL   184462    80604    10492    81745   168036    65067    22891    31928
+ 
+ App Summary
+                       Pss(KB)                        Rss(KB)
+                        ------                         ------
+           Java Heap:    12308                          22660
+         Native Heap:    16312                          17032
+                Code:    50312                         114056
+               Stack:     1616                           1620
+            Graphics:     5764                           5764
+       Private Other:     4784
+              System:    93366
+             Unknown:                                    6904
+ 
+           TOTAL PSS:   184462            TOTAL RSS:   168036       TOTAL SWAP PSS:    81745
+ 
+ Objects
+               Views:        1         ViewRootImpl:        1
+         AppContexts:        6           Activities:        0
+              Assets:       15        AssetManagers:        0
+       Local Binders:       28        Proxy Binders:       34
+       Parcel memory:        8         Parcel count:       33
+    Death Recipients:        0             WebViews:        0
+ 
+ SQL
+         MEMORY_USED:     2811
+  PAGECACHE_OVERFLOW:     2384          MALLOC_SIZE:       46
+ 
+ DATABASES
+      pgsz     dbsz   Lookaside(b) cache hits cache misses cache size  Dbname
+PER CONNECTION STATS
+         4      176            123   480   105    25  /data/user/0/com.auramusic.app.debug/no_backup/androidx.work.workdb
+         4        8                    0     0     0    (attached) temp
+         4      176             68    14    25     7  /data/user/0/com.auramusic.app.debug/no_backup/androidx.work.workdb (1)
+         4     6908             49     8   115     9  /data/user/0/com.auramusic.app.debug/databases/song.db
+         4       16                    0     0     0    (attached) temp
+         4     6908            123    11    32     8  /data/user/0/com.auramusic.app.debug/databases/song.db (1)
+POOL STATS
+     cache hits  cache misses    cache size  Dbname
+            494           134           628  /data/user/0/com.auramusic.app.debug/no_backup/androidx.work.workdb
+             19           151           170  /data/user/0/com.auramusic.app.debug/databases/song.db

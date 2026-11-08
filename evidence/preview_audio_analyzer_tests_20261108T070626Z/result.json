@@ -1,0 +1,16 @@
+{
+  "outcome": "PASS",
+  "scope": "Offline audio analyzer tests and re-analysis of archived PreviewProbe device captures from 2026-11-06",
+  "git_commit": "4d09b265e73a2f32c3e792a9c6a922fd85b259d8",
+  "tests": {"analyzer_specific": 5, "all_python": 25, "failures": 0},
+  "py_compile": "PASS",
+  "archived_capture_recheck": "PASS",
+  "archived_capture_scope": {
+    "A": "10/10 windows match 440 Hz",
+    "B": "8/8 windows match 880 Hz",
+    "focus_loss": "0 RMS, 0 peak"
+  },
+  "device_accessed": false,
+  "current_candidate_verified": false,
+  "logs": ["unit-tests.log", "all-python-tests.log", "analyzer-stdout.json", "historical-previewprobe-audio-recheck.json"]
+}

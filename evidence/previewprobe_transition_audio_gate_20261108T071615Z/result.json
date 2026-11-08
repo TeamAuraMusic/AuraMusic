@@ -1,0 +1,19 @@
+{
+  "outcome": "PASS",
+  "scope": "Transition-audio analyzer unit tests and re-analysis of archived PreviewProbe captures",
+  "git_commit": "9de4eaccc184859c5e1e26a062f5fae19e744c7b",
+  "tests": {"analyzer_specific": 13, "all_python": 33, "failures": 0},
+  "py_compile": "PASS",
+  "transition_assertion": {
+    "windowSeconds": 0.5,
+    "stableWindowsPerTone": 3,
+    "clean_440_to_880": "PASS",
+    "single_mixed_boundary_window": "INCONCLUSIVE",
+    "sustained_mixed_tones": "FAIL_PRODUCT",
+    "stale_440_after_880": "FAIL_PRODUCT"
+  },
+  "historical_captures": "INCONCLUSIVE: the archived transition files do not show a sustained, ordered A→B transition without long silence or missing tones.",
+  "device_accessed": false,
+  "current_candidate_verified": false,
+  "logs": ["analyzer-tests.log", "all-python-tests.log", "historical-transition-recheck.json"]
+}

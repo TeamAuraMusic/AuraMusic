@@ -20,6 +20,7 @@ dependencyResolutionManagement {
 rootProject.name = "AuraMusic"
 
 include(":app")
+include(":previewprobe")
 include(":innertube")
 include(":auravideo")
 include(":kugou")

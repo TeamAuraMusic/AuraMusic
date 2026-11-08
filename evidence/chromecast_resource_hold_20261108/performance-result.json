@@ -1,0 +1,419 @@
+{
+  "outcome": "PASS",
+  "scope": "Steady-state process resource samples and started AudioTrack identity; no acoustic capture.",
+  "metadata": {
+    "serial": "192.168.3.2:5555",
+    "startedUtc": "2026-11-08T19:19:13.336324+00:00",
+    "model": "Chromecast",
+    "device": "sabrina",
+    "androidApi": "34",
+    "pids": {
+      "com.spocky.projengmenu": 11908,
+      "com.auramusic.app.debug": 2973
+    },
+    "uids": {
+      "com.spocky.projengmenu": 10150,
+      "com.auramusic.app.debug": 10014
+    },
+    "sampleCount": 12,
+    "intervalSeconds": 5.0,
+    "expectedAudio": "playing",
+    "cacheBytesBefore": {
+      "tv_preview_audio": 38920192,
+      "tv_preview_video": null,
+      "tv_preview_gif": null
+    }
+  },
+  "summaries": {
+    "com.spocky.projengmenu": {
+      "cpuPercent": {
+        "samples": 12,
+        "median": 42.3,
+        "p95": 63.3,
+        "max": 64.5
+      },
+      "pssKb": {
+        "samples": 12,
+        "median": 111487.0,
+        "p95": 112027,
+        "max": 138512
+      },
+      "rssKb": {
+        "samples": 12,
+        "median": 200232.0,
+        "p95": 200696,
+        "max": 223084
+      }
+    },
+    "com.auramusic.app.debug": {
+      "cpuPercent": {
+        "samples": 12,
+        "median": 13.3,
+        "p95": 17.2,
+        "max": 17.2
+      },
+      "pssKb": {
+        "samples": 12,
+        "median": 172213.0,
+        "p95": 178027,
+        "max": 178362
+      },
+      "rssKb": {
+        "samples": 12,
+        "median": 119226.0,
+        "p95": 121748,
+        "max": 125032
+      }
+    }
+  },
+  "cacheBytesBefore": {
+    "tv_preview_audio": 38920192,
+    "tv_preview_video": null,
+    "tv_preview_gif": null
+  },
+  "cacheBytesAfter": {
+    "tv_preview_audio": 38920192,
+    "tv_preview_video": null,
+    "tv_preview_gif": null
+  },
+  "cacheByteDelta": {
+    "tv_preview_gif": null,
+    "tv_preview_video": null,
+    "tv_preview_audio": 0
+  },
+  "audioTrackAssertions": {
+    "expectedProjectivyTrackCountEverySample": true,
+    "expectedProjectivyTrackCount": 1,
+    "noAuraMusicTrackOverlapEverySample": true
+  },
+  "samples": [
+    {
+      "index": 0,
+      "elapsedSeconds": 213184.145,
+      "processes": {
+        "com.spocky.projengmenu": {
+          "pid": 11908,
+          "cpuPercent": 36.6,
+          "resident": "209M",
+          "state": "S",
+          "command": "com.spocky.projengmenu",
+          "pssKb": 138512,
+          "rssKb": 223084
+        },
+        "com.auramusic.app.debug": {
+          "pid": 2973,
+          "cpuPercent": 13.3,
+          "resident": "113M",
+          "state": "S",
+          "command": "com.auramusic.app.debug",
+          "pssKb": 178362,
+          "rssKb": 121748
+        }
+      },
+      "startedAudioTrackCount": 1,
+      "projectivyAudioTrackCount": 1,
+      "auraMusicAudioTrackCount": 0
+    },
+    {
+      "index": 1,
+      "elapsedSeconds": 213190.731,
+      "processes": {
+        "com.spocky.projengmenu": {
+          "pid": 11908,
+          "cpuPercent": 40.0,
+          "resident": "184M",
+          "state": "S",
+          "command": "com.spocky.projengmenu",
+          "pssKb": 109028,
+          "rssKb": 197376
+        },
+        "com.auramusic.app.debug": {
+          "pid": 2973,
+          "cpuPercent": 13.3,
+          "resident": "116M",
+          "state": "S",
+          "command": "com.auramusic.app.debug",
+          "pssKb": 178027,
+          "rssKb": 125032
+        }
+      },
+      "startedAudioTrackCount": 1,
+      "projectivyAudioTrackCount": 1,
+      "auraMusicAudioTrackCount": 0
+    },
+    {
+      "index": 2,
+      "elapsedSeconds": 213197.33,
+      "processes": {
+        "com.spocky.projengmenu": {
+          "pid": 11908,
+          "cpuPercent": 34.4,
+          "resident": "184M",
+          "state": "S",
+          "command": "com.spocky.projengmenu",
+          "pssKb": 108770,
+          "rssKb": 197208
+        },
+        "com.auramusic.app.debug": {
+          "pid": 2973,
+          "cpuPercent": 13.7,
+          "resident": "111M",
+          "state": "S",
+          "command": "com.auramusic.app.debug",
+          "pssKb": 172147,
+          "rssKb": 119152
+        }
+      },
+      "startedAudioTrackCount": 1,
+      "projectivyAudioTrackCount": 1,
+      "auraMusicAudioTrackCount": 0
+    },
+    {
+      "index": 3,
+      "elapsedSeconds": 213203.948,
+      "processes": {
+        "com.spocky.projengmenu": {
+          "pid": 11908,
+          "cpuPercent": 30.0,
+          "resident": "185M",
+          "state": "S",
+          "command": "com.spocky.projengmenu",
+          "pssKb": 109146,
+          "rssKb": 197664
+        },
+        "com.auramusic.app.debug": {
+          "pid": 2973,
+          "cpuPercent": 13.3,
+          "resident": "111M",
+          "state": "S",
+          "command": "com.auramusic.app.debug",
+          "pssKb": 172143,
+          "rssKb": 119148
+        }
+      },
+      "startedAudioTrackCount": 1,
+      "projectivyAudioTrackCount": 1,
+      "auraMusicAudioTrackCount": 0
+    },
+    {
+      "index": 4,
+      "elapsedSeconds": 213210.762,
+      "processes": {
+        "com.spocky.projengmenu": {
+          "pid": 11908,
+          "cpuPercent": 45.1,
+          "resident": "188M",
+          "state": "S",
+          "command": "com.spocky.projengmenu",
+          "pssKb": 110274,
+          "rssKb": 198692
+        },
+        "com.auramusic.app.debug": {
+          "pid": 2973,
+          "cpuPercent": 12.9,
+          "resident": "111M",
+          "state": "S",
+          "command": "com.auramusic.app.debug",
+          "pssKb": 172195,
+          "rssKb": 119200
+        }
+      },
+      "startedAudioTrackCount": 1,
+      "projectivyAudioTrackCount": 1,
+      "auraMusicAudioTrackCount": 0
+    },
+    {
+      "index": 5,
+      "elapsedSeconds": 213217.351,
+      "processes": {
+        "com.spocky.projengmenu": {
+          "pid": 11908,
+          "cpuPercent": 41.3,
+          "resident": "186M",
+          "state": "S",
+          "command": "com.spocky.projengmenu",
+          "pssKb": 108913,
+          "rssKb": 197412
+        },
+        "com.auramusic.app.debug": {
+          "pid": 2973,
+          "cpuPercent": 17.2,
+          "resident": "111M",
+          "state": "S",
+          "command": "com.auramusic.app.debug",
+          "pssKb": 172201,
+          "rssKb": 119208
+        }
+      },
+      "startedAudioTrackCount": 1,
+      "projectivyAudioTrackCount": 1,
+      "auraMusicAudioTrackCount": 0
+    },
+    {
+      "index": 6,
+      "elapsedSeconds": 213224.006,
+      "processes": {
+        "com.spocky.projengmenu": {
+          "pid": 11908,
+          "cpuPercent": 64.5,
+          "resident": "187M",
+          "state": "S",
+          "command": "com.spocky.projengmenu",
+          "pssKb": 111661,
+          "rssKb": 200228
+        },
+        "com.auramusic.app.debug": {
+          "pid": 2973,
+          "cpuPercent": 12.9,
+          "resident": "111M",
+          "state": "S",
+          "command": "com.auramusic.app.debug",
+          "pssKb": 172197,
+          "rssKb": 119204
+        }
+      },
+      "startedAudioTrackCount": 1,
+      "projectivyAudioTrackCount": 1,
+      "auraMusicAudioTrackCount": 0
+    },
+    {
+      "index": 7,
+      "elapsedSeconds": 213230.681,
+      "processes": {
+        "com.spocky.projengmenu": {
+          "pid": 11908,
+          "cpuPercent": 44.8,
+          "resident": "189M",
+          "state": "S",
+          "command": "com.spocky.projengmenu",
+          "pssKb": 111697,
+          "rssKb": 200320
+        },
+        "com.auramusic.app.debug": {
+          "pid": 2973,
+          "cpuPercent": 13.7,
+          "resident": "111M",
+          "state": "S",
+          "command": "com.auramusic.app.debug",
+          "pssKb": 172201,
+          "rssKb": 119212
+        }
+      },
+      "startedAudioTrackCount": 1,
+      "projectivyAudioTrackCount": 1,
+      "auraMusicAudioTrackCount": 0
+    },
+    {
+      "index": 8,
+      "elapsedSeconds": 213237.417,
+      "processes": {
+        "com.spocky.projengmenu": {
+          "pid": 11908,
+          "cpuPercent": 20.0,
+          "resident": "189M",
+          "state": "S",
+          "command": "com.spocky.projengmenu",
+          "pssKb": 112027,
+          "rssKb": 200696
+        },
+        "com.auramusic.app.debug": {
+          "pid": 2973,
+          "cpuPercent": 16.6,
+          "resident": "110M",
+          "state": "S",
+          "command": "com.auramusic.app.debug",
+          "pssKb": 172225,
+          "rssKb": 119240
+        }
+      },
+      "startedAudioTrackCount": 1,
+      "projectivyAudioTrackCount": 1,
+      "auraMusicAudioTrackCount": 0
+    },
+    {
+      "index": 9,
+      "elapsedSeconds": 213244.069,
+      "processes": {
+        "com.spocky.projengmenu": {
+          "pid": 11908,
+          "cpuPercent": 43.3,
+          "resident": "189M",
+          "state": "S",
+          "command": "com.spocky.projengmenu",
+          "pssKb": 111743,
+          "rssKb": 200464
+        },
+        "com.auramusic.app.debug": {
+          "pid": 2973,
+          "cpuPercent": 13.3,
+          "resident": "111M",
+          "state": "S",
+          "command": "com.auramusic.app.debug",
+          "pssKb": 172297,
+          "rssKb": 119312
+        }
+      },
+      "startedAudioTrackCount": 1,
+      "projectivyAudioTrackCount": 1,
+      "auraMusicAudioTrackCount": 0
+    },
+    {
+      "index": 10,
+      "elapsedSeconds": 213250.82,
+      "processes": {
+        "com.spocky.projengmenu": {
+          "pid": 11908,
+          "cpuPercent": 63.3,
+          "resident": "189M",
+          "state": "S",
+          "command": "com.spocky.projengmenu",
+          "pssKb": 111463,
+          "rssKb": 200236
+        },
+        "com.auramusic.app.debug": {
+          "pid": 2973,
+          "cpuPercent": 10.0,
+          "resident": "111M",
+          "state": "S",
+          "command": "com.auramusic.app.debug",
+          "pssKb": 172297,
+          "rssKb": 119312
+        }
+      },
+      "startedAudioTrackCount": 1,
+      "projectivyAudioTrackCount": 1,
+      "auraMusicAudioTrackCount": 0
+    },
+    {
+      "index": 11,
+      "elapsedSeconds": 213257.51,
+      "processes": {
+        "com.spocky.projengmenu": {
+          "pid": 11908,
+          "cpuPercent": 44.8,
+          "resident": "189M",
+          "state": "S",
+          "command": "com.spocky.projengmenu",
+          "pssKb": 111511,
+          "rssKb": 200332
+        },
+        "com.auramusic.app.debug": {
+          "pid": 2973,
+          "cpuPercent": 17.2,
+          "resident": "110M",
+          "state": "R",
+          "command": "com.auramusic.app.debug",
+          "pssKb": 172297,
+          "rssKb": 119312
+        }
+      },
+      "startedAudioTrackCount": 1,
+      "projectivyAudioTrackCount": 1,
+      "auraMusicAudioTrackCount": 0
+    }
+  ],
+  "limitations": [
+    "CPU readings are short top snapshots, not a controlled benchmark or whole-device power measurement.",
+    "AudioTrack state does not establish acoustic song identity."
+  ]
+}
