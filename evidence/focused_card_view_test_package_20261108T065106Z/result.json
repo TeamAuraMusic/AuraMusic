@@ -1,0 +1,37 @@
+{
+  "outcome": "PASS",
+  "scope": "Compile/package Android instrumentation tests; no installation and no device execution",
+  "git_commit": "743e1791abe207bbc26071a9b13f6551e4e0a363",
+  "source_worktree_dirty": true,
+  "uncommitted_source": "app/src/androidTestTv/kotlin/com/auramusic/app/tv/FocusedCardWaveformViewInstrumentedTest.kt",
+  "build_command": "./gradlew :app:assembleStandaloneTvUniversalDebugAndroidTest :app:assembleFossTvUniversalDebugAndroidTest --console=plain",
+  "build": "PASS",
+  "runtime_test_outcome": "INCONCLUSIVE",
+  "runtime_test_reason": "Instrumentation tests were compiled and packaged only; emulator and Chromecast were not used.",
+  "test_behavior": "Render FocusedCardWaveformView with synthetic artwork; assert artwork remains visible, pink waveform pixels appear and change across frames, and waveform pixels disappear when playback becomes inactive.",
+  "packages": {
+    "standalone": {
+      "path": "app/build/outputs/apk/androidTest/standaloneTvUniversal/debug/app-standalone-tv-universal-debug-androidTest.apk",
+      "sha256": "e5cc8552c531367823d28c60d9e2ceb0560d4925c81fbeeea17d7efe2d45e5d3",
+      "sizeBytes": 504645,
+      "runner": "androidx.test.runner.AndroidJUnitRunner",
+      "targetPackage": "com.auramusic.app.debug",
+      "waveformViewTestClassPresent": true,
+      "transcoderTestClassPresent": true
+    },
+    "foss": {
+      "path": "app/build/outputs/apk/androidTest/fossTvUniversal/debug/app-foss-tv-universal-debug-androidTest.apk",
+      "sha256": "60aa2bc379c699c4a4f65010508a400858ae0f50c9c33844394c0eb82caf9b7b",
+      "sizeBytes": 509413,
+      "runner": "androidx.test.runner.AndroidJUnitRunner",
+      "targetPackage": "com.auramusic.app.debug",
+      "waveformViewTestClassPresent": true,
+      "transcoderTestClassPresent": true
+    }
+  },
+  "device_accessed": false,
+  "logs": [
+    "build.log",
+    "package-verification.txt"
+  ]
+}

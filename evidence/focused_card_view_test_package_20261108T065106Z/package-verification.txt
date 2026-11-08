@@ -1,0 +1,2 @@
+standalone: APK exists; runner and target verified; waveform and transcoder test classes found
+foss: APK exists; runner and target verified; waveform and transcoder test classes found
