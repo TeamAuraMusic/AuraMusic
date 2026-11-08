@@ -14,6 +14,14 @@ SPEC.loader.exec_module(VERIFIER)
 
 
 class FocusedProgramInfoTest(unittest.TestCase):
+    def test_adb_command_uses_explicit_executable_server_and_serial(self):
+        self.assertEqual(
+            [r"C:\AndroidTVSdk\platform-tools\adb.exe", "-P", "5038", "-s", "emulator-5554", "logcat"],
+            VERIFIER.adb_command(
+                Path(r"C:\AndroidTVSdk\platform-tools\adb.exe"), 5038, "emulator-5554", "logcat",
+            ),
+        )
+
     def test_emulator_serials_are_allowed_by_default(self):
         self.assertTrue(VERIFIER.is_allowed_target("emulator-5554", allow_physical=False))
         self.assertTrue(VERIFIER.is_allowed_target("emulator-5556", allow_physical=False))

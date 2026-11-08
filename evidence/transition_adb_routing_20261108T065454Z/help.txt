@@ -1,0 +1,38 @@
+usage: verify-projectivy-real-song-transitions.py [-h] --serial SERIAL
+                                                  [--adb ADB]
+                                                  [--adb-port ADB_PORT]
+                                                  [--allow-physical] --title-a
+                                                  TITLE_A --title-b TITLE_B
+                                                  [--channel-name CHANNEL_NAME]
+                                                  [--cycles CYCLES]
+                                                  [--focus-timeout-seconds FOCUS_TIMEOUT_SECONDS]
+                                                  [--audio-timeout-seconds AUDIO_TIMEOUT_SECONDS]
+                                                  [--settle-seconds SETTLE_SECONDS]
+                                                  [--indicator-timeout-seconds INDICATOR_TIMEOUT_SECONDS]
+                                                  --evidence-dir EVIDENCE_DIR
+
+Exercise repeated no-click focus changes between two published AuraMusic
+cards.
+
+options:
+  -h, --help            show this help message and exit
+  --serial SERIAL       Explicit ADB serial; no device fallback
+  --adb ADB             Authoritative Windows ADB executable (default:
+                        TVCTL_ADB or I: SDK ADB)
+  --adb-port ADB_PORT   Windows ADB server port used by tvctl (default:
+                        TVCTL_ADB_PORT or 5038)
+  --allow-physical      Explicitly permit non-emulator serials after emulator
+                        acceptance
+  --title-a TITLE_A
+  --title-b TITLE_B
+  --channel-name CHANNEL_NAME
+  --cycles CYCLES       A→B→A rounds
+  --focus-timeout-seconds FOCUS_TIMEOUT_SECONDS
+  --audio-timeout-seconds AUDIO_TIMEOUT_SECONDS
+                        wait for the focused preview AudioTrack before
+                        sampling the transition
+  --settle-seconds SETTLE_SECONDS
+  --indicator-timeout-seconds INDICATOR_TIMEOUT_SECONDS
+                        bounded time after audio starts for the focused-card
+                        waveform to appear
+  --evidence-dir EVIDENCE_DIR

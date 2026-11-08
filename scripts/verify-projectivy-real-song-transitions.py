@@ -26,9 +26,13 @@ def is_allowed_target(serial: str, allow_physical: bool) -> bool:
     return serial in EMULATOR_SERIAL_ALLOWLIST or allow_physical
 
 
+def adb_command(executable: Path, server_port: int, serial: str, *args: str) -> list[str]:
+    return [str(executable), "-P", str(server_port), "-s", serial, *args]
+
+
 def adb(serial: str, *args: str, timeout: int = 30, binary: bool = False):
     result = subprocess.run(
-        [str(ADB_EXECUTABLE), "-P", str(ADB_SERVER_PORT), "-s", serial, *args], check=True, capture_output=True,
+        adb_command(ADB_EXECUTABLE, ADB_SERVER_PORT, serial, *args), check=True, capture_output=True,
         text=not binary, errors="replace" if not binary else None, timeout=timeout,
     )
     return result.stdout
@@ -212,8 +216,13 @@ def main() -> None:
     }
     (evidence / "run-metadata.json").write_text(json.dumps(metadata, indent=2) + "\n")
     logcat = subprocess.Popen(
-        ["adb", "-s", serial, "logcat", "-v", "threadtime", "-s",
-         "TvPreviewFocusAccessibilityService:D", "TvPreviewContentProvider:I"],
+        adb_command(
+            ADB_EXECUTABLE,
+            ADB_SERVER_PORT,
+            serial,
+            "logcat", "-v", "threadtime", "-s",
+            "TvPreviewFocusAccessibilityService:D", "TvPreviewContentProvider:I",
+        ),
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1,
     )
     samples = []
