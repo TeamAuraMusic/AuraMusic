@@ -60,6 +60,46 @@ class FocusedCardWaveformViewInstrumentedTest {
         inactiveFrame.recycle()
     }
 
+    @Test
+    fun cardTransitionNeverDrawsPreviousCardsArtwork() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val previousArtwork = Bitmap.createBitmap(320, 180, Bitmap.Config.ARGB_8888).apply {
+            eraseColor(ARTWORK_COLOR)
+        }
+        val nextArtwork = Bitmap.createBitmap(320, 180, Bitmap.Config.ARGB_8888).apply {
+            eraseColor(NEXT_ARTWORK_COLOR)
+        }
+        lateinit var view: FocusedCardWaveformView
+        instrumentation.runOnMainSync {
+            view = FocusedCardWaveformView(instrumentation.targetContext)
+            view.measure(
+                View.MeasureSpec.makeMeasureSpec(CARD_WIDTH, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(CARD_HEIGHT, View.MeasureSpec.EXACTLY),
+            )
+            view.layout(0, 0, CARD_WIDTH, CARD_HEIGHT)
+            view.setArtwork(previousArtwork)
+            view.setPreviewFocused(true)
+        }
+        val oldFrame = render(instrumentation, view)
+        assertEquals(ARTWORK_COLOR, oldFrame.getPixel(CARD_WIDTH / 2, 40))
+
+        lateinit var clearedFrame: Bitmap
+        instrumentation.runOnMainSync {
+            // Replace the bitmap before repositioning the overlay with the new card.
+            view.setArtwork(nextArtwork)
+            clearedFrame = Bitmap.createBitmap(CARD_WIDTH, CARD_HEIGHT, Bitmap.Config.ARGB_8888)
+            view.draw(Canvas(clearedFrame))
+        }
+
+        assertEquals(NEXT_ARTWORK_COLOR, clearedFrame.getPixel(CARD_WIDTH / 2, 40))
+        assertTrue("The waveform remains visible over the new card", pinkPixels(clearedFrame) > 100)
+
+        oldFrame.recycle()
+        clearedFrame.recycle()
+        previousArtwork.recycle()
+        nextArtwork.recycle()
+    }
+
     private fun render(instrumentation: android.app.Instrumentation, view: View): Bitmap {
         lateinit var frame: Bitmap
         instrumentation.runOnMainSync {
@@ -94,5 +134,6 @@ class FocusedCardWaveformViewInstrumentedTest {
         const val CARD_WIDTH = 640
         const val CARD_HEIGHT = 360
         val ARTWORK_COLOR = Color.rgb(30, 80, 180)
+        val NEXT_ARTWORK_COLOR = Color.rgb(30, 180, 80)
     }
 }

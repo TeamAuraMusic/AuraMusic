@@ -1,0 +1,854 @@
+ACTIVITY MANAGER ACTIVITIES (dumpsys activity activities)
+Display #0 (activities from top to bottom):
+  * Task{199fb79 #1 type=home U=0 visible=true visibleRequested=true mode=fullscreen translucent=false sz=2}
+    * Task{4aad842 #26447 type=home I=com.spocky.projengmenu/.ui.home.MainActivity U=0 rootTaskId=1 visible=true visibleRequested=true mode=fullscreen translucent=false sz=1}
+      mLastNonFullscreenBounds=Rect(687, 54 - 1233, 1026)
+      isSleeping=false
+      topResumedActivity=ActivityRecord{c158e8d u0 com.spocky.projengmenu/.ui.home.MainActivity t26447}
+      * Hist  #0: ActivityRecord{c158e8d u0 com.spocky.projengmenu/.ui.home.MainActivity t26447}
+        packageName=com.spocky.projengmenu processName=com.spocky.projengmenu
+        launchedFromUid=10150 launchedFromPackage=com.spocky.projengmenu launchedFromFeature=null userId=0
+        app=ProcessRecord{de84cb 17297:com.spocky.projengmenu/u0a150}
+        Intent { act=android.intent.action.MAIN cat=[android.intent.category.HOME] flg=0x10a20000 pkg=com.spocky.projengmenu cmp=com.spocky.projengmenu/.ui.home.MainActivity (has extras) }
+        rootOfTask=true task=Task{4aad842 #26447 type=home I=com.spocky.projengmenu/.ui.home.MainActivity}
+        taskAffinity=null
+        mActivityComponent=com.spocky.projengmenu/.ui.home.MainActivity
+        baseDir=/data/app/~~S9mWf3FPEoOzvIc-nKuKSQ==/com.spocky.projengmenu-VUpWyfe41kgJeSAMI1Gxlg==/base.apk
+        dataDir=/data/user/0/com.spocky.projengmenu
+        stateNotNeeded=true componentSpecified=false mActivityType=home
+        compat={320dpi always-compat} labelRes=0x7f13006b icon=0x7f100003 theme=0x7f14025f
+        mLastReportedConfigurations:
+          mGlobalConfig={1.0 ?mcc0mnc [en_GB] ldltr sw540dp w960dp h540dp 320dpi lrg long land television night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1080) mAppBounds=Rect(0, 0 - 1920, 1080) mMaxBounds=Rect(0, 0 - 1920, 1080) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=undefined mAlwaysOnTop=undefined mRotation=ROTATION_0} s.8 fontWeightAdjustment=0}
+          mOverrideConfig={1.0 ?mcc0mnc [en_GB] ldltr sw540dp w960dp h540dp 320dpi lrg long land television night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1080) mAppBounds=Rect(0, 0 - 1920, 1080) mMaxBounds=Rect(0, 0 - 1920, 1080) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=home mAlwaysOnTop=undefined mRotation=ROTATION_0} s.33 fontWeightAdjustment=0}
+        CurrentConfiguration={1.0 ?mcc0mnc [en_GB] ldltr sw540dp w960dp h540dp 320dpi lrg long land television night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1080) mAppBounds=Rect(0, 0 - 1920, 1080) mMaxBounds=Rect(0, 0 - 1920, 1080) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=home mAlwaysOnTop=undefined mRotation=ROTATION_0} s.33 fontWeightAdjustment=0}
+        RequestedOverrideConfiguration={0.0 ?mcc0mnc ?localeList ?layoutDir ?swdp ?wdp ?hdp ?density ?lsize ?long ?ldr ?wideColorGamut ?orien ?uimode ?night ?touch ?keyb/?/? ?nav/? winConfig={ mBounds=Rect(0, 0 - 0, 0) mAppBounds=null mMaxBounds=Rect(0, 0 - 0, 0) mDisplayRotation=undefined mWindowingMode=undefined mDisplayWindowingMode=undefined mActivityType=home mAlwaysOnTop=undefined mRotation=undefined} ?fontWeightAdjustment}
+        taskDescription: label="null" icon=null iconResource=/0 iconFilename=null primaryColor=ff1a1b20
+          backgroundColor=ff141218 statusBarColor=0 navigationBarColor=0
+         backgroundColorFloating=ff424242
+        launchFailed=false launchCount=2 lastLaunchTime=-17m41s440ms
+        mHaveState=false mIcicle=null
+        state=RESUMED delayedResume=false finishing=false
+        keysPaused=false inHistory=true idle=true
+        occludesParent=true noDisplay=false immersive=false launchMode=2
+        frozenBeforeDestroy=false forceNewConfig=false
+        mActivityType=home
+        mImeInsetsFrozenUntilStartInput=true
+        windows=[Window{a0db77c u0 com.spocky.projengmenu/com.spocky.projengmenu.ui.home.MainActivity}]
+        windowType=2
+        mOccludesParent=true
+        overrideOrientation=SCREEN_ORIENTATION_UNSPECIFIED
+        requestedOrientation=SCREEN_ORIENTATION_UNSPECIFIED
+        mVisibleRequested=true mVisible=true mClientVisible=true reportedDrawn=true reportedVisible=true
+        mNumInterestingWindows=1 mNumDrawnWindows=1 allDrawn=true lastAllDrawn=true)
+        startingData=null firstWindowDrawn=true mIsExiting=false
+        nowVisible=true lastVisibleTime=-17m38s438ms
+        resizeMode=RESIZE_MODE_RESIZEABLE
+        mLastReportedMultiWindowMode=false mLastReportedPictureInPictureMode=false
+        supportsSizeChanges=SIZE_CHANGES_UNSUPPORTED_METADATA
+        configChanges=0x3
+        neverSandboxDisplayApis=false
+        alwaysSandboxDisplayApis=false
+        areBoundsLetterboxed=false
+        mCameraCompatControlState=hidden
+        mCameraCompatControlEnabled=false
+    * Task{f38f1c8 #26425 type=home A=10043:com.google.android.apps.tv.launcherx U=0 rootTaskId=1 visible=false visibleRequested=false mode=fullscreen translucent=true sz=1}
+      mLastNonFullscreenBounds=Rect(687, 54 - 1233, 1026)
+      isSleeping=false
+      * Hist  #0: ActivityRecord{d69a26b u0 com.google.android.apps.tv.launcherx/.home.HomeActivity t26425}
+        packageName=com.google.android.apps.tv.launcherx processName=com.google.android.apps.tv.launcherx
+        launchedFromUid=0 launchedFromPackage=null launchedFromFeature=null userId=0
+        app=null
+        Intent { act=android.intent.action.MAIN cat=[android.intent.category.HOME] flg=0x10800100 cmp=com.google.android.apps.tv.launcherx/.home.HomeActivity (has extras) }
+        rootOfTask=true task=Task{f38f1c8 #26425 type=home A=10043:com.google.android.apps.tv.launcherx}
+        taskAffinity=10043:com.google.android.apps.tv.launcherx
+        mActivityComponent=com.google.android.apps.tv.launcherx/.home.HomeActivity
+        baseDir=/data/app/~~-U3HNzTGVTQ9A_NepdQjRA==/com.google.android.apps.tv.launcherx-V4wn_izyXAdAPb0uWPOd0Q==/base.apk
+        dataDir=/data/user/0/com.google.android.apps.tv.launcherx
+        splitDir=[/data/app/~~-U3HNzTGVTQ9A_NepdQjRA==/com.google.android.apps.tv.launcherx-V4wn_izyXAdAPb0uWPOd0Q==/split_config.armeabi_v7a.apk, /data/app/~~-U3HNzTGVTQ9A_NepdQjRA==/com.google.android.apps.tv.launcherx-V4wn_izyXAdAPb0uWPOd0Q==/split_config.en.apk, /data/app/~~-U3HNzTGVTQ9A_NepdQjRA==/com.google.android.apps.tv.launcherx-V4wn_izyXAdAPb0uWPOd0Q==/split_config.xhdpi.apk]
+        stateNotNeeded=true componentSpecified=false mActivityType=home
+        compat={320dpi always-compat} labelRes=0x7f1401c1 icon=0x7f100001 theme=0x7f15021b
+        mLastReportedConfigurations:
+          mGlobalConfig={1.0 ?mcc0mnc [en_GB] ldltr sw540dp w960dp h540dp 320dpi lrg long land television night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1080) mAppBounds=Rect(0, 0 - 1920, 1080) mMaxBounds=Rect(0, 0 - 1920, 1080) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=undefined mAlwaysOnTop=undefined mRotation=ROTATION_0} s.8 fontWeightAdjustment=0}
+          mOverrideConfig={1.0 ?mcc0mnc [en_GB] ldltr sw540dp w960dp h540dp 320dpi lrg long land television night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1080) mAppBounds=Rect(0, 0 - 1920, 1080) mMaxBounds=Rect(0, 0 - 1920, 1080) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=home mAlwaysOnTop=undefined mRotation=ROTATION_0} s.36 fontWeightAdjustment=0}
+        CurrentConfiguration={1.0 ?mcc0mnc [en_GB] ldltr sw540dp w960dp h540dp 320dpi lrg long land television night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1080) mAppBounds=Rect(0, 0 - 1920, 1080) mMaxBounds=Rect(0, 0 - 1920, 1080) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=home mAlwaysOnTop=undefined mRotation=ROTATION_0} s.38 fontWeightAdjustment=0}
+        RequestedOverrideConfiguration={0.0 ?mcc0mnc ?localeList ?layoutDir ?swdp ?wdp ?hdp ?density ?lsize ?long ?ldr ?wideColorGamut ?orien ?uimode ?night ?touch ?keyb/?/? ?nav/? winConfig={ mBounds=Rect(0, 0 - 0, 0) mAppBounds=null mMaxBounds=Rect(0, 0 - 0, 0) mDisplayRotation=undefined mWindowingMode=undefined mDisplayWindowingMode=undefined mActivityType=home mAlwaysOnTop=undefined mRotation=undefined} ?fontWeightAdjustment}
+        taskDescription: label="null" icon=null iconResource=/0 iconFilename=null primaryColor=ff37474f
+          backgroundColor=ff0e0e0f statusBarColor=ff263238 navigationBarColor=808080
+         backgroundColorFloating=ff424242
+        launchFailed=false launchCount=0 lastLaunchTime=-51m24s362ms
+        mHaveState=true mIcicle=Bundle[EMPTY_PARCEL]
+        state=DESTROYED delayedResume=false finishing=false
+        keysPaused=false inHistory=true idle=true
+        occludesParent=true noDisplay=false immersive=false launchMode=2
+        frozenBeforeDestroy=false forceNewConfig=false
+        mActivityType=home
+        mImeInsetsFrozenUntilStartInput=true
+        windows=[]
+        windowType=2
+        mOccludesParent=true
+        overrideOrientation=SCREEN_ORIENTATION_UNSPECIFIED
+        requestedOrientation=SCREEN_ORIENTATION_UNSPECIFIED
+        mVisibleRequested=false mVisible=false mClientVisible=false reportedDrawn=false reportedVisible=false
+        mAppStopped=true
+        mNumInterestingWindows=1 mNumDrawnWindows=1 allDrawn=true lastAllDrawn=true)
+        nowVisible=false lastVisibleTime=-51m23s328ms
+        resizeMode=RESIZE_MODE_UNRESIZEABLE
+        mLastReportedMultiWindowMode=false mLastReportedPictureInPictureMode=false
+        supportsSizeChanges=SIZE_CHANGES_UNSUPPORTED_METADATA
+        configChanges=0x73
+        neverSandboxDisplayApis=false
+        alwaysSandboxDisplayApis=false
+        mCameraCompatControlState=hidden
+        mCameraCompatControlEnabled=false
+
+  * Task{932e393 #26486 type=standard A=10150:com.spocky.projengmenu U=0 visible=false visibleRequested=false mode=fullscreen translucent=true sz=1}
+    mLastNonFullscreenBounds=Rect(687, 54 - 1233, 1026)
+    isSleeping=false
+    * Hist  #0: ActivityRecord{3ae6082 u0 com.spocky.projengmenu/.ui.sidePanels.settings.SettingsActivity t26486}
+      packageName=com.spocky.projengmenu processName=com.spocky.projengmenu
+      launchedFromUid=2000 launchedFromPackage=com.android.shell launchedFromFeature=null userId=0
+      app=null
+      Intent { flg=0x10800000 cmp=com.spocky.projengmenu/.ui.sidePanels.settings.SettingsActivity }
+      rootOfTask=true task=Task{932e393 #26486 type=standard A=10150:com.spocky.projengmenu}
+      taskAffinity=10150:com.spocky.projengmenu
+      mActivityComponent=com.spocky.projengmenu/.ui.sidePanels.settings.SettingsActivity
+      baseDir=/data/app/~~S9mWf3FPEoOzvIc-nKuKSQ==/com.spocky.projengmenu-VUpWyfe41kgJeSAMI1Gxlg==/base.apk
+      dataDir=/data/user/0/com.spocky.projengmenu
+      stateNotNeeded=false componentSpecified=false mActivityType=standard
+      compat={320dpi always-compat} labelRes=0x7f13006b icon=0x7f100003 theme=0x7f14015c
+      mLastReportedConfigurations:
+        mGlobalConfig={1.0 ?mcc0mnc [en_GB] ldltr sw540dp w960dp h540dp 320dpi lrg long land television night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1080) mAppBounds=Rect(0, 0 - 1920, 1080) mMaxBounds=Rect(0, 0 - 1920, 1080) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=undefined mAlwaysOnTop=undefined mRotation=ROTATION_0} s.8 fontWeightAdjustment=0}
+        mOverrideConfig={1.0 ?mcc0mnc [en_GB] ldltr sw540dp w960dp h540dp 320dpi lrg long land television night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1080) mAppBounds=Rect(0, 0 - 1920, 1080) mMaxBounds=Rect(0, 0 - 1920, 1080) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=standard mAlwaysOnTop=undefined mRotation=ROTATION_0} s.2 fontWeightAdjustment=0}
+      CurrentConfiguration={1.0 ?mcc0mnc [en_GB] ldltr sw540dp w960dp h540dp 320dpi lrg long land television night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1080) mAppBounds=Rect(0, 0 - 1920, 1080) mMaxBounds=Rect(0, 0 - 1920, 1080) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=standard mAlwaysOnTop=undefined mRotation=ROTATION_0} s.4 fontWeightAdjustment=0}
+      RequestedOverrideConfiguration={0.0 ?mcc0mnc ?localeList ?layoutDir ?swdp ?wdp ?hdp ?density ?lsize ?long ?ldr ?wideColorGamut ?orien ?uimode ?night ?touch ?keyb/?/? ?nav/? winConfig={ mBounds=Rect(0, 0 - 0, 0) mAppBounds=null mMaxBounds=Rect(0, 0 - 0, 0) mDisplayRotation=undefined mWindowingMode=undefined mDisplayWindowingMode=undefined mActivityType=standard mAlwaysOnTop=undefined mRotation=undefined} ?fontWeightAdjustment}
+      taskDescription: label="null" icon=null iconResource=/0 iconFilename=null primaryColor=ff37474f
+        backgroundColor=ff141218 statusBarColor=0 navigationBarColor=0
+       backgroundColorFloating=ff424242
+      launchFailed=false launchCount=0 lastLaunchTime=-52m50s730ms
+      mHaveState=true mIcicle=Bundle[mParcelledData.dataSize=7604]
+      state=DESTROYED delayedResume=false finishing=false
+      keysPaused=false inHistory=true idle=true
+      occludesParent=false noDisplay=false immersive=false launchMode=2
+      frozenBeforeDestroy=false forceNewConfig=false
+      mActivityType=standard
+      mImeInsetsFrozenUntilStartInput=true
+      windows=[]
+      windowType=2
+      mOccludesParent=false
+      overrideOrientation=SCREEN_ORIENTATION_UNSPECIFIED
+      requestedOrientation=SCREEN_ORIENTATION_UNSPECIFIED
+      mVisibleRequested=false mVisible=false mClientVisible=false reportedDrawn=false reportedVisible=false
+      mAppStopped=true
+      mNumInterestingWindows=1 mNumDrawnWindows=1 allDrawn=true lastAllDrawn=true)
+      nowVisible=false lastVisibleTime=-52m50s558ms
+      resizeMode=RESIZE_MODE_RESIZEABLE
+      mLastReportedMultiWindowMode=false mLastReportedPictureInPictureMode=false
+      supportsSizeChanges=SIZE_CHANGES_UNSUPPORTED_METADATA
+      configChanges=0x3
+      neverSandboxDisplayApis=false
+      alwaysSandboxDisplayApis=false
+      mCameraCompatControlState=hidden
+      mCameraCompatControlEnabled=false
+
+  * Task{6a49c5f #26463 type=standard A=10054:org.smarttube.stable:876029218 U=0 visible=false visibleRequested=false mode=fullscreen translucent=true sz=1}
+    mLastNonFullscreenBounds=Rect(687, 54 - 1233, 1026)
+    isSleeping=false
+    * Hist  #0: ActivityRecord{99b8cfe u0 org.smarttube.stable/com.liskovsoft.smartyoutubetv2.tv.ui.browse.BrowseActivity t26463}
+      packageName=org.smarttube.stable processName=org.smarttube.stable
+      launchedFromUid=10054 launchedFromPackage=org.smarttube.stable launchedFromFeature=null userId=0
+      app=null
+      Intent { flg=0x10000000 cmp=org.smarttube.stable/com.liskovsoft.smartyoutubetv2.tv.ui.browse.BrowseActivity }
+      rootOfTask=true task=Task{6a49c5f #26463 type=standard A=10054:org.smarttube.stable:876029218}
+      taskAffinity=10054:org.smarttube.stable:876029218
+      mActivityComponent=org.smarttube.stable/com.liskovsoft.smartyoutubetv2.tv.ui.browse.BrowseActivity
+      baseDir=/data/app/~~MuEk7-a1HH0yB9gYV1i1Ew==/org.smarttube.stable-dlft85mIyZwG2JzOT6MuVw==/base.apk
+      dataDir=/data/user/0/org.smarttube.stable
+      stateNotNeeded=false componentSpecified=false mActivityType=standard
+      compat={320dpi always-compat} labelRes=0x7f110053 icon=0x7f0e0002 theme=0x7f120015
+      mLastReportedConfigurations:
+        mGlobalConfig={1.0 ?mcc0mnc [en_GB] ldltr sw540dp w960dp h540dp 320dpi lrg long land television night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1080) mAppBounds=Rect(0, 0 - 1920, 1080) mMaxBounds=Rect(0, 0 - 1920, 1080) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=undefined mAlwaysOnTop=undefined mRotation=ROTATION_0} s.8 fontWeightAdjustment=0}
+        mOverrideConfig={1.0 ?mcc0mnc [en_GB] ldltr sw540dp w960dp h540dp 320dpi lrg long land television night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1080) mAppBounds=Rect(0, 0 - 1920, 1080) mMaxBounds=Rect(0, 0 - 1920, 1080) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=standard mAlwaysOnTop=undefined mRotation=ROTATION_0} s.6 fontWeightAdjustment=0}
+      CurrentConfiguration={1.0 ?mcc0mnc [en_GB] ldltr sw540dp w960dp h540dp 320dpi lrg long land television night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1080) mAppBounds=Rect(0, 0 - 1920, 1080) mMaxBounds=Rect(0, 0 - 1920, 1080) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=standard mAlwaysOnTop=undefined mRotation=ROTATION_0} s.12 fontWeightAdjustment=0}
+      RequestedOverrideConfiguration={0.0 ?mcc0mnc ?localeList ?layoutDir ?swdp ?wdp ?hdp ?density ?lsize ?long ?ldr ?wideColorGamut ?orien ?uimode ?night ?touch ?keyb/?/? ?nav/? winConfig={ mBounds=Rect(0, 0 - 0, 0) mAppBounds=null mMaxBounds=Rect(0, 0 - 0, 0) mDisplayRotation=undefined mWindowingMode=undefined mDisplayWindowingMode=undefined mActivityType=standard mAlwaysOnTop=undefined mRotation=undefined} ?fontWeightAdjustment}
+      taskDescription: label="null" icon=null iconResource=/0 iconFilename=null primaryColor=ff1b1c1e
+        backgroundColor=ff303030 statusBarColor=ff263238 navigationBarColor=808080
+       backgroundColorFloating=ff424242
+      launchFailed=false launchCount=0 lastLaunchTime=-3h40m13s464ms
+      mHaveState=true mIcicle=Bundle[mParcelledData.dataSize=8208]
+      state=DESTROYED delayedResume=false finishing=false
+      keysPaused=false inHistory=true idle=true
+      occludesParent=true noDisplay=false immersive=false launchMode=3
+      frozenBeforeDestroy=false forceNewConfig=false
+      mActivityType=standard
+      mImeInsetsFrozenUntilStartInput=true
+      windows=[]
+      windowType=2
+      mOccludesParent=true
+      overrideOrientation=SCREEN_ORIENTATION_UNSPECIFIED
+      requestedOrientation=SCREEN_ORIENTATION_UNSPECIFIED
+      mVisibleRequested=false mVisible=false mClientVisible=false reportedDrawn=false reportedVisible=false
+      mAppStopped=true
+      mNumInterestingWindows=1 mNumDrawnWindows=1 allDrawn=true lastAllDrawn=true)
+      nowVisible=false lastVisibleTime=-2h56m2s614ms
+      resizeMode=RESIZE_MODE_RESIZEABLE_VIA_SDK_VERSION
+      mLastReportedMultiWindowMode=false mLastReportedPictureInPictureMode=false
+      supportsSizeChanges=SIZE_CHANGES_UNSUPPORTED_METADATA
+      configChanges=0x2d83
+      neverSandboxDisplayApis=false
+      alwaysSandboxDisplayApis=false
+      mCameraCompatControlState=hidden
+      mCameraCompatControlEnabled=false
+
+  * Task{77ba968 #26476 type=standard A=10123:com.stremio.one U=0 visible=false visibleRequested=false mode=fullscreen translucent=true sz=1}
+    mLastNonFullscreenBounds=Rect(687, 54 - 1233, 1026)
+    isSleeping=false
+    * Hist  #0: ActivityRecord{ebf48b u0 com.stremio.one/com.stremio.tv.MainActivity t26476}
+      packageName=com.stremio.one processName=com.stremio.one
+      launchedFromUid=10004 launchedFromPackage=flar2.homebutton launchedFromFeature=null userId=0
+      app=null
+      Intent { act=android.intent.action.MAIN cat=[android.intent.category.LEANBACK_LAUNCHER] flg=0x10000000 cmp=com.stremio.one/com.stremio.tv.MainActivity (has extras) }
+      rootOfTask=true task=Task{77ba968 #26476 type=standard A=10123:com.stremio.one}
+      taskAffinity=10123:com.stremio.one
+      mActivityComponent=com.stremio.one/com.stremio.tv.MainActivity
+      baseDir=/data/app/~~j8Sy-alYNYhRWYXmwLzvpg==/com.stremio.one-qqGDMcLBGQ4W7KLpc0Lx9A==/base.apk
+      dataDir=/data/user/0/com.stremio.one
+      splitDir=[/data/app/~~j8Sy-alYNYhRWYXmwLzvpg==/com.stremio.one-qqGDMcLBGQ4W7KLpc0Lx9A==/split_config.armeabi_v7a.apk, /data/app/~~j8Sy-alYNYhRWYXmwLzvpg==/com.stremio.one-qqGDMcLBGQ4W7KLpc0Lx9A==/split_config.xhdpi.apk]
+      stateNotNeeded=false componentSpecified=false mActivityType=standard
+      compat={320dpi always-compat} labelRes=0x7f13001e icon=0x7f0f0001 theme=0x7f140281
+      mLastReportedConfigurations:
+        mGlobalConfig={1.0 ?mcc0mnc [en_US,en_GB] ldltr sw540dp w960dp h540dp 320dpi lrg long land television night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1080) mAppBounds=Rect(0, 0 - 1920, 1080) mMaxBounds=Rect(0, 0 - 1920, 1080) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=undefined mAlwaysOnTop=undefined mRotation=ROTATION_0} s.18 fontWeightAdjustment=0}
+        mOverrideConfig={1.0 ?mcc0mnc [en_US,en_GB] ldltr sw540dp w960dp h540dp 320dpi lrg long land television night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1080) mAppBounds=Rect(0, 0 - 1920, 1080) mMaxBounds=Rect(0, 0 - 1920, 1080) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=standard mAlwaysOnTop=undefined mRotation=ROTATION_0} s.3 fontWeightAdjustment=0}
+      CurrentConfiguration={1.0 ?mcc0mnc [en_US,en_GB] ldltr sw540dp w960dp h540dp 320dpi lrg long land television night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1080) mAppBounds=Rect(0, 0 - 1920, 1080) mMaxBounds=Rect(0, 0 - 1920, 1080) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=standard mAlwaysOnTop=undefined mRotation=ROTATION_0} s.3 fontWeightAdjustment=0}
+      RequestedOverrideConfiguration={0.0 ?mcc0mnc [en_US,en_GB] ldltr ?swdp ?wdp ?hdp ?density ?lsize ?long ?ldr ?wideColorGamut ?orien ?uimode ?night ?touch ?keyb/?/? ?nav/? winConfig={ mBounds=Rect(0, 0 - 0, 0) mAppBounds=null mMaxBounds=Rect(0, 0 - 0, 0) mDisplayRotation=undefined mWindowingMode=undefined mDisplayWindowingMode=undefined mActivityType=standard mAlwaysOnTop=undefined mRotation=undefined} ?fontWeightAdjustment}
+      taskDescription: label="null" icon=null iconResource=/0 iconFilename=null primaryColor=ff1a1b20
+        backgroundColor=ff18181c statusBarColor=ff263238 navigationBarColor=808080
+       backgroundColorFloating=ff424242
+      launchFailed=false launchCount=0 lastLaunchTime=-3h43m17s876ms
+      mHaveState=true mIcicle=Bundle[mParcelledData.dataSize=25348]
+      state=DESTROYED delayedResume=false finishing=false
+      keysPaused=false inHistory=true idle=true
+      occludesParent=true noDisplay=false immersive=false launchMode=0
+      frozenBeforeDestroy=false forceNewConfig=false
+      mActivityType=standard
+      mImeInsetsFrozenUntilStartInput=true
+      windows=[]
+      windowType=2
+      mOccludesParent=true
+      overrideOrientation=SCREEN_ORIENTATION_UNSPECIFIED
+      requestedOrientation=SCREEN_ORIENTATION_UNSPECIFIED
+      mVisibleRequested=false mVisible=false mClientVisible=false reportedDrawn=false reportedVisible=false
+      mAppStopped=true
+      mNumInterestingWindows=1 mNumDrawnWindows=1 allDrawn=true lastAllDrawn=true)
+      nowVisible=false lastVisibleTime=-3h43m17s534ms
+      resizeMode=RESIZE_MODE_RESIZEABLE_VIA_SDK_VERSION
+      mLastReportedMultiWindowMode=false mLastReportedPictureInPictureMode=false
+      supportsSizeChanges=SIZE_CHANGES_UNSUPPORTED_METADATA
+      configChanges=0x3
+      neverSandboxDisplayApis=false
+      alwaysSandboxDisplayApis=false
+      mCameraCompatControlState=hidden
+      mCameraCompatControlEnabled=false
+
+  * Task{ac7a008 #26444 type=standard A=1000:com.android.tv.settings U=0 visible=false visibleRequested=false mode=fullscreen translucent=true sz=2}
+    mLastNonFullscreenBounds=Rect(687, 54 - 1233, 1026)
+    isSleeping=false
+    * Hist  #1: ActivityRecord{d881c83 u0 com.android.tv.settings/.device.apps.AppManagementActivity t26444}
+      packageName=com.android.tv.settings processName=com.android.tv.settings
+      launchedFromUid=10150 launchedFromPackage=com.spocky.projengmenu launchedFromFeature=null userId=0
+      app=null
+      Intent { act=android.settings.APPLICATION_DETAILS_SETTINGS cat=[android.intent.category.DEFAULT] dat=package:com.auramusic.app.debug flg=0x10c00000 cmp=com.android.tv.settings/.device.apps.AppManagementActivity }
+      rootOfTask=false task=Task{ac7a008 #26444 type=standard A=1000:com.android.tv.settings}
+      taskAffinity=1000:com.android.tv.settings
+      mActivityComponent=com.android.tv.settings/.device.apps.AppManagementActivity
+      baseDir=/system/system_ext/priv-app/TvSettingsTwoPanel/TvSettingsTwoPanel.apk
+      dataDir=/data/user_de/0/com.android.tv.settings
+      stateNotNeeded=false componentSpecified=false mActivityType=standard
+      compat={320dpi always-compat} labelRes=0x7f1105e0 icon=0x7f08020b theme=0x7f120458
+      mLastReportedConfigurations:
+        mGlobalConfig={1.0 ?mcc0mnc [en_GB] ldltr sw540dp w960dp h540dp 320dpi lrg long land television night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1080) mAppBounds=Rect(0, 0 - 1920, 1080) mMaxBounds=Rect(0, 0 - 1920, 1080) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=undefined mAlwaysOnTop=undefined mRotation=ROTATION_0} s.8 fontWeightAdjustment=0}
+        mOverrideConfig={1.0 ?mcc0mnc [nb_NO,en_GB] ldltr sw540dp w960dp h540dp 320dpi lrg long land television night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1080) mAppBounds=Rect(0, 0 - 1920, 1080) mMaxBounds=Rect(0, 0 - 1920, 1080) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=standard mAlwaysOnTop=undefined mRotation=ROTATION_0} s.3 fontWeightAdjustment=0}
+      CurrentConfiguration={1.0 ?mcc0mnc [nb_NO,en_GB] ldltr sw540dp w960dp h540dp 320dpi lrg long land television night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1080) mAppBounds=Rect(0, 0 - 1920, 1080) mMaxBounds=Rect(0, 0 - 1920, 1080) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=standard mAlwaysOnTop=undefined mRotation=ROTATION_0} s.3 fontWeightAdjustment=0}
+      RequestedOverrideConfiguration={0.0 ?mcc0mnc [nb_NO,en_GB] ldltr ?swdp ?wdp ?hdp ?density ?lsize ?long ?ldr ?wideColorGamut ?orien ?uimode ?night ?touch ?keyb/?/? ?nav/? winConfig={ mBounds=Rect(0, 0 - 0, 0) mAppBounds=null mMaxBounds=Rect(0, 0 - 0, 0) mDisplayRotation=undefined mWindowingMode=undefined mDisplayWindowingMode=undefined mActivityType=undefined mAlwaysOnTop=undefined mRotation=undefined} ?fontWeightAdjustment}
+      taskDescription: label="null" icon=null iconResource=/0 iconFilename=null primaryColor=ff37474f
+        backgroundColor=ff303030 statusBarColor=ff263238 navigationBarColor=808080
+       backgroundColorFloating=ff424242
+      launchFailed=false launchCount=0 lastLaunchTime=-13h3m4s143ms
+      mHaveState=true mIcicle=Bundle[mParcelledData.dataSize=11424]
+      state=DESTROYED delayedResume=false finishing=false
+      keysPaused=false inHistory=true idle=true
+      occludesParent=true noDisplay=false immersive=false launchMode=0
+      frozenBeforeDestroy=false forceNewConfig=false
+      mActivityType=standard
+      mImeInsetsFrozenUntilStartInput=true
+      windows=[]
+      windowType=2
+      mOccludesParent=true
+      overrideOrientation=SCREEN_ORIENTATION_UNSPECIFIED
+      requestedOrientation=SCREEN_ORIENTATION_UNSPECIFIED
+      mVisibleRequested=false mVisible=false mClientVisible=false reportedDrawn=false reportedVisible=false
+      mAppStopped=true
+      mNumInterestingWindows=1 mNumDrawnWindows=1 allDrawn=true lastAllDrawn=true)
+      nowVisible=false lastVisibleTime=-13h3m3s510ms
+      resizeMode=RESIZE_MODE_RESIZEABLE_VIA_SDK_VERSION
+      mLastReportedMultiWindowMode=false mLastReportedPictureInPictureMode=false
+      supportsSizeChanges=SIZE_CHANGES_UNSUPPORTED_METADATA
+      configChanges=0x73
+      neverSandboxDisplayApis=false
+      alwaysSandboxDisplayApis=false
+      mCameraCompatControlState=hidden
+      mCameraCompatControlEnabled=false
+    * Hist  #0: ActivityRecord{2e921ab u0 com.android.tv.settings/.oemlink.AccessibilitySettingsActivity t26444}
+      packageName=com.android.tv.settings processName=com.android.tv.settings
+      launchedFromUid=2000 launchedFromPackage=com.android.shell launchedFromFeature=null userId=0
+      app=null
+      Intent { act=android.settings.ACCESSIBILITY_SETTINGS flg=0x10800000 cmp=com.android.tv.settings/.oemlink.AccessibilitySettingsActivity }
+      rootOfTask=true task=Task{ac7a008 #26444 type=standard A=1000:com.android.tv.settings}
+      taskAffinity=1000:com.android.tv.settings
+      mActivityComponent=com.android.tv.settings/.oemlink.AccessibilitySettingsActivity
+      baseDir=/system/system_ext/priv-app/TvSettingsTwoPanel/TvSettingsTwoPanel.apk
+      dataDir=/data/user_de/0/com.android.tv.settings
+      stateNotNeeded=false componentSpecified=false mActivityType=standard
+      compat={320dpi always-compat} labelRes=0x7f1105e0 icon=0x7f08020b theme=0x7f120458
+      mLastReportedConfigurations:
+        mGlobalConfig={1.0 ?mcc0mnc [en_GB] ldltr sw540dp w960dp h540dp 320dpi lrg long land television night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1080) mAppBounds=Rect(0, 0 - 1920, 1080) mMaxBounds=Rect(0, 0 - 1920, 1080) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=undefined mAlwaysOnTop=undefined mRotation=ROTATION_0} s.8 fontWeightAdjustment=0}
+        mOverrideConfig={1.0 ?mcc0mnc [nb_NO,en_GB] ldltr sw540dp w960dp h540dp 320dpi lrg long land television night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1080) mAppBounds=Rect(0, 0 - 1920, 1080) mMaxBounds=Rect(0, 0 - 1920, 1080) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=standard mAlwaysOnTop=undefined mRotation=ROTATION_0} s.3 fontWeightAdjustment=0}
+      CurrentConfiguration={1.0 ?mcc0mnc [nb_NO,en_GB] ldltr sw540dp w960dp h540dp 320dpi lrg long land television night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1080) mAppBounds=Rect(0, 0 - 1920, 1080) mMaxBounds=Rect(0, 0 - 1920, 1080) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=standard mAlwaysOnTop=undefined mRotation=ROTATION_0} s.5 fontWeightAdjustment=0}
+      RequestedOverrideConfiguration={0.0 ?mcc0mnc [nb_NO,en_GB] ldltr ?swdp ?wdp ?hdp ?density ?lsize ?long ?ldr ?wideColorGamut ?orien ?uimode ?night ?touch ?keyb/?/? ?nav/? winConfig={ mBounds=Rect(0, 0 - 0, 0) mAppBounds=null mMaxBounds=Rect(0, 0 - 0, 0) mDisplayRotation=undefined mWindowingMode=undefined mDisplayWindowingMode=undefined mActivityType=standard mAlwaysOnTop=undefined mRotation=undefined} ?fontWeightAdjustment}
+      taskDescription: label="null" icon=null iconResource=/0 iconFilename=null primaryColor=ff37474f
+        backgroundColor=ff303030 statusBarColor=ff263238 navigationBarColor=808080
+       backgroundColorFloating=ff424242
+      launchFailed=false launchCount=0 lastLaunchTime=-1d3h42m55s494ms
+      mHaveState=true mIcicle=Bundle[mParcelledData.dataSize=14776]
+      state=DESTROYED delayedResume=false finishing=false
+      keysPaused=false inHistory=true idle=true
+      occludesParent=true noDisplay=false immersive=false launchMode=0
+      frozenBeforeDestroy=false forceNewConfig=false
+      mActivityType=standard
+      mImeInsetsFrozenUntilStartInput=true
+      windows=[]
+      windowType=2
+      mOccludesParent=true
+      overrideOrientation=SCREEN_ORIENTATION_UNSPECIFIED
+      requestedOrientation=SCREEN_ORIENTATION_UNSPECIFIED
+      mVisibleRequested=false mVisible=false mClientVisible=false reportedDrawn=false reportedVisible=false
+      mAppStopped=true
+      mNumInterestingWindows=1 mNumDrawnWindows=1 allDrawn=true lastAllDrawn=true)
+      nowVisible=false lastVisibleTime=-1d2h31m46s177ms
+      resizeMode=RESIZE_MODE_RESIZEABLE_VIA_SDK_VERSION
+      mLastReportedMultiWindowMode=false mLastReportedPictureInPictureMode=false
+      supportsSizeChanges=SIZE_CHANGES_UNSUPPORTED_METADATA
+      configChanges=0x73
+      neverSandboxDisplayApis=false
+      alwaysSandboxDisplayApis=false
+      mCameraCompatControlState=hidden
+      mCameraCompatControlEnabled=false
+
+  * Task{1097300 #26461 type=standard A=10120:com.xiaodianshi.tv.yst U=0 visible=false visibleRequested=false mode=fullscreen translucent=true sz=2}
+    mLastNonFullscreenBounds=Rect(420, 237 - 1500, 844)
+    isSleeping=false
+    * Hist  #1: ActivityRecord{8dbb271 u0 com.xiaodianshi.tv.yst/.ui.messagedialog.MessageDialogActivity t26461}
+      packageName=com.xiaodianshi.tv.yst processName=com.xiaodianshi.tv.yst
+      launchedFromUid=10120 launchedFromPackage=com.xiaodianshi.tv.yst launchedFromFeature=null userId=0
+      app=null
+      Intent { cmp=com.xiaodianshi.tv.yst/.ui.messagedialog.MessageDialogActivity (has extras) }
+      rootOfTask=false task=Task{1097300 #26461 type=standard A=10120:com.xiaodianshi.tv.yst}
+      taskAffinity=10120:com.xiaodianshi.tv.yst
+      mActivityComponent=com.xiaodianshi.tv.yst/.ui.messagedialog.MessageDialogActivity
+      baseDir=/data/app/~~CuuuRm4WidJQswYFd1G2_w==/com.xiaodianshi.tv.yst-DR5fVh8URfHJkOhB_LMXCw==/base.apk
+      dataDir=/data/user/0/com.xiaodianshi.tv.yst
+      stateNotNeeded=false componentSpecified=false mActivityType=standard
+      compat={320dpi always-compat} labelRes=0x7f100052 icon=0x7f080178 theme=0x7f1100e8
+      mLastReportedConfigurations:
+        mGlobalConfig={1.0 ?mcc0mnc [en_GB] ldltr sw540dp w960dp h540dp 320dpi lrg long land television night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1080) mAppBounds=Rect(0, 0 - 1920, 1080) mMaxBounds=Rect(0, 0 - 1920, 1080) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=undefined mAlwaysOnTop=undefined mRotation=ROTATION_0} s.8 fontWeightAdjustment=0}
+        mOverrideConfig={1.0 ?mcc0mnc [en_GB] ldltr sw540dp w960dp h540dp 320dpi lrg long land television night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1080) mAppBounds=Rect(0, 0 - 1920, 1080) mMaxBounds=Rect(0, 0 - 1920, 1080) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=standard mAlwaysOnTop=undefined mRotation=ROTATION_0} s.2 fontWeightAdjustment=0}
+      CurrentConfiguration={1.0 ?mcc0mnc [en_GB] ldltr sw540dp w960dp h540dp 320dpi lrg long land television night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1080) mAppBounds=Rect(0, 0 - 1920, 1080) mMaxBounds=Rect(0, 0 - 1920, 1080) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=standard mAlwaysOnTop=undefined mRotation=ROTATION_0} s.2 fontWeightAdjustment=0}
+      taskDescription: label="null" icon=null iconResource=/0 iconFilename=null primaryColor=ff2d2d2d
+        backgroundColor=fffafafa statusBarColor=0 navigationBarColor=808080
+       backgroundColorFloating=ffffffff
+      launchFailed=false launchCount=0 lastLaunchTime=-13h18m6s381ms
+      mHaveState=true mIcicle=Bundle[mParcelledData.dataSize=2636]
+      state=DESTROYED delayedResume=false finishing=false
+      keysPaused=false inHistory=true idle=true
+      occludesParent=false noDisplay=false immersive=false launchMode=0
+      frozenBeforeDestroy=false forceNewConfig=false
+      mActivityType=standard
+      mImeInsetsFrozenUntilStartInput=true
+      windows=[]
+      windowType=2
+      mOccludesParent=false
+      overrideOrientation=SCREEN_ORIENTATION_LANDSCAPE
+      requestedOrientation=SCREEN_ORIENTATION_LANDSCAPE
+      mVisibleRequested=false mVisible=false mClientVisible=false reportedDrawn=false reportedVisible=false
+      mAppStopped=true
+      mNumInterestingWindows=1 mNumDrawnWindows=1 allDrawn=true lastAllDrawn=true)
+      nowVisible=false lastVisibleTime=-13h18m6s72ms
+      resizeMode=RESIZE_MODE_RESIZEABLE_VIA_SDK_VERSION
+      mLastReportedMultiWindowMode=false mLastReportedPictureInPictureMode=false
+      supportsSizeChanges=SIZE_CHANGES_UNSUPPORTED_METADATA
+      configChanges=0x3
+      neverSandboxDisplayApis=false
+      alwaysSandboxDisplayApis=false
+      mCameraCompatControlState=hidden
+      mCameraCompatControlEnabled=false
+    * Hist  #0: ActivityRecord{cc30583 u0 com.xiaodianshi.tv.yst/.ui.main.MainActivity t26461}
+      packageName=com.xiaodianshi.tv.yst processName=com.xiaodianshi.tv.yst
+      launchedFromUid=10150 launchedFromPackage=com.spocky.projengmenu launchedFromFeature=null userId=0
+      app=null
+      Intent { act=android.intent.action.MAIN cat=[android.intent.category.LEANBACK_LAUNCHER] flg=0x10000000 pkg=com.xiaodianshi.tv.yst cmp=com.xiaodianshi.tv.yst/.ui.main.MainActivity }
+      rootOfTask=true task=Task{1097300 #26461 type=standard A=10120:com.xiaodianshi.tv.yst}
+      taskAffinity=10120:com.xiaodianshi.tv.yst
+      mActivityComponent=com.xiaodianshi.tv.yst/.ui.main.MainActivity
+      baseDir=/data/app/~~CuuuRm4WidJQswYFd1G2_w==/com.xiaodianshi.tv.yst-DR5fVh8URfHJkOhB_LMXCw==/base.apk
+      dataDir=/data/user/0/com.xiaodianshi.tv.yst
+      stateNotNeeded=false componentSpecified=false mActivityType=standard
+      compat={320dpi always-compat} labelRes=0x7f100052 icon=0x7f080178 theme=0x7f110208
+      mLastReportedConfigurations:
+        mGlobalConfig={1.0 ?mcc0mnc [en_GB] ldltr sw540dp w960dp h540dp 320dpi lrg long land television night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1080) mAppBounds=Rect(0, 0 - 1920, 1080) mMaxBounds=Rect(0, 0 - 1920, 1080) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=undefined mAlwaysOnTop=undefined mRotation=ROTATION_0} s.8 fontWeightAdjustment=0}
+        mOverrideConfig={1.0 ?mcc0mnc [en_GB] ldltr sw540dp w960dp h540dp 320dpi lrg long land television night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1080) mAppBounds=Rect(0, 0 - 1920, 1080) mMaxBounds=Rect(0, 0 - 1920, 1080) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=standard mAlwaysOnTop=undefined mRotation=ROTATION_0} s.2 fontWeightAdjustment=0}
+      CurrentConfiguration={1.0 ?mcc0mnc [en_GB] ldltr sw540dp w960dp h540dp 320dpi lrg long land television night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1080) mAppBounds=Rect(0, 0 - 1920, 1080) mMaxBounds=Rect(0, 0 - 1920, 1080) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=standard mAlwaysOnTop=undefined mRotation=ROTATION_0} s.3 fontWeightAdjustment=0}
+      RequestedOverrideConfiguration={0.0 ?mcc0mnc ?localeList ?layoutDir ?swdp ?wdp ?hdp ?density ?lsize ?long ?ldr ?wideColorGamut ?orien ?uimode ?night ?touch ?keyb/?/? ?nav/? winConfig={ mBounds=Rect(0, 0 - 0, 0) mAppBounds=null mMaxBounds=Rect(0, 0 - 0, 0) mDisplayRotation=undefined mWindowingMode=undefined mDisplayWindowingMode=undefined mActivityType=standard mAlwaysOnTop=undefined mRotation=undefined} ?fontWeightAdjustment}
+      taskDescription: label="null" icon=null iconResource=/0 iconFilename=null primaryColor=ff2d2d2d
+        backgroundColor=fffafafa statusBarColor=0 navigationBarColor=808080
+       backgroundColorFloating=ffffffff
+      launchFailed=false launchCount=0 lastLaunchTime=-13h18m14s654ms
+      mHaveState=true mIcicle=Bundle[EMPTY_PARCEL]
+      state=DESTROYED delayedResume=false finishing=false
+      keysPaused=false inHistory=true idle=true
+      occludesParent=true noDisplay=false immersive=false launchMode=2
+      frozenBeforeDestroy=false forceNewConfig=false
+      mActivityType=standard
+      mImeInsetsFrozenUntilStartInput=true
+      windows=[]
+      windowType=2
+      mOccludesParent=true
+      overrideOrientation=SCREEN_ORIENTATION_LANDSCAPE
+      requestedOrientation=SCREEN_ORIENTATION_LANDSCAPE
+      mVisibleRequested=false mVisible=false mClientVisible=false reportedDrawn=false reportedVisible=false
+      mAppStopped=true
+      mNumInterestingWindows=1 mNumDrawnWindows=1 allDrawn=true lastAllDrawn=true)
+      nowVisible=false lastVisibleTime=-13h18m12s295ms
+      resizeMode=RESIZE_MODE_RESIZEABLE_VIA_SDK_VERSION
+      mLastReportedMultiWindowMode=false mLastReportedPictureInPictureMode=false
+      supportsSizeChanges=SIZE_CHANGES_UNSUPPORTED_METADATA
+      configChanges=0x33
+      neverSandboxDisplayApis=false
+      alwaysSandboxDisplayApis=false
+      mCameraCompatControlState=hidden
+      mCameraCompatControlEnabled=false
+
+  * Task{a7ce5a4 #26443 type=standard I=com.spocky.projengmenu/.ui.home.MainActivity U=0 visible=false visibleRequested=false mode=fullscreen translucent=true sz=1}
+    mLastNonFullscreenBounds=Rect(687, 54 - 1233, 1026)
+    isSleeping=false
+    * Hist  #0: ActivityRecord{20fcc37 u0 com.spocky.projengmenu/.ui.home.MainActivity t26443}
+      packageName=com.spocky.projengmenu processName=com.spocky.projengmenu
+      launchedFromUid=2000 launchedFromPackage=com.android.shell launchedFromFeature=null userId=0
+      app=null
+      Intent { flg=0x10800000 cmp=com.spocky.projengmenu/.ui.home.MainActivity }
+      rootOfTask=true task=Task{a7ce5a4 #26443 type=standard I=com.spocky.projengmenu/.ui.home.MainActivity}
+      taskAffinity=null
+      mActivityComponent=com.spocky.projengmenu/.ui.home.MainActivity
+      baseDir=/data/app/~~S9mWf3FPEoOzvIc-nKuKSQ==/com.spocky.projengmenu-VUpWyfe41kgJeSAMI1Gxlg==/base.apk
+      dataDir=/data/user/0/com.spocky.projengmenu
+      stateNotNeeded=true componentSpecified=false mActivityType=standard
+      compat={320dpi always-compat} labelRes=0x7f13006b icon=0x7f100003 theme=0x7f14025f
+      mLastReportedConfigurations:
+        mGlobalConfig={1.0 ?mcc0mnc [en_GB] ldltr sw540dp w960dp h540dp 320dpi lrg long land television night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1080) mAppBounds=Rect(0, 0 - 1920, 1080) mMaxBounds=Rect(0, 0 - 1920, 1080) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=undefined mAlwaysOnTop=undefined mRotation=ROTATION_0} s.8 fontWeightAdjustment=0}
+        mOverrideConfig={1.0 ?mcc0mnc [en_GB] ldltr sw540dp w960dp h540dp 320dpi lrg long land television night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1080) mAppBounds=Rect(0, 0 - 1920, 1080) mMaxBounds=Rect(0, 0 - 1920, 1080) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=standard mAlwaysOnTop=undefined mRotation=ROTATION_0} s.2 fontWeightAdjustment=0}
+      CurrentConfiguration={1.0 ?mcc0mnc [en_GB] ldltr sw540dp w960dp h540dp 320dpi lrg long land television night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1080) mAppBounds=Rect(0, 0 - 1920, 1080) mMaxBounds=Rect(0, 0 - 1920, 1080) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=standard mAlwaysOnTop=undefined mRotation=ROTATION_0} s.6 fontWeightAdjustment=0}
+      RequestedOverrideConfiguration={0.0 ?mcc0mnc ?localeList ?layoutDir ?swdp ?wdp ?hdp ?density ?lsize ?long ?ldr ?wideColorGamut ?orien ?uimode ?night ?touch ?keyb/?/? ?nav/? winConfig={ mBounds=Rect(0, 0 - 0, 0) mAppBounds=null mMaxBounds=Rect(0, 0 - 0, 0) mDisplayRotation=undefined mWindowingMode=undefined mDisplayWindowingMode=undefined mActivityType=standard mAlwaysOnTop=undefined mRotation=undefined} ?fontWeightAdjustment}
+      taskDescription: label="null" icon=null iconResource=/0 iconFilename=null primaryColor=ff1a1b20
+        backgroundColor=ff141218 statusBarColor=0 navigationBarColor=0
+       backgroundColorFloating=ff424242
+      launchFailed=false launchCount=0 lastLaunchTime=-1d3h58m37s821ms
+      mHaveState=true mIcicle=Bundle[mParcelledData.dataSize=11708]
+      state=DESTROYED delayedResume=false finishing=false
+      keysPaused=false inHistory=true idle=true
+      occludesParent=true noDisplay=false immersive=false launchMode=2
+      frozenBeforeDestroy=false forceNewConfig=false
+      mActivityType=standard
+      mImeInsetsFrozenUntilStartInput=true
+      windows=[]
+      windowType=2
+      mOccludesParent=true
+      overrideOrientation=SCREEN_ORIENTATION_UNSPECIFIED
+      requestedOrientation=SCREEN_ORIENTATION_UNSPECIFIED
+      mVisibleRequested=false mVisible=false mClientVisible=false reportedDrawn=false reportedVisible=false
+      mAppStopped=true
+      mNumInterestingWindows=1 mNumDrawnWindows=1 allDrawn=true lastAllDrawn=true)
+      nowVisible=false lastVisibleTime=-1d2h31m41s201ms
+      resizeMode=RESIZE_MODE_RESIZEABLE
+      mLastReportedMultiWindowMode=false mLastReportedPictureInPictureMode=false
+      supportsSizeChanges=SIZE_CHANGES_UNSUPPORTED_METADATA
+      configChanges=0x3
+      neverSandboxDisplayApis=false
+      alwaysSandboxDisplayApis=false
+      mCameraCompatControlState=hidden
+      mCameraCompatControlEnabled=false
+
+  * Task{5772459 #26442 type=standard A=10072:com.auramusic.previewprobe U=0 visible=false visibleRequested=false mode=fullscreen translucent=true sz=1}
+    mLastNonFullscreenBounds=Rect(687, 54 - 1233, 1026)
+    isSleeping=false
+    * Hist  #0: ActivityRecord{527b0a0 u0 com.auramusic.previewprobe/.MainActivity t26442}
+      packageName=com.auramusic.previewprobe processName=com.auramusic.previewprobe
+      launchedFromUid=2000 launchedFromPackage=com.android.shell launchedFromFeature=null userId=0
+      app=null
+      Intent { flg=0x10000000 cmp=com.auramusic.previewprobe/.MainActivity (has extras) }
+      rootOfTask=true task=Task{5772459 #26442 type=standard A=10072:com.auramusic.previewprobe}
+      taskAffinity=10072:com.auramusic.previewprobe
+      mActivityComponent=com.auramusic.previewprobe/.MainActivity
+      baseDir=/data/app/~~qCYXzE_zZFI_MEW_eqi3yA==/com.auramusic.previewprobe-fkE5EwrPmBkQA81aUuKiYw==/base.apk
+      dataDir=/data/user/0/com.auramusic.previewprobe
+      stateNotNeeded=false componentSpecified=false mActivityType=standard
+      compat={320dpi always-compat} labelRes=0x0 icon=0x0 theme=0x103022e
+      mLastReportedConfigurations:
+        mGlobalConfig={1.0 ?mcc0mnc [en_GB] ldltr sw540dp w960dp h540dp 320dpi lrg long land television night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1080) mAppBounds=Rect(0, 0 - 1920, 1080) mMaxBounds=Rect(0, 0 - 1920, 1080) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=undefined mAlwaysOnTop=undefined mRotation=ROTATION_0} s.8 fontWeightAdjustment=0}
+        mOverrideConfig={1.0 ?mcc0mnc [en_GB] ldltr sw540dp w960dp h540dp 320dpi lrg long land television night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1080) mAppBounds=Rect(0, 0 - 1920, 1080) mMaxBounds=Rect(0, 0 - 1920, 1080) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=standard mAlwaysOnTop=undefined mRotation=ROTATION_0} s.2 fontWeightAdjustment=0}
+      CurrentConfiguration={1.0 ?mcc0mnc [en_GB] ldltr sw540dp w960dp h540dp 320dpi lrg long land television night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1080) mAppBounds=Rect(0, 0 - 1920, 1080) mMaxBounds=Rect(0, 0 - 1920, 1080) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=standard mAlwaysOnTop=undefined mRotation=ROTATION_0} s.2 fontWeightAdjustment=0}
+      RequestedOverrideConfiguration={0.0 ?mcc0mnc ?localeList ?layoutDir ?swdp ?wdp ?hdp ?density ?lsize ?long ?ldr ?wideColorGamut ?orien ?uimode ?night ?touch ?keyb/?/? ?nav/? winConfig={ mBounds=Rect(0, 0 - 0, 0) mAppBounds=null mMaxBounds=Rect(0, 0 - 0, 0) mDisplayRotation=undefined mWindowingMode=undefined mDisplayWindowingMode=undefined mActivityType=standard mAlwaysOnTop=undefined mRotation=undefined} ?fontWeightAdjustment}
+      taskDescription: label="null" icon=null iconResource=/0 iconFilename=null primaryColor=ff212121
+        backgroundColor=ff303030 statusBarColor=ff000000 navigationBarColor=808080
+       backgroundColorFloating=ff424242
+      launchFailed=false launchCount=0 lastLaunchTime=-1d3h58m43s6ms
+      mHaveState=true mIcicle=Bundle[mParcelledData.dataSize=264]
+      state=DESTROYED delayedResume=false finishing=false
+      keysPaused=false inHistory=true idle=true
+      occludesParent=true noDisplay=false immersive=false launchMode=0
+      frozenBeforeDestroy=false forceNewConfig=false
+      mActivityType=standard
+      mImeInsetsFrozenUntilStartInput=true
+      windows=[]
+      windowType=2
+      mOccludesParent=true
+      overrideOrientation=SCREEN_ORIENTATION_UNSPECIFIED
+      requestedOrientation=SCREEN_ORIENTATION_UNSPECIFIED
+      mVisibleRequested=false mVisible=false mClientVisible=false reportedDrawn=false reportedVisible=false
+      mAppStopped=true
+      mNumInterestingWindows=1 mNumDrawnWindows=1 allDrawn=true lastAllDrawn=true)
+      nowVisible=false lastVisibleTime=-1d3h58m42s408ms
+      resizeMode=RESIZE_MODE_RESIZEABLE_VIA_SDK_VERSION
+      mLastReportedMultiWindowMode=false mLastReportedPictureInPictureMode=false
+      supportsSizeChanges=SIZE_CHANGES_UNSUPPORTED_METADATA
+      configChanges=0x3
+      neverSandboxDisplayApis=false
+      alwaysSandboxDisplayApis=false
+      mCameraCompatControlState=hidden
+      mCameraCompatControlEnabled=false
+
+  Resumed activities in task display areas (from top to bottom):
+    Resumed: ActivityRecord{c158e8d u0 com.spocky.projengmenu/.ui.home.MainActivity t26447}
+
+Display #19 (activities from top to bottom):
+
+  ResumedActivity: ActivityRecord{c158e8d u0 com.spocky.projengmenu/.ui.home.MainActivity t26447}
+
+ActivityTaskSupervisor state:
+  topDisplayFocusedRootTask=Task{199fb79 #1 type=home}
+  Display: mDisplayId=0 (organized)
+    init=3840x2160 640dpi mMinSizeOfResizeableTaskDp=220 base=1920x1080 320dpi cur=1920x1080 app=1920x1080 rng=1080x1080-1920x1920
+    deferred=false mLayoutNeeded=false mTouchExcludeRegion=SkRegion((0,0,1920,1080))
+
+  overrideConfig={1.0 ?mcc0mnc [en_GB] ldltr sw540dp w960dp h540dp 320dpi lrg long land television night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1080) mAppBounds=Rect(0, 0 - 1920, 1080) mMaxBounds=Rect(0, 0 - 1920, 1080) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=undefined mAlwaysOnTop=undefined mRotation=ROTATION_0} s.8 fontWeightAdjustment=0}
+  mLayoutSeq=3095
+  mCurrentFocus=Window{a0db77c u0 com.spocky.projengmenu/com.spocky.projengmenu.ui.home.MainActivity}
+  mFocusedApp=ActivityRecord{c158e8d u0 com.spocky.projengmenu/.ui.home.MainActivity t26447}
+
+  mHoldScreenWindow=null
+  mObscuringWindow=null
+  mLastWakeLockHoldingWindow=null
+  mLastWakeLockObscuringWindow=null
+
+  displayId=0
+  mWallpaperTarget=null
+  mLastWallpaperX=-1.0 mLastWallpaperY=-1.0
+
+  keepClearAreas={Rect(0, 487 - 487, 801)}
+
+  Display areas in top down Z order:
+    * Leaf:36:36
+    * HideDisplayCutout:32:35
+      * OneHanded:34:35
+        * FullscreenMagnification:34:35
+          * Leaf:34:35
+      * FullscreenMagnification:33:33
+        * Leaf:33:33
+      * OneHanded:32:32
+        * Leaf:32:32
+    * WindowedMagnification:0:31
+      * HideDisplayCutout:26:31
+        * OneHanded:26:31
+          * FullscreenMagnification:29:31
+            * Leaf:29:31
+          * Leaf:28:28
+          * FullscreenMagnification:26:27
+            * Leaf:26:27
+      * Leaf:24:25
+      * HideDisplayCutout:18:23
+        * OneHanded:18:23
+          * FullscreenMagnification:18:23
+            * Leaf:18:23
+      * OneHanded:17:17
+        * FullscreenMagnification:17:17
+          * Leaf:17:17
+      * HideDisplayCutout:16:16
+        * OneHanded:16:16
+          * FullscreenMagnification:16:16
+            * Leaf:16:16
+      * OneHanded:15:15
+        * FullscreenMagnification:15:15
+          * Leaf:15:15
+      * HideDisplayCutout:0:14
+        * OneHanded:0:14
+          * ImePlaceholder:13:14
+            * ImeContainer
+          * FullscreenMagnification:0:12
+            * Leaf:3:12
+            * DefaultTaskDisplayArea (organized)
+            * Leaf:0:1
+
+  Task display areas in top down Z order:
+    TaskDisplayArea DefaultTaskDisplayArea
+      overrideConfig={0.0 ?mcc0mnc ?localeList ?layoutDir ?swdp ?wdp ?hdp ?density ?lsize ?long ?ldr ?wideColorGamut ?orien ?uimode ?night ?touch ?keyb/?/? ?nav/? winConfig={ mBounds=Rect(0, 0 - 0, 0) mAppBounds=null mMaxBounds=Rect(0, 0 - 0, 0) mDisplayRotation=undefined mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=undefined mAlwaysOnTop=undefined mRotation=undefined} ?fontWeightAdjustment}
+      mPreferredTopFocusableRootTask=Task{199fb79 #1 type=home}
+      mLastFocusedRootTask=Task{199fb79 #1 type=home}
+      Application tokens in top down Z order:
+      * Task{199fb79 #1 type=home U=0 visible=true visibleRequested=true mode=fullscreen translucent=false sz=2}
+        bounds=[0,0][1920,1080]
+        * Task{4aad842 #26447 type=home I=com.spocky.projengmenu/.ui.home.MainActivity U=0 rootTaskId=1 visible=true visibleRequested=true mode=fullscreen translucent=false sz=1}
+          bounds=[0,0][1920,1080]
+          * ActivityRecord{c158e8d u0 com.spocky.projengmenu/.ui.home.MainActivity t26447}
+        * Task{f38f1c8 #26425 type=home A=10043:com.google.android.apps.tv.launcherx U=0 rootTaskId=1 visible=false visibleRequested=false mode=fullscreen translucent=true sz=1}
+          bounds=[0,0][1920,1080]
+          * ActivityRecord{d69a26b u0 com.google.android.apps.tv.launcherx/.home.HomeActivity t26425}
+      * Task{932e393 #26486 type=standard A=10150:com.spocky.projengmenu U=0 visible=false visibleRequested=false mode=fullscreen translucent=true sz=1}
+        bounds=[0,0][1920,1080]
+        * ActivityRecord{3ae6082 u0 com.spocky.projengmenu/.ui.sidePanels.settings.SettingsActivity t26486}
+      * Task{6a49c5f #26463 type=standard A=10054:org.smarttube.stable:876029218 U=0 visible=false visibleRequested=false mode=fullscreen translucent=true sz=1}
+        bounds=[0,0][1920,1080]
+        * ActivityRecord{99b8cfe u0 org.smarttube.stable/com.liskovsoft.smartyoutubetv2.tv.ui.browse.BrowseActivity t26463}
+      * Task{77ba968 #26476 type=standard A=10123:com.stremio.one U=0 visible=false visibleRequested=false mode=fullscreen translucent=true sz=1}
+        bounds=[0,0][1920,1080]
+        * ActivityRecord{ebf48b u0 com.stremio.one/com.stremio.tv.MainActivity t26476}
+      * Task{ac7a008 #26444 type=standard A=1000:com.android.tv.settings U=0 visible=false visibleRequested=false mode=fullscreen translucent=true sz=2}
+        bounds=[0,0][1920,1080]
+        * ActivityRecord{d881c83 u0 com.android.tv.settings/.device.apps.AppManagementActivity t26444}
+        * ActivityRecord{2e921ab u0 com.android.tv.settings/.oemlink.AccessibilitySettingsActivity t26444}
+      * Task{1097300 #26461 type=standard A=10120:com.xiaodianshi.tv.yst U=0 visible=false visibleRequested=false mode=fullscreen translucent=true sz=2}
+        bounds=[0,0][1920,1080]
+        * ActivityRecord{8dbb271 u0 com.xiaodianshi.tv.yst/.ui.messagedialog.MessageDialogActivity t26461}
+        * ActivityRecord{cc30583 u0 com.xiaodianshi.tv.yst/.ui.main.MainActivity t26461}
+      * Task{a7ce5a4 #26443 type=standard I=com.spocky.projengmenu/.ui.home.MainActivity U=0 visible=false visibleRequested=false mode=fullscreen translucent=true sz=1}
+        bounds=[0,0][1920,1080]
+        * ActivityRecord{20fcc37 u0 com.spocky.projengmenu/.ui.home.MainActivity t26443}
+      * Task{5772459 #26442 type=standard A=10072:com.auramusic.previewprobe U=0 visible=false visibleRequested=false mode=fullscreen translucent=true sz=1}
+        bounds=[0,0][1920,1080]
+        * ActivityRecord{527b0a0 u0 com.auramusic.previewprobe/.MainActivity t26442}
+
+  no ScreenRotationAnimation 
+
+  rootHomeTask=Task=1
+
+  PinnedTaskController
+    mIsImeShowing=false
+    mImeHeight=0
+    mMinAspectRatio=0.41841003
+    mMaxAspectRatio=2.39
+
+  DisplayFrames w=1920 h=1080 r=0
+
+  DisplayPolicy
+    mCarDockEnablesAccelerometer=true mDeskDockEnablesAccelerometer=true
+    mDockMode=EXTRA_DOCK_STATE_UNDOCKED mLidState=LID_ABSENT
+    mAwake=true mScreenOnEarly=true mScreenOnFully=true
+    mKeyguardDrawComplete=true mWindowManagerDrawComplete=true
+    mHdmiPlugged=true
+    mLastBehavior=SHOW_TRANSIENT_BARS_BY_SWIPE
+    mShowingDream=false mDreamingLockscreen=false
+    isKeyguardShowing=false
+    mFocusedWindow=Window{a0db77c u0 com.spocky.projengmenu/com.spocky.projengmenu.ui.home.MainActivity}
+    mTopFullscreenOpaqueWindowState=Window{a0db77c u0 com.spocky.projengmenu/com.spocky.projengmenu.ui.home.MainActivity}
+    mLastStatusBarAppearanceRegions=
+    mLastLetterboxDetails=
+    mTopIsFullscreen=true
+    mForceShowNavigationBarEnabled=false mAllowLockscreenWhenOn=false
+    mRemoteInsetsControllerControlsSystemBars=false
+    mDecorInsetsInfo:
+      ROTATION_0={nonDecorInsets=[0,0][0,0], configInsets=[0,0][0,0], nonDecorFrame=[0,0][1920,1080], configFrame=[0,0][1920,1080]}
+      ROTATION_90={nonDecorInsets=[0,0][0,0], configInsets=[0,0][0,0], nonDecorFrame=[0,0][1080,1920], configFrame=[0,0][1080,1920]}
+      ROTATION_180={nonDecorInsets=[0,0][0,0], configInsets=[0,0][0,0], nonDecorFrame=[0,0][1920,1080], configFrame=[0,0][1920,1080]}
+      ROTATION_270={nonDecorInsets=[0,0][0,0], configInsets=[0,0][0,0], nonDecorFrame=[0,0][1080,1920], configFrame=[0,0][1080,1920]}
+    SystemGestures:
+      mDisplayCutoutTouchableRegionSize=0
+      mSwipeStartThreshold=Rect(48, 48 - 48, 48)
+      mSwipeDistanceThreshold=48
+    Looper state:
+      Looper (android.ui, tid 21) {874e393}
+        (Total messages: 0, polling=true, quitting=false)
+
+  DisplayRotation
+    mCurrentAppOrientation=SCREEN_ORIENTATION_UNSPECIFIED
+    mLastOrientation=-1
+    mRotation=0 mDeferredRotationPauseCount=0
+    mLandscapeRotation=ROTATION_0 mSeascapeRotation=ROTATION_180
+    mPortraitRotation=ROTATION_270 mUpsideDownRotation=ROTATION_90
+    mSupportAutoRotation=true
+    WindowOrientationListener
+      mEnabled=false
+      mCurrentRotation=ROTATION_0
+      mSensorType=null
+      mSensor=null
+      mRate=2
+
+    mCarDockRotation=-1 mDeskDockRotation=-1
+    mUserRotationMode=USER_ROTATION_FREE mUserRotation=ROTATION_0 mCameraRotationMode=0 mAllowAllRotations=unknown
+    mDemoHdmiRotation=ROTATION_0 mDemoHdmiRotationLock=false mUndockedHdmiRotation=-1
+    mLidOpenRotation=-1
+    mFixedToUserRotation=true
+
+
+  WindowInsetsStateController
+    InsetsState
+      mDisplayFrame=Rect(0, 0 - 1920, 1080)
+      mDisplayCutout=DisplayCutout{insets=Rect(0, 0 - 0, 0) waterfall=Insets{left=0, top=0, right=0, bottom=0} boundingRect={Bounds=[Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0)]} cutoutPathParserInfo={CutoutPathParserInfo{displayWidth=0 displayHeight=0 physicalDisplayWidth=0 physicalDisplayHeight=0 density={0.0} cutoutSpec={} rotation={0} scale={0.0} physicalPixelDisplaySizeRatio={0.0}}}}
+      mRoundedCorners=RoundedCorners{[RoundedCorner{position=TopLeft, radius=0, center=Point(0, 0)}, RoundedCorner{position=TopRight, radius=0, center=Point(0, 0)}, RoundedCorner{position=BottomRight, radius=0, center=Point(0, 0)}, RoundedCorner{position=BottomLeft, radius=0, center=Point(0, 0)}]}
+      mRoundedCornerFrame=Rect(0, 0 - 0, 0)
+      mPrivacyIndicatorBounds=PrivacyIndicatorBounds {static bounds=Rect(1700, 0 - 1920, 60) rotation=0}
+      mDisplayShape=DisplayShape{ spec=-545313861 displayWidth=3840 displayHeight=2160 physicalPixelDisplaySizeRatio=1.0 rotation=0 offsetX=0 offsetY=0 scale=1.0}
+        InsetsSource id=3 type=ime frame=[0,0][0,0] visible=false flags= insetsRoundedCornerFrame=false
+    Control map:
+      none    InsetsSourceProviders:
+      ImeInsetsSourceProvider
+        mSource=InsetsSource id=3 type=ime frame=[0,0][0,0] visible=false flags= insetsRoundedCornerFrame=false
+        mSourceFrame=Rect(0, 0 - 0, 0)
+        mIsLeashReadyForDispatching=true
+        mPendingControlTarget=com.android.server.wm.InsetsStateController$1@e4cfb2c
+        mImeShowing=true
+
+  Display: mDisplayId=19
+    init=1920x1072 1dpi mMinSizeOfResizeableTaskDp=220 cur=1920x1072 app=1920x1072 rng=1072x1072-1920x1920
+    deferred=false mLayoutNeeded=false mTouchExcludeRegion=SkRegion()
+
+  overrideConfig={0.0 ?mcc0mnc ?localeList ?layoutDir sw171520dp w307200dp h171520dp 1dpi xlrg long land ?uimode ?night -touch -keyb/v/h dpad/v winConfig={ mBounds=Rect(0, 0 - 1920, 1072) mAppBounds=Rect(0, 0 - 1920, 1072) mMaxBounds=Rect(0, 0 - 1920, 1072) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=undefined mAlwaysOnTop=undefined mRotation=ROTATION_0} ?fontWeightAdjustment}
+  mLayoutSeq=1
+  mCurrentFocus=null
+  mFocusedApp=null
+
+  mHoldScreenWindow=null
+  mObscuringWindow=null
+  mLastWakeLockHoldingWindow=null
+  mLastWakeLockObscuringWindow=null
+
+  displayId=19
+  mWallpaperTarget=null
+  mLastWallpaperX=-1.0 mLastWallpaperY=-1.0
+
+  Display areas in top down Z order:
+    * Leaf:15:36
+    * ImeContainer
+    * Leaf:3:12
+    * DefaultTaskDisplayArea
+    * Leaf:0:1
+
+  Task display areas in top down Z order:
+    TaskDisplayArea DefaultTaskDisplayArea
+      overrideConfig={0.0 ?mcc0mnc ?localeList ?layoutDir ?swdp ?wdp ?hdp ?density ?lsize ?long ?ldr ?wideColorGamut ?orien ?uimode ?night ?touch ?keyb/?/? ?nav/? winConfig={ mBounds=Rect(0, 0 - 0, 0) mAppBounds=null mMaxBounds=Rect(0, 0 - 0, 0) mDisplayRotation=undefined mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=undefined mAlwaysOnTop=undefined mRotation=undefined} ?fontWeightAdjustment}
+      Application tokens in top down Z order:
+
+  no ScreenRotationAnimation 
+
+
+  PinnedTaskController
+    mIsImeShowing=false
+    mImeHeight=0
+    mMinAspectRatio=0.41841003
+    mMaxAspectRatio=2.39
+
+  DisplayFrames w=1920 h=1072 r=0
+
+  DisplayPolicy
+    mCarDockEnablesAccelerometer=true mDeskDockEnablesAccelerometer=true
+    mDockMode=EXTRA_DOCK_STATE_UNDOCKED mLidState=LID_ABSENT
+    mAwake=true mScreenOnEarly=true mScreenOnFully=true
+    mKeyguardDrawComplete=false mWindowManagerDrawComplete=false
+    mHdmiPlugged=false
+    mShowingDream=false mDreamingLockscreen=false
+    isKeyguardShowing=false
+    mTopIsFullscreen=false
+    mForceShowNavigationBarEnabled=false mAllowLockscreenWhenOn=false
+    mRemoteInsetsControllerControlsSystemBars=false
+    mDecorInsetsInfo:
+      ROTATION_0={nonDecorInsets=[0,0][0,0], configInsets=[0,0][0,0], nonDecorFrame=[0,0][1920,1072], configFrame=[0,0][1920,1072]}
+      ROTATION_90={nonDecorInsets=[0,0][0,0], configInsets=[0,0][0,0], nonDecorFrame=[0,0][1072,1920], configFrame=[0,0][1072,1920]}
+      ROTATION_180={nonDecorInsets=[0,0][0,0], configInsets=[0,0][0,0], nonDecorFrame=[0,0][1920,1072], configFrame=[0,0][1920,1072]}
+      ROTATION_270={nonDecorInsets=[0,0][0,0], configInsets=[0,0][0,0], nonDecorFrame=[0,0][1072,1920], configFrame=[0,0][1072,1920]}
+    SystemGestures:
+      mDisplayCutoutTouchableRegionSize=0
+      mSwipeStartThreshold=Rect(1, 1 - 1, 1)
+      mSwipeDistanceThreshold=1
+    Looper state:
+      Looper (android.ui, tid 21) {874e393}
+        (Total messages: 0, polling=true, quitting=false)
+
+  DisplayRotation
+    mCurrentAppOrientation=SCREEN_ORIENTATION_UNSPECIFIED
+    mLastOrientation=-1
+    mRotation=0 mDeferredRotationPauseCount=0
+    mLandscapeRotation=ROTATION_0 mSeascapeRotation=ROTATION_180
+    mPortraitRotation=ROTATION_270 mUpsideDownRotation=ROTATION_90
+    mSupportAutoRotation=true
+
+    mCarDockRotation=-1 mDeskDockRotation=-1
+    mUserRotationMode=USER_ROTATION_FREE mUserRotation=ROTATION_0 mCameraRotationMode=0 mAllowAllRotations=unknown
+    mDemoHdmiRotation=ROTATION_0 mDemoHdmiRotationLock=false mUndockedHdmiRotation=-1
+    mLidOpenRotation=-1
+    mFixedToUserRotation=true
+
+
+  WindowInsetsStateController
+    InsetsState
+      mDisplayFrame=Rect(0, 0 - 1920, 1072)
+      mDisplayCutout=DisplayCutout{insets=Rect(0, 0 - 0, 0) waterfall=Insets{left=0, top=0, right=0, bottom=0} boundingRect={Bounds=[Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0)]} cutoutPathParserInfo={CutoutPathParserInfo{displayWidth=0 displayHeight=0 physicalDisplayWidth=0 physicalDisplayHeight=0 density={0.0} cutoutSpec={} rotation={0} scale={0.0} physicalPixelDisplaySizeRatio={0.0}}}}
+      mRoundedCorners=RoundedCorners{[RoundedCorner{position=TopLeft, radius=0, center=Point(0, 0)}, RoundedCorner{position=TopRight, radius=0, center=Point(0, 0)}, RoundedCorner{position=BottomRight, radius=0, center=Point(0, 0)}, RoundedCorner{position=BottomLeft, radius=0, center=Point(0, 0)}]}
+      mRoundedCornerFrame=Rect(0, 0 - 0, 0)
+      mPrivacyIndicatorBounds=PrivacyIndicatorBounds {static bounds=null rotation=0}
+      mDisplayShape=DisplayShape{ spec=1301736563 displayWidth=1920 displayHeight=1072 physicalPixelDisplaySizeRatio=1.0 rotation=0 offsetX=0 offsetY=0 scale=1.0}
+        InsetsSource id=3 type=ime frame=[0,0][0,0] visible=false flags= insetsRoundedCornerFrame=false
+    Control map:
+      none    InsetsSourceProviders:
+      ImeInsetsSourceProvider
+        mSource=InsetsSource id=3 type=ime frame=[0,0][0,0] visible=false flags= insetsRoundedCornerFrame=false
+        mSourceFrame=Rect(0, 0 - 0, 0)
+        mIsLeashReadyForDispatching=false
+        mImeShowing=false
+
+  KeyguardController:
+    mKeyguardShowing=false
+    mAodShowing=false
+    mKeyguardGoingAway=false
+   KeyguardShowing=false AodShowing=false KeyguardGoingAway=false DismissalRequested=false  Occluded=false DismissingKeyguardActivity=null TurnScreenOnActivity=null at display=0
+   KeyguardShowing=false AodShowing=false KeyguardGoingAway=false DismissalRequested=false  Occluded=false DismissingKeyguardActivity=null TurnScreenOnActivity=null at display=19
+    mDismissalRequested=false
+
+  LockTaskController:
+    mLockTaskModeState=NONE
+    mLockTaskModeTasks=
+    mLockTaskPackages (userId:packages)=
+
+  mCurTaskIdForUser={0=26486}
+  mUserRootTaskInFront={}
+  mVisibilityTransactionDepth=0
+  isHomeRecentsComponent=false
+  mNoHistoryActivities=[]
+
+  TaskOrganizerController:
+      android.window.ITaskOrganizer$Stub$Proxy@b2e3a3a uid=10046:
+        (fullscreen) Task{199fb79 #1 type=home}
+        (fullscreen) Task{5772459 #26442 type=standard A=10072:com.auramusic.previewprobe}
+        (fullscreen) Task{a7ce5a4 #26443 type=standard I=com.spocky.projengmenu/.ui.home.MainActivity}
+        (fullscreen) Task{ac7a008 #26444 type=standard A=1000:com.android.tv.settings}
+        (fullscreen) Task{1097300 #26461 type=standard A=10120:com.xiaodianshi.tv.yst}
+        (fullscreen) Task{6a49c5f #26463 type=standard A=10054:org.smarttube.stable:876029218}
+        (fullscreen) Task{77ba968 #26476 type=standard A=10123:com.stremio.one}
+        (fullscreen) Task{932e393 #26486 type=standard A=10150:com.spocky.projengmenu}
+
+  VisibleActivityProcess:[ ProcessRecord{de84cb 17297:com.spocky.projengmenu/u0a150}]
+  NumNonAppVisibleWindowUidMap:[ 10076:1]

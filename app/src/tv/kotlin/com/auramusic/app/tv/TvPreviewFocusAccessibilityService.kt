@@ -23,6 +23,7 @@ import timber.log.Timber
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.concurrent.Executors
+import java.util.concurrent.ConcurrentHashMap
 import android.util.LruCache
 import java.io.ByteArrayOutputStream
 import com.auramusic.app.playback.MusicService
@@ -31,17 +32,21 @@ import com.auramusic.app.playback.MusicService
 class TvPreviewFocusAccessibilityService : AccessibilityService() {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val bounds = Rect()
+    private val indicatorBounds = Rect()
     private var windowManager: WindowManager? = null
     private var indicator: FocusedCardWaveformView? = null
+    private var indicatorLayoutParams: WindowManager.LayoutParams? = null
+    private var boundsSyncUntilMs = 0L
+    private val programCardBounds = mutableMapOf<String, Rect>()
     private var lastPrograms = emptyMap<String, TvPreviewFocusTargets.Program>()
     private var titlesLoadedAtMs = 0L
-    private var artworkRequest = 0
     private var currentArtworkUri: Uri? = null
     private var focusedProgramTitle: String? = null
     private var playbackMonitor: AudioPlaybackMonitor? = null
     private var musicServiceBinding = false
     private var musicService: MusicService? = null
     private val artworkCache = object : LruCache<String, Bitmap>(4) {}
+    private val artworkLoads = ConcurrentHashMap.newKeySet<String>()
     private val artworkExecutor = Executors.newSingleThreadExecutor()
     private val musicServiceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -68,6 +73,50 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
                 hideIndicator("active window changed")
             } else {
                 mainHandler.postDelayed(this, ACTIVE_WINDOW_CHECK_MS)
+            }
+        }
+    }
+    private val syncFocusedCardBounds = object : Runnable {
+        override fun run() {
+            val view = indicator ?: return
+            val root = rootInActiveWindow
+            if (root == null || root.packageName?.toString() != PROJECTIVY_PACKAGE) {
+                root?.recycleCompat()
+                hideIndicator("Projectivy left foreground during card transition")
+                return
+            }
+            try {
+                val focused = focusedNode(root)
+                if (focused == null) {
+                    hideIndicator("Projectivy focus disappeared during card transition")
+                    return
+                }
+                try {
+                    val title = focused.contentDescription?.toString()?.trim().orEmpty()
+                    if (title != focusedProgramTitle) {
+                        hideIndicator("focused program changed during card transition")
+                        scheduleFocusedCardRefresh()
+                        return
+                    }
+                    val program = publishedPrograms()[title]
+                    if (program == null || !isWithinChannelRow(focused, program.channelNames)) {
+                        hideIndicator("focused card left the AuraMusic row during transition")
+                        return
+                    }
+                    focused.getBoundsInScreen(bounds)
+                    if (bounds.width() >= MIN_CARD_SIZE_PX &&
+                        bounds.height() >= MIN_CARD_SIZE_PX && focused.isVisibleToUser
+                    ) {
+                        updateIndicatorLayout(Rect(bounds))
+                    }
+                } finally {
+                    focused.recycleCompat()
+                }
+            } finally {
+                root.recycleCompat()
+            }
+            if (indicator === view && SystemClock.uptimeMillis() < boundsSyncUntilMs) {
+                mainHandler.postDelayed(this, CARD_BOUNDS_POLL_MS)
             }
         }
     }
@@ -138,14 +187,13 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
             return
         }
         try {
-            val focused = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
-                ?: root.findFocus(AccessibilityNodeInfo.FOCUS_ACCESSIBILITY)
-                ?: findFocusedDescendant(root, depth = 0)
+            val focused = focusedNode(root)
             if (focused == null) {
                 hideIndicator("Projectivy has no focused node")
                 return
             }
             try {
+                cacheProgramCardBounds(root, focused.contentDescription?.toString()?.trim().orEmpty())
                 Timber.d("TV preview focused-node refresh description=%s", focused.contentDescription)
                 updateFocusedProgram(focused)
             } finally {
@@ -169,6 +217,11 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
         }
         return null
     }
+
+    private fun focusedNode(root: AccessibilityNodeInfo): AccessibilityNodeInfo? =
+        root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
+            ?: root.findFocus(AccessibilityNodeInfo.FOCUS_ACCESSIBILITY)
+            ?: findFocusedDescendant(root, depth = 0)
 
     @Suppress("DEPRECATION")
     private fun AccessibilityNodeInfo.recycleCompat() = recycle()
@@ -222,57 +275,133 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
         return lastPrograms
     }
 
-    private fun showIndicator(card: Rect, title: String, artworkUri: Uri?) {
-        if (focusedProgramTitle != title) {
-            focusedProgramTitle = title
-            pauseAuraMusicForPreview(title)
+    private fun cacheProgramCardBounds(root: AccessibilityNodeInfo, focusedTitle: String) {
+        val programs = publishedPrograms()
+        val currentBounds = mutableMapOf<String, Rect>()
+        fun visit(node: AccessibilityNodeInfo, depth: Int) {
+            if (depth > MAX_FOCUS_TREE_DEPTH) return
+            val title = node.contentDescription?.toString()?.trim().orEmpty()
+            val program = programs[title]
+            if (program != null && isWithinChannelRow(node, program.channelNames)) {
+                val card = Rect()
+                node.getBoundsInScreen(card)
+                if (card.width() > 0 && card.height() > 0 && node.isVisibleToUser) {
+                    currentBounds[title] = card
+                }
+            }
+            for (index in 0 until node.childCount) {
+                val child = node.getChild(index) ?: continue
+                try {
+                    visit(child, depth + 1)
+                } finally {
+                    child.recycleCompat()
+                }
+            }
         }
-        mainHandler.removeCallbacks(activeWindowCheck)
-        val manager = windowManager ?: return
-        val existing = indicator
-        val view = existing ?: FocusedCardWaveformView(this).also { indicator = it }
-        val params = WindowManager.LayoutParams(
-            card.width(),
-            card.height(),
-            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
-                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-            PixelFormat.TRANSLUCENT,
-        ).apply {
-            gravity = Gravity.TOP or Gravity.LEFT
-            x = card.left
-            y = card.top
-        }
-        view.setPreviewFocused(true)
-        try {
-            if (existing == null) manager.addView(view, params) else manager.updateViewLayout(view, params)
-        } catch (error: Exception) {
-            if (existing == null) indicator = null
-            throw error
-        }
-        if (currentArtworkUri != artworkUri) {
-            currentArtworkUri = artworkUri
-            val request = ++artworkRequest
-            view.setArtwork(artworkUri?.let { artworkCache.get(it.toString()) })
-            if (artworkUri != null && artworkCache.get(artworkUri.toString()) == null) {
-                artworkExecutor.execute {
-                    val bitmap = runCatching { loadArtwork(artworkUri) }
-                        .onFailure { Timber.w(it, "Could not load focused AuraMusic artwork uri=%s", artworkUri.scheme) }
-                        .getOrNull()
-                    if (bitmap != null) artworkCache.put(artworkUri.toString(), bitmap)
-                    mainHandler.post {
-                        if (request == artworkRequest && currentArtworkUri == artworkUri && indicator === view) {
-                            view.setArtwork(bitmap)
-                            Timber.i("TV preview focused artwork ready title=%s size=%s", title, bitmap?.let { "${it.width}x${it.height}" })
-                        }
+        visit(root, 0)
+        programCardBounds.clear()
+        programCardBounds.putAll(currentBounds)
+        val focusedBounds = currentBounds[focusedTitle]
+        currentBounds.keys
+            .sortedBy { title ->
+                val card = currentBounds.getValue(title)
+                if (focusedBounds == null) Int.MAX_VALUE else kotlin.math.abs(card.centerX() - focusedBounds.centerX())
+            }
+            .take(MAX_VISIBLE_ARTWORK_PREFETCH)
+            .forEach { title -> programs[title]?.artwork?.let { preloadArtwork(title, it) } }
+    }
+
+    private fun preloadArtwork(title: String, uri: Uri) {
+        val key = uri.toString()
+        if (artworkCache.get(key) != null || !artworkLoads.add(key)) return
+        Timber.d("TV preview artwork prefetch started title=%s", title)
+        artworkExecutor.execute {
+            val bitmap = runCatching { loadArtwork(uri) }
+                .onFailure { Timber.w(it, "Could not preload AuraMusic artwork uri=%s", uri.scheme) }
+                .getOrNull()
+            if (bitmap != null) artworkCache.put(key, bitmap)
+            artworkLoads.remove(key)
+            if (bitmap != null) {
+                mainHandler.post {
+                    if (currentArtworkUri == uri) {
+                        indicator?.setArtwork(bitmap)
+                        Timber.i("TV preview focused artwork ready title=%s size=%s", title, "${bitmap.width}x${bitmap.height}")
                     }
                 }
             }
         }
+    }
+
+    private fun showIndicator(card: Rect, title: String, artworkUri: Uri?) {
+        val previousTitle = focusedProgramTitle
+        if (previousTitle != title) {
+            focusedProgramTitle = title
+            pauseAuraMusicForPreview(title)
+        }
+        mainHandler.removeCallbacks(activeWindowCheck)
+        val existing = indicator
+        val view = existing ?: FocusedCardWaveformView(this).also { indicator = it }
+        // Change/clear the bitmap before moving the reusable overlay to the next card.
+        if (currentArtworkUri != artworkUri) {
+            currentArtworkUri = artworkUri
+            view.setArtwork(artworkUri?.let { artworkCache.get(it.toString()) })
+            if (artworkUri != null && artworkCache.get(artworkUri.toString()) != null) {
+                Timber.d("TV preview focused artwork cache hit title=%s", title)
+            }
+            if (artworkUri != null) preloadArtwork(title, artworkUri)
+        }
+        view.setPreviewFocused(true)
+        try {
+            // Re-anchor immediately on the selected card. Projectivy can retain its old
+            // preview Surface frame while scrolling; translating this overlay from the
+            // adjacent card makes the old art appear to slide across cards.
+            updateIndicatorLayout(card)
+        } catch (error: Exception) {
+            if (existing == null) indicator = null
+            throw error
+        }
         Timber.d("TV preview focus indicator shown title=%s bounds=%s", title, card)
         mainHandler.postDelayed(activeWindowCheck, ACTIVE_WINDOW_CHECK_MS)
+        scheduleFocusedBoundsSync()
+    }
+
+    private fun scheduleFocusedBoundsSync() {
+        mainHandler.removeCallbacks(syncFocusedCardBounds)
+        boundsSyncUntilMs = SystemClock.uptimeMillis() + CARD_BOUNDS_SYNC_MS
+        mainHandler.post(syncFocusedCardBounds)
+    }
+
+    private fun updateIndicatorLayout(card: Rect) {
+        val view = indicator ?: return
+        val manager = windowManager ?: return
+        val params = indicatorLayoutParams
+        if (params == null) {
+            val initialParams = WindowManager.LayoutParams(
+                card.width(),
+                card.height(),
+                WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                PixelFormat.TRANSLUCENT,
+            ).apply {
+                gravity = Gravity.TOP or Gravity.LEFT
+                x = card.left
+                y = card.top
+            }
+            manager.addView(view, initialParams)
+            indicatorLayoutParams = initialParams
+            indicatorBounds.set(card)
+            return
+        }
+        if (indicatorBounds == card) return
+        params.width = card.width()
+        params.height = card.height()
+        params.x = card.left
+        params.y = card.top
+        manager.updateViewLayout(view, params)
+        indicatorBounds.set(card)
     }
 
     private fun loadArtwork(uri: Uri): Bitmap? {
@@ -328,12 +457,16 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
 
     private fun hideIndicator(reason: String) {
         mainHandler.removeCallbacks(activeWindowCheck)
+        mainHandler.removeCallbacks(syncFocusedCardBounds)
+        boundsSyncUntilMs = 0L
+        programCardBounds.clear()
         indicator?.let { view -> runCatching { windowManager?.removeView(view) } }
         if (indicator != null) Timber.d("TV preview focus indicator hidden reason=%s", reason)
         indicator = null
+        indicatorLayoutParams = null
+        indicatorBounds.setEmpty()
         focusedProgramTitle = null
         unbindMusicService()
-        artworkRequest++
         currentArtworkUri = null
     }
 
@@ -394,6 +527,9 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
         const val TITLES_CACHE_MS = 10_000L
         const val ACTIVE_WINDOW_CHECK_MS = 500L
         const val FOCUS_REFRESH_DELAY_MS = 100L
+        const val MAX_VISIBLE_ARTWORK_PREFETCH = 4
+        const val CARD_BOUNDS_SYNC_MS = 1_200L
+        const val CARD_BOUNDS_POLL_MS = 50L
         const val MAX_FOCUS_TREE_DEPTH = 30
         const val MAX_CHANNEL_ANCESTOR_DEPTH = 16
         const val MIN_CARD_SIZE_PX = 80
