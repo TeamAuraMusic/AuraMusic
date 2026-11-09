@@ -15,6 +15,11 @@ import android.widget.ImageView
 internal class FocusedCardWaveformView(context: Context) : FrameLayout(context) {
     private val artworkView = ImageView(context).apply {
         scaleType = ImageView.ScaleType.CENTER_CROP
+        // Projectivy may keep the previous preview Surface frame visible while it
+        // switches programs. Cover that frame immediately until this card's cached
+        // artwork is installed; transparency here makes old artwork appear to slide
+        // onto the newly focused card.
+        setBackgroundColor(Color.BLACK)
     }
     private val waveformView = WaveformBarsView(context)
 

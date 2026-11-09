@@ -100,6 +100,32 @@ class FocusedCardWaveformViewInstrumentedTest {
         nextArtwork.recycle()
     }
 
+    @Test
+    fun missingNextArtworkMasksThePreviousProjectivyPreviewFrame() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val previousArtwork = Bitmap.createBitmap(320, 180, Bitmap.Config.ARGB_8888).apply {
+            eraseColor(ARTWORK_COLOR)
+        }
+        lateinit var view: FocusedCardWaveformView
+        instrumentation.runOnMainSync {
+            view = FocusedCardWaveformView(instrumentation.targetContext)
+            view.measure(
+                View.MeasureSpec.makeMeasureSpec(CARD_WIDTH, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(CARD_HEIGHT, View.MeasureSpec.EXACTLY),
+            )
+            view.layout(0, 0, CARD_WIDTH, CARD_HEIGHT)
+            view.setArtwork(previousArtwork)
+            view.setPreviewFocused(true)
+            view.setArtwork(null)
+        }
+
+        val frame = render(instrumentation, view)
+        assertEquals(Color.BLACK, frame.getPixel(CARD_WIDTH / 2, 40))
+
+        frame.recycle()
+        previousArtwork.recycle()
+    }
+
     private fun render(instrumentation: android.app.Instrumentation, view: View): Bitmap {
         lateinit var frame: Bitmap
         instrumentation.runOnMainSync {
