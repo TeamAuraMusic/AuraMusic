@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "timestampUtc": "20261109T044825Z",
+  "sourceCommit": "9da81aa687b5d3e913c6bef7b241a153cf21ed30",
+  "workingTreeHadPreexistingUntrackedEvidence": true,
+  "changedSourcePaths": [
+    "app/src/test/kotlin/com/auramusic/app/tv/TvPreviewAudioDownloaderTest.kt",
+    "app/src/tv/kotlin/com/auramusic/app/tv/TvPreviewAudioDownloader.kt",
+    "app/src/tv/kotlin/com/auramusic/app/tv/TvPreviewContentProvider.kt",
+    "app/src/tv/kotlin/com/auramusic/app/tv/TvRecommendationPublisher.kt",
+    "auravideo/src/main/kotlin/com/auramusic/auravideo/AuraVideo.kt",
+    "app/src/tv/kotlin/com/auramusic/app/tv/TvPreviewSourceResolver.kt"
+  ],
+  "build": {
+    "outcome": "PASS",
+    "durationSecondsApprox": 605,
+    "command": "./gradlew :app:testStandaloneTvUniversalDebugUnitTest :app:testFossTvUniversalDebugUnitTest :app:assembleStandaloneTvUniversalDebug :app:assembleFossTvUniversalDebug :app:assembleStandaloneTvUniversalDebugAndroidTest :app:assembleFossTvUniversalDebugAndroidTest --console=plain",
+    "unitTestsByFlavor": {
+      "testStandaloneTvUniversalDebugUnitTest": {
+        "tests": 68,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "testFossTvUniversalDebugUnitTest": {
+        "tests": 68,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    },
+    "androidTestApksAssembled": true,
+    "artifacts": {
+      "app/build/outputs/apk/standaloneTvUniversal/debug/app-standalone-tv-universal-debug.apk": {
+        "sha256": "bb20b62af0221d3006e3c0518f9e77551106ab155c937cffeac4839a111dd142",
+        "bytes": 101097800
+      },
+      "app/build/outputs/apk/fossTvUniversal/debug/app-foss-tv-universal-debug.apk": {
+        "sha256": "606b8d97fd1447e01b06b1d9b909eb1aeeec8f90961b4c351bf3f080fb6e1d6d",
+        "bytes": 101097800
+      },
+      "app/build/outputs/apk/androidTest/standaloneTvUniversal/debug/app-standalone-tv-universal-debug-androidTest.apk": {
+        "sha256": "60f942a9423323ad06d26d6c734ef99ed7fd5fc0d65662a24c84c1ff3ab02ab4",
+        "bytes": 505707
+      },
+      "app/build/outputs/apk/androidTest/fossTvUniversal/debug/app-foss-tv-universal-debug-androidTest.apk": {
+        "sha256": "7b3b1d4b537a64201fb6cb1715279146f27dada2a67cdd7dbed262d3dc33e372",
+        "bytes": 510475
+      }
+    }
+  },
+  "deviceRuntimeAfterSourceChange": {
+    "outcome": "INCONCLUSIVE",
+    "reason": "This build did not run against an emulator or Chromecast. The last physical capture used the previous installed APK hash c2beed295b6a43506cea5cc2ee470808bc730af655818e4d8fdbf17f981afc8e; provider listed ten AuraMusic programs, but Projectivy was not DPAD-tested on the row.",
+    "evidenceDirectory": "evidence/optimized_chromecast_real_focus_20261108T204849Z"
+  },
+  "changes": [
+    "Preview source resolution tries the existing AuraVideo extractor, then AuraMusic YTPlayerUtils multi-client resolver.",
+    "Resolver request headers are preserved in sequential/ranged downloads and Media3 duration probes.",
+    "Header-requiring URLs are not published as direct PreviewProgram audio URIs; local provider prepares them instead.",
+    "Changed source URL contributes to preview revision without publishing the resolver headers."
+  ],
+  "limits": [
+    "No live resolver fallback or Projectivy integration run on the rebuilt APK yet.",
+    "No connected AndroidTest task was run against the physical device."
+  ]
+}

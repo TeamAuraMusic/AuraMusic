@@ -27,6 +27,39 @@ class TvPreviewAudioDownloaderTest {
     @get:Rule val temporaryFolder = TemporaryFolder()
 
     @Test
+    fun appliesResolverHeadersToSequentialProbeAndBodyRequests() = runBlocking {
+        val body = ByteArray(256 * 1024) { (it * 13).toByte() }
+        val observed = java.util.Collections.synchronizedList(mutableListOf<String?>())
+        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        server.createContext("/audio") { exchange ->
+            observed += exchange.requestHeaders.getFirst("X-Preview-Client")
+            if (exchange.requestHeaders.getFirst("Range") == "bytes=0-0") {
+                exchange.responseHeaders.add("Content-Range", "bytes 0-0/${body.size}")
+                exchange.sendResponseHeaders(206, 1)
+                exchange.responseBody.use { it.write(body[0].toInt()) }
+            } else {
+                exchange.sendResponseHeaders(200, body.size.toLong())
+                exchange.responseBody.use { it.write(body) }
+            }
+        }
+        server.start()
+        try {
+            val output = TvPreviewAudioDownloader.download(
+                "http://127.0.0.1:${server.address.port}/audio",
+                temporaryFolder.newFolder(),
+                "header-source",
+                mapOf("X-Preview-Client" to "AuraMusic resolver"),
+            )
+
+            assertArrayEquals(body, Files.readAllBytes(output.toPath()))
+            assertTrue("Expected both range probe and body requests", observed.size >= 2)
+            assertTrue(observed.all { it == "AuraMusic resolver" })
+        } finally {
+            server.stop(0)
+        }
+    }
+
+    @Test
     fun staleUrlCleansPartialCacheAndSameSourceCanRecover() = runBlocking {
         val body = ByteArray(384 * 1024) { (it * 23).toByte() }
         val available = AtomicBoolean(false)
