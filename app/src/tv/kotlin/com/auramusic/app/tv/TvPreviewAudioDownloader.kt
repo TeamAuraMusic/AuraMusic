@@ -37,7 +37,12 @@ internal object TvPreviewAudioDownloader {
     private const val RANGE_CHUNK_BYTES = 512L * 1024L
     private const val MAX_PARALLEL_RANGES = 4
 
-    suspend fun download(url: String, directory: File, cacheName: String): File =
+    suspend fun download(
+        url: String,
+        directory: File,
+        cacheName: String,
+        requestHeaders: Map<String, String> = emptyMap(),
+    ): File =
         withContext(Dispatchers.IO) {
             val output = File(directory, "$cacheName.audio")
             val partial = File(directory, "$cacheName.audio.partial")
@@ -45,12 +50,12 @@ internal object TvPreviewAudioDownloader {
             var downloaded = 0L
             var retries = 0
             val jobContext = currentCoroutineContext()
-            val probe = probeRange(url)
+            val probe = probeRange(url, requestHeaders)
             try {
                 val rangeLength = probe.rangeLength
                 if (rangeLength != null && rangeLength >= PARALLEL_THRESHOLD_BYTES) {
                     try {
-                        downloadParallelRanges(url, partial, rangeLength)
+                        downloadParallelRanges(url, partial, rangeLength, requestHeaders)
                         check(partial.length() == rangeLength) { "Parallel preview audio download was incomplete" }
                         publishAtomically(partial, output)
                         Timber.i(
@@ -79,11 +84,13 @@ internal object TvPreviewAudioDownloader {
                         val activeConnection = probeResponse?.also { probe.initialResponse = null }
                             ?: (URL(url).openConnection() as HttpURLConnection).apply {
                                 setRequestProperty("Accept-Encoding", "identity")
+                                applyRequestHeaders(requestHeaders)
                             }
                         connection = activeConnection
                         activeConnection.connectTimeout = CONNECT_TIMEOUT_MS
                         activeConnection.readTimeout = READ_TIMEOUT_MS
                         activeConnection.instanceFollowRedirects = true
+                        activeConnection.applyRequestHeaders(requestHeaders)
                         if (requestedOffset > 0L) {
                             activeConnection.setRequestProperty("Range", "bytes=$requestedOffset-")
                         }
@@ -177,7 +184,7 @@ internal object TvPreviewAudioDownloader {
     }
 
     /** Keeps an ignored-Range 200 response for sequential download instead of discarding its body. */
-    private suspend fun probeRange(url: String): RangeProbe {
+    private suspend fun probeRange(url: String, requestHeaders: Map<String, String>): RangeProbe {
         val connection = URL(url).openConnection() as HttpURLConnection
         var handedOff = false
         try {
@@ -185,6 +192,7 @@ internal object TvPreviewAudioDownloader {
             connection.readTimeout = READ_TIMEOUT_MS
             connection.instanceFollowRedirects = true
             connection.setRequestProperty("Accept-Encoding", "identity")
+            connection.applyRequestHeaders(requestHeaders)
             connection.setRequestProperty("Range", "bytes=0-0")
             val status = connection.responseCode
             if (status in REFRESHABLE_SOURCE_STATUSES) throw PreviewAudioHttpException(status)
@@ -214,7 +222,12 @@ internal object TvPreviewAudioDownloader {
         }
     }
 
-    private suspend fun downloadParallelRanges(url: String, partial: File, totalBytes: Long) = coroutineScope {
+    private suspend fun downloadParallelRanges(
+        url: String,
+        partial: File,
+        totalBytes: Long,
+        requestHeaders: Map<String, String>,
+    ) = coroutineScope {
         partial.parentFile?.mkdirs()
         val randomAccessFile = RandomAccessFile(partial, "rw")
         val channel = randomAccessFile.channel
@@ -228,7 +241,7 @@ internal object TvPreviewAudioDownloader {
                 val rangeEnd = minOf(totalBytes - 1L, rangeStart + RANGE_CHUNK_BYTES - 1L)
                 jobs += async(Dispatchers.IO) {
                     semaphore.withPermit {
-                        downloadRange(url, channel, rangeStart, rangeEnd, totalBytes)
+                        downloadRange(url, channel, rangeStart, rangeEnd, totalBytes, requestHeaders)
                     }
                 }
                 start = rangeEnd + 1L
@@ -247,6 +260,7 @@ internal object TvPreviewAudioDownloader {
         start: Long,
         end: Long,
         total: Long,
+        requestHeaders: Map<String, String>,
     ) {
         val expectedBytes = end - start + 1L
         val jobContext = currentCoroutineContext()
@@ -259,6 +273,7 @@ internal object TvPreviewAudioDownloader {
                 connection.readTimeout = READ_TIMEOUT_MS
                 connection.instanceFollowRedirects = true
                 connection.setRequestProperty("Accept-Encoding", "identity")
+                connection.applyRequestHeaders(requestHeaders)
                 connection.setRequestProperty("Range", "bytes=$start-$end")
                 val status = connection.responseCode
                 if (status in REFRESHABLE_SOURCE_STATUSES) throw PreviewAudioHttpException(status)
@@ -312,4 +327,8 @@ internal object TvPreviewAudioDownloader {
         val rangeLength: Long? = null,
         var initialResponse: HttpURLConnection? = null,
     )
+
+    private fun HttpURLConnection.applyRequestHeaders(headers: Map<String, String>) {
+        headers.forEach { (name, value) -> setRequestProperty(name, value) }
+    }
 }

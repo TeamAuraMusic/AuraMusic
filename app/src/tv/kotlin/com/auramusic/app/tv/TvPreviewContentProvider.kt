@@ -20,7 +20,10 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.tvprovider.media.tv.TvContractCompat
 import com.auramusic.auravideo.AuraVideo
 import kotlinx.coroutines.CompletableDeferred
@@ -376,6 +379,7 @@ class TvPreviewContentProvider : ContentProvider() {
                 source.url,
                 output.parentFile!!,
                 output.nameWithoutExtension,
+                source.requestHeaders,
             )
             ProjectivyAudioPreviewPreparation.TRANSCODE_TO_MP4 -> {
                 val sourceDirectory = File(
@@ -389,6 +393,7 @@ class TvPreviewContentProvider : ContentProvider() {
                     source.url,
                     sourceDirectory,
                     output.nameWithoutExtension,
+                    source.requestHeaders,
                 )
                 try {
                     exportSemaphore.withPermit {
@@ -523,7 +528,7 @@ class TvPreviewContentProvider : ContentProvider() {
                     ) { source ->
                         val durationMs = record.durationMs.takeIf { it > 0L }
                             ?: source.durationMs.takeIf { it > 0L }
-                            ?: runCatching { probeAudioDuration(context, source.url) }
+                            ?: runCatching { probeAudioDuration(context, source.url, source.requestHeaders) }
                                 .getOrNull()
                                 ?.takeIf { it > 0L }
                             ?: UNKNOWN_TRACK_DURATION_FALLBACK_MS
@@ -532,6 +537,7 @@ class TvPreviewContentProvider : ContentProvider() {
                             source.url,
                             partialFile.parentFile!!,
                             partialFile.name,
+                            source.requestHeaders,
                         )
                         durationMs to downloadedAudio
                     }
@@ -611,12 +617,16 @@ class TvPreviewContentProvider : ContentProvider() {
             )
         }
         return withTimeout(RESOLVE_TIMEOUT_MS) {
-            AuraVideo.getAudioPreviewSource(record.mediaId).getOrThrow()
+            TvPreviewSourceResolver.resolve(requireContext(), record.mediaId)
         }
     }
 
     /** Reads the remote container's duration without playing audio; Quick Picks often omit it. */
-    private suspend fun probeAudioDuration(context: Context, audioUrl: String): Long =
+    private suspend fun probeAudioDuration(
+        context: Context,
+        audioUrl: String,
+        requestHeaders: Map<String, String> = emptyMap(),
+    ): Long =
         withTimeout(DURATION_PROBE_TIMEOUT_MS) {
             suspendCancellableCoroutine { continuation ->
                 val finished = java.util.concurrent.atomic.AtomicBoolean(false)
@@ -624,7 +634,15 @@ class TvPreviewContentProvider : ContentProvider() {
                 val startProbe = Runnable {
                     if (!continuation.isActive || finished.get()) return@Runnable
                     try {
-                        val probe = ExoPlayer.Builder(context).build()
+                        val dataSourceFactory = DefaultDataSource.Factory(
+                            context,
+                            DefaultHttpDataSource.Factory().setDefaultRequestProperties(requestHeaders),
+                        )
+                        val mediaSourceFactory = DefaultMediaSourceFactory(context)
+                            .setDataSourceFactory(dataSourceFactory)
+                        val probe = ExoPlayer.Builder(context)
+                            .setMediaSourceFactory(mediaSourceFactory)
+                            .build()
                         player = probe
                         val listener = object : Player.Listener {
                             private fun readDuration(timeline: Timeline = probe.currentTimeline) {

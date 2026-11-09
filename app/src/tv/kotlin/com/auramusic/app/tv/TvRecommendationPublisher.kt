@@ -15,7 +15,6 @@ import com.auramusic.app.models.PersistQueue
 import com.auramusic.app.ui.tv.tvDatabase
 import com.auramusic.app.utils.dataStore
 import com.auramusic.app.utils.get
-import com.auramusic.auravideo.AuraVideo
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -37,7 +36,11 @@ internal object TvRecommendationPublisher {
     private const val MAX_RECOMMENDATIONS = 10
     private val publishMutex = Mutex()
 
-    private data class PreviewAudio(val uri: Uri, val mimeType: String)
+    private data class PreviewAudio(
+        val uri: Uri?,
+        val mimeType: String,
+        val revisionIdentity: String?,
+    )
     private data class PersistQueueSnapshot(val queue: PersistQueue?, val available: Boolean)
 
     suspend fun publish(context: Context): String? = publishMutex.withLock {
@@ -97,6 +100,7 @@ internal object TvRecommendationPublisher {
         }
         val existingPrograms = readExistingPrograms(context, channelId)
         val previewAudioSources = resolvePreviewAudioUris(
+            context,
             selectedMediaIds,
             existingPrograms,
         )
@@ -142,7 +146,7 @@ internal object TvRecommendationPublisher {
                             mediaId,
                             artworkUri,
                             durationMs.toLong(),
-                            previewAudio?.uri?.toString(),
+                            previewAudio?.revisionIdentity,
                         )
                         setPreviewAudioUri(previewAudio?.uri)
                         if (artworkUri.isNotBlank()) {
@@ -279,6 +283,7 @@ internal object TvRecommendationPublisher {
     }
 
     private suspend fun resolvePreviewAudioUris(
+        context: Context,
         mediaIds: List<String>,
         existingPrograms: List<ExistingPreviewProgram>,
     ): Map<String, PreviewAudio> = coroutineScope {
@@ -302,12 +307,13 @@ internal object TvRecommendationPublisher {
                     return@async mediaId to PreviewAudio(
                         previousUri,
                         previousUri.getQueryParameter("mime").orEmpty(),
+                        previousUri.toString(),
                     )
                 }
 
                 val source = resolveLimit.withPermit {
                     try {
-                        AuraVideo.getAudioPreviewSource(mediaId).getOrNull()
+                        TvPreviewSourceResolver.resolve(context, mediaId)
                     } catch (e: CancellationException) {
                         throw e
                     } catch (e: Exception) {
@@ -315,7 +321,7 @@ internal object TvRecommendationPublisher {
                         null
                     }
                 } ?: return@async null
-                val uri = runCatching { Uri.parse(source.url) }.getOrNull()
+                val sourceUri = runCatching { Uri.parse(source.url) }.getOrNull()
                     ?.takeIf {
                         canPublishTvPreview(
                             scheme = it.scheme,
@@ -324,7 +330,10 @@ internal object TvRecommendationPublisher {
                             nowMillis = System.currentTimeMillis(),
                         )
                     } ?: return@async null
-                mediaId to PreviewAudio(uri, source.mimeType)
+                // Projectivy cannot attach the browser headers required by some resolver
+                // clients. In that case the provider streams its locally prepared audio.
+                val uri = sourceUri.takeIf { source.requestHeaders.isEmpty() }
+                mediaId to PreviewAudio(uri, source.mimeType, source.url)
             }
         }.awaitAll().filterNotNull().toMap()
     }

@@ -19,6 +19,8 @@ object AuraVideo {
         val url: String,
         val mimeType: String,
         val durationMs: Long = 0L,
+        /** Required headers for clients that return a fingerprint-bound stream URL. */
+        val requestHeaders: Map<String, String> = emptyMap(),
     )
 
     /**
