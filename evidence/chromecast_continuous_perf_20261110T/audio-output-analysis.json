@@ -1,0 +1,13 @@
+{
+  "sourceVideo": "evidence/chromecast_continuous_perf_20261110T/card-continuous.mp4",
+  "audioCodec": "opus",
+  "sampleRateHz": 16000,
+  "channels": 1,
+  "samples": 1032856,
+  "durationSeconds": 64.553,
+  "rms": 0.12724585847068942,
+  "rmsDbfs": -17.90712687885693,
+  "peak": 0.876495361328125,
+  "nonSilence": true,
+  "limitation": "Non-silent output capture; does not identify the song acoustically."
+}

@@ -1,0 +1,7 @@
+Tasks: 2 total,   0 running,   2 sleeping,   0 stopped,   0 zombie
+  Mem:  1982996K total,  1875340K used,   107656K free,     1164K buffers
+ Swap:   495744K total,   495700K used,       44K free,   275324K cached
+400%cpu 176%user   0%nice 163%sys  22%idle   0%iow  17%irq  22%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+17297 u0_a150      10 -10 1.5G 164M  88M S 97.5   8.4  19:06.58 com.spocky.projengmenu
+22979 u0_a76       20   0 1.4G  83M  39M S  0.0   4.2   4:15.04 com.auramusic.app.debug

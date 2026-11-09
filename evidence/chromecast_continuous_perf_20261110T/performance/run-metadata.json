@@ -1,0 +1,35 @@
+{
+  "serial": "192.168.3.2:5555",
+  "startedUtc": "2026-11-09T23:30:07.266719+00:00",
+  "model": "Chromecast",
+  "device": "sabrina",
+  "androidApi": "34",
+  "projectivyVersion": {
+    "package": "com.spocky.projengmenu",
+    "versionName": "4.73",
+    "versionCode": 98
+  },
+  "auraMusicVersion": {
+    "package": "com.auramusic.app.debug",
+    "versionName": "3.2.0",
+    "versionCode": 29
+  },
+  "gitCommit": "696c6b8021ca74036073822256252beb353bd19b",
+  "gitWorkingTreeDirty": true,
+  "pids": {
+    "com.spocky.projengmenu": 17297,
+    "com.auramusic.app.debug": 22979
+  },
+  "uids": {
+    "com.spocky.projengmenu": 10150,
+    "com.auramusic.app.debug": 10076
+  },
+  "sampleCount": 13,
+  "intervalSeconds": 5.0,
+  "expectedAudio": "playing",
+  "cacheBytesBefore": {
+    "tv_preview_audio": 18898944,
+    "tv_preview_video": null,
+    "tv_preview_gif": null
+  }
+}

@@ -1,0 +1,110 @@
+{
+  "test": "Exact-candidate Chromecast real-song continuous preview/resource capture",
+  "status": "PASS",
+  "device": {
+    "serial": "192.168.3.2:5555",
+    "model": "Chromecast",
+    "device": "sabrina",
+    "androidApi": 34,
+    "projectivy": "4.73",
+    "auraMusic": "3.2.0",
+    "auraVersionCode": 29
+  },
+  "focusedTitle": "愛的故事（上集）",
+  "installedApkSha256": "c685cf4a8ab9d14e5bcd1fe6618079c8c42c71828eec3e7c3c96091c4f78350a",
+  "continuousCapture": {
+    "video": "card-continuous.mp4",
+    "durationSeconds": 64.531771,
+    "focusWasNotChanged": true,
+    "projectivyAudioTrackSamples": 13,
+    "projectivyTrackStartedEverySample": true,
+    "auraMusicTrackOverlapEverySample": false,
+    "videoCodec": "h264",
+    "capturedAudioCodec": "opus"
+  },
+  "visual": {
+    "roi": {
+      "x": 105,
+      "y": 510,
+      "width": 300,
+      "height": 95
+    },
+    "sampleRateFps": 2,
+    "samples": 127,
+    "samplesWithPinkIndicator": 127,
+    "distinctPinkRowProfiles": 127,
+    "adjacentVisibleTransitions": 126,
+    "transitionsChangingOver100Pixels": 126,
+    "minimumVisibleProfileDelta": 259,
+    "medianVisibleProfileDelta": 432.5,
+    "sourceVideo": "evidence/chromecast_continuous_perf_20261110T/card-continuous.mp4",
+    "expectedFocusedTitle": "愛的故事（上集）",
+    "interpretation": "2 fps scrcpy compositor samples; ROI inside focused Projectivy card."
+  },
+  "capturedAudio": {
+    "sourceVideo": "evidence/chromecast_continuous_perf_20261110T/card-continuous.mp4",
+    "audioCodec": "opus",
+    "sampleRateHz": 16000,
+    "channels": 1,
+    "samples": 1032856,
+    "durationSeconds": 64.553,
+    "rms": 0.12724585847068942,
+    "rmsDbfs": -17.90712687885693,
+    "peak": 0.876495361328125,
+    "nonSilence": true,
+    "limitation": "Non-silent output capture; does not identify the song acoustically."
+  },
+  "resources": {
+    "summaries": {
+      "com.spocky.projengmenu": {
+        "cpuPercent": {
+          "samples": 13,
+          "median": 35.4,
+          "p95": 59.5,
+          "max": 70.5
+        },
+        "pssKb": {
+          "samples": 13,
+          "median": 144307,
+          "p95": 147630,
+          "max": 151152
+        },
+        "rssKb": {
+          "samples": 13,
+          "median": 184112,
+          "p95": 191472,
+          "max": 194896
+        }
+      },
+      "com.auramusic.app.debug": {
+        "cpuPercent": {
+          "samples": 13,
+          "median": 11.9,
+          "p95": 14.7,
+          "max": 16.1
+        },
+        "pssKb": {
+          "samples": 13,
+          "median": 170929,
+          "p95": 174978,
+          "max": 175049
+        },
+        "rssKb": {
+          "samples": 13,
+          "median": 104816,
+          "p95": 110548,
+          "max": 110612
+        }
+      }
+    },
+    "previewAudioCacheBytesBefore": 18898944,
+    "previewAudioCacheBytesAfter": 18898944,
+    "previewAudioCacheByteDelta": 0
+  },
+  "projectivyForegroundAfterCapture": true,
+  "focusLossReturnEvidence": "../chromecast_latest_focus_loss_20261110T/final/result.json",
+  "limitations": [
+    "This is a 64.5-second real-track run, not a full-duration track test or 60–120-second synthetic A/B tone test.",
+    "Non-silent captured output and AudioTrack ownership do not independently identify the track acoustically."
+  ]
+}

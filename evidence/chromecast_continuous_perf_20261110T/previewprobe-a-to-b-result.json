@@ -1,0 +1,307 @@
+{
+  "file": "evidence/chromecast_continuous_perf_20261110T/previewprobe-a-to-b.wav",
+  "durationSeconds": 18.005,
+  "sampleRateHz": 48000,
+  "firstHz": 440,
+  "secondHz": 880,
+  "windowSeconds": 0.5,
+  "minimumStableWindowsPerTone": 3,
+  "firstStableWindows": 14,
+  "secondStableWindows": 20,
+  "boundaryStates": [
+    "SILENCE",
+    "SILENCE"
+  ],
+  "status": "INCONCLUSIVE",
+  "reason": "Transition boundary is mixed, interrupted, or contains unexpected audio",
+  "windows": [
+    {
+      "startSeconds": 0.0,
+      "state": "FIRST",
+      "peakHz": 440.0,
+      "rmsDbfs": -21.9,
+      "firstMagnitude": 23781841.1,
+      "secondMagnitude": 12637.1
+    },
+    {
+      "startSeconds": 0.5,
+      "state": "FIRST",
+      "peakHz": 440.0,
+      "rmsDbfs": -21.08,
+      "firstMagnitude": 24563326.3,
+      "secondMagnitude": 45.7
+    },
+    {
+      "startSeconds": 1.0,
+      "state": "FIRST",
+      "peakHz": 440.0,
+      "rmsDbfs": -21.08,
+      "firstMagnitude": 24556758.3,
+      "secondMagnitude": 98.0
+    },
+    {
+      "startSeconds": 1.5,
+      "state": "FIRST",
+      "peakHz": 440.0,
+      "rmsDbfs": -21.08,
+      "firstMagnitude": 24559299.1,
+      "secondMagnitude": 42.9
+    },
+    {
+      "startSeconds": 2.0,
+      "state": "FIRST",
+      "peakHz": 440.0,
+      "rmsDbfs": -21.08,
+      "firstMagnitude": 24557747.5,
+      "secondMagnitude": 119.2
+    },
+    {
+      "startSeconds": 2.5,
+      "state": "FIRST",
+      "peakHz": 440.0,
+      "rmsDbfs": -21.08,
+      "firstMagnitude": 24563932.0,
+      "secondMagnitude": 68.8
+    },
+    {
+      "startSeconds": 3.0,
+      "state": "FIRST",
+      "peakHz": 440.0,
+      "rmsDbfs": -21.08,
+      "firstMagnitude": 24563141.4,
+      "secondMagnitude": 76.8
+    },
+    {
+      "startSeconds": 3.5,
+      "state": "FIRST",
+      "peakHz": 440.0,
+      "rmsDbfs": -21.08,
+      "firstMagnitude": 24561192.7,
+      "secondMagnitude": 38.8
+    },
+    {
+      "startSeconds": 4.0,
+      "state": "FIRST",
+      "peakHz": 440.0,
+      "rmsDbfs": -21.08,
+      "firstMagnitude": 24565190.7,
+      "secondMagnitude": 54.6
+    },
+    {
+      "startSeconds": 4.5,
+      "state": "FIRST",
+      "peakHz": 440.0,
+      "rmsDbfs": -21.08,
+      "firstMagnitude": 24557546.8,
+      "secondMagnitude": 67.8
+    },
+    {
+      "startSeconds": 5.0,
+      "state": "FIRST",
+      "peakHz": 440.0,
+      "rmsDbfs": -21.08,
+      "firstMagnitude": 24557269.1,
+      "secondMagnitude": 95.7
+    },
+    {
+      "startSeconds": 5.5,
+      "state": "FIRST",
+      "peakHz": 440.0,
+      "rmsDbfs": -21.08,
+      "firstMagnitude": 24556296.2,
+      "secondMagnitude": 110.7
+    },
+    {
+      "startSeconds": 6.0,
+      "state": "FIRST",
+      "peakHz": 440.0,
+      "rmsDbfs": -21.07,
+      "firstMagnitude": 24570072.2,
+      "secondMagnitude": 85.1
+    },
+    {
+      "startSeconds": 6.5,
+      "state": "FIRST",
+      "peakHz": 440.0,
+      "rmsDbfs": -24.12,
+      "firstMagnitude": 12475394.1,
+      "secondMagnitude": 2531.6
+    },
+    {
+      "startSeconds": 7.0,
+      "state": "SILENCE",
+      "peakHz": 2.0,
+      "rmsDbfs": -270.31,
+      "firstMagnitude": 0.0,
+      "secondMagnitude": 0.0
+    },
+    {
+      "startSeconds": 7.5,
+      "state": "SILENCE",
+      "peakHz": 2.0,
+      "rmsDbfs": -270.31,
+      "firstMagnitude": 0.0,
+      "secondMagnitude": 0.0
+    },
+    {
+      "startSeconds": 8.0,
+      "state": "SECOND",
+      "peakHz": 880.0,
+      "rmsDbfs": -21.81,
+      "firstMagnitude": 1089.1,
+      "secondMagnitude": 24037638.6
+    },
+    {
+      "startSeconds": 8.5,
+      "state": "SECOND",
+      "peakHz": 880.0,
+      "rmsDbfs": -21.08,
+      "firstMagnitude": 80.4,
+      "secondMagnitude": 24564676.0
+    },
+    {
+      "startSeconds": 9.0,
+      "state": "SECOND",
+      "peakHz": 880.0,
+      "rmsDbfs": -21.08,
+      "firstMagnitude": 130.2,
+      "secondMagnitude": 24537435.2
+    },
+    {
+      "startSeconds": 9.5,
+      "state": "SECOND",
+      "peakHz": 880.0,
+      "rmsDbfs": -21.08,
+      "firstMagnitude": 75.3,
+      "secondMagnitude": 24560196.7
+    },
+    {
+      "startSeconds": 10.0,
+      "state": "SECOND",
+      "peakHz": 880.0,
+      "rmsDbfs": -21.08,
+      "firstMagnitude": 91.0,
+      "secondMagnitude": 24554305.2
+    },
+    {
+      "startSeconds": 10.5,
+      "state": "SECOND",
+      "peakHz": 880.0,
+      "rmsDbfs": -21.08,
+      "firstMagnitude": 102.1,
+      "secondMagnitude": 24543330.7
+    },
+    {
+      "startSeconds": 11.0,
+      "state": "SECOND",
+      "peakHz": 880.0,
+      "rmsDbfs": -21.08,
+      "firstMagnitude": 123.1,
+      "secondMagnitude": 24561628.8
+    },
+    {
+      "startSeconds": 11.5,
+      "state": "SECOND",
+      "peakHz": 880.0,
+      "rmsDbfs": -21.08,
+      "firstMagnitude": 109.9,
+      "secondMagnitude": 24563081.6
+    },
+    {
+      "startSeconds": 12.0,
+      "state": "SECOND",
+      "peakHz": 880.0,
+      "rmsDbfs": -21.08,
+      "firstMagnitude": 137.4,
+      "secondMagnitude": 24531555.5
+    },
+    {
+      "startSeconds": 12.5,
+      "state": "SECOND",
+      "peakHz": 880.0,
+      "rmsDbfs": -21.07,
+      "firstMagnitude": 193.2,
+      "secondMagnitude": 24570175.7
+    },
+    {
+      "startSeconds": 13.0,
+      "state": "SECOND",
+      "peakHz": 880.0,
+      "rmsDbfs": -21.08,
+      "firstMagnitude": 83.2,
+      "secondMagnitude": 24545567.3
+    },
+    {
+      "startSeconds": 13.5,
+      "state": "SECOND",
+      "peakHz": 880.0,
+      "rmsDbfs": -21.08,
+      "firstMagnitude": 157.9,
+      "secondMagnitude": 24555653.0
+    },
+    {
+      "startSeconds": 14.0,
+      "state": "SECOND",
+      "peakHz": 880.0,
+      "rmsDbfs": -21.08,
+      "firstMagnitude": 78.8,
+      "secondMagnitude": 24555728.8
+    },
+    {
+      "startSeconds": 14.5,
+      "state": "SECOND",
+      "peakHz": 880.0,
+      "rmsDbfs": -21.08,
+      "firstMagnitude": 55.0,
+      "secondMagnitude": 24561374.6
+    },
+    {
+      "startSeconds": 15.0,
+      "state": "SECOND",
+      "peakHz": 880.0,
+      "rmsDbfs": -21.08,
+      "firstMagnitude": 47.9,
+      "secondMagnitude": 24561147.8
+    },
+    {
+      "startSeconds": 15.5,
+      "state": "SECOND",
+      "peakHz": 880.0,
+      "rmsDbfs": -21.08,
+      "firstMagnitude": 59.6,
+      "secondMagnitude": 24560357.2
+    },
+    {
+      "startSeconds": 16.0,
+      "state": "SECOND",
+      "peakHz": 880.0,
+      "rmsDbfs": -21.08,
+      "firstMagnitude": 81.9,
+      "secondMagnitude": 24566653.1
+    },
+    {
+      "startSeconds": 16.5,
+      "state": "SECOND",
+      "peakHz": 880.0,
+      "rmsDbfs": -21.08,
+      "firstMagnitude": 47.0,
+      "secondMagnitude": 24568001.3
+    },
+    {
+      "startSeconds": 17.0,
+      "state": "SECOND",
+      "peakHz": 880.0,
+      "rmsDbfs": -21.08,
+      "firstMagnitude": 97.2,
+      "secondMagnitude": 24565223.5
+    },
+    {
+      "startSeconds": 17.5,
+      "state": "SECOND",
+      "peakHz": 880.0,
+      "rmsDbfs": -21.08,
+      "firstMagnitude": 119.5,
+      "secondMagnitude": 24561283.3
+    }
+  ]
+}
