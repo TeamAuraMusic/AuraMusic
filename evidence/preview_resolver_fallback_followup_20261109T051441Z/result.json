@@ -40,6 +40,14 @@
       "legacyConnect": "unauthorized",
       "tlsAdbService": "192.168.3.2:33921",
       "tlsConnect": "failed"
+    },
+    "alternateExistingHostKeyAttempt": {
+      "timestampUtc": "20261109T052002Z",
+      "adbServerPort": 5039,
+      "isolatedServer": true,
+      "existingWslAdbHostKeyTried": true,
+      "result": "unauthorized",
+      "deviceSettingsChanged": false
     }
   }
 }
