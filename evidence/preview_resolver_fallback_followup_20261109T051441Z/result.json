@@ -8,8 +8,20 @@
     "command": "./gradlew :app:testStandaloneTvUniversalDebugUnitTest :app:testFossTvUniversalDebugUnitTest :app:assembleStandaloneTvUniversalDebug :app:assembleFossTvUniversalDebug :app:assembleStandaloneTvUniversalDebugAndroidTest :app:assembleFossTvUniversalDebugAndroidTest --console=plain",
     "verificationSource": "Gradle TEST-*.xml parsed from both flavor result directories; all four APK artifacts present and SHA-256 computed",
     "unitTestsByFlavor": {
-      "standalone": {"tests": 72, "failures": 0, "errors": 0, "skipped": 0, "suites": 16},
-      "foss": {"tests": 72, "failures": 0, "errors": 0, "skipped": 0, "suites": 16}
+      "standalone": {
+        "tests": 72,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "suites": 16
+      },
+      "foss": {
+        "tests": 72,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "suites": 16
+      }
     },
     "artifacts": {
       "app/build/outputs/apk/standaloneTvUniversal/debug/app-standalone-tv-universal-debug.apk": "d8a05f70d337d83140c4474d0c2e13c694b3d9e709f1f89a764d2267df8d6635",
@@ -20,8 +32,14 @@
   },
   "chromecastRuntime": {
     "outcome": "BLOCKED_ENVIRONMENT",
-    "reason": "Explicit ADB inventory on port 5038 listed a Samsung phone and the paused Android TV emulator; the saved Chromecast address 192.168.3.2:5555 was absent. No physical device was substituted, and this candidate was not installed or runtime-tested.",
+    "reason": "ADB inventory initially listed a Samsung phone and the paused TV emulator. A later mDNS lookup advertised ADB at 192.168.3.2:5555 and TLS ADB at 192.168.3.2:33921. TLS connect failed; legacy ADB returned unauthorized. Chromecast identity could not be confirmed over ADB, so this candidate was not installed or runtime-tested.",
     "lastKnownChromecastInstalledApkSha256": "c2beed295b6a43506cea5cc2ee470808bc730af655818e4d8fdbf17f981afc8e",
-    "candidateInstalled": false
+    "candidateInstalled": false,
+    "mdnsDiscovery": {
+      "legacyAdbService": "192.168.3.2:5555",
+      "legacyConnect": "unauthorized",
+      "tlsAdbService": "192.168.3.2:33921",
+      "tlsConnect": "failed"
+    }
   }
 }
