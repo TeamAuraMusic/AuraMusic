@@ -10,7 +10,14 @@ Current pass/partial/fail audit for all 12 required scenarios: [Projectivy previ
 - Built and installed candidate SHA-256 `13aa5b3a05f4513cfc8b1d14dce85e8968c488e38a9aedd0e6d2e23fa598992a` in place on Chromecast `192.168.3.2:5555`; no data cleared.
 - Ten no-click Angie/Africa DPAD inputs produced ten focus events, nine overlay-window replacements and zero service errors; final hierarchy focus was Angie. Screenrecord captured the run. A separate isolation recording with AuraMusic's overlay accessibility service temporarily disabled showed the same native Projectivy row slide; original accessibility settings were restored exactly.
 - Scoped result: overlay retargeting and rapid transitions `PASS`; exact “no old pixels over a neighboring card” assertion `INCONCLUSIVE`. Projectivy's own row/Surface transition remains visible, and captured pixels do not isolate its surface from AuraMusic's overlay well enough to claim the user's one-second artifact is fixed. Evidence: `evidence/chromecast_motion_transition_fix_20261110T/result.json`.
-- Next gate: user-facing confirmation that the current visual is acceptable, or a Projectivy setting/API that disables or clears its native transition. Do not increase the overlay blackout interval; the 950 ms attempt was rejected.
+- Next gate: visually confirm the AuraMusic preview stays on its own card with Projectivy `Sliding row` disabled for this channel. Exact pixels with Sliding row enabled remain a Projectivy transition limitation; do not increase the overlay blackout interval, since the 950 ms attempt was rejected.
+
+### Projectivy Sliding row A/B (2026-11-10)
+
+- Found a per-channel `Sliding row` option in Projectivy 4.73. AuraMusic's channel had it enabled. Captured the on state, disabled it temporarily, ran the same DPAD-right/left Angie↔Africa transition, then restored it to enabled and verified the switch state.
+- Projectivy remained foreground; no Select/click used. With Sliding row on, the focused node stayed at `[0,535][486,775]` for both Angie and Africa: Projectivy scrolls the row beneath a fixed focus slot. With it off, Angie stayed at `[0,535][486,775]` and Africa focused at `[326,535][882,775]`: focus followed the card's stationary row position instead.
+- This setting changes the exact row motion implicated by the report. It is a user-visible Projectivy preference; AuraMusic cannot silently modify it. Recommend disabling `Sliding row` for the AuraMusic channel if the user wants the preview image to stay with its card. The original enabled setting was restored after this test.
+- Result: setting behavior `PASS`; exact preview-pixel overlap `INCONCLUSIVE`. Paired videos, screenshots, focus hierarchies and machine assertions: `evidence/chromecast_projectivy_sliding_row_20261110T/`.
 
 ## Inventory and verified state (2026-11-06)
 
