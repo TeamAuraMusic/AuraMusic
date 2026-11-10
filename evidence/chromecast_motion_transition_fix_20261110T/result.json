@@ -1,0 +1,42 @@
+{
+  "outcome": "INCONCLUSIVE",
+  "scope": "Projectivy horizontal transition and AuraMusic overlay alignment",
+  "device": {
+    "model": "Chromecast",
+    "codename": "sabrina",
+    "serial": "192.168.3.2:5555",
+    "android": "14",
+    "api": 34,
+    "projectivy": "4.73 (code 98)",
+    "auramusic": "3.2.0 (code 29)"
+  },
+  "candidate": {
+    "apk_sha256": "13aa5b3a05f4513cfc8b1d14dce85e8968c488e38a9aedd0e6d2e23fa598992a",
+    "installed_apk_sha256_matches": true,
+    "installed_in_place": true,
+    "app_data_cleared": false,
+    "build": "PASS"
+  },
+  "assertions": {
+    "provider_has_ten_programs": "PASS",
+    "projectivy_remained_foreground": "PASS",
+    "ten_no_click_angie_africa_focus_inputs": "PASS",
+    "focused_card_titles_match_settled_hierarchy": "PASS; final focus Angie",
+    "overlay_recreated_per_program_change": "PASS; 9 replacements, 10 focus events, no service errors",
+    "native_projectivy_row_motion_without_auramusic_overlay": "PASS; same horizontal slide observed with AuraMusic service temporarily disabled; exact prior service list restored",
+    "no_wrong_image_crosses_card_bounds_during_motion": "INCONCLUSIVE; screen recording shows the row sliding and poster/surface transitions, but no reliable pixel-bound assertion isolates Projectivy Surface from the AuraMusic overlay"
+  },
+  "evidence": {
+    "video_ten_transitions": "screenrecord-ten-transitions.mp4",
+    "video_immediate_transition": "screenrecord-immediate.mp4",
+    "video_recreated_window": "screenrecord-recreated-window.mp4",
+    "video_without_auramusic_overlay": "screenrecord-no-overlay.mp4",
+    "ten_transition_log": "recreated-window-ten-logcat.txt",
+    "final_hierarchy": "recreated-window-ten.xml",
+    "accessibility_settings_before_and_after": [
+      "accessibility-services-before.txt",
+      "accessibility-services-after.txt"
+    ]
+  },
+  "interpretation": "AuraMusic now suppresses the previous overlay as soon as Projectivy reports a different focused title and creates a fresh overlay window for the new program. Projectivy performs the same native row slide with AuraMusic's overlay service disabled. This localizes the remaining perceived motion to Projectivy's own row/preview transition; this test does not prove that its Surface never temporarily overlaps adjacent card pixels."
+}

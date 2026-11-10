@@ -1,0 +1,1 @@
+DPAD_RIGHT then DPAD_LEFT; no Select; AuraMusic overlay service temporarily disabled and restored.

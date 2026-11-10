@@ -2,6 +2,16 @@
 
 Current pass/partial/fail audit for all 12 required scenarios: [Projectivy preview acceptance matrix](PROJECTIVY_PREVIEW_ACCEPTANCE_MATRIX.md).
 
+## Horizontal card-motion follow-up (2026-11-10)
+
+- User reported artwork appearing to drift over the adjacent card for roughly one second during horizontal navigation.
+- The 950 ms overlay hide/reveal experiment was built, installed and rejected: it created a waveform gap and did not establish that Projectivy's own preview Surface was cleared. No delay remains in the current source.
+- Current change: as soon as Projectivy sends a different focused title, hide the previous overlay; update the target artwork; remove the old WindowManager view and create a fresh overlay window at the new card bounds. This avoids reusing AuraMusic's previous rendered window. Bounds polling continues during Projectivy's row motion.
+- Built and installed candidate SHA-256 `13aa5b3a05f4513cfc8b1d14dce85e8968c488e38a9aedd0e6d2e23fa598992a` in place on Chromecast `192.168.3.2:5555`; no data cleared.
+- Ten no-click Angie/Africa DPAD inputs produced ten focus events, nine overlay-window replacements and zero service errors; final hierarchy focus was Angie. Screenrecord captured the run. A separate isolation recording with AuraMusic's overlay accessibility service temporarily disabled showed the same native Projectivy row slide; original accessibility settings were restored exactly.
+- Scoped result: overlay retargeting and rapid transitions `PASS`; exact “no old pixels over a neighboring card” assertion `INCONCLUSIVE`. Projectivy's own row/Surface transition remains visible, and captured pixels do not isolate its surface from AuraMusic's overlay well enough to claim the user's one-second artifact is fixed. Evidence: `evidence/chromecast_motion_transition_fix_20261110T/result.json`.
+- Next gate: user-facing confirmation that the current visual is acceptable, or a Projectivy setting/API that disables or clears its native transition. Do not increase the overlay blackout interval; the 950 ms attempt was rejected.
+
 ## Inventory and verified state (2026-11-06)
 
 - Main checkout `/home/nos/auramusic-channels`: branch `fix/tv-refresh-coalescing`, dirty tracked edits in `App.kt` and `VoiceFeedbackManager.kt`, plus untracked tests, reports, logs, scripts and screenshots. Preserved untouched.

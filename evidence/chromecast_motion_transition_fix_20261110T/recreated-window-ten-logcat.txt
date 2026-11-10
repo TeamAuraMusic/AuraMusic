@@ -1,0 +1,178 @@
+--------- beginning of main
+11-10 02:53:54.943 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-10 02:53:54.981 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-10 02:53:55.004 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Africa
+11-10 02:53:55.009 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator suppressed at focus event old=Angie new=Africa
+11-10 02:53:55.079 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus overlay window replaced old=Angie new=Africa
+11-10 02:53:55.099 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focused artwork cache hit title=Africa
+11-10 02:53:55.130 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Africa bounds=Rect(0, 535 - 520, 775)
+11-10 02:53:55.139 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Africa
+11-10 02:53:55.145 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Africa bounds=Rect(0, 535 - 486, 775)
+11-10 02:53:55.246 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-10 02:53:55.247 27828 27828 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Africa
+11-10 02:53:55.256 27828 27828 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Africa
+11-10 02:53:55.257 27828 27828 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Africa
+11-10 02:53:55.263 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-10 02:53:55.267 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-10 02:53:55.314 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-10 02:53:55.543 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Africa
+11-10 02:53:55.546 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Africa bounds=Rect(0, 535 - 486, 775)
+11-10 02:53:55.708 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-10 02:53:55.731 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-10 02:53:55.741 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Angie
+11-10 02:53:55.744 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator suppressed at focus event old=Africa new=Angie
+11-10 02:53:55.749 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus overlay window replaced old=Africa new=Angie
+11-10 02:53:55.763 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focused artwork cache hit title=Angie
+11-10 02:53:55.815 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Angie bounds=Rect(0, 535 - 317, 775)
+11-10 02:53:55.831 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Angie
+11-10 02:53:55.834 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Angie bounds=Rect(0, 535 - 472, 775)
+11-10 02:53:55.934 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-10 02:53:55.948 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-10 02:53:56.068 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-10 02:53:56.079 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-10 02:53:56.084 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-10 02:53:56.223 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Angie
+11-10 02:53:56.229 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Angie bounds=Rect(0, 535 - 486, 775)
+11-10 02:53:56.429 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-10 02:53:56.434 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-10 02:53:56.448 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Africa
+11-10 02:53:56.468 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator suppressed at focus event old=Angie new=Africa
+11-10 02:53:56.479 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus overlay window replaced old=Angie new=Africa
+11-10 02:53:56.483 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focused artwork cache hit title=Africa
+11-10 02:53:56.530 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Africa bounds=Rect(71, 535 - 555, 775)
+11-10 02:53:56.536 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Africa
+11-10 02:53:56.545 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Africa bounds=Rect(0, 535 - 503, 775)
+11-10 02:53:56.645 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-10 02:53:56.684 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-10 02:53:56.700 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-10 02:53:56.768 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-10 02:53:56.775 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-10 02:53:56.780 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-10 02:53:56.955 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Africa
+11-10 02:53:56.961 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Africa bounds=Rect(0, 535 - 486, 775)
+11-10 02:53:57.218 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-10 02:53:57.268 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-10 02:53:57.279 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-10 02:53:57.284 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Angie
+11-10 02:53:57.293 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator suppressed at focus event old=Africa new=Angie
+11-10 02:53:57.299 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus overlay window replaced old=Africa new=Angie
+11-10 02:53:57.324 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focused artwork cache hit title=Angie
+11-10 02:53:57.361 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Angie bounds=Rect(0, 535 - 316, 775)
+11-10 02:53:57.378 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Angie
+11-10 02:53:57.381 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Angie bounds=Rect(0, 535 - 464, 775)
+11-10 02:53:57.496 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-10 02:53:57.564 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-10 02:53:57.568 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-10 02:53:57.579 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-10 02:53:57.817 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Angie
+11-10 02:53:57.819 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Angie bounds=Rect(0, 535 - 486, 775)
+11-10 02:53:58.020 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-10 02:53:58.034 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator hidden reason=focused program changed during card transition
+11-10 02:53:58.060 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-10 02:53:58.065 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-10 02:53:58.078 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Africa
+11-10 02:53:58.079 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator suppressed at focus event old=null new=Africa
+11-10 02:53:58.096 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focused artwork cache hit title=Africa
+11-10 02:53:58.119 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Africa bounds=Rect(128, 535 - 576, 775)
+11-10 02:53:58.127 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Africa
+11-10 02:53:58.130 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Africa bounds=Rect(0, 535 - 523, 775)
+11-10 02:53:58.211 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-10 02:53:58.266 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-10 02:53:58.271 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-10 02:53:58.388 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-10 02:53:58.503 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Africa
+11-10 02:53:58.508 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Africa bounds=Rect(0, 535 - 486, 775)
+11-10 02:53:58.734 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-10 02:53:58.737 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-10 02:53:58.742 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-10 02:53:58.748 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Angie
+11-10 02:53:58.750 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator suppressed at focus event old=Africa new=Angie
+11-10 02:53:58.759 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus overlay window replaced old=Africa new=Angie
+11-10 02:53:58.765 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focused artwork cache hit title=Angie
+11-10 02:53:58.795 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Angie bounds=Rect(0, 535 - 290, 775)
+11-10 02:53:58.807 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Angie
+11-10 02:53:58.809 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Angie bounds=Rect(0, 535 - 416, 775)
+11-10 02:53:58.910 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-10 02:53:58.930 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-10 02:53:58.947 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-10 02:53:59.050 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-10 02:53:59.182 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Angie
+11-10 02:53:59.184 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Angie bounds=Rect(0, 535 - 486, 775)
+11-10 02:53:59.413 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-10 02:53:59.428 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-10 02:53:59.432 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Africa
+11-10 02:53:59.438 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator suppressed at focus event old=Angie new=Africa
+11-10 02:53:59.444 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus overlay window replaced old=Angie new=Africa
+11-10 02:53:59.448 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focused artwork cache hit title=Africa
+11-10 02:53:59.483 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Africa bounds=Rect(124, 535 - 576, 775)
+11-10 02:53:59.495 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Africa
+11-10 02:53:59.499 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Africa bounds=Rect(0, 535 - 523, 775)
+11-10 02:53:59.506 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-10 02:53:59.632 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-10 02:53:59.664 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-10 02:53:59.668 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-10 02:53:59.734 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-10 02:53:59.906 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Africa
+11-10 02:53:59.909 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Africa bounds=Rect(0, 535 - 486, 775)
+11-10 02:54:00.126 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-10 02:54:00.198 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-10 02:54:00.209 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-10 02:54:00.214 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Angie
+11-10 02:54:00.216 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator suppressed at focus event old=Africa new=Angie
+11-10 02:54:00.226 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus overlay window replaced old=Africa new=Angie
+11-10 02:54:00.233 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focused artwork cache hit title=Angie
+11-10 02:54:00.263 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Angie bounds=Rect(0, 535 - 308, 775)
+11-10 02:54:00.275 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Angie
+11-10 02:54:00.278 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Angie bounds=Rect(0, 535 - 428, 775)
+11-10 02:54:00.392 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-10 02:54:00.397 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-10 02:54:00.416 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-10 02:54:00.428 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-10 02:54:00.513 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-10 02:54:00.743 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Angie
+11-10 02:54:00.744 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Angie bounds=Rect(0, 535 - 486, 775)
+11-10 02:54:00.886 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-10 02:54:00.915 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-10 02:54:00.919 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-10 02:54:00.928 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Africa
+11-10 02:54:00.933 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator suppressed at focus event old=Angie new=Africa
+11-10 02:54:00.939 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus overlay window replaced old=Angie new=Africa
+11-10 02:54:00.944 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focused artwork cache hit title=Africa
+11-10 02:54:00.973 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Africa bounds=Rect(131, 535 - 579, 775)
+11-10 02:54:00.982 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Africa
+11-10 02:54:00.984 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Africa bounds=Rect(0, 535 - 532, 775)
+11-10 02:54:01.098 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-10 02:54:01.115 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-10 02:54:01.131 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-10 02:54:01.230 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-10 02:54:01.362 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Africa
+11-10 02:54:01.364 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Africa bounds=Rect(0, 535 - 486, 775)
+11-10 02:54:01.610 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-10 02:54:01.615 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-10 02:54:01.620 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Angie
+11-10 02:54:01.625 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator suppressed at focus event old=Africa new=Angie
+11-10 02:54:01.630 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus overlay window replaced old=Africa new=Angie
+11-10 02:54:01.635 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focused artwork cache hit title=Angie
+11-10 02:54:01.666 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Angie bounds=Rect(0, 535 - 255, 775)
+11-10 02:54:01.679 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Angie
+11-10 02:54:01.683 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Angie bounds=Rect(0, 535 - 398, 775)
+11-10 02:54:01.690 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-10 02:54:01.799 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-10 02:54:01.806 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-10 02:54:01.851 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-10 02:54:01.881 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-10 02:54:01.961 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-10 02:54:02.223 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Angie
+11-10 02:54:02.226 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Angie bounds=Rect(0, 535 - 486, 775)
+11-10 02:54:02.299 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-10 02:54:02.411 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Angie
+11-10 02:54:02.413 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Angie bounds=Rect(0, 535 - 486, 775)
+11-10 02:54:02.627 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Angie
+11-10 02:54:02.756 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Angie
+11-10 02:54:02.761 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Angie bounds=Rect(0, 535 - 486, 775)
+11-10 02:54:02.799 27828 27828 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Angie
+11-10 02:54:02.947 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Angie
+11-10 02:54:02.949 27828 27828 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Angie bounds=Rect(0, 535 - 486, 775)
+11-10 02:54:03.054 27828 27828 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Angie
+11-10 02:54:03.056 27828 27828 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Angie
+11-10 02:54:03.057 27828 27828 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Angie

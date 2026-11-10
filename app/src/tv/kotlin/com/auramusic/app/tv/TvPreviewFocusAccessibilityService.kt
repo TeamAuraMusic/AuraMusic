@@ -175,6 +175,19 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
                 return
             }
             if (event.packageName?.toString() != PROJECTIVY_PACKAGE) return
+            if (source != null &&
+                (event.eventType == AccessibilityEvent.TYPE_VIEW_FOCUSED ||
+                    event.eventType == AccessibilityEvent.TYPE_VIEW_SELECTED)
+            ) {
+                val incomingTitle = source.contentDescription?.toString()?.trim().orEmpty()
+                if (incomingTitle.isNotEmpty() && incomingTitle != focusedProgramTitle) {
+                    indicator?.setPreviewFocused(false)
+                    Timber.d(
+                        "TV preview focus indicator suppressed at focus event old=%s new=%s",
+                        focusedProgramTitle, incomingTitle,
+                    )
+                }
+            }
             if (source != null) updateFocusedProgram(source)
             scheduleFocusedCardRefresh()
         } catch (error: Throwable) {
@@ -345,6 +358,18 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
 
     private fun showIndicator(card: Rect, title: String, artworkUri: Uri?) {
         val previousTitle = focusedProgramTitle
+        if (previousTitle != null && previousTitle != title) {
+            mainHandler.removeCallbacks(syncFocusedCardBounds)
+            indicator?.let { oldView ->
+                oldView.setPreviewFocused(false)
+                runCatching { windowManager?.removeView(oldView) }
+            }
+            indicator = null
+            indicatorLayoutParams = null
+            indicatorBounds.setEmpty()
+            currentArtworkUri = null
+            Timber.d("TV preview focus overlay window replaced old=%s new=%s", previousTitle, title)
+        }
         if (previousTitle != title) {
             focusedProgramTitle = title
             pauseAuraMusicForPreview(title)
