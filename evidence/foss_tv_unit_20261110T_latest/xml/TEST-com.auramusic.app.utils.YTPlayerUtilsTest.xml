@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.auramusic.app.utils.YTPlayerUtilsTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-11-10T00:24:19.427Z" hostname="DESKTOP" time="0.002">
+  <properties/>
+  <testcase name="fallbackClientsKeepSlowUrlResolution" classname="com.auramusic.app.utils.YTPlayerUtilsTest" time="0.001"/>
+  <testcase name="primaryWebClientKeepsFastPathWithoutCipher" classname="com.auramusic.app.utils.YTPlayerUtilsTest" time="0.001"/>
+  <testcase name="primaryWebClientResolvesCipheredStreamUrl" classname="com.auramusic.app.utils.YTPlayerUtilsTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

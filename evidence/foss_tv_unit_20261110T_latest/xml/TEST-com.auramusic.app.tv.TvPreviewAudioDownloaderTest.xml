@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.auramusic.app.tv.TvPreviewAudioDownloaderTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-11-10T00:24:18.360Z" hostname="DESKTOP" time="1.0">
+  <properties/>
+  <testcase name="resumesAfterShortBodyWithRangeAndPublishesExactFile" classname="com.auramusic.app.tv.TvPreviewAudioDownloaderTest" time="0.398"/>
+  <testcase name="appliesResolverHeadersToSequentialProbeAndBodyRequests" classname="com.auramusic.app.tv.TvPreviewAudioDownloaderTest" time="0.029"/>
+  <testcase name="staleUrlCleansPartialCacheAndSameSourceCanRecover" classname="com.auramusic.app.tv.TvPreviewAudioDownloaderTest" time="0.03"/>
+  <testcase name="cancellationCleansPartialAndKeepsPreviousCompleteCache" classname="com.auramusic.app.tv.TvPreviewAudioDownloaderTest" time="0.017"/>
+  <testcase name="staleHttpSourceIsResolvedAgainAndDownloaderPublishesRefreshedBytes" classname="com.auramusic.app.tv.TvPreviewAudioDownloaderTest" time="0.05"/>
+  <testcase name="fallsBackToSequentialTransferAfterParallelRangesFail" classname="com.auramusic.app.tv.TvPreviewAudioDownloaderTest" time="0.088"/>
+  <testcase name="restartsWhenServerIgnoresRangeWithoutDuplicatingPrefix" classname="com.auramusic.app.tv.TvPreviewAudioDownloaderTest" time="0.031"/>
+  <testcase name="replacesExistingCacheOnlyAfterCompleteDownload" classname="com.auramusic.app.tv.TvPreviewAudioDownloaderTest" time="0.026"/>
+  <testcase name="classifiesSourceRejectionAfterSuccessfulRangeProbeWithoutRetryingSameUrl" classname="com.auramusic.app.tv.TvPreviewAudioDownloaderTest" time="0.008"/>
+  <testcase name="rejectsOversizedDeclaredSourceAndPreservesExistingCache" classname="com.auramusic.app.tv.TvPreviewAudioDownloaderTest" time="0.006"/>
+  <testcase name="downloadsLargeRangeCapableSourceConcurrentlyAndPublishesExactFile" classname="com.auramusic.app.tv.TvPreviewAudioDownloaderTest" time="0.204"/>
+  <testcase name="expiredSourceDuringParallelRangesRefreshesAndPublishesExactReplacement" classname="com.auramusic.app.tv.TvPreviewAudioDownloaderTest" time="0.111"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
