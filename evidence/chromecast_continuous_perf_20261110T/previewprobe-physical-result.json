@@ -1,0 +1,81 @@
+{
+  "test": "Physical PreviewProbe synthetic A/B tone and continuous A hold",
+  "overallStatus": "INCONCLUSIVE",
+  "device": {
+    "serial": "192.168.3.2:5555",
+    "model": "Chromecast",
+    "device": "sabrina",
+    "androidApi": 34,
+    "projectivy": "4.73",
+    "auraMusic": "3.2.0",
+    "auraVersionCode": 29,
+    "previewProbe": "installed test publisher"
+  },
+  "installedAuraApkSha256": "c685cf4a8ab9d14e5bcd1fe6618079c8c42c71828eec3e7c3c96091c4f78350a",
+  "selectPressed": false,
+  "standaloneTones": {
+    "A": {
+      "status": "PASS",
+      "expectedHz": 440,
+      "measuredMedianHz": 440.0,
+      "durationSeconds": 11.989,
+      "capture": "previewprobe-a-focused.wav"
+    },
+    "B": {
+      "status": "PASS",
+      "expectedHz": 880,
+      "measuredMedianHz": 880.0,
+      "durationSeconds": 12.139,
+      "capture": "previewprobe-b-focused.wav"
+    }
+  },
+  "transitions": {
+    "AtoB": {
+      "status": "INCONCLUSIVE",
+      "firstToneStableWindows": 14,
+      "secondToneStableWindows": 20,
+      "boundaryStates": [
+        "SILENCE",
+        "SILENCE"
+      ],
+      "mixedToneWindows": 0,
+      "interpretation": "Correct 440 Hz then 880 Hz, no mixed/stale-tone window; two consecutive 0.5-second silence windows exceed the strict verifier boundary allowance."
+    },
+    "BtoA": {
+      "status": "INCONCLUSIVE",
+      "firstToneStableWindows": 13,
+      "secondToneStableWindows": 21,
+      "boundaryStates": [
+        "SILENCE",
+        "SILENCE"
+      ],
+      "mixedToneWindows": 0,
+      "interpretation": "Correct 880 Hz then 440 Hz, no mixed/stale-tone window; two consecutive 0.5-second silence windows exceed the strict verifier boundary allowance."
+    }
+  },
+  "continuousA": {
+    "audioCaptureSeconds": 64.614,
+    "expectedHz": 440,
+    "measuredMedianHz": 440.0,
+    "matchingOneSecondWindows": 63,
+    "status": "PASS",
+    "recording": "synthetic-a-65s/card-continuous.mp4",
+    "audioOnlyWav": "synthetic-a-65s/previewprobe-a-output.wav",
+    "projectivyAudioTrackSamples": 13,
+    "trackActiveSamples": 12,
+    "trackSamples": false,
+    "performanceStatus": "INCONCLUSIVE"
+  },
+  "visualStatus": "INCONCLUSIVE",
+  "visualLimitation": "scrcpy recording displays the focused Preview A card region black while the generated video uses a Projectivy SurfaceView. SurfaceFlinger layer timestamps were collected after, not synchronized with, this recording; they do not prove rendered pixels inside the selected card.",
+  "focusEvidence": {
+    "providerRequests": "logcat-after-fixtures.txt",
+    "focusAndArt": "synthetic-a-65s/frame-30s.png",
+    "initialFocusAndArtwork": "synthetic-a-65s/frame-62s.png"
+  },
+  "limitations": [
+    "Tone transitions contain a measured one-second silence gap; latency gate remains inconclusive.",
+    "The continuous A audio capture passed 64.6 seconds, but the resource sampler missed one final AudioTrack sample.",
+    "Focused-card video pixels could not be captured from the Projectivy SurfaceView on the Chromecast; no visual PASS is claimed."
+  ]
+}

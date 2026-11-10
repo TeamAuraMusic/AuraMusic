@@ -5,8 +5,9 @@ import argparse
 import hashlib
 import json
 import re
-import select
+import queue
 import subprocess
+import threading
 import time
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
@@ -51,9 +52,47 @@ def focused_program_info(xml: str, title: str) -> dict | None:
     return {"attributes": node.attrib, "ancestorContentDescriptions": ancestors}
 
 
+def indicator_bounds_from_log(line: str | None) -> str | None:
+    if not line:
+        return None
+    match = re.search(r"focus indicator shown title=.*?bounds=Rect\((-?\d+), (-?\d+) - (-?\d+), (-?\d+)\)", line)
+    if not match:
+        return None
+    left, top, right, bottom = map(int, match.groups())
+    return f"[{left},{top}][{right},{bottom}]"
+
+
 def count_preview_provider_opens(log_text: str) -> int:
     pattern = r"TV preview audio-only open request=|TV preview seekable (?:cache hit|prepared open) request="
     return len(re.findall(pattern, log_text))
+
+
+def summarize_transition_latency(samples: list[dict]) -> dict:
+    latencies = [sample["focusLatencySecondsUpperBound"] for sample in samples
+                 if sample.get("focusLatencySecondsUpperBound") is not None]
+    retry_count = sum(sample.get("inputRetryCount", 0) > 0 for sample in samples)
+    if not latencies or len(latencies) != len(samples) or retry_count:
+        status = "INCONCLUSIVE"
+        reason = (
+            "At least one DPAD input needed a retry or lacked a focus timestamp; "
+            "the interval cannot be treated as first-input latency."
+        )
+    else:
+        status = "PASS"
+        reason = "Every transition produced a focus timestamp after its first DPAD input."
+    ordered = sorted(latencies)
+    p95 = ordered[min(len(ordered) - 1, round((len(ordered) - 1) * 0.95))] if ordered else None
+    return {
+        "status": status,
+        "reason": reason,
+        "transitionCount": len(samples),
+        "measuredTransitionCount": len(latencies),
+        "inputRetryTransitionCount": retry_count,
+        "medianUpperBoundSeconds": float(np.median(latencies)) if latencies else None,
+        "p95UpperBoundSeconds": p95,
+        "maxUpperBoundSeconds": max(latencies) if latencies else None,
+        "samplesSeconds": latencies,
+    }
 
 
 def analyze_indicator(image: np.ndarray | None, bounds: str | None) -> tuple[int, list[int], dict | None]:
@@ -176,6 +215,25 @@ def main() -> None:
     projectivy_uid = package_uid("com.spocky.projengmenu")
     aura_uid = package_uid("com.auramusic.app.debug")
 
+    logcat = subprocess.Popen(
+        adb_command(
+            ADB_EXECUTABLE,
+            ADB_SERVER_PORT,
+            serial,
+            "logcat", "-v", "threadtime", "-s",
+            "TvPreviewFocusAccessibilityService:D", "TvPreviewContentProvider:I",
+        ),
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1,
+    )
+    log_lines: queue.Queue[str] = queue.Queue()
+
+    def drain_logcat() -> None:
+        assert logcat.stdout is not None
+        for log_line in logcat.stdout:
+            log_lines.put(log_line)
+
+    logcat_reader = threading.Thread(target=drain_logcat, name="projectivy-logcat-reader", daemon=True)
+    logcat_reader.start()
     adb(serial, "shell", "uiautomator", "dump", "/sdcard/codex-projectivy-transition-initial.xml", timeout=45)
     initial_xml = adb(serial, "exec-out", "cat", "/sdcard/codex-projectivy-transition-initial.xml")
     (evidence / "initial-hierarchy.xml").write_text(initial_xml)
@@ -183,6 +241,10 @@ def main() -> None:
     current = next((node.get("text") or node.get("content-desc") or "" for node in initial_nodes), "")
     if current not in (args.title_a, args.title_b):
         raise SystemExit(f"INCONCLUSIVE: expected initial focus {args.title_a!r} or {args.title_b!r}; found {current!r}")
+    initial_program = focused_program_info(initial_xml, current)
+    initial_ancestors = initial_program["ancestorContentDescriptions"] if initial_program else []
+    if args.channel_name not in initial_ancestors:
+        raise SystemExit(f"INCONCLUSIVE: initial focused program is not inside {args.channel_name!r} row")
 
     metadata = {
         "serial": serial,
@@ -201,65 +263,93 @@ def main() -> None:
         "titleA": args.title_a,
         "titleB": args.title_b,
         "initialFocusedTitle": current,
+        "initialFocusedAncestorContentDescriptions": initial_ancestors,
         "cycles": args.cycles,
         "selectPressed": False,
+        "transitionHierarchyMethod": "Accessibility service focus logs during transitions; UiAutomator only before and after because it suppresses other accessibility services.",
     }
     (evidence / "run-metadata.json").write_text(json.dumps(metadata, indent=2) + "\n")
-    logcat = subprocess.Popen(
-        adb_command(
-            ADB_EXECUTABLE,
-            ADB_SERVER_PORT,
-            serial,
-            "logcat", "-v", "threadtime", "-s",
-            "TvPreviewFocusAccessibilityService:D", "TvPreviewContentProvider:I",
-        ),
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1,
-    )
     samples = []
     try:
+        # UiAutomation used by uiautomator dump suppresses other accessibility services.
+        # Wait for AuraMusic's service to reconnect and redraw before issuing DPAD input.
+        warmup_deadline = time.monotonic() + args.focus_timeout_seconds
+        warmup_indicator = None
+        service_destroyed_by_hierarchy = False
+        service_reconnected_after_hierarchy = False
+        while time.monotonic() < warmup_deadline:
+            try:
+                line = log_lines.get(timeout=max(0, warmup_deadline - time.monotonic()))
+            except queue.Empty:
+                break
+            with (evidence / "focus-events.log").open("a") as output:
+                output.write(line)
+            if "focus indicator hidden reason=service destroyed" in line:
+                service_destroyed_by_hierarchy = True
+            if service_destroyed_by_hierarchy and "TV preview focus indicator service connected" in line:
+                service_reconnected_after_hierarchy = True
+            if (service_reconnected_after_hierarchy and
+                    f"focus indicator shown title={current} " in line):
+                warmup_indicator = line.rstrip()
+                break
+        if warmup_indicator is None:
+            raise SystemExit("INCONCLUSIVE: AuraMusic accessibility overlay did not return after initial hierarchy capture")
+        # Drop the warmup backlog so a previous transition cannot satisfy the next assertion.
+        while not log_lines.empty():
+            try:
+                line = log_lines.get_nowait()
+            except queue.Empty:
+                break
+            with (evidence / "focus-events.log").open("a") as output:
+                output.write(line)
+
         for step in range(args.cycles * 2):
             target = args.title_b if current == args.title_a else args.title_a
             key = "KEYCODE_DPAD_RIGHT" if target == args.title_b else "KEYCODE_DPAD_LEFT"
-            prefix = evidence / f"transition-{step + 1:02d}"
             start = time.monotonic()
             adb(serial, "shell", "input", "keyevent", key)
             matched_line = None
+            indicator_line = None
             deadline = time.monotonic() + args.focus_timeout_seconds
-            while time.monotonic() < deadline:
-                ready, _, _ = select.select([logcat.stdout], [], [], max(0, deadline - time.monotonic()))
-                if not ready:
-                    break
-                line = logcat.stdout.readline()
-                if not line:
+            retry_at = min(deadline, time.monotonic() + 3.0)
+            input_retries = 0
+            while time.monotonic() < deadline and (matched_line is None or indicator_line is None):
+                next_wakeup = retry_at if input_retries == 0 else deadline
+                try:
+                    line = log_lines.get(timeout=max(0, min(deadline, next_wakeup) - time.monotonic()))
+                except queue.Empty:
+                    if input_retries == 0 and matched_line is None:
+                        # The first DPAD event can be swallowed while Projectivy restores its row focus.
+                        # Retry only while the expected focus event is still absent.
+                        adb(serial, "shell", "input", "keyevent", key)
+                        input_retries = 1
+                        continue
                     break
                 with (evidence / "focus-events.log").open("a") as output:
                     output.write(line)
                 if (target in line and "TvPreviewFocusAccessibilityService" in line and
                         ("TYPE_VIEW_FOCUSED" in line or "focused-node refresh description=" in line)):
                     matched_line = line.rstrip()
-                    break
+                if f"focus indicator shown title={target} " in line:
+                    indicator_line = line.rstrip()
             event_latency = time.monotonic() - start if matched_line else None
             if args.settle_seconds:
                 time.sleep(args.settle_seconds)
 
-            remote_xml = f"/sdcard/codex-projectivy-transition-{step + 1:02d}.xml"
-            adb(serial, "shell", "uiautomator", "dump", remote_xml, timeout=45)
-            hierarchy = adb(serial, "exec-out", "cat", remote_xml)
-            prefix.with_suffix(".xml").write_text(hierarchy)
-            focused = focus_nodes(hierarchy)
-            focused_titles = [node.get("text") or node.get("content-desc") or "" for node in focused]
-            matching_program = focused_program_info(hierarchy, target)
-            matching_node = matching_program["attributes"] if matching_program else None
-            ancestor_descriptions = matching_program["ancestorContentDescriptions"] if matching_program else []
-            row_matched = args.channel_name in ancestor_descriptions
-            bounds = matching_node.get("bounds") if matching_node else None
+            focused_titles = [target] if matched_line else []
+            ancestor_descriptions = []
+            row_matched = indicator_line is not None
+            bounds = indicator_bounds_from_log(indicator_line)
 
             foreground = adb(serial, "shell", "dumpsys", "activity", "activities")
             (evidence / f"transition-{step + 1:02d}-foreground.txt").write_text(foreground)
             projectivy_foreground = bool(re.search(
                 r"topResumedActivity=.*com\.spocky\.projengmenu/\.ui\.home\.MainActivity", foreground
             ))
-            audio_deadline = start + args.audio_timeout_seconds
+            audio_deadline = (
+                time.monotonic() + args.audio_timeout_seconds
+                if matched_line else start + args.audio_timeout_seconds
+            )
             audio = ""
             audio_started_at = None
             while True:
@@ -306,10 +396,12 @@ def main() -> None:
                 "focusEventMatched": matched_line is not None,
                 "focusEvent": matched_line,
                 "focusLatencySecondsUpperBound": round(event_latency, 3) if event_latency is not None else None,
+                "inputRetryCount": input_retries,
                 "focusedTitles": focused_titles,
-                "expectedTitleFocused": matching_node is not None,
+                "expectedTitleFocused": matched_line is not None,
                 "focusedAncestorContentDescriptions": ancestor_descriptions,
                 "focusedProgramInExpectedChannelRow": row_matched,
+                "rowMembershipEvidenceSource": "AuraMusic service emitted its indicator only after matching the focus node to a published program in the AuraMusic row.",
                 "focusedCardBounds": bounds,
                 "projectivyForeground": projectivy_foreground,
                 "activeProjectivyAudioTrackCount": len(active_tracks),
@@ -333,7 +425,7 @@ def main() -> None:
                 "screenshotSha256": hashlib.sha256(raw).hexdigest(),
             }
             samples.append(sample)
-            current = target if matching_node else current
+            current = target if matched_line else current
     finally:
         logcat.terminate()
         try:
@@ -343,6 +435,9 @@ def main() -> None:
 
     provider_logs = adb(serial, "logcat", "-d", "-v", "threadtime", "-s", "TvPreviewContentProvider:I")
     (evidence / "provider-logcat.txt").write_text(provider_logs)
+    final_hierarchy_path = "/sdcard/codex-projectivy-transition-final.xml"
+    adb(serial, "shell", "uiautomator", "dump", final_hierarchy_path, timeout=45)
+    (evidence / "final-hierarchy.xml").write_text(adb(serial, "exec-out", "cat", final_hierarchy_path))
     provider_open_count = count_preview_provider_opens(provider_logs)
 
     checks = {
@@ -410,6 +505,7 @@ def main() -> None:
             "maxUpperBound": max(latencies) if latencies else None,
             "samples": latencies,
         },
+        "latencyMeasurement": summarize_transition_latency(samples),
         "indicatorStartupSeconds": {
             "medianUpperBound": float(np.median(indicator_latencies)) if indicator_latencies else None,
             "p95UpperBound": indicator_p95,

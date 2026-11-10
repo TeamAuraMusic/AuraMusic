@@ -1,0 +1,11 @@
+{
+  "serial": "192.168.3.2:5555",
+  "startedUtc": "2026-11-09T23:28:21.495601+00:00",
+  "model": "Chromecast",
+  "device": "sabrina",
+  "androidApi": "34",
+  "projectivyUid": 10150,
+  "expectedTitle": "愛的故事（上集）",
+  "selectPressed": false,
+  "accessibilityServices": "com.auramusic.app.debug/com.auramusic.app.tv.TvPreviewFocusAccessibilityService:com.spocky.projengmenu/com.spocky.projengmenu.services.ProjectivyAccessibilityService:flar2.homebutton/a.i"
+}

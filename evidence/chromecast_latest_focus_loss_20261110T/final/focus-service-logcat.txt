@@ -1,0 +1,37 @@
+--------- beginning of main
+11-10 00:28:22.796 22979 22979 D TvPreviewFocusAccessibilityService: TV preview focus indicator hidden reason=service destroyed
+11-10 00:28:24.113 22979 22979 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-10 00:28:24.115 22979 22979 I TvPreviewFocusAccessibilityService: TV preview focus indicator service connected
+11-10 00:28:24.149 22979 22979 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOWS_CHANGED package=null source=null description=null
+11-10 00:28:24.417 22979 22979 D TvPreviewFocusAccessibilityService: TV preview artwork prefetch started title=愛的故事（上集）
+11-10 00:28:24.424 22979 22979 D TvPreviewFocusAccessibilityService: TV preview artwork prefetch started title=吻別
+11-10 00:28:24.425 22979 22979 D TvPreviewFocusAccessibilityService: TV preview artwork prefetch started title=千千関歌
+11-10 00:28:24.427 22979 22979 D TvPreviewFocusAccessibilityService: TV preview artwork prefetch started title=无言的结局
+11-10 00:28:24.428 22979 22979 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=愛的故事（上集）
+11-10 00:28:24.498 22979 22979 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=愛的故事（上集） bounds=Rect(0, 363 - 486, 603)
+11-10 00:28:24.740 22979 22979 I TvPreviewFocusAccessibilityService: TV preview focused artwork ready title=愛的故事（上集） size=600x600
+11-10 00:28:25.113 22979 22979 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-10 00:28:25.228 22979 22979 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=愛的故事（上集）
+11-10 00:28:25.234 22979 22979 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=愛的故事（上集） bounds=Rect(0, 363 - 486, 603)
+11-10 00:28:30.415 22979 22979 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-10 00:28:30.442 22979 22979 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=null
+11-10 00:28:30.464 22979 22979 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Preview A
+11-10 00:28:30.469 22979 22979 D TvPreviewFocusAccessibilityService: TV preview focus indicator hidden reason=focus is not a published AuraMusic program
+11-10 00:28:30.519 22979 22979 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Preview A
+11-10 00:28:30.590 22979 22979 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=null
+11-10 00:28:30.595 22979 22979 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=null
+11-10 00:28:30.598 22979 22979 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=null
+11-10 00:28:30.600 22979 22979 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=null
+11-10 00:28:30.658 22979 22979 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=null
+11-10 00:28:30.880 22979 22979 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Preview A
+11-10 00:28:31.429 22979 22979 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Preview A
+11-10 00:28:31.559 22979 22979 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Preview A
+11-10 00:28:31.692 22979 22979 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Preview A
+11-10 00:28:31.996 22979 22979 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-10 00:28:31.998 22979 22979 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-10 00:28:32.019 22979 22979 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-10 00:28:33.848 22979 22979 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=PreviewProbe A/B
+11-10 00:28:33.884 22979 22979 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=null
+11-10 00:28:33.927 22979 22979 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=愛的故事（上集）
+11-10 00:28:33.944 22979 22979 D TvPreviewFocusAccessibilityService: TV preview focused artwork cache hit title=愛的故事（上集）
+11-10 00:28:33.998 22979 22979 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=愛的故事（上集） bounds=Rect(0, 365 - 456, 605)

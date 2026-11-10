@@ -3,7 +3,10 @@
 
 import argparse
 import json
+import queue
 import re
+import subprocess
+import threading
 import time
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
@@ -11,7 +14,7 @@ from pathlib import Path
 
 import cv2
 import numpy as np
-from tv_adb import DEFAULT_ADB_EXECUTABLE, DEFAULT_ADB_SERVER_PORT, is_allowed_target, run_adb
+from tv_adb import DEFAULT_ADB_EXECUTABLE, DEFAULT_ADB_SERVER_PORT, adb_command, is_allowed_target, run_adb
 
 
 ADB = DEFAULT_ADB_EXECUTABLE
@@ -90,6 +93,28 @@ def is_projectivy_foreground(raw: str) -> bool:
     return bool(re.search(r"topResumedActivity=.*com\.spocky\.projengmenu/\.ui\.home\.MainActivity", raw))
 
 
+def bounds_from_focus_log(line: str | None) -> str | None:
+    if not line:
+        return None
+    match = re.search(r"focus indicator shown title=.*?bounds=Rect\((-?\d+), (-?\d+) - (-?\d+), (-?\d+)\)", line)
+    if not match:
+        return None
+    left, top, right, bottom = map(int, match.groups())
+    return f"[{left},{top}][{right},{bottom}]"
+
+
+def active_projectivy_audio(serial: str, uid: int) -> tuple[str, list[str]]:
+    raw = adb(serial, "shell", "dumpsys", "audio")
+    tracks = [
+        line.strip() for line in raw.splitlines()
+        if "AudioPlaybackConfiguration" in line
+        and "type:android.media.AudioTrack" in line
+        and "state:started" in line
+        and f"u/pid:{uid}/" in line
+    ]
+    return raw, tracks
+
+
 def main() -> None:
     global ADB, ADB_PORT
     parser = argparse.ArgumentParser(description=__doc__)
@@ -133,11 +158,54 @@ def main() -> None:
     }
     (evidence / "run-metadata.json").write_text(json.dumps(metadata, indent=2, ensure_ascii=False) + "\n")
 
+    logcat = subprocess.Popen(
+        adb_command(
+            ADB, ADB_PORT, args.serial, "logcat", "-v", "threadtime", "-T", "1", "-s",
+            "TvPreviewFocusAccessibilityService:D", "TvPreviewContentProvider:I",
+        ),
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1,
+    )
+    log_lines: queue.Queue[str] = queue.Queue()
+    captured_logs: list[str] = []
+
+    def drain_queued_logs() -> None:
+        while True:
+            try:
+                captured_logs.append(log_lines.get_nowait())
+            except queue.Empty:
+                return
+
+    def drain_logcat() -> None:
+        assert logcat.stdout is not None
+        for log_line in logcat.stdout:
+            log_lines.put(log_line)
+
+    logcat_reader = threading.Thread(target=drain_logcat, name="focus-return-logcat-reader", daemon=True)
+    logcat_reader.start()
     before_xml, before_png, before_fg = stage(args.serial, evidence, "before")
     before_node = focused_node(before_xml)
     initial_title = title(before_node)
-    before_audio = projectivy_tracks(args.serial, projectivy_uid)
-    before_pixels, before_profile = indicator_pixels(before_png, (before_node or {}).get("bounds"))
+    initial_bounds = (before_node or {}).get("bounds")
+    initial_program = None
+    service_reconnected = False
+    deadline = time.monotonic() + args.focus_timeout_seconds
+    while time.monotonic() < deadline and initial_program is None:
+        try:
+            line = log_lines.get(timeout=max(0, deadline - time.monotonic()))
+        except queue.Empty:
+            break
+        captured_logs.append(line)
+        if "TV preview focus indicator service connected" in line:
+            service_reconnected = True
+        if service_reconnected and f"focus indicator shown title={args.title} " in line:
+            initial_program = line.rstrip()
+    before_png = adb(args.serial, "exec-out", "screencap", "-p", binary=True)
+    (evidence / "before.png").write_bytes(before_png)
+    before_fg = adb(args.serial, "shell", "dumpsys", "activity", "activities")
+    (evidence / "before-foreground.txt").write_text(before_fg)
+    before_audio_dump, before_audio = active_projectivy_audio(args.serial, projectivy_uid)
+    (evidence / "before-audio.txt").write_text(before_audio_dump)
+    before_pixels, before_profile = indicator_pixels(before_png, initial_bounds)
     result = {
         "test": "Projectivy AuraMusic focus-loss stop and return restart",
         "status": "INCONCLUSIVE",
@@ -152,76 +220,100 @@ def main() -> None:
         ],
     }
 
-    if initial_title != args.title or not is_projectivy_foreground(before_fg) or not before_audio:
+    if (initial_title != args.title or not is_projectivy_foreground(before_fg)
+            or not before_audio or initial_program is None):
         result["statusReason"] = "Starting focus/audio/foreground precondition was not established."
         result["samples"]["before"] = {"focusedTitle": initial_title, "audioTrackCount": len(before_audio), "pinkPixels": before_pixels}
+        (evidence / "focus-service-logcat.txt").write_text("".join(captured_logs))
         (evidence / "result.json").write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n")
         print(json.dumps({"status": result["status"], "reason": result["statusReason"], "result": str(evidence / "result.json")}, indent=2))
+        logcat.terminate()
         return
 
+    drain_queued_logs()
     loss_started = time.monotonic()
     adb(args.serial, "shell", "input", "keyevent", "KEYCODE_DPAD_UP")
-    loss_title = initial_title
-    loss_xml = ""
-    loss_poll_path = f"/sdcard/codex-projectivy-focus-return-loss-poll.xml"
-    while time.monotonic() - loss_started < args.focus_timeout_seconds:
-        time.sleep(0.4)
-        loss_xml = read_hierarchy(args.serial, loss_poll_path)
-        loss_title = title(focused_node(loss_xml))
-        if loss_title and loss_title != args.title:
+    loss_event = None
+    loss_indicator_line = None
+    deadline = time.monotonic() + args.focus_timeout_seconds
+    while time.monotonic() < deadline and loss_indicator_line is None:
+        try:
+            line = log_lines.get(timeout=max(0, deadline - time.monotonic()))
+        except queue.Empty:
             break
-    if loss_title == args.title or not loss_title:
-        loss_xml, _, loss_fg = stage(args.serial, evidence, "focus-loss")
-        result["statusReason"] = "DPAD focus change was not observed; input delivery or launcher focus is unresolved."
-        result["samples"]["before"] = {"focusedTitle": initial_title, "audioTrackCount": len(before_audio), "pinkPixels": before_pixels}
-        result["samples"]["focusLoss"] = {"focusedTitle": loss_title, "projectivyForeground": is_projectivy_foreground(loss_fg)}
+        captured_logs.append(line)
+        if ("TYPE_VIEW_FOCUSED" in line and "package=com.spocky.projengmenu" in line
+                and f"description={args.title}" not in line):
+            loss_event = line.rstrip()
+        if ("focus indicator hidden reason=" in line and
+                ("outside its AuraMusic channel row" in line or "not a published AuraMusic program" in line)):
+            loss_indicator_line = line.rstrip()
+
+    stop_elapsed = None
+    stop_tracks = projectivy_tracks(args.serial, projectivy_uid)
+    while loss_indicator_line and stop_tracks and time.monotonic() < deadline + args.audio_timeout_seconds:
+        time.sleep(0.2)
+        _, stop_tracks = active_projectivy_audio(args.serial, projectivy_uid)
+    if not stop_tracks:
+        stop_elapsed = round(time.monotonic() - loss_started, 3)
+    loss_png = adb(args.serial, "exec-out", "screencap", "-p", binary=True)
+    (evidence / "focus-loss.png").write_bytes(loss_png)
+    loss_fg = adb(args.serial, "shell", "dumpsys", "activity", "activities")
+    (evidence / "focus-loss-foreground.txt").write_text(loss_fg)
+    loss_audio_dump, _ = active_projectivy_audio(args.serial, projectivy_uid)
+    (evidence / "focus-loss-audio.txt").write_text(loss_audio_dump)
+    loss_pixels, _ = indicator_pixels(loss_png, initial_bounds)
+
+    if loss_indicator_line is None:
+        result["statusReason"] = "Live accessibility logs did not confirm focus leaving the AuraMusic program row."
+        result["samples"] = {"before": {"focusedTitle": initial_title, "audioTrackCount": len(before_audio), "pinkPixels": before_pixels}}
+        result["status"] = "INCONCLUSIVE"
+        (evidence / "focus-service-logcat.txt").write_text("".join(captured_logs))
         (evidence / "result.json").write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n")
+        logcat.terminate()
         print(json.dumps({"status": result["status"], "reason": result["statusReason"], "result": str(evidence / "result.json")}, indent=2))
         return
 
-    stop_started = time.monotonic()
-    stop_elapsed = None
-    stop_tracks = projectivy_tracks(args.serial, projectivy_uid)
-    while stop_tracks and time.monotonic() - stop_started < args.audio_timeout_seconds:
-        time.sleep(0.25)
-        stop_tracks = projectivy_tracks(args.serial, projectivy_uid)
-    if not stop_tracks:
-        stop_elapsed = round(time.monotonic() - stop_started, 3)
-    _, loss_png, loss_fg = stage(args.serial, evidence, "focus-loss")
-    loss_logs = adb(args.serial, "logcat", "-d", "-v", "threadtime", "-s", "TvPreviewFocusAccessibilityService:D")
-    (evidence / "focus-service-logcat.txt").write_text(loss_logs)
-
+    drain_queued_logs()
     return_started = time.monotonic()
     adb(args.serial, "shell", "input", "keyevent", "KEYCODE_DPAD_DOWN")
-    return_title = ""
-    return_xml = return_fg = ""
-    while time.monotonic() - return_started < args.focus_timeout_seconds:
-        time.sleep(0.4)
-        return_xml = read_hierarchy(args.serial, "/sdcard/codex-projectivy-focus-return-back-poll.xml")
-        return_title = title(focused_node(return_xml))
-        if return_title == args.title:
+    return_event = None
+    return_indicator_line = None
+    deadline = return_started + args.focus_timeout_seconds
+    while time.monotonic() < deadline and (return_event is None or return_indicator_line is None):
+        try:
+            line = log_lines.get(timeout=max(0, deadline - time.monotonic()))
+        except queue.Empty:
             break
-    if return_title == args.title:
-        audio_deadline = return_started + args.audio_timeout_seconds
-        return_tracks = projectivy_tracks(args.serial, projectivy_uid)
-        while not return_tracks and time.monotonic() < audio_deadline:
-            time.sleep(0.25)
-            return_tracks = projectivy_tracks(args.serial, projectivy_uid)
-    else:
-        return_tracks = []
-    return_xml, return_png, return_fg = stage(args.serial, evidence, "return")
-    return_node = focused_node(return_xml)
-    return_pixels, return_profile = indicator_pixels(return_png, (return_node or {}).get("bounds"))
+        captured_logs.append(line)
+        if ("TYPE_VIEW_FOCUSED" in line and "package=com.spocky.projengmenu" in line
+                and f"description={args.title}" in line):
+            return_event = line.rstrip()
+        if f"focus indicator shown title={args.title} " in line:
+            return_indicator_line = line.rstrip()
+    return_bounds = bounds_from_focus_log(return_indicator_line)
+    return_tracks = projectivy_tracks(args.serial, projectivy_uid)
+    audio_deadline = time.monotonic() + args.audio_timeout_seconds
+    while return_event and return_indicator_line and not return_tracks and time.monotonic() < audio_deadline:
+        time.sleep(0.2)
+        _, return_tracks = active_projectivy_audio(args.serial, projectivy_uid)
+    return_png = adb(args.serial, "exec-out", "screencap", "-p", binary=True)
+    (evidence / "return.png").write_bytes(return_png)
+    return_fg = adb(args.serial, "shell", "dumpsys", "activity", "activities")
+    (evidence / "return-foreground.txt").write_text(return_fg)
+    return_audio_dump, _ = active_projectivy_audio(args.serial, projectivy_uid)
+    (evidence / "return-audio.txt").write_text(return_audio_dump)
+    return_pixels, return_profile = indicator_pixels(return_png, return_bounds)
 
     for frame_index in range(5):
         time.sleep(0.25)
         frame = adb(args.serial, "exec-out", "screencap", "-p", binary=True)
         (evidence / f"wave-frame-{frame_index:02d}.png").write_bytes(frame)
-        _, profile = indicator_pixels(frame, (return_node or {}).get("bounds"))
+        _, profile = indicator_pixels(frame, return_bounds)
         (evidence / f"wave-frame-{frame_index:02d}.json").write_text(json.dumps({"pinkRowProfile": profile}) + "\n")
 
     no_overlap = True
-    audio_after_return = adb(args.serial, "shell", "dumpsys", "audio")
+    audio_after_return = return_audio_dump
     aura_uid_text = adb(args.serial, "shell", "cmd", "package", "list", "packages", "-U", AURA)
     aura_uid_match = re.search(rf"package:{re.escape(AURA)}\s+uid:(\d+)", aura_uid_text)
     if aura_uid_match:
@@ -236,11 +328,13 @@ def main() -> None:
         "initialTitleFocused": initial_title == args.title,
         "projectivyForegroundBefore": is_projectivy_foreground(before_fg),
         "indicatorVisibleBefore": before_pixels > 100,
-        "focusMovedOutsideCard": loss_title != args.title,
+        "focusMovedOutsideCard": loss_event is not None and loss_indicator_line is not None,
         "projectivyForegroundOnFocusLoss": is_projectivy_foreground(loss_fg),
         "audioStoppedOnFocusLoss": not stop_tracks,
         "audioStopSecondsUpperBound": stop_elapsed,
-        "focusReturnedToSameTitle": return_title == args.title,
+        "indicatorHiddenOnFocusLoss": loss_pixels <= 100,
+        "focusReturnedToSameTitle": return_event is not None,
+        "returnIndicatorEventObserved": return_indicator_line is not None,
         "projectivyForegroundAfterReturn": is_projectivy_foreground(return_fg),
         "audioRestarted": bool(return_tracks),
         "noAuraMusicTrackOverlap": no_overlap,
@@ -250,8 +344,8 @@ def main() -> None:
     result["checks"] = checks
     result["samples"] = {
         "before": {"focusedTitle": initial_title, "audioTrackCount": len(before_audio), "pinkPixels": before_pixels, "waveProfile": before_profile},
-        "focusLoss": {"focusedTitle": loss_title, "projectivyAudioTrackCount": len(stop_tracks), "stopSecondsUpperBound": stop_elapsed},
-        "return": {"focusedTitle": return_title, "projectivyAudioTrackCount": len(return_tracks), "pinkPixels": return_pixels, "distinctWaveProfiles": distinct_profiles},
+        "focusLoss": {"focusedTitleEvent": loss_event, "indicatorHiddenEvent": loss_indicator_line, "projectivyAudioTrackCount": len(stop_tracks), "stopSecondsUpperBound": stop_elapsed, "pinkPixels": loss_pixels},
+        "return": {"focusedTitleEvent": return_event, "indicatorShownEvent": return_indicator_line, "projectivyAudioTrackCount": len(return_tracks), "pinkPixels": return_pixels, "distinctWaveProfiles": distinct_profiles},
     }
     if not checks["focusMovedOutsideCard"] or not checks["focusReturnedToSameTitle"]:
         result["status"] = "INCONCLUSIVE"
@@ -259,10 +353,13 @@ def main() -> None:
     elif not checks["audioStoppedOnFocusLoss"]:
         result["status"] = "FAIL_PRODUCT"
         result["statusReason"] = "Projectivy audio remained active after focus left the AuraMusic card."
+    elif not checks["indicatorHiddenOnFocusLoss"]:
+        result["status"] = "FAIL_PRODUCT"
+        result["statusReason"] = "The focused-card indicator remained visible after focus left the AuraMusic card."
     elif not checks["audioRestarted"]:
         result["status"] = "INCONCLUSIVE"
         result["statusReason"] = "Audio did not restart, but media-source availability was not independently verified."
-    elif not checks["indicatorVisibleAfterReturn"] or distinct_profiles < 2:
+    elif not checks["returnIndicatorEventObserved"] or not checks["indicatorVisibleAfterReturn"] or distinct_profiles < 2:
         result["status"] = "FAIL_PRODUCT"
         result["statusReason"] = "The focused-card animated indicator was missing or static after return."
     elif not no_overlap:
@@ -272,6 +369,13 @@ def main() -> None:
         result["status"] = "PASS"
         result["statusReason"] = "Focus loss stopped preview; returning to the same card restarted preview audio and animated in-card wave."
     (evidence / "result.json").write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n")
+    (evidence / "focus-service-logcat.txt").write_text("".join(captured_logs))
+    try:
+        final_hierarchy = read_hierarchy(args.serial, "/sdcard/codex-projectivy-focus-return-final.xml")
+        (evidence / "final-hierarchy.xml").write_text(final_hierarchy)
+    finally:
+        logcat.terminate()
+        logcat.wait(timeout=5)
     print(json.dumps({"status": result["status"], "checks": checks, "result": str(evidence / "result.json")}, indent=2, ensure_ascii=False))
     if result["status"] == "FAIL_PRODUCT":
         raise SystemExit(1)

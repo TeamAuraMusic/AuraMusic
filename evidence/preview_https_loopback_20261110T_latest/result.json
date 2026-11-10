@@ -1,0 +1,45 @@
+{
+  "status": "PASS",
+  "startedUtc": "2026-11-10T00:18:05.434613+00:00",
+  "command": [
+    "rtk",
+    "python3",
+    "scripts/test_preview_https_server.py",
+    "--evidence-dir",
+    "evidence/preview_https_loopback_20261110T_latest"
+  ],
+  "gitCommit": "7b600967ee39ede78cca1087b95ee27e33ed0c8c",
+  "gitDirty": true,
+  "pythonVersion": "3.12.3",
+  "scope": "Loopback HTTPS fixture server only; diagnostic CA is trusted by the probe, not by Projectivy/Chromecast.",
+  "serverHost": "127.0.0.1",
+  "serverPort": 42623,
+  "fixture": "PreviewProbe Program A video",
+  "fixtureBytes": 1934593,
+  "fixtureSha256": "e7ac8b357423174c5c7b3644c8c406b8da011edd365505f287086ffd49a44459",
+  "tlsVerification": "Enabled using generated local CA via SSLContext(cafile); no verification bypass.",
+  "checks": {
+    "loopbackOnly": true,
+    "headStatus200": true,
+    "headLengthMatchesFixture": true,
+    "rangeProbeStatus206": true,
+    "rangeContentRangeCorrect": true,
+    "rangeBytesRead1024": true,
+    "suffixRangeStatus206": true,
+    "suffixBytesExact": true,
+    "invalidMultipleRangeStatus416": true,
+    "invalidRangeContentRange": true,
+    "missingFileStatus404": true,
+    "pathTraversalStatus404": true,
+    "fullGetStatus200": true,
+    "fullBodyExact": true,
+    "videoContentType": true,
+    "requestLogCoversSuccessAndFailure": true,
+    "requestLogRecordsRangeAndMediaId": true
+  },
+  "requestsRecorded": 7,
+  "limitations": [
+    "Does not verify LAN routing, Chromecast reachability, Projectivy trust of the diagnostic CA, or media rendering.",
+    "The ephemeral CA and private key were kept outside the repository and removed with the temporary directory."
+  ]
+}

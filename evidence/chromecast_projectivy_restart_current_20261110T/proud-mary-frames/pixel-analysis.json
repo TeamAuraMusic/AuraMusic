@@ -1,0 +1,61 @@
+{
+  "region": {
+    "x": 110,
+    "y": 720,
+    "width": 195,
+    "height": 63
+  },
+  "frameCount": 9,
+  "adjacentTransitions": [
+    {
+      "from": 0,
+      "to": 1,
+      "changedPixelFractionGt8": 0.0827,
+      "meanAbsChannelDelta": 7.823
+    },
+    {
+      "from": 1,
+      "to": 2,
+      "changedPixelFractionGt8": 0.0989,
+      "meanAbsChannelDelta": 10.146
+    },
+    {
+      "from": 2,
+      "to": 3,
+      "changedPixelFractionGt8": 0.13553,
+      "meanAbsChannelDelta": 15.305
+    },
+    {
+      "from": 3,
+      "to": 4,
+      "changedPixelFractionGt8": 0.08588,
+      "meanAbsChannelDelta": 8.339
+    },
+    {
+      "from": 4,
+      "to": 5,
+      "changedPixelFractionGt8": 0.0989,
+      "meanAbsChannelDelta": 10.037
+    },
+    {
+      "from": 5,
+      "to": 6,
+      "changedPixelFractionGt8": 0.10411,
+      "meanAbsChannelDelta": 10.751
+    },
+    {
+      "from": 6,
+      "to": 7,
+      "changedPixelFractionGt8": 0.10085,
+      "meanAbsChannelDelta": 10.472
+    },
+    {
+      "from": 7,
+      "to": 8,
+      "changedPixelFractionGt8": 0.07293,
+      "meanAbsChannelDelta": 6.636
+    }
+  ],
+  "transitionCountWithVisibleChange": 8,
+  "maxChangedPixelFraction": 0.13553
+}

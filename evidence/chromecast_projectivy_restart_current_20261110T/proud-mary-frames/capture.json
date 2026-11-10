@@ -1,0 +1,88 @@
+{
+  "title": "Proud Mary",
+  "channel": "AuraMusic",
+  "selectPressed": false,
+  "serial": "192.168.3.2:5555",
+  "frames": [
+    {
+      "frame": "frame-00.png",
+      "capturedUtc": "2026-11-10T06:21:46.315283+00:00",
+      "bytes": 997372
+    },
+    {
+      "frame": "frame-01.png",
+      "capturedUtc": "2026-11-10T06:21:48.634484+00:00",
+      "bytes": 997766
+    },
+    {
+      "frame": "frame-02.png",
+      "capturedUtc": "2026-11-10T06:21:50.754338+00:00",
+      "bytes": 997375
+    },
+    {
+      "frame": "frame-03.png",
+      "capturedUtc": "2026-11-10T06:21:53.285996+00:00",
+      "bytes": 997285
+    },
+    {
+      "frame": "frame-04.png",
+      "capturedUtc": "2026-11-10T06:21:55.564036+00:00",
+      "bytes": 997743
+    },
+    {
+      "frame": "frame-05.png",
+      "capturedUtc": "2026-11-10T06:21:57.757251+00:00",
+      "bytes": 997609
+    },
+    {
+      "frame": "frame-06.png",
+      "capturedUtc": "2026-11-10T06:21:59.995156+00:00",
+      "bytes": 997391
+    },
+    {
+      "frame": "frame-07.png",
+      "capturedUtc": "2026-11-10T06:22:02.199842+00:00",
+      "bytes": 997322
+    },
+    {
+      "frame": "frame-08.png",
+      "capturedUtc": "2026-11-10T06:22:04.420562+00:00",
+      "bytes": 997411
+    },
+    {
+      "frame": "frame-09.png",
+      "capturedUtc": "2026-11-10T06:22:06.539445+00:00",
+      "bytes": 997715
+    },
+    {
+      "frame": "frame-10.png",
+      "capturedUtc": "2026-11-10T06:22:08.650411+00:00",
+      "bytes": 997569
+    },
+    {
+      "frame": "frame-11.png",
+      "capturedUtc": "2026-11-10T06:22:10.720689+00:00",
+      "bytes": 997536
+    },
+    {
+      "frame": "frame-12.png",
+      "capturedUtc": "2026-11-10T06:22:12.897735+00:00",
+      "bytes": 997367
+    },
+    {
+      "frame": "frame-13.png",
+      "capturedUtc": "2026-11-10T06:22:15.087526+00:00",
+      "bytes": 997732
+    },
+    {
+      "frame": "frame-14.png",
+      "capturedUtc": "2026-11-10T06:22:17.341017+00:00",
+      "bytes": 997389
+    },
+    {
+      "frame": "frame-15.png",
+      "capturedUtc": "2026-11-10T06:22:19.482090+00:00",
+      "bytes": 997608
+    }
+  ]
+}

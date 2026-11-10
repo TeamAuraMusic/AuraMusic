@@ -1,0 +1,27 @@
+{
+  "index": 2,
+  "elapsedSeconds": 23.181,
+  "processes": {
+    "com.spocky.projengmenu": {
+      "pid": 17297,
+      "cpuPercent": 29.4,
+      "resident": "169M",
+      "state": "S",
+      "command": "com.spocky.projengmenu",
+      "pssKb": 133202,
+      "rssKb": 178484
+    },
+    "com.auramusic.app.debug": {
+      "pid": 22979,
+      "cpuPercent": 14.7,
+      "resident": "105M",
+      "state": "S",
+      "command": "com.auramusic.app.debug",
+      "pssKb": 174978,
+      "rssKb": 110548
+    }
+  },
+  "startedAudioTrackCount": 1,
+  "projectivyAudioTrackCount": 1,
+  "auraMusicAudioTrackCount": 0
+}

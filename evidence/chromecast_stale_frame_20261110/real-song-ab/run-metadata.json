@@ -1,0 +1,32 @@
+{
+  "serial": "192.168.3.2:5555",
+  "startedUtc": "2026-11-10T00:05:46.274673+00:00",
+  "model": "Chromecast",
+  "androidApi": "34",
+  "projectivyPackage": "com.spocky.projengmenu",
+  "auraPackage": "com.auramusic.app.debug",
+  "projectivyUid": 10150,
+  "auraUid": 10076,
+  "projectivyVersion": {
+    "package": "com.spocky.projengmenu",
+    "versionName": "4.73",
+    "versionCode": 98
+  },
+  "auraMusicVersion": {
+    "package": "com.auramusic.app.debug",
+    "versionName": "3.2.0",
+    "versionCode": 29
+  },
+  "gitCommit": "c9f9b5f9a8814949f2583aba4f60b39ec0e709b6",
+  "gitWorkingTreeDirty": true,
+  "expectedChannelName": "AuraMusic",
+  "titleA": "\u6cea\u6d77 (\u7eaf\u97f3\u4e50\u7248)",
+  "titleB": "\u8b93\u6211\u6c38\u9060\u611b\u4f60 - Love You Forever",
+  "initialFocusedTitle": "\u6cea\u6d77 (\u7eaf\u97f3\u4e50\u7248)",
+  "initialFocusedAncestorContentDescriptions": [
+    "AuraMusic"
+  ],
+  "cycles": 5,
+  "selectPressed": false,
+  "transitionHierarchyMethod": "Accessibility service focus logs during transitions; UiAutomator only before and after because it suppresses other accessibility services."
+}

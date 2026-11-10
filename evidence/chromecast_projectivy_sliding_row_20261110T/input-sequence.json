@@ -1,0 +1,17 @@
+{
+  "device_serial": "192.168.3.2:5555",
+  "adb_server_port": 5038,
+  "screenrecord_command": "adb -P 5038 -s 192.168.3.2:5555 shell screenrecord --time-limit 10 /sdcard/sliding-{on,off}.mp4",
+  "navigation_command_sequence": [
+    "adb -P 5038 -s 192.168.3.2:5555 shell input keyevent 22",
+    "wait 1 second; capture screenshot and UIAutomator hierarchy",
+    "adb -P 5038 -s 192.168.3.2:5555 shell input keyevent 21",
+    "wait 1 second; capture screenshot and UIAutomator hierarchy"
+  ],
+  "keys": {
+    "22": "KEYCODE_DPAD_RIGHT",
+    "21": "KEYCODE_DPAD_LEFT"
+  },
+  "select_pressed": false,
+  "setting_state_order": ["on", "off temporarily", "on restored"]
+}

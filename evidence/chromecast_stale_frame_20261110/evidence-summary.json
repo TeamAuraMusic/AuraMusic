@@ -1,0 +1,45 @@
+{
+  "test": "Projectivy stale preview artwork during focus transitions",
+  "status": "PASS",
+  "device": {
+    "model": "Chromecast",
+    "device": "sabrina",
+    "androidApi": 34,
+    "serial": "192.168.3.2:5555",
+    "projectivyVersion": "4.73",
+    "auraMusicVersion": "3.2.0",
+    "auraMusicVersionCode": 29
+  },
+  "sourceCommit": "c9f9b5f9a8814949f2583aba4f60b39ec0e709b6",
+  "installedApkSha256": "01a6720050d52067406d1fdaa722b459a7e3900b97dea91f782baa04ffe0807c",
+  "localApkSha256": "01a6720050d52067406d1fdaa722b459a7e3900b97dea91f782baa04ffe0807c",
+  "assertions": {
+    "androidInstrumentedViewTests": {
+      "status": "PASS",
+      "tests": 3,
+      "failures": 0,
+      "report": "focused-card-view-instrumentation.xml",
+      "includesMissingArtworkMaskRegression": true
+    },
+    "realSongFocusTransitions": {
+      "status": "PASS",
+      "noClickTransitions": 10,
+      "projectivyStayedForeground": true,
+      "correctIndicatorVisibleOnEachCard": true,
+      "noAuraMusicAudioTrackOverlapObserved": true,
+      "noMultipleProjectivyTracksObserved": true,
+      "latencySecondsMedianUpperBound": 0.3985,
+      "latencySecondsP95UpperBound": 0.505,
+      "result": "real-song-ab/transition-result.json",
+      "sampleScreenshots": [
+        "real-song-ab/transition-01.png",
+        "real-song-ab/transition-02.png"
+      ]
+    }
+  },
+  "limitations": [
+    "The live transition run used prefetched artwork; the missing-artwork gap is covered by the instrumented view test, not a cold-cache Chromecast transition.",
+    "AudioTrack state and focus title do not independently identify the real-song waveform acoustically.",
+    "The 20-second device screenrecord did not show the same Projectivy cards as the synchronized transition screenshots and is excluded as visual proof."
+  ]
+}

@@ -1,0 +1,9 @@
+--------- beginning of main
+11-10 00:15:01.550 22979 23016 I TvPreviewContentProvider: TV preview open request=61d9325 key=aff12159 callerUid=10150
+11-10 00:15:02.084 22979 23016 I TvPreviewContentProvider: TV preview audio-only open request=61d9325 key=aff12159 bytes=4258772
+11-10 00:15:09.426 22979 23227 I TvPreviewContentProvider: TV preview open request=61db1fa key=2a7cc776 callerUid=10150
+11-10 00:15:09.998 22979 23227 I TvPreviewContentProvider: TV preview audio-only open request=61db1fa key=2a7cc776 bytes=4891383
+11-10 00:15:16.593 22979 23377 I TvPreviewContentProvider: TV preview open request=61dce3a key=aff12159 callerUid=10150
+11-10 00:15:16.995 22979 23377 I TvPreviewContentProvider: TV preview audio-only open request=61dce3a key=aff12159 bytes=4258772
+11-10 00:15:21.979 22979 23016 I TvPreviewContentProvider: TV preview open request=61de345 key=2a7cc776 callerUid=10150
+11-10 00:15:22.064 22979 23016 I TvPreviewContentProvider: TV preview audio-only open request=61de345 key=2a7cc776 bytes=4891383

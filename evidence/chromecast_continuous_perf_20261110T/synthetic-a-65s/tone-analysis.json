@@ -1,0 +1,12 @@
+{
+  "file": "evidence/chromecast_continuous_perf_20261110T/synthetic-a-65s/previewprobe-a-output.wav",
+  "durationSeconds": 64.614,
+  "sampleRateHz": 48000,
+  "rms": 2891.54,
+  "rmsDbfs": -21.09,
+  "expectedHz": 440,
+  "medianPeakHz": 440.0,
+  "matchingWindows": 63,
+  "windows": 63,
+  "status": "PASS"
+}

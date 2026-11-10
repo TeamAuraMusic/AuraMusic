@@ -1,0 +1,56 @@
+{
+  "start_focus": "Angie",
+  "select_pressed": false,
+  "steps": [
+    {
+      "step": 1,
+      "direction": "right",
+      "command_wall_s": 0.195
+    },
+    {
+      "step": 2,
+      "direction": "left",
+      "command_wall_s": 0.354
+    },
+    {
+      "step": 3,
+      "direction": "right",
+      "command_wall_s": 0.267
+    },
+    {
+      "step": 4,
+      "direction": "left",
+      "command_wall_s": 0.388
+    },
+    {
+      "step": 5,
+      "direction": "right",
+      "command_wall_s": 0.335
+    },
+    {
+      "step": 6,
+      "direction": "left",
+      "command_wall_s": 0.234
+    },
+    {
+      "step": 7,
+      "direction": "right",
+      "command_wall_s": 0.237
+    },
+    {
+      "step": 8,
+      "direction": "left",
+      "command_wall_s": 0.321
+    },
+    {
+      "step": 9,
+      "direction": "right",
+      "command_wall_s": 0.284
+    },
+    {
+      "step": 10,
+      "direction": "left",
+      "command_wall_s": 0.242
+    }
+  ]
+}

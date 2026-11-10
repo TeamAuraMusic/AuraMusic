@@ -80,6 +80,22 @@ class FocusedProgramInfoTest(unittest.TestCase):
         ))
         self.assertEqual(3, VERIFIER.count_preview_provider_opens(log))
 
+    def test_transition_latency_is_inconclusive_when_dpad_input_was_retried(self):
+        result = VERIFIER.summarize_transition_latency([
+            {"focusLatencySecondsUpperBound": 3.7, "inputRetryCount": 1},
+            {"focusLatencySecondsUpperBound": 0.4, "inputRetryCount": 0},
+        ])
+        self.assertEqual("INCONCLUSIVE", result["status"])
+        self.assertEqual(1, result["inputRetryTransitionCount"])
+
+    def test_transition_latency_passes_first_input_samples(self):
+        result = VERIFIER.summarize_transition_latency([
+            {"focusLatencySecondsUpperBound": 0.4, "inputRetryCount": 0},
+            {"focusLatencySecondsUpperBound": 0.5, "inputRetryCount": 0},
+        ])
+        self.assertEqual("PASS", result["status"])
+        self.assertEqual(0.45, result["medianUpperBoundSeconds"])
+
     def test_indicator_analysis_counts_pink_pixels_inside_card_safe_area(self):
         image = np.zeros((400, 400, 3), dtype=np.uint8)
         image[230, 150] = (100, 10, 240)  # OpenCV BGR; within the focused-card ROI.

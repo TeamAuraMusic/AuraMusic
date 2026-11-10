@@ -6,13 +6,29 @@ import androidx.tvprovider.media.tv.TvContractCompat
 
 /** Program metadata used to scope the overlay and restore artwork when Projectivy's video surface is blank. */
 internal object TvPreviewFocusTargets {
-    data class Program(val title: String, val artwork: Uri?, val channelNames: Set<String>)
+    data class Program(
+        val title: String,
+        val artwork: Uri?,
+        val previewUri: Uri?,
+        val channelNames: Set<String>,
+    )
 
     fun isInChannelRow(expectedChannelNames: Set<String>, ancestorDescriptions: Iterable<String?>): Boolean =
         expectedChannelNames.isNotEmpty() &&
             ancestorDescriptions.any { it?.trim() in expectedChannelNames }
 
     fun unambiguousArtworkUri(candidates: List<String?>): String? = candidates.distinct().singleOrNull()
+
+    fun isLocalAudioOnlyPreviewUri(
+        scheme: String?,
+        authority: String?,
+        mode: String?,
+        mimeType: String?,
+        expectedAuthority: String,
+    ): Boolean = scheme?.equals("content", ignoreCase = true) == true &&
+        authority == expectedAuthority &&
+        mode == "audio" &&
+        mimeType?.equals("audio/mp4", ignoreCase = true) == true
 
     fun publishedPrograms(context: Context): Map<String, Program> {
         val resolver = context.contentResolver
@@ -43,28 +59,41 @@ internal object TvPreviewFocusTargets {
         for ((channelId, channelName) in channels) {
             resolver.query(
                 TvContractCompat.buildPreviewProgramsUriForChannel(channelId),
-                arrayOf(TITLE_COLUMN, POSTER_ART_URI_COLUMN),
+                arrayOf(
+                    TITLE_COLUMN,
+                    POSTER_ART_URI_COLUMN,
+                    TvContractCompat.PreviewProgramColumns.COLUMN_PREVIEW_VIDEO_URI,
+                ),
                 null,
                 null,
                 null,
             )?.use { cursor ->
                 val titleColumn = cursor.getColumnIndexOrThrow(TITLE_COLUMN)
                 val artworkColumn = cursor.getColumnIndex(POSTER_ART_URI_COLUMN)
+                val previewColumn = cursor.getColumnIndex(
+                    TvContractCompat.PreviewProgramColumns.COLUMN_PREVIEW_VIDEO_URI,
+                )
                 while (cursor.moveToNext()) {
                     val title = cursor.getString(titleColumn)?.takeIf(String::isNotBlank) ?: continue
                     val artwork = artworkColumn.takeIf { it >= 0 }
                         ?.let(cursor::getString)
                         ?.takeIf(String::isNotBlank)
                         ?.let(Uri::parse)
+                    val previewUri = previewColumn.takeIf { it >= 0 }
+                        ?.let(cursor::getString)
+                        ?.takeIf(String::isNotBlank)
+                        ?.let(Uri::parse)
                     programsByTitle.getOrPut(title, ::mutableListOf) +=
-                        Program(title, artwork, setOf(channelName))
+                        Program(title, artwork, previewUri, setOf(channelName))
                 }
             }
         }
         return programsByTitle.mapValues { (title, programs) ->
             val artwork = unambiguousArtworkUri(programs.map { it.artwork?.toString() })
                 ?.let(Uri::parse)
-            Program(title, artwork, programs.flatMapTo(linkedSetOf()) { it.channelNames })
+            val previewUri = unambiguousArtworkUri(programs.map { it.previewUri?.toString() })
+                ?.let(Uri::parse)
+            Program(title, artwork, previewUri, programs.flatMapTo(linkedSetOf()) { it.channelNames })
         }
     }
 

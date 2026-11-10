@@ -25,6 +25,10 @@ FLAVORS = {
         ROOT / "app/build/outputs/apk/fossTvUniversal/debug/app-foss-tv-universal-debug.apk",
         ROOT / "app/build/outputs/apk/androidTest/fossTvUniversal/debug/app-foss-tv-universal-debug-androidTest.apk",
     ),
+    "foss-armeabi": (
+        ROOT / "app/build/outputs/apk/fossTvArmeabi/debug/app-foss-tv-armeabi-debug.apk",
+        ROOT / "app/build/outputs/apk/androidTest/fossTvArmeabi/debug/app-foss-tv-armeabi-debug-androidTest.apk",
+    ),
 }
 TEST_PACKAGE = "com.auramusic.app.debug.test"
 RUNNER = "androidx.test.runner.AndroidJUnitRunner"
@@ -105,7 +109,12 @@ def git_metadata() -> tuple[str, str]:
 
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(description=__doc__)
-    result.add_argument("--serial", required=True, help="Allowlisted emulator serial, for example emulator-5554")
+    result.add_argument("--serial", required=True, help="Explicit Android TV device serial")
+    result.add_argument(
+        "--allow-physical",
+        action="store_true",
+        help="allow the explicitly selected physical device; default permits only allowlisted emulators",
+    )
     result.add_argument("--adb", type=Path, required=True, help="Authoritative Windows ADB executable")
     result.add_argument("--adb-port", type=int, default=5038)
     result.add_argument("--output", type=Path, default=ROOT / "evidence")
@@ -118,7 +127,7 @@ def parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
-    if not is_allowed_target(args.serial):
+    if not is_allowed_target(args.serial, allow_physical=args.allow_physical):
         parser().error(f"refusing non-allowlisted device serial: {args.serial}")
     if args.adb_port < 1 or args.adb_port > 65535:
         parser().error("ADB server port must be in 1..65535")

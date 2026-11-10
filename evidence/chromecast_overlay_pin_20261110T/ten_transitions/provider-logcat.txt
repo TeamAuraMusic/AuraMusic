@@ -1,0 +1,26 @@
+--------- beginning of main
+11-10 00:15:09.998 22979 23227 I TvPreviewContentProvider: TV preview audio-only open request=61db1fa key=2a7cc776 bytes=4891383
+11-10 00:15:16.593 22979 23377 I TvPreviewContentProvider: TV preview open request=61dce3a key=aff12159 callerUid=10150
+11-10 00:15:16.995 22979 23377 I TvPreviewContentProvider: TV preview audio-only open request=61dce3a key=aff12159 bytes=4258772
+11-10 00:15:21.979 22979 23016 I TvPreviewContentProvider: TV preview open request=61de345 key=2a7cc776 callerUid=10150
+11-10 00:15:22.064 22979 23016 I TvPreviewContentProvider: TV preview audio-only open request=61de345 key=2a7cc776 bytes=4891383
+11-10 00:17:48.460 22979 23227 I TvPreviewContentProvider: TV preview open request=6201f76 key=aff12159 callerUid=10150
+11-10 00:17:48.541 22979 23227 I TvPreviewContentProvider: TV preview audio-only open request=6201f76 key=aff12159 bytes=4258772
+11-10 00:17:52.776 22979 23377 I TvPreviewContentProvider: TV preview open request=6203052 key=2a7cc776 callerUid=10150
+11-10 00:17:52.842 22979 23377 I TvPreviewContentProvider: TV preview audio-only open request=6203052 key=2a7cc776 bytes=4891383
+11-10 00:17:57.278 22979 23377 I TvPreviewContentProvider: TV preview open request=62041e8 key=aff12159 callerUid=10150
+11-10 00:17:57.348 22979 23377 I TvPreviewContentProvider: TV preview audio-only open request=62041e8 key=aff12159 bytes=4258772
+11-10 00:18:01.649 22979 22999 I TvPreviewContentProvider: TV preview open request=62052fa key=2a7cc776 callerUid=10150
+11-10 00:18:01.731 22979 22999 I TvPreviewContentProvider: TV preview audio-only open request=62052fa key=2a7cc776 bytes=4891383
+11-10 00:18:06.247 22979 22999 I TvPreviewContentProvider: TV preview open request=62064f1 key=aff12159 callerUid=10150
+11-10 00:18:06.310 22979 22999 I TvPreviewContentProvider: TV preview audio-only open request=62064f1 key=aff12159 bytes=4258772
+11-10 00:18:10.594 22979 23227 I TvPreviewContentProvider: TV preview open request=62075bf key=2a7cc776 callerUid=10150
+11-10 00:18:10.789 22979 23227 I TvPreviewContentProvider: TV preview audio-only open request=62075bf key=2a7cc776 bytes=4891383
+11-10 00:18:15.300 22979 22999 I TvPreviewContentProvider: TV preview open request=620884e key=aff12159 callerUid=10150
+11-10 00:18:15.397 22979 22999 I TvPreviewContentProvider: TV preview audio-only open request=620884e key=aff12159 bytes=4258772
+11-10 00:18:19.642 22979 22999 I TvPreviewContentProvider: TV preview open request=6209941 key=2a7cc776 callerUid=10150
+11-10 00:18:19.709 22979 22999 I TvPreviewContentProvider: TV preview audio-only open request=6209941 key=2a7cc776 bytes=4891383
+11-10 00:18:24.015 22979 22999 I TvPreviewContentProvider: TV preview open request=620aa58 key=aff12159 callerUid=10150
+11-10 00:18:24.080 22979 22999 I TvPreviewContentProvider: TV preview audio-only open request=620aa58 key=aff12159 bytes=4258772
+11-10 00:18:28.245 22979 22999 I TvPreviewContentProvider: TV preview open request=620bade key=2a7cc776 callerUid=10150
+11-10 00:18:28.305 22979 22999 I TvPreviewContentProvider: TV preview audio-only open request=620bade key=2a7cc776 bytes=4891383

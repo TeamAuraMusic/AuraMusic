@@ -1,0 +1,12 @@
+{
+  "file": "evidence/chromecast_continuous_perf_20261110T/previewprobe-b-focused.wav",
+  "durationSeconds": 12.139,
+  "sampleRateHz": 48000,
+  "rms": 2879.15,
+  "rmsDbfs": -21.12,
+  "expectedHz": 880,
+  "medianPeakHz": 880.0,
+  "matchingWindows": 11,
+  "windows": 11,
+  "status": "PASS"
+}

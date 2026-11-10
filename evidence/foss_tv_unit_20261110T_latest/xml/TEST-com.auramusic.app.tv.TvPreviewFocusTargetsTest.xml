@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.auramusic.app.tv.TvPreviewFocusTargetsTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-11-10T00:24:19.362Z" hostname="DESKTOP" time="0.003">
+  <properties/>
+  <testcase name="matchesAuraMusicChannelRowInFocusedCardAncestors" classname="com.auramusic.app.tv.TvPreviewFocusTargetsTest" time="0.001"/>
+  <testcase name="rejectsMatchingSongTitleOutsideAuraMusicRow" classname="com.auramusic.app.tv.TvPreviewFocusTargetsTest" time="0.0"/>
+  <testcase name="leavesOriginalArtworkWhenDuplicateMetadataIncludesMissingArtwork" classname="com.auramusic.app.tv.TvPreviewFocusTargetsTest" time="0.0"/>
+  <testcase name="retainsArtworkWhenDuplicateTitlesShareTheSameArtwork" classname="com.auramusic.app.tv.TvPreviewFocusTargetsTest" time="0.0"/>
+  <testcase name="rejectsBlankOrDifferentChannelNames" classname="com.auramusic.app.tv.TvPreviewFocusTargetsTest" time="0.0"/>
+  <testcase name="leavesOriginalCardArtworkWhenDuplicateTitlesHaveDifferentArtwork" classname="com.auramusic.app.tv.TvPreviewFocusTargetsTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

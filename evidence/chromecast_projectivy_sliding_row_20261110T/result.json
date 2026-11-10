@@ -1,0 +1,47 @@
+{
+  "outcome": "PASS",
+  "scope": "Projectivy 4.73 per-channel Sliding row behavior for AuraMusic card focus",
+  "device": {
+    "model": "Chromecast",
+    "codename": "sabrina",
+    "serial": "192.168.3.2:5555",
+    "android": "14",
+    "api": 34,
+    "projectivy": "4.73 (code 98)",
+    "auramusic": "3.2.0 (code 29)"
+  },
+  "procedure": {
+    "initial_sliding_row": true,
+    "temporary_setting": false,
+    "restored_setting": true,
+    "row": "AuraMusic",
+    "navigation": "DPAD right Angie→Africa, then DPAD left Africa→Angie; no Select/click",
+    "foreground": "Projectivy remained foreground"
+  },
+  "assertions": {
+    "focused_titles_with_sliding_on": "PASS; Angie→Africa→Angie",
+    "focused_titles_with_sliding_off": "PASS; Angie→Africa→Angie",
+    "on_focus_bounds": "PASS; Angie and Africa both [0,535][486,775], showing focus stays in fixed slot while row slides",
+    "off_focus_bounds": "PASS; Angie [0,535][486,775], Africa [326,535][882,775], showing focus follows stationary card position",
+    "original_projectivy_setting_restored": "PASS; Sliding row enabled after test",
+    "exact_old_preview_pixels_cross_card_boundary": "INCONCLUSIVE; this test measures Projectivy focus-node bounds and row motion, not isolated Surface pixels"
+  },
+  "evidence": {
+    "video_sliding_on": "sliding-on.mp4",
+    "video_sliding_off": "sliding-off.mp4",
+    "hierarchy_on_before_right_left": [
+      "hierarchy-sliding-on-before.xml",
+      "hierarchy-sliding-on-after-right.xml",
+      "hierarchy-sliding-on-after-left.xml"
+    ],
+    "hierarchy_off_before_right_left": [
+      "hierarchy-before.xml",
+      "hierarchy-after-right.xml",
+      "hierarchy-after-left.xml"
+    ],
+    "setting_on_before": "settings-before-sliding-on.png",
+    "setting_off_during_test": "settings-after-sliding-off.png",
+    "setting_on_restored": "settings-restored-sliding-on.png"
+  },
+  "interpretation": "Projectivy Sliding row reproduces the fixed-focus-slot row movement described by the user. Disabling it for AuraMusic keeps cards in their row positions while focus moves between them. AuraMusic cannot change this Projectivy preference; the user's original enabled state was restored."
+}

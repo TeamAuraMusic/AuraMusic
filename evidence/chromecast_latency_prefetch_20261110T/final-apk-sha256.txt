@@ -1,0 +1,1 @@
+5bf27ac8f9dd25971e2387822ef20fe1afefbf5ac1a31db16d895a9584ce4d34  app/build/outputs/apk/fossTvArmeabi/debug/app-foss-tv-armeabi-debug.apk

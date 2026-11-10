@@ -51,4 +51,32 @@ class TvPreviewFocusTargetsTest {
     fun leavesOriginalArtworkWhenDuplicateMetadataIncludesMissingArtwork() {
         assertNull(TvPreviewFocusTargets.unambiguousArtworkUri(listOf("content://art/one", null)))
     }
+
+    @Test
+    fun allowsFocusPrefetchOnlyForAuraMusicLocalAudioOnlyUri() {
+        assertTrue(
+            TvPreviewFocusTargets.isLocalAudioOnlyPreviewUri(
+                "content", "com.auramusic.app.debug.tvpreview", "audio", "audio/mp4",
+                "com.auramusic.app.debug.tvpreview",
+            ),
+        )
+        assertFalse(
+            TvPreviewFocusTargets.isLocalAudioOnlyPreviewUri(
+                "https", "media.example", "audio", "audio/mp4",
+                "com.auramusic.app.debug.tvpreview",
+            ),
+        )
+        assertFalse(
+            TvPreviewFocusTargets.isLocalAudioOnlyPreviewUri(
+                "content", "other.provider", "audio", "audio/mp4",
+                "com.auramusic.app.debug.tvpreview",
+            ),
+        )
+        assertFalse(
+            TvPreviewFocusTargets.isLocalAudioOnlyPreviewUri(
+                "content", "com.auramusic.app.debug.tvpreview", null, null,
+                "com.auramusic.app.debug.tvpreview",
+            ),
+        )
+    }
 }

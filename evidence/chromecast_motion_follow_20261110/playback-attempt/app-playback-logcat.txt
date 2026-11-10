@@ -1,0 +1,13 @@
+--------- beginning of main
+11-10 01:46:15.314 11954 11954 D MusicService: Skipping queue save - no media items
+11-10 01:46:45.317 11954 11954 D MusicService: Skipping queue save - no media items
+11-10 01:47:15.320 11954 11954 D MusicService: Skipping queue save - no media items
+11-10 01:47:45.323 11954 11954 D MusicService: Skipping queue save - no media items
+11-10 01:48:15.835 11954 11954 D MusicService: Skipping queue save - no media items
+11-10 01:48:45.836 11954 11954 D MusicService: Skipping queue save - no media items
+11-10 01:49:15.842 11954 11954 D MusicService: Skipping queue save - no media items
+11-10 01:49:45.853 11954 11954 D MusicService: Skipping queue save - no media items
+11-10 01:50:15.855 11954 11954 D MusicService: Skipping queue save - no media items
+11-10 01:50:45.856 11954 11954 D MusicService: Skipping queue save - no media items
+11-10 01:51:15.857 11954 11954 D MusicService: Skipping queue save - no media items
+11-10 01:51:45.859 11954 11954 D MusicService: Skipping queue save - no media items

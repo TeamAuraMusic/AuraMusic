@@ -1,0 +1,19 @@
+{
+  "roi": {
+    "x": 105,
+    "y": 510,
+    "width": 300,
+    "height": 95
+  },
+  "sampleRateFps": 2,
+  "samples": 127,
+  "samplesWithPinkIndicator": 127,
+  "distinctPinkRowProfiles": 127,
+  "adjacentVisibleTransitions": 126,
+  "transitionsChangingOver100Pixels": 126,
+  "minimumVisibleProfileDelta": 259,
+  "medianVisibleProfileDelta": 432.5,
+  "sourceVideo": "evidence/chromecast_continuous_perf_20261110T/card-continuous.mp4",
+  "expectedFocusedTitle": "愛的故事（上集）",
+  "interpretation": "2 fps scrcpy compositor samples; ROI inside focused Projectivy card."
+}

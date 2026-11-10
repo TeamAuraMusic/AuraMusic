@@ -1,0 +1,16 @@
+{
+  "test": "PreviewProbe A 65-second physical hold attempt",
+  "status": "INCONCLUSIVE",
+  "reason": "PreviewProbe A had naturally reached its configured two-minute duration before capture began. The first resource sample found no active Projectivy AudioTrack; the capture was stopped before the requested hold and no PASS claim is made.",
+  "sampleFiles": [
+    "sample-00-top.txt",
+    "sample-00.json",
+    "sample-01-top.txt",
+    "sample-01.json",
+    "sample-02-top.txt",
+    "sample-02.json",
+    "sample-03-top.txt"
+  ],
+  "selectPressed": false,
+  "device": "Chromecast sabrina / Android 14 / Projectivy 4.73"
+}

@@ -1,0 +1,32 @@
+{
+  "serial": "192.168.3.2:5555",
+  "startedUtc": "2026-11-09T23:14:54.445909+00:00",
+  "model": "Chromecast",
+  "androidApi": "34",
+  "projectivyPackage": "com.spocky.projengmenu",
+  "auraPackage": "com.auramusic.app.debug",
+  "projectivyUid": 10150,
+  "auraUid": 10076,
+  "projectivyVersion": {
+    "package": "com.spocky.projengmenu",
+    "versionName": "4.73",
+    "versionCode": 98
+  },
+  "auraMusicVersion": {
+    "package": "com.auramusic.app.debug",
+    "versionName": "3.2.0",
+    "versionCode": 29
+  },
+  "gitCommit": "b500fdc06b587dc61e2170ce3f8be787dd51d9b1",
+  "gitWorkingTreeDirty": true,
+  "expectedChannelName": "AuraMusic",
+  "titleA": "\u56e0\u70ba\u611b\u6240\u4ee5\u611b",
+  "titleB": "\u543b\u5225",
+  "initialFocusedTitle": "\u543b\u5225",
+  "initialFocusedAncestorContentDescriptions": [
+    "AuraMusic"
+  ],
+  "cycles": 2,
+  "selectPressed": false,
+  "transitionHierarchyMethod": "Accessibility service focus logs during transitions; UiAutomator only before and after because it suppresses other accessibility services."
+}

@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "suite": ":app:testFossTvArmeabiDebugUnitTest",
+  "command": "rtk ./gradlew :app:testFossTvArmeabiDebugUnitTest --no-daemon --rerun-tasks",
+  "sourceCommit": "6af7d0e503d9c4f85c279ea9cdacc41f4da5c468",
+  "variant": "FOSS TV armeabi-v7a debug",
+  "tests": 72,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "reportFiles": 16,
+  "scope": "FOSS TV JVM unit suite; no physical device or emulator used"
+}

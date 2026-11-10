@@ -1,0 +1,16 @@
+{
+  "outcome": "INCONCLUSIVE",
+  "reason": "AuraMusic channel is absent from TvProvider and Projectivy hierarchy, so horizontal song-card motion cannot be exercised on this device state.",
+  "device_serial": "192.168.3.2:5555",
+  "device_model": "Chromecast",
+  "android_release": "14",
+  "api": "34",
+  "projectivy_package": "com.spocky.projengmenu",
+  "projectivy_version": "4.73 (code 98, verified from installed package)",
+  "apk_sha256": "e8bd68ce5a5fdaedb672f0e86897dc677b3000bcf93608a8f825b7c1b9abaa6b",
+  "git_commit": "33b14651aa6b58c9fe3b97509c31221699b3ca28",
+  "build": "PASS: ./gradlew :app:assembleFossTvArmeabiDebug --console=plain",
+  "installed_in_place": true,
+  "app_data_cleared": false,
+  "required_next_action": "Restore/populate AuraMusic TV channel programs, then repeat horizontal focus transitions while capturing screen video and bounds log."
+}
