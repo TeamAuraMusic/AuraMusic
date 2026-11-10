@@ -1,0 +1,17 @@
+{
+  "outcome": "INCONCLUSIVE",
+  "test": "Attempt to seed one AuraMusic queue item, then republish the home-screen channel for horizontal motion verification.",
+  "action": "Opened Classic Easy Rock in AuraMusic TV, focused Sultans Of Swing, sent DPAD_CENTER, waited 12 seconds.",
+  "observation": "AuraMusic Media3 session remained state NONE with empty queue; no started device audio playback configuration was observed; TvProvider remained empty.",
+  "system_bluetooth_error": "Android BluetoothMediaBrowserService reports Bluetooth audio disconnected, but AuraMusic session remained NONE; causal relationship not established.",
+  "tv_provider_query": "No result found.",
+  "device_returned_to": "Projectivy MainActivity",
+  "app_data_cleared": false,
+  "evidence": [
+    "media-session.txt",
+    "audio-dumpsys.txt",
+    "playlist-hierarchy.xml",
+    "after-select.png",
+    "app-playback-logcat.txt"
+  ]
+}

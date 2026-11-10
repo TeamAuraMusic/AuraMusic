@@ -1,0 +1,66 @@
+MEDIA SESSION SERVICE (dumpsys media_session)
+
+7 sessions listeners.
+Global priority session is null
+User Records:
+Record for full_user=0, profile_user=10
+  Volume key long-press listener: null
+  Volume key long-press listener package: 
+  Media key listener: null
+  Media key listener package: 
+  OnMediaKeyEventDispatchedListener: added 0 listener(s)
+  OnMediaKeyEventSessionChangedListener: added 1 listener(s)
+    from com.google.android.bluetooth
+  Last MediaButtonReceiver: MBR {pi=null, componentName=ComponentInfo{com.auramusic.app.debug/androidx.media3.session.MediaButtonReceiver}, type=1, pkg=com.auramusic.app.debug}
+  Media button session is null
+  Sessions Stack - have 3 sessions:
+    BluetoothMediaBrowserService com.google.android.bluetooth/BluetoothMediaBrowserService (userId=0)
+      ownerPid=1128, ownerUid=1002, userId=0
+      package=com.google.android.bluetooth
+      launchIntent=null
+      mediaButtonReceiver=null
+      active=false
+      flags=3
+      rating type=0
+      controllers: 0
+      state=PlaybackState {state=ERROR(7), position=0, buffered position=0, speed=0.0, updated=27800, actions=0, custom actions=[], active item id=-1, error=Bluetooth audio disconnected}
+      audioAttrs=AudioAttributes: usage=USAGE_MEDIA content=CONTENT_TYPE_UNKNOWN flags=0x800 tags= bundle=null
+      volumeType=LOCAL, controlType=ABSOLUTE, max=0, current=0, volumeControlId=null
+      metadata: null
+      queueTitle=Now playing, size=0
+    BluetoothMediaBrowserService com.google.android.bluetooth/BluetoothMediaBrowserService (userId=0)
+      ownerPid=1128, ownerUid=1002, userId=0
+      package=com.google.android.bluetooth
+      launchIntent=null
+      mediaButtonReceiver=null
+      active=false
+      flags=3
+      rating type=0
+      controllers: 0
+      state=PlaybackState {state=ERROR(7), position=0, buffered position=0, speed=0.0, updated=28315, actions=0, custom actions=[], active item id=-1, error=Bluetooth audio disconnected}
+      audioAttrs=AudioAttributes: usage=USAGE_MEDIA content=CONTENT_TYPE_UNKNOWN flags=0x800 tags= bundle=null
+      volumeType=LOCAL, controlType=ABSOLUTE, max=0, current=0, volumeControlId=null
+      metadata: null
+      queueTitle=Now playing, size=0
+    androidx.media3.session.id. com.auramusic.app.debug/androidx.media3.session.id. (userId=0)
+      ownerPid=11954, ownerUid=10085, userId=0
+      package=com.auramusic.app.debug
+      launchIntent=PendingIntent{2211fca: PendingIntentRecord{c3e76a7 com.auramusic.app.debug startActivity (allowlist: db6f65b:+30s0ms/0/NOTIFICATION_SERVICE/NotificationManagerService)}}
+      mediaButtonReceiver=MBR {pi=null, componentName=ComponentInfo{com.auramusic.app.debug/androidx.media3.session.MediaButtonReceiver}, type=1, pkg=com.auramusic.app.debug}
+      active=true
+      flags=7
+      rating type=0
+      controllers: 2
+      state=PlaybackState {state=NONE(0), position=0, buffered position=0, speed=0.0, updated=107816370, actions=7339653, custom actions=[Action:mName='Repeat mode off, mIcon=2131231211, mExtras=Bundle[EMPTY_PARCEL], Action:mName='Shuffle on, mIcon=2131231227, mExtras=Bundle[EMPTY_PARCEL]], active item id=0, error=null}
+      audioAttrs=AudioAttributes: usage=USAGE_MEDIA content=CONTENT_TYPE_MUSIC flags=0x800 tags= bundle=null
+      volumeType=LOCAL, controlType=ABSOLUTE, max=0, current=0, volumeControlId=null
+      metadata: null
+      queueTitle=null, size=0
+Audio playback (lastly played comes first)
+  uid=10150 packages=com.spocky.projengmenu 
+  uid=10045 packages=com.google.android.apps.mediashell 
+  uid=10076 packages=
+Media session config:
+  media_button_receiver_fgs_allowlist_duration_ms: [cur: 10000, def: 10000]
+  media_session_calback_fgs_allowlist_duration_ms: [cur: 10000, def: 10000]
+  media_session_callback_fgs_while_in_use_temp_allow_duration_ms: [cur: 10000, def: 10000]
