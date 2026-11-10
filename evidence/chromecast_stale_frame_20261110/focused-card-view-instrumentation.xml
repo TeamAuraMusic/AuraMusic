@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuite name="com.auramusic.app.tv.FocusedCardWaveformViewInstrumentedTest" tests="3" failures="0" errors="0" skipped="0" time="7.896" timestamp="2026-11-10T00:08:29" hostname="localhost">
+  <properties>
+    <property name="device" value="Chromecast - 14" />
+    <property name="flavor" value="fossTvArmeabi" />
+    <property name="project" value=":app" />
+  </properties>
+  <testcase name="cardTransitionNeverDrawsPreviousCardsArtwork" classname="com.auramusic.app.tv.FocusedCardWaveformViewInstrumentedTest" time="2.044" />
+  <testcase name="missingNextArtworkMasksThePreviousProjectivyPreviewFrame" classname="com.auramusic.app.tv.FocusedCardWaveformViewInstrumentedTest" time="0.0" />
+  <testcase name="focusedCardKeepsArtworkAndDrawsAnimatedWaveformWhileFocused" classname="com.auramusic.app.tv.FocusedCardWaveformViewInstrumentedTest" time="3.773" />
+</testsuite>
