@@ -38,6 +38,13 @@ internal class FocusedCardWaveformView(context: Context) : FrameLayout(context) 
         artworkView.setImageBitmap(bitmap)
     }
 
+    fun maskPreviousPreviewFrame() {
+        // Keep this card and its playback indicator visible while Projectivy swaps its
+        // Surface frame. Hiding the whole overlay exposes the launcher's stale frame.
+        setArtwork(null)
+        setPreviewFocused(true)
+    }
+
     fun setPreviewFocused(focused: Boolean) {
         visibility = if (focused) View.VISIBLE else View.INVISIBLE
         waveformView.setPreviewFocused(focused)

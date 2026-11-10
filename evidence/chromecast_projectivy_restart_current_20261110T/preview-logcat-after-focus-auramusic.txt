@@ -1,0 +1,43 @@
+--------- beginning of main
+11-10 07:21:06.148  2491  2491 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=Tools
+11-10 07:21:06.160  2491  2491 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=null
+11-10 07:21:06.188  2491  2491 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Preview A
+11-10 07:21:06.200  2491  2491 D TvPreviewFocusAccessibilityService: TV preview previous artwork masked at focus event old=null new=Preview A
+11-10 07:21:06.283  2491  2491 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Preview A
+11-10 07:21:06.284  2491  2491 D TvPreviewFocusAccessibilityService: TV preview previous artwork masked at focus event old=null new=Preview A
+11-10 07:21:06.336  2491  2491 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=null
+11-10 07:21:06.431  2491  2491 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-10 07:21:06.587  2491  2491 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Preview A
+11-10 07:21:07.138  2491  2491 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Preview A
+11-10 07:21:07.239  2491  2491 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Preview A
+11-10 07:21:07.355  2491  2491 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Preview A
+11-10 07:21:07.434  2491  2491 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-10 07:21:07.450  2491  2491 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-10 07:21:07.467  2491  2491 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-10 07:21:09.333  2491  2491 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=PreviewProbe A/B
+11-10 07:21:09.345  2491  2491 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=null
+11-10 07:21:09.375  2491  2491 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Proud Mary
+11-10 07:21:09.376  2491  2491 D TvPreviewFocusAccessibilityService: TV preview previous artwork masked at focus event old=null new=Proud Mary
+11-10 07:21:09.448  2491  2491 D TvPreviewFocusAccessibilityService: TV preview focused artwork cache hit title=Proud Mary
+11-10 07:21:09.632  2491  2491 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Proud Mary bounds=Rect(16, 642 - 400, 858)
+11-10 07:21:09.641  2491  2491 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Proud Mary
+11-10 07:21:09.648  2491  2491 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Proud Mary bounds=Rect(16, 581 - 400, 797)
+11-10 07:21:09.666  2491  2491 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=null
+11-10 07:21:09.668  2491  2491 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Proud Mary
+11-10 07:21:09.749  2491  2491 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Proud Mary
+11-10 07:21:09.751  2491  2491 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Proud Mary
+11-10 07:21:09.760  2491  2491 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=null
+11-10 07:21:09.880  2491  2491 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Proud Mary
+11-10 07:21:09.882  2491  2491 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Proud Mary bounds=Rect(16, 581 - 400, 797)
+11-10 07:21:10.275  2491  2491 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-10 07:21:10.322  2491 14974 I TvPreviewContentProvider: TV preview open request=7a3b97a key=a8962a11 callerUid=10150
+11-10 07:21:10.344  2491  2491 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Proud Mary
+11-10 07:21:10.466  2491  2491 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Proud Mary
+11-10 07:21:10.467  2491  2491 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Proud Mary bounds=Rect(16, 581 - 400, 797)
+11-10 07:21:10.481  2491  2491 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Proud Mary
+11-10 07:21:10.588  2491  2491 D TvPreviewFocusAccessibilityService: TV preview focused-node refresh description=Proud Mary
+11-10 07:21:10.590  2491  2491 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Proud Mary bounds=Rect(16, 581 - 400, 797)
+11-10 07:21:11.636  2491 14974 I TvPreviewContentProvider: TV preview audio-only open request=7a3b97a key=a8962a11 bytes=3033152
+11-10 07:21:11.774  2491  2491 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Proud Mary
+11-10 07:21:11.775  2491  2491 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Proud Mary
+11-10 07:21:11.796  2491  2491 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=Proud Mary

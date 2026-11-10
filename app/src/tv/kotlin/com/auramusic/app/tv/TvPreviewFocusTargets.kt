@@ -19,6 +19,17 @@ internal object TvPreviewFocusTargets {
 
     fun unambiguousArtworkUri(candidates: List<String?>): String? = candidates.distinct().singleOrNull()
 
+    fun isLocalAudioOnlyPreviewUri(
+        scheme: String?,
+        authority: String?,
+        mode: String?,
+        mimeType: String?,
+        expectedAuthority: String,
+    ): Boolean = scheme?.equals("content", ignoreCase = true) == true &&
+        authority == expectedAuthority &&
+        mode == "audio" &&
+        mimeType?.equals("audio/mp4", ignoreCase = true) == true
+
     fun publishedPrograms(context: Context): Map<String, Program> {
         val resolver = context.contentResolver
         val channels = buildList {

@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 
 from run_tv_instrumentation import classify_instrumentation, parser
+from tv_adb import is_allowed_target
 
 
 SCRIPT = Path(__file__).with_name("run_tv_instrumentation.py")
@@ -14,6 +15,16 @@ TVCTL = Path(__file__).with_name("tvctl")
 
 
 class TvInstrumentationRunnerTests(unittest.TestCase):
+    def test_physical_device_requires_explicit_opt_in(self):
+        serial = "192.168.3.2:5555"
+        self.assertFalse(is_allowed_target(serial))
+        args = parser().parse_args([
+            "--serial", serial,
+            "--adb", "/tmp/fake-adb",
+            "--allow-physical",
+        ])
+        self.assertTrue(is_allowed_target(args.serial, allow_physical=args.allow_physical))
+
     def test_accepts_provider_mime_instrumentation_class(self):
         args = parser().parse_args([
             "--serial", "emulator-5554",

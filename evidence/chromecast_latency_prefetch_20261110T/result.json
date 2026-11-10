@@ -1,0 +1,74 @@
+{
+  "test": "Chromecast Projectivy restart and focus audio prefetch",
+  "status": "PASS",
+  "device": {
+    "serial": "192.168.3.2:5555",
+    "model": "Chromecast (sabrina)",
+    "android": 14,
+    "api": 34,
+    "projectivy": "4.73 (code 98)",
+    "auramusic": "3.2.0 (code 29)",
+    "candidateApkSha256": "5bf27ac8f9dd25971e2387822ef20fe1afefbf5ac1a31db16d895a9584ce4d34"
+  },
+  "build": {
+    "status": "PASS",
+    "command": "./gradlew :app:testFossTvArmeabiDebugUnitTest :app:assembleFossTvArmeabiDebug",
+    "tvUnitTests": 73,
+    "suites": 16,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "log": "gradle-final.log"
+  },
+  "projectivyRestart": {
+    "status": "PASS",
+    "ownerDataCleared": false,
+    "defaultLauncherChanged": false,
+    "forceStopFallback": "Android returned to Google TV Home because Projectivy is not the configured default launcher.",
+    "relaunchCommand": "adb -s 192.168.3.2:5555 shell monkey -p com.spocky.projengmenu 1",
+    "projectivyForegroundAfterRelaunch": true,
+    "evidence": "../chromecast_projectivy_restart_current_20261110T/foreground-after-relaunch.txt"
+  },
+  "realSongAfterRestart": {
+    "status": "PASS",
+    "title": "Proud Mary",
+    "selectPressed": false,
+    "projectivyForeground": true,
+    "providerMediaOpened": true,
+    "activeProjectivyAudioTrack": true,
+    "activeAuraMusicAudioTrack": false,
+    "originalArtworkVisible": true,
+    "waveformFrames": 16,
+    "adjacentWaveformFramePairsChanged": 15,
+    "waveformRoi": {"x": 110, "y": 720, "width": 195, "height": 63},
+    "screenshot": "../chromecast_projectivy_restart_current_20261110T/screen-after-focus-auramusic.png",
+    "frameAnalysis": "../chromecast_projectivy_restart_current_20261110T/proud-mary-frames/pixel-analysis.json",
+    "video": "../chromecast_projectivy_restart_current_20261110T/proud-mary-waveform.mp4"
+  },
+  "focusCleanup": {
+    "status": "PASS",
+    "transition": "Proud Mary → Preview A → outside preview rows",
+    "projectivyTrackAfterLeavingRealSong": true,
+    "startedProjectivyOrAuraMusicTracksAfterLeavingAllPreviewRows": 0,
+    "evidence": "../chromecast_projectivy_restart_current_20261110T/audio-after-leaving-all-preview-rows.txt"
+  },
+  "audioPrefetch": {
+    "status": "PASS",
+    "selectedUriOnly": true,
+    "externalSignedUrisPrefetched": false,
+    "focusEvent": "07:41:53.105",
+    "prefetchScheduled": "07:41:53.159",
+    "prefetchReady": "07:41:53.571",
+    "projectivyOpen": "07:41:54.003",
+    "readyBeforeProjectivyOpenSeconds": 0.432,
+    "prefetchMediaBytes": 3033152,
+    "cacheState": "warm",
+    "coldCacheLatencyImprovement": "INCONCLUSIVE",
+    "log": "focus-provider-logcat-final.txt"
+  },
+  "remaining": [
+    "This run proves prefetch ordering on a warm cache; it does not quantify a cold-cache startup gain.",
+    "The latest candidate has not yet completed another ten-transition latency run.",
+    "PreviewProbe audio handoff contains a measured silent gap; see the prior tone-analysis artifacts."
+  ]
+}

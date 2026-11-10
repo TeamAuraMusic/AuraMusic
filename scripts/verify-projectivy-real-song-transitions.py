@@ -67,6 +67,34 @@ def count_preview_provider_opens(log_text: str) -> int:
     return len(re.findall(pattern, log_text))
 
 
+def summarize_transition_latency(samples: list[dict]) -> dict:
+    latencies = [sample["focusLatencySecondsUpperBound"] for sample in samples
+                 if sample.get("focusLatencySecondsUpperBound") is not None]
+    retry_count = sum(sample.get("inputRetryCount", 0) > 0 for sample in samples)
+    if not latencies or len(latencies) != len(samples) or retry_count:
+        status = "INCONCLUSIVE"
+        reason = (
+            "At least one DPAD input needed a retry or lacked a focus timestamp; "
+            "the interval cannot be treated as first-input latency."
+        )
+    else:
+        status = "PASS"
+        reason = "Every transition produced a focus timestamp after its first DPAD input."
+    ordered = sorted(latencies)
+    p95 = ordered[min(len(ordered) - 1, round((len(ordered) - 1) * 0.95))] if ordered else None
+    return {
+        "status": status,
+        "reason": reason,
+        "transitionCount": len(samples),
+        "measuredTransitionCount": len(latencies),
+        "inputRetryTransitionCount": retry_count,
+        "medianUpperBoundSeconds": float(np.median(latencies)) if latencies else None,
+        "p95UpperBoundSeconds": p95,
+        "maxUpperBoundSeconds": max(latencies) if latencies else None,
+        "samplesSeconds": latencies,
+    }
+
+
 def analyze_indicator(image: np.ndarray | None, bounds: str | None) -> tuple[int, list[int], dict | None]:
     if image is None or not bounds:
         return 0, [], None
@@ -477,6 +505,7 @@ def main() -> None:
             "maxUpperBound": max(latencies) if latencies else None,
             "samples": latencies,
         },
+        "latencyMeasurement": summarize_transition_latency(samples),
         "indicatorStartupSeconds": {
             "medianUpperBound": float(np.median(indicator_latencies)) if indicator_latencies else None,
             "p95UpperBound": indicator_p95,

@@ -24,6 +24,10 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.util.concurrent.Executors
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Future
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 import android.util.LruCache
 import java.io.ByteArrayOutputStream
 import com.auramusic.app.playback.MusicService
@@ -42,7 +46,19 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
     private var titlesLoadedAtMs = 0L
     private var currentArtworkUri: Uri? = null
     private var focusedProgramTitle: String? = null
+    private var pendingBoundsRefreshTitle: String? = null
     private var playbackMonitor: AudioPlaybackMonitor? = null
+    private val audioPrefetchExecutor = ThreadPoolExecutor(
+        1,
+        1,
+        0L,
+        TimeUnit.MILLISECONDS,
+        LinkedBlockingQueue(1),
+        ThreadPoolExecutor.DiscardOldestPolicy(),
+    )
+    private var pendingAudioPrefetch: Runnable? = null
+    private var activeAudioPrefetch: Future<*>? = null
+    private var audioPrefetchKey: String? = null
     private var musicServiceBinding = false
     private var musicService: MusicService? = null
     private val artworkCache = object : LruCache<String, Bitmap>(4) {}
@@ -94,7 +110,11 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
                 try {
                     val title = focused.contentDescription?.toString()?.trim().orEmpty()
                     if (title != focusedProgramTitle) {
-                        hideIndicator("focused program changed during card transition")
+                        view.maskPreviousPreviewFrame()
+                        Timber.d(
+                            "TV preview masked stale frame while focus refresh is pending old=%s new=%s",
+                            focusedProgramTitle, title,
+                        )
                         scheduleFocusedCardRefresh()
                         return
                     }
@@ -181,9 +201,9 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
             ) {
                 val incomingTitle = source.contentDescription?.toString()?.trim().orEmpty()
                 if (incomingTitle.isNotEmpty() && incomingTitle != focusedProgramTitle) {
-                    indicator?.setPreviewFocused(false)
+                    indicator?.maskPreviousPreviewFrame()
                     Timber.d(
-                        "TV preview focus indicator suppressed at focus event old=%s new=%s",
+                        "TV preview previous artwork masked at focus event old=%s new=%s",
                         focusedProgramTitle, incomingTitle,
                     )
                 }
@@ -261,8 +281,16 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
             hideIndicator("focused program is outside its AuraMusic channel row")
             return
         }
+        scheduleAudioPrefetch(title, program.previewUri)
         node.getBoundsInScreen(bounds)
         if (bounds.width() < MIN_CARD_SIZE_PX || bounds.height() < MIN_CARD_SIZE_PX || !node.isVisibleToUser) {
+            if (indicator != null && title != focusedProgramTitle && pendingBoundsRefreshTitle != title) {
+                pendingBoundsRefreshTitle = title
+                indicator?.maskPreviousPreviewFrame()
+                Timber.d("TV preview masked while focused card bounds settle title=%s", title)
+                scheduleFocusedCardRefresh()
+                return
+            }
             hideIndicator("focused program has no visible card bounds")
             return
         }
@@ -358,6 +386,7 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
 
     private fun showIndicator(card: Rect, title: String, artworkUri: Uri?) {
         val previousTitle = focusedProgramTitle
+        pendingBoundsRefreshTitle = null
         if (previousTitle != null && previousTitle != title) {
             mainHandler.removeCallbacks(syncFocusedCardBounds)
             indicator?.let { oldView ->
@@ -399,6 +428,64 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
         Timber.d("TV preview focus indicator shown title=%s bounds=%s", title, card)
         mainHandler.postDelayed(activeWindowCheck, ACTIVE_WINDOW_CHECK_MS)
         scheduleFocusedBoundsSync()
+    }
+
+    private fun scheduleAudioPrefetch(title: String, previewUri: Uri?) {
+        val candidate = previewUri?.takeIf { uri ->
+            TvPreviewFocusTargets.isLocalAudioOnlyPreviewUri(
+                scheme = uri.scheme,
+                authority = uri.authority,
+                mode = uri.getQueryParameter("mode"),
+                mimeType = uri.getQueryParameter("mime"),
+                expectedAuthority = "$packageName.tvpreview",
+            )
+        }
+        val nextKey = candidate?.let { "$title|$it" }
+        if (nextKey == audioPrefetchKey) return
+        cancelAudioPrefetch(resetKey = true)
+        if (candidate == null || nextKey == null) return
+        audioPrefetchKey = nextKey
+        val callback = Runnable {
+            pendingAudioPrefetch = null
+            if (focusedProgramTitle != title || audioPrefetchKey != nextKey) return@Runnable
+            activeAudioPrefetch = audioPrefetchExecutor.submit {
+                val startedAt = SystemClock.elapsedRealtime()
+                try {
+                    val descriptor = contentResolver.openFileDescriptor(candidate, "r")
+                        ?: error("Audio preview provider returned no file descriptor")
+                    descriptor.use { }
+                    Timber.i(
+                        "TV preview focus audio prefetch ready title=%s elapsedMs=%d",
+                        title,
+                        SystemClock.elapsedRealtime() - startedAt,
+                    )
+                } catch (error: Exception) {
+                    if (!Thread.currentThread().isInterrupted) {
+                        Timber.w(error, "TV preview focus audio prefetch failed title=%s", title)
+                    }
+                } finally {
+                    mainHandler.post {
+                        if (audioPrefetchKey == nextKey) activeAudioPrefetch = null
+                    }
+                }
+            }
+        }
+        pendingAudioPrefetch = callback
+        mainHandler.postDelayed(callback, AUDIO_PREFETCH_DELAY_MS)
+        Timber.d(
+            "TV preview focus audio prefetch scheduled title=%s delayMs=%d",
+            title,
+            AUDIO_PREFETCH_DELAY_MS,
+        )
+    }
+
+    private fun cancelAudioPrefetch(resetKey: Boolean) {
+        pendingAudioPrefetch?.let(mainHandler::removeCallbacks)
+        pendingAudioPrefetch = null
+        activeAudioPrefetch?.cancel(true)
+        activeAudioPrefetch = null
+        audioPrefetchExecutor.purge()
+        if (resetKey) audioPrefetchKey = null
     }
 
     private fun scheduleFocusedBoundsSync() {
@@ -492,6 +579,7 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
     }
 
     private fun hideIndicator(reason: String) {
+        cancelAudioPrefetch(resetKey = true)
         mainHandler.removeCallbacks(activeWindowCheck)
         mainHandler.removeCallbacks(syncFocusedCardBounds)
         boundsSyncUntilMs = 0L
@@ -502,6 +590,7 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
         indicatorLayoutParams = null
         indicatorBounds.setEmpty()
         focusedProgramTitle = null
+        pendingBoundsRefreshTitle = null
         unbindMusicService()
         currentArtworkUri = null
     }
@@ -553,6 +642,7 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
         mainHandler.removeCallbacks(refreshFocusedCard)
         hideIndicator("service destroyed")
         artworkExecutor.shutdownNow()
+        audioPrefetchExecutor.shutdownNow()
         runCatching { playbackMonitor?.close() }
         playbackMonitor = null
         super.onDestroy()
@@ -564,6 +654,7 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
         const val ACTIVE_WINDOW_CHECK_MS = 500L
         const val FOCUS_REFRESH_DELAY_MS = 100L
         const val MAX_VISIBLE_ARTWORK_PREFETCH = 4
+        const val AUDIO_PREFETCH_DELAY_MS = 120L
         const val CARD_BOUNDS_SYNC_MS = 1_200L
         const val CARD_BOUNDS_SETTLE_MS = 450L
         const val CARD_BOUNDS_POLL_MS = 50L

@@ -1,0 +1,25 @@
+{
+  "status": "INCONCLUSIVE",
+  "method": {
+    "capture": "scrcpy output-audio WAV",
+    "windowMs": 20,
+    "hopMs": 10,
+    "silenceRmsThreshold": 0.0001,
+    "toneClassification": "440 Hz or 880 Hz FFT magnitude must exceed the other by 8x"
+  },
+  "AtoB": {
+    "expectedOrder": [440, 880],
+    "silenceIntervalSeconds": [6.77, 8.05],
+    "silenceDurationSeconds": 1.28,
+    "mixedToneWindows": 0,
+    "source": "../../chromecast_continuous_perf_20261110T/previewprobe-a-to-b.wav"
+  },
+  "BtoA": {
+    "expectedOrder": [880, 440],
+    "silenceIntervalSeconds": [6.47, 7.73],
+    "silenceDurationSeconds": 1.26,
+    "mixedToneWindows": 0,
+    "source": "../../chromecast_continuous_perf_20261110T/previewprobe-b-to-a.wav"
+  },
+  "interpretation": "Expected tones followed focus in both directions and did not overlap. The >1.2 s silent handoff exceeds the strict continuity boundary allowance."
+}

@@ -113,9 +113,12 @@ case "$cmd" in
     apk="${1:-}"; [[ -f "$apk" ]] || die "APK not found: $apk"; win_apk="$(wslpath -w "$apk")"; adb install -r "$win_apk" ;;
   test)
     flavor="${1:-standalone}"; test_class="${2:-}"; shift || true; shift || true
-    [[ "$flavor" =~ ^(standalone|foss)$ ]] || die 'flavor must be standalone or foss'
-    (($# == 0)) || die 'usage: tvctl test [standalone|foss] [FocusedCardWaveformViewInstrumentedTest|TvPreviewAudioTranscoderInstrumentedTest|TvRecommendationClickIntentInstrumentedTest|TvPreviewContentProviderInstrumentedTest]'
+    [[ "$flavor" =~ ^(standalone|foss|foss-armeabi)$ ]] || die 'flavor must be standalone, foss, or foss-armeabi'
+    allow_physical=0
+    if [[ "${1:-}" == --allow-physical ]]; then allow_physical=1; shift; fi
+    (($# == 0)) || die 'usage: tvctl test [standalone|foss] [FocusedCardWaveformViewInstrumentedTest|TvPreviewAudioTranscoderInstrumentedTest|TvRecommendationClickIntentInstrumentedTest|TvPreviewContentProviderInstrumentedTest] [--allow-physical]'
     test_args=(--serial "$SERIAL" --adb "$ADB" --adb-port "$ADB_PORT" --output "$OUT" --flavor "$flavor")
+    [[ "$allow_physical" == 0 ]] || test_args+=(--allow-physical)
     [[ -z "${TVCTL_APP_APK:-}" ]] || test_args+=(--app-apk "$TVCTL_APP_APK")
     [[ -z "${TVCTL_TEST_APK:-}" ]] || test_args+=(--test-apk "$TVCTL_TEST_APK")
     [[ -z "$test_class" ]] || test_args+=(--class "com.auramusic.app.tv.$test_class")
@@ -127,6 +130,6 @@ case "$cmd" in
   logs)
     dir="$(run_dir)"; mkdir -p "$OUT/$dir"; adb logcat -d -t 3000 > "$OUT/$dir/logcat.txt"; adb shell dumpsys media.audio_flinger > "$OUT/$dir/audioflinger.txt"; echo "$OUT/$dir" ;;
   help|*)
-    echo 'usage: tvctl {doctor|boot|snapshot [save|load|list] [NAME]|screenshot|hierarchy|key KEY|install APK|test [standalone|foss] [FocusedCardWaveformViewInstrumentedTest|TvPreviewAudioTranscoderInstrumentedTest|TvRecommendationClickIntentInstrumentedTest|TvPreviewContentProviderInstrumentedTest]|capture-audio SECONDS FILE.wav|capture-video SECONDS FILE.mp4|foreground|logs}'
+    echo 'usage: tvctl {doctor|boot|snapshot [save|load|list] [NAME]|screenshot|hierarchy|key KEY|install APK|test [standalone|foss] [TEST_CLASS] [--allow-physical]|capture-audio SECONDS FILE.wav|capture-video SECONDS FILE.mp4|foreground|logs}'
     ;;
 esac
