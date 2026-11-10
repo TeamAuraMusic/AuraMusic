@@ -107,7 +107,18 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
                     if (bounds.width() >= MIN_CARD_SIZE_PX &&
                         bounds.height() >= MIN_CARD_SIZE_PX && focused.isVisibleToUser
                     ) {
-                        updateIndicatorLayout(Rect(bounds))
+                        val currentBounds = Rect(bounds)
+                        if (currentBounds != indicatorBounds) {
+                            // Projectivy animates the row after accessibility focus has
+                            // moved. Keep the overlay attached for the whole movement,
+                            // not just the first fixed window, or its frame can hang over
+                            // the neighboring card while that animation is still running.
+                            boundsSyncUntilMs = maxOf(
+                                boundsSyncUntilMs,
+                                SystemClock.uptimeMillis() + CARD_BOUNDS_SETTLE_MS,
+                            )
+                        }
+                        updateIndicatorLayout(currentBounds)
                     }
                 } finally {
                     focused.recycleCompat()
@@ -529,6 +540,7 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
         const val FOCUS_REFRESH_DELAY_MS = 100L
         const val MAX_VISIBLE_ARTWORK_PREFETCH = 4
         const val CARD_BOUNDS_SYNC_MS = 1_200L
+        const val CARD_BOUNDS_SETTLE_MS = 450L
         const val CARD_BOUNDS_POLL_MS = 50L
         const val MAX_FOCUS_TREE_DEPTH = 30
         const val MAX_CHANNEL_ANCESTOR_DEPTH = 16
