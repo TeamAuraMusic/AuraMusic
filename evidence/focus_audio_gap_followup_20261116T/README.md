@@ -4,7 +4,7 @@ The candidate removes AuraMusic's 120 ms debounce before asynchronous selected-c
 
 ## Chromecast result
 
-Projectivy 4.73 was foreground on a Chromecast running Android 14/API 34. Test cards were at the bottom of the Projectivy home screen. The user's disabled channels/categories were left as configured; no launcher settings or owner data were changed. Projectivy accessibility was enabled (`accessibility_enabled=1`) and its service remained bound.
+Projectivy 4.73 was foreground on a Chromecast running Android 14/API 34. Test cards were at the bottom of the Projectivy home screen. The user's disabled channels/categories were left as configured; no launcher settings or owner data were changed. Projectivy accessibility was enabled before and after testing (`accessibility-before.txt`; final `device-metadata.txt` shows it enabled and bound).
 
 Captured device output contains the expected 440 Hz A tone followed by the 880 Hz B tone with no overlap. Reanalysis of the existing pre-change WAV and the new WAV using the same 20 ms window, 10 ms hop, normalized RMS `<0.0001` silence threshold, and 8× tone-dominance rule measured:
 

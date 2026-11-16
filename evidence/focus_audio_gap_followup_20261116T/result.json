@@ -82,7 +82,9 @@
     "accessibilityEnabled": 1,
     "service": "com.spocky.projengmenu/com.spocky.projengmenu.services.ProjectivyAccessibilityService",
     "state": "enabled and bound; no crashed services",
-    "userChannelsOrCategoriesChanged": false
+    "userChannelsOrCategoriesChanged": false,
+    "beforeEvidence": "evidence/focus_audio_gap_followup_20261116T/chromecast-clean-transition-20261116T/accessibility-before.txt",
+    "finalEvidence": "evidence/focus_audio_gap_followup_20261116T/chromecast-clean-transition-20261116T/device-metadata.txt"
   },
   "visualCardIdentity": {
     "status": "INCONCLUSIVE",
