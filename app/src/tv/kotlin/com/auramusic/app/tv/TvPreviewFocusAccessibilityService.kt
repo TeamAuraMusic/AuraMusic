@@ -59,6 +59,9 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
     private var pendingAudioPrefetch: Runnable? = null
     private var activeAudioPrefetch: Future<*>? = null
     private var audioPrefetchKey: String? = null
+    private var pendingNeighborAudioPrefetch: Runnable? = null
+    private var activeNeighborAudioPrefetch: Future<*>? = null
+    private var neighborAudioPrefetchKey: String? = null
     private var musicServiceBinding = false
     private var musicService: MusicService? = null
     private val artworkCache = object : LruCache<String, Bitmap>(4) {}
@@ -237,7 +240,7 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
                 return
             }
             try {
-                cacheProgramCardBounds(root, focused.contentDescription?.toString()?.trim().orEmpty())
+                cacheProgramCardBounds(root, focused)
                 Timber.d("TV preview focused-node refresh description=%s", focused.contentDescription)
                 updateFocusedProgram(focused)
             } finally {
@@ -327,9 +330,14 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
         return lastPrograms
     }
 
-    private fun cacheProgramCardBounds(root: AccessibilityNodeInfo, focusedTitle: String) {
+    private fun cacheProgramCardBounds(root: AccessibilityNodeInfo, focusedNode: AccessibilityNodeInfo) {
+        val focusedTitle = focusedNode.contentDescription?.toString()?.trim().orEmpty()
         val programs = publishedPrograms()
         val currentBounds = mutableMapOf<String, Rect>()
+        val focusedProgram = programs[focusedTitle]
+        val focusedChannel = focusedProgram?.channelNames?.singleOrNull()
+            ?.takeIf { isWithinChannelRow(focusedNode, setOf(it)) }
+        val focusedRowBounds = mutableMapOf<String, Rect>()
         fun visit(node: AccessibilityNodeInfo, depth: Int) {
             if (depth > MAX_FOCUS_TREE_DEPTH) return
             val title = node.contentDescription?.toString()?.trim().orEmpty()
@@ -339,6 +347,12 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
                 node.getBoundsInScreen(card)
                 if (card.width() > 0 && card.height() > 0 && node.isVisibleToUser) {
                     currentBounds[title] = card
+                    if (focusedChannel != null &&
+                        program.channelNames.singleOrNull() == focusedChannel &&
+                        isWithinChannelRow(node, setOf(focusedChannel))
+                    ) {
+                        focusedRowBounds[title] = card
+                    }
                 }
             }
             for (index in 0 until node.childCount) {
@@ -353,6 +367,15 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
         visit(root, 0)
         programCardBounds.clear()
         programCardBounds.putAll(currentBounds)
+        val rightNeighbor = TvPreviewFocusTargets.immediateRightNeighbor(
+            focusedTitle,
+            focusedRowBounds.mapValues { (_, card) -> card.centerX() },
+        )
+        scheduleNeighborAudioPrefetch(
+            focusedTitle = focusedTitle,
+            neighborTitle = rightNeighbor,
+            previewUri = rightNeighbor?.let { programs[it]?.previewUri },
+        )
         val focusedBounds = currentBounds[focusedTitle]
         currentBounds.keys
             .sortedBy { title ->
@@ -442,6 +465,20 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
         }
         val nextKey = candidate?.let { "$title|$it" }
         if (nextKey == audioPrefetchKey) return
+        if (nextKey != null && nextKey == neighborAudioPrefetchKey) {
+            pendingAudioPrefetch?.let(mainHandler::removeCallbacks)
+            pendingAudioPrefetch = pendingNeighborAudioPrefetch
+            pendingNeighborAudioPrefetch = null
+            val promotedFuture = activeNeighborAudioPrefetch
+            activeAudioPrefetch?.takeIf { it !== promotedFuture }?.cancel(true)
+            audioPrefetchExecutor.purge()
+            activeAudioPrefetch = promotedFuture
+            activeNeighborAudioPrefetch = null
+            neighborAudioPrefetchKey = null
+            audioPrefetchKey = nextKey
+            Timber.d("TV preview promoted right-neighbor audio prefetch title=%s", title)
+            return
+        }
         cancelAudioPrefetch(resetKey = true)
         if (candidate == null || nextKey == null) return
         audioPrefetchKey = nextKey
@@ -481,7 +518,79 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
         )
     }
 
+    private fun scheduleNeighborAudioPrefetch(
+        focusedTitle: String,
+        neighborTitle: String?,
+        previewUri: Uri?,
+    ) {
+        val candidate = previewUri?.takeIf { uri ->
+            TvPreviewFocusTargets.isLocalAudioOnlyPreviewUri(
+                scheme = uri.scheme,
+                authority = uri.authority,
+                mode = uri.getQueryParameter("mode"),
+                mimeType = uri.getQueryParameter("mime"),
+                expectedAuthority = "$packageName.tvpreview",
+            )
+        }
+        val nextKey = if (neighborTitle != null && candidate != null) "$neighborTitle|$candidate" else null
+        if (nextKey == neighborAudioPrefetchKey || nextKey == audioPrefetchKey) return
+        cancelNeighborAudioPrefetch()
+        if (neighborTitle == null || candidate == null || nextKey == null) return
+
+        neighborAudioPrefetchKey = nextKey
+        val callback = Runnable {
+            pendingNeighborAudioPrefetch = null
+            if (neighborAudioPrefetchKey != nextKey && audioPrefetchKey != nextKey) return@Runnable
+            val future = audioPrefetchExecutor.submit {
+                val startedAt = SystemClock.elapsedRealtime()
+                var ready = false
+                try {
+                    val descriptor = contentResolver.openFileDescriptor(candidate, "r")
+                        ?: error("Adjacent audio preview provider returned no file descriptor")
+                    descriptor.use { }
+                    ready = true
+                    Timber.i(
+                        "TV preview right-neighbor audio prefetch ready title=%s elapsedMs=%d",
+                        neighborTitle,
+                        SystemClock.elapsedRealtime() - startedAt,
+                    )
+                } catch (error: Exception) {
+                    if (!Thread.currentThread().isInterrupted) {
+                        Timber.w(error, "TV preview right-neighbor audio prefetch failed title=%s", neighborTitle)
+                    }
+                } finally {
+                    mainHandler.post {
+                        if (neighborAudioPrefetchKey == nextKey) {
+                            activeNeighborAudioPrefetch = null
+                            if (!ready) neighborAudioPrefetchKey = null
+                        }
+                        if (audioPrefetchKey == nextKey) activeAudioPrefetch = null
+                    }
+                }
+            }
+            if (neighborAudioPrefetchKey == nextKey) activeNeighborAudioPrefetch = future
+            if (audioPrefetchKey == nextKey) activeAudioPrefetch = future
+        }
+        pendingNeighborAudioPrefetch = callback
+        mainHandler.post(callback)
+        Timber.d(
+            "TV preview right-neighbor audio prefetch scheduled focusedTitle=%s neighborTitle=%s",
+            focusedTitle,
+            neighborTitle,
+        )
+    }
+
+    private fun cancelNeighborAudioPrefetch() {
+        pendingNeighborAudioPrefetch?.let(mainHandler::removeCallbacks)
+        pendingNeighborAudioPrefetch = null
+        activeNeighborAudioPrefetch?.cancel(true)
+        activeNeighborAudioPrefetch = null
+        audioPrefetchExecutor.purge()
+        neighborAudioPrefetchKey = null
+    }
+
     private fun cancelAudioPrefetch(resetKey: Boolean) {
+        cancelNeighborAudioPrefetch()
         pendingAudioPrefetch?.let(mainHandler::removeCallbacks)
         pendingAudioPrefetch = null
         activeAudioPrefetch?.cancel(true)

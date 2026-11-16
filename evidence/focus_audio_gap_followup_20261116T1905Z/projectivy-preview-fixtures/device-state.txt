@@ -1,0 +1,7 @@
+serial=adb-34271HFDD8MY82-Ez9jEg._adb-tls-connect._tcp
+device=Google Chromecast (sabrina)
+android=14 / API 34
+projectivy=4.73 / versionCode 98
+auramusic=3.2.0 / versionCode 29 / com.auramusic.app.debug
+foreground=com.spocky.projengmenu/.ui.home.MainActivity
+enabled_accessibility_services=com.auramusic.app.debug/com.auramusic.app.tv.TvPreviewFocusAccessibilityService:com.spocky.projengmenu/com.spocky.projengmenu.services.ProjectivyAccessibilityService:flar2.homebutton/a.i

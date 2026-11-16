@@ -1,0 +1,2 @@
+Installed AuraMusic APK SHA-256: 049b320b0d0b4862c3213c962eba59b292cb7a99634b8032f16886657643f73f
+Pulled from the selected Chromecast package path; matches the rebuilt local APK exactly.

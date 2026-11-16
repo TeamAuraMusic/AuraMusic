@@ -1,0 +1,134 @@
+{
+  "test": "Projectivy 4.73 PreviewProbe focus A/B on Chromecast",
+  "capturedLocal": "2026-11-16 20:11-20:13 Europe/Oslo",
+  "device": {
+    "serial": "adb-34271HFDD8MY82-Ez9jEg._adb-tls-connect._tcp",
+    "model": "Google Chromecast sabrina",
+    "android": "14 / API 34",
+    "fingerprint": "google/sabrina_prod_stable/sabrina:14/UTTC.250917.004/14193937:user/release-keys",
+    "projectivy": "4.73 / versionCode 98",
+    "auramusic": "3.2.0 / versionCode 29",
+    "installedAuraApkSha256": "049b320b0d0b4862c3213c962eba59b292cb7a99634b8032f16886657643f73f"
+  },
+  "interaction": {
+    "app": "Projectivy HOME",
+    "actions": [
+      "DPAD_UP from AuraMusic All Summer Long to Preview A",
+      "DPAD_RIGHT to Preview B",
+      "DPAD_LEFT to Preview A",
+      "DPAD_DOWN back to AuraMusic All Summer Long"
+    ],
+    "selectOrEnterPressed": false,
+    "projectivyStayedTopResumed": true,
+    "channelAndCategorySettingsChanged": false
+  },
+  "focusAssertions": {
+    "A": {
+      "status": "PASS",
+      "focusedAccessibilityLabel": "Preview A",
+      "visibleDescription": "440 Hz / color ffff2020",
+      "hierarchy": "focus-A.xml",
+      "screen": "focus-A.png"
+    },
+    "B": {
+      "status": "PASS",
+      "focusedAccessibilityLabel": "Preview B",
+      "visibleDescription": "880 Hz / color ff2040ff",
+      "hierarchy": "focus-B.xml",
+      "screen": "focus-B.png"
+    },
+    "restoredAuraMusic": {
+      "status": "PASS",
+      "focusedAccessibilityLabel": "All Summer Long",
+      "hierarchy": "restored-aura-focus.xml"
+    }
+  },
+  "audioAssertions": {
+    "preview-A-row.mp4": {
+      "expectedHz": 440,
+      "measuredDominantHzByHalfSecondWindow": [
+        440.0,
+        440.0,
+        440.0,
+        440.0,
+        440.0,
+        440.0,
+        440.0,
+        440.0,
+        440.0,
+        440.0,
+        440.0,
+        440.0,
+        440.0,
+        440.0
+      ],
+      "medianDominantHz": 440.0,
+      "windowCount": 14,
+      "toneMatchWithin10Hz": true,
+      "durationSeconds": 4.33
+    },
+    "preview-B-row.mp4": {
+      "expectedHz": 880,
+      "measuredDominantHzByHalfSecondWindow": [
+        880.0,
+        880.0,
+        880.0,
+        880.0,
+        880.0,
+        880.0,
+        880.0,
+        880.0,
+        880.0,
+        880.0,
+        880.0,
+        880.0,
+        880.0,
+        880.0
+      ],
+      "medianDominantHz": 880.0,
+      "windowCount": 14,
+      "toneMatchWithin10Hz": true,
+      "durationSeconds": 4.366
+    }
+  },
+  "visualAssertion": {
+    "status": "INCONCLUSIVE",
+    "reason": "The selected A/B labels and focus are verified in UIAutomator. Captured card pixels show missing/mismatched video frames, but Projectivy uses a separate SurfaceView and prior Chromecast captures established that scrcpy/screencap may omit or miscompose that surface. These pixels do not establish a product visual failure or pass. No visual PASS claimed.",
+    "captures": [
+      "preview-A-row.mp4",
+      "preview-B-row.mp4",
+      "focus-A.png",
+      "focus-B.png"
+    ]
+  },
+  "accessibility": {
+    "projectivyAccessibility": "enabled and bound",
+    "auramusicFocusService": "enabled and bound",
+    "deviceStateFile": "device-state.txt"
+  },
+  "overall": "INCONCLUSIVE",
+  "summary": "Focus and deterministic A/B audio identities PASS. Pixel-level in-card video verification INCONCLUSIVE.",
+  "buildAndTests": {
+    "unitTests": {
+      "status": "PASS",
+      "command": "rtk ./gradlew :app:testFossTvArmeabiDebugUnitTest --no-daemon",
+      "suites": 16,
+      "tests": 75,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "reportsMtimeLocal": "2026-11-16 20:08 Europe/Oslo"
+    },
+    "build": {
+      "status": "PASS",
+      "command": "rtk ./gradlew :app:assembleFossTvArmeabiDebug --no-daemon --rerun-tasks",
+      "elapsed": "5m33s",
+      "buildOutputSha256": "049b320b0d0b4862c3213c962eba59b292cb7a99634b8032f16886657643f73f",
+      "chromecastPulledInstalledApkSha256": "049b320b0d0b4862c3213c962eba59b292cb7a99634b8032f16886657643f73f",
+      "candidateAndInstalledBytesMatch": true,
+      "rightNeighborCodePresentInDex": "classes14.dex"
+    }
+  },
+  "sourceRevisionBeforeEvidenceCommit": "6933fbbacd2b809c9d085582196390886d8420e5",
+  "workingTreeDirtyDuringBuildAndCapture": true
+}

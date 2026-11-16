@@ -1,0 +1,55 @@
+11-16 20:11:26.242 E/ActivityThread( 6730): Service com.spocky.projengmenu.services.ProjectivyAccessibilityService has leaked IntentReceiver wy@86fc519 that was originally registered here. Are you missing a call to unregisterReceiver()?
+11-16 20:11:26.242 E/ActivityThread( 6730): android.app.IntentReceiverLeaked: Service com.spocky.projengmenu.services.ProjectivyAccessibilityService has leaked IntentReceiver wy@86fc519 that was originally registered here. Are you missing a call to unregisterReceiver()?
+11-16 20:11:26.327 D/CoreBackPreview(  651): Window{506dcc4 u0 Toast}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@7f70130, mPriority=0, mIsAnimationCallback=false}
+11-16 20:11:30.217 D/CoreBackPreview(  651): Window{506dcc4 u0 Toast}: Setting back callback null
+11-16 20:12:00.334 D/CoreBackPreview(  651): Window{129c46f u0 Toast}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@f38388b, mPriority=0, mIsAnimationCallback=false}
+11-16 20:12:04.248 D/CoreBackPreview(  651): Window{129c46f u0 Toast}: Setting back callback null
+11-16 20:12:20.197 D/MediaCodecInfo( 6730): NoSupport [codec.profileLevel, hvc1.2.4.H156.90, video/hevc] [c2.amlogic.hevc.decoder, video/hevc] [sabrina, Chromecast, Google, 34]
+11-16 20:12:20.197 D/MediaCodecInfo( 6730): NoSupport [codec.profileLevel, hvc1.2.4.H156.90, video/hevc] [c2.android.hevc.decoder, video/hevc] [sabrina, Chromecast, Google, 34]
+11-16 20:12:20.197 D/MediaCodecInfo( 6730): NoSupport [codec.profileLevel, hvc1.2.4.H156.90, video/hevc] [c2.amlogic.hevc.decoder, video/hevc] [sabrina, Chromecast, Google, 34]
+11-16 20:12:20.197 D/MediaCodecInfo( 6730): NoSupport [codec.profileLevel, hvc1.2.4.H156.90, video/hevc] [c2.android.hevc.decoder, video/hevc] [sabrina, Chromecast, Google, 34]
+11-16 20:12:49.624 D/MediaCodec( 6730): keep callback message for reclaim
+11-16 20:12:50.019 D/SurfaceUtils( 6730): connecting to surface 0xe0144ba8, reason connectToSurface
+11-16 20:12:50.019 I/MediaCodec( 6730): [c2.amlogic.hevc.decoder] setting surface generation to 6891659
+11-16 20:12:50.019 D/SurfaceUtils( 6730): disconnecting from surface 0xe0144ba8, reason connectToSurface(reconnect)
+11-16 20:12:50.019 D/SurfaceUtils( 6730): connecting to surface 0xe0144ba8, reason connectToSurface(reconnect)
+11-16 20:12:50.019 D/Codec2-OutputBufferQueue( 6730): C2SurfaceSyncMemory created 20(20)
+11-16 20:12:50.020 D/Codec2Client( 6730): setOutputSurface -- generation=6891659 consumer usage=0x900 sync
+11-16 20:12:50.023 D/Codec2Client( 6730): Surface configure completed
+11-16 20:12:50.023 D/SurfaceUtils( 6730): disconnecting from surface 0xf3dddea8, reason disconnectFromSurface
+11-16 20:12:50.025 D/CCodecBufferChannel( 6730): [c2.amlogic.hevc.decoder#298] MediaCodec discarded an unknown buffer
+11-16 20:12:50.025 D/CCodecBufferChannel( 6730): [c2.amlogic.hevc.decoder#298] MediaCodec discarded an unknown buffer
+11-16 20:12:50.026 D/CCodecBufferChannel( 6730): [c2.amlogic.hevc.decoder#298] MediaCodec discarded an unknown buffer
+11-16 20:12:50.026 D/CCodecBufferChannel( 6730): [c2.amlogic.hevc.decoder#298] MediaCodec discarded an unknown buffer
+11-16 20:12:50.026 D/CCodecBufferChannel( 6730): [c2.amlogic.hevc.decoder#298] MediaCodec discarded an unknown buffer
+11-16 20:12:50.026 D/CCodecBufferChannel( 6730): [c2.amlogic.hevc.decoder#298] MediaCodec discarded an unknown buffer
+11-16 20:12:50.026 D/CCodecBufferChannel( 6730): [c2.amlogic.hevc.decoder#298] MediaCodec discarded an unknown buffer
+11-16 20:12:50.026 D/CCodecBufferChannel( 6730): [c2.amlogic.hevc.decoder#298] MediaCodec discarded an unknown buffer
+11-16 20:12:50.040 D/MediaCodecInfo( 6730): NoSupport [codec.profileLevel, hvc1.2.4.L123.B0, video/hevc] [c2.android.hevc.decoder, video/hevc] [sabrina, Chromecast, Google, 34]
+11-16 20:12:50.041 I/DMCodecAdapterFactory( 6730): Creating an asynchronous MediaCodec adapter for track type video
+11-16 20:12:50.046 D/MediaCodec( 6730): MediaCodec::reclaim(0xceab27e0) c2.amlogic.hevc.decoder
+11-16 20:12:50.064 D/SurfaceUtils( 6730): disconnecting from surface 0xe0144ba8, reason disconnectFromSurface
+11-16 20:12:50.069 D/MediaCodec( 6730): flushMediametrics
+11-16 20:12:50.070 D/MediaCodec( 6730): MediaCodec looper is gone, skip reclaim
+11-16 20:12:50.071 D/MediaCodec( 6730): flushMediametrics
+11-16 20:12:50.071 W/MediaCodec( 6730): no metrics handle found
+11-16 20:12:50.144 I/MediaCodec( 6730): MediaCodec will operate in async mode
+11-16 20:12:50.145 D/MediaCodec( 6730): flushMediametrics
+11-16 20:12:50.145 D/SurfaceUtils( 6730): connecting to surface 0xf3dddea8, reason connectToSurface
+11-16 20:12:50.145 I/MediaCodec( 6730): [c2.amlogic.hevc.decoder] setting surface generation to 6891660
+11-16 20:12:50.145 D/SurfaceUtils( 6730): disconnecting from surface 0xf3dddea8, reason connectToSurface(reconnect)
+11-16 20:12:50.145 D/SurfaceUtils( 6730): connecting to surface 0xf3dddea8, reason connectToSurface(reconnect)
+11-16 20:12:50.155 D/MediaCodec( 6730): keep callback message for reclaim
+11-16 20:12:50.155 W/C2VdecComponent(  410): type=1400 audit(0.0:317625): avc:  denied  { read } for  name="u:object_r:vendor_tv_prop:s0" dev="tmpfs" ino=356 scontext=u:r:mediacodec:s0 tcontext=u:object_r:vendor_tv_prop:s0 tclass=file permissive=0
+11-16 20:12:50.155 W/C2VdecComponent(  410): type=1400 audit(0.0:317626): avc:  denied  { read } for  name="u:object_r:vendor_tv_prop:s0" dev="tmpfs" ino=356 scontext=u:r:mediacodec:s0 tcontext=u:object_r:vendor_tv_prop:s0 tclass=file permissive=0
+11-16 20:12:50.192 D/Codec2-OutputBufferQueue( 6730): C2SurfaceSyncMemory created 20(20)
+11-16 20:12:50.195 D/Codec2Client( 6730): setOutputSurface -- generation=6891660 consumer usage=0x900 sync
+11-16 20:12:50.197 D/Codec2Client( 6730): Surface configure completed
+11-16 20:12:50.210 I/C2VdecBlockPoolUtil(  410): Create block pool success, allocatorId:18 poolId:1708 use surface:1
+11-16 20:12:50.210 I/C2VdecBlockPoolUtil(  410): pool id:1708 use surface:1
+11-16 20:12:50.295 W/RenderEngine(  442): type=1400 audit(0.0:317627): avc:  denied  { getattr } for  name="/" dev="dmabuf" ino=1 scontext=u:r:surfaceflinger:s0 tcontext=u:object_r:unlabeled:s0 tclass=filesystem permissive=0
+11-16 20:12:50.319 W/RenderEngine(  442): type=1400 audit(0.0:317628): avc:  denied  { getattr } for  name="/" dev="dmabuf" ino=1 scontext=u:r:surfaceflinger:s0 tcontext=u:object_r:unlabeled:s0 tclass=filesystem permissive=0
+11-16 20:12:50.323 W/RenderEngine(  442): type=1400 audit(0.0:317629): avc:  denied  { getattr } for  name="/" dev="dmabuf" ino=1 scontext=u:r:surfaceflinger:s0 tcontext=u:object_r:unlabeled:s0 tclass=filesystem permissive=0
+11-16 20:12:50.335 W/RenderEngine(  442): type=1400 audit(0.0:317630): avc:  denied  { getattr } for  name="/" dev="dmabuf" ino=1 scontext=u:r:surfaceflinger:s0 tcontext=u:object_r:unlabeled:s0 tclass=filesystem permissive=0
+11-16 20:12:50.363 W/RenderEngine(  442): type=1400 audit(0.0:317631): avc:  denied  { getattr } for  name="/" dev="dmabuf" ino=1 scontext=u:r:surfaceflinger:s0 tcontext=u:object_r:unlabeled:s0 tclass=filesystem permissive=0
+11-16 20:12:50.399 W/RenderEngine(  442): type=1400 audit(0.0:317632): avc:  denied  { getattr } for  name="/" dev="dmabuf" ino=1 scontext=u:r:surfaceflinger:s0 tcontext=u:object_r:unlabeled:s0 tclass=filesystem permissive=0

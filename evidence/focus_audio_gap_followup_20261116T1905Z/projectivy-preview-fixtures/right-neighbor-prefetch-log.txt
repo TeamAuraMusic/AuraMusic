@@ -1,0 +1,86 @@
+11-16 20:02:07.007 14772 14772 D TvPreviewFocusAccessibilityService: TV preview right-neighbor audio prefetch scheduled focusedTitle=Nocturne for the Abyss neighborTitle=Money For Nothing (Remastered 1996)
+11-16 20:02:07.081 14772 14772 D TvPreviewFocusAccessibilityService: TV preview focus audio prefetch scheduled immediately title=Nocturne for the Abyss
+11-16 20:02:07.639 14772 14924 I TvPreviewContentProvider: TV preview open request=29428640 key=138920ec callerUid=10085
+11-16 20:02:08.091 14772 14924 I TvPreviewContentProvider: TV preview audio-only open request=29428640 key=138920ec bytes=2323768
+11-16 20:02:08.129 14772 14924 I TvPreviewFocusAccessibilityService: TV preview focus audio prefetch ready title=Nocturne for the Abyss elapsedMs=516
+11-16 20:02:08.744 14772 14772 D TvPreviewFocusAccessibilityService: TV preview right-neighbor audio prefetch scheduled focusedTitle=Nocturne for the Abyss neighborTitle=Money For Nothing (Remastered 1996)
+11-16 20:02:08.780 14772 14924 I TvPreviewContentProvider: TV preview open request=29428ac3 key=515bff76 callerUid=10085
+11-16 20:02:08.962 14772 14924 I TvPreviewContentProvider: TV preview audio-only open request=29428ac3 key=515bff76 bytes=8180940
+11-16 20:02:08.982 14772 14924 I TvPreviewFocusAccessibilityService: TV preview right-neighbor audio prefetch ready title=Money For Nothing (Remastered 1996) elapsedMs=212
+11-16 20:03:07.186 14772 14772 D TvPreviewFocusAccessibilityService: TV preview promoted right-neighbor audio prefetch title=Money For Nothing (Remastered 1996)
+11-16 20:03:07.572 14772 14772 D TvPreviewFocusAccessibilityService: TV preview right-neighbor audio prefetch scheduled focusedTitle=Money For Nothing (Remastered 1996) neighborTitle=All Summer Long
+11-16 20:03:07.589 14772 14924 I TvPreviewContentProvider: TV preview open request=29437083 key=276ccc8c callerUid=10085
+11-16 20:03:08.150 14772 14807 I TvPreviewContentProvider: TV preview open request=2943729f key=515bff76 callerUid=10150
+11-16 20:03:08.263 14772 14807 I TvPreviewContentProvider: TV preview audio-only open request=2943729f key=515bff76 bytes=8180940
+11-16 20:03:10.489 14772 14924 I TvPreviewContentProvider: TV preview audio-only open request=29437083 key=276ccc8c bytes=4819065
+11-16 20:03:10.522 14772 14924 I TvPreviewFocusAccessibilityService: TV preview right-neighbor audio prefetch ready title=All Summer Long elapsedMs=2935
+11-16 20:03:16.075 14772 14772 D TvPreviewFocusAccessibilityService: TV preview right-neighbor audio prefetch scheduled focusedTitle=Money For Nothing (Remastered 1996) neighborTitle=All Summer Long
+11-16 20:03:16.105 14772 14772 D TvPreviewFocusAccessibilityService: TV preview focus audio prefetch scheduled immediately title=Money For Nothing (Remastered 1996)
+11-16 20:03:16.242 14772 15211 I TvPreviewContentProvider: TV preview open request=29439247 key=515bff76 callerUid=10085
+11-16 20:03:16.304 14772 15211 I TvPreviewContentProvider: TV preview audio-only open request=29439247 key=515bff76 bytes=8180940
+11-16 20:03:16.337 14772 15211 I TvPreviewFocusAccessibilityService: TV preview focus audio prefetch ready title=Money For Nothing (Remastered 1996) elapsedMs=111
+11-16 20:03:17.012 14772 14772 D TvPreviewFocusAccessibilityService: TV preview right-neighbor audio prefetch scheduled focusedTitle=Money For Nothing (Remastered 1996) neighborTitle=All Summer Long
+11-16 20:03:17.032 14772 15211 I TvPreviewContentProvider: TV preview open request=29439563 key=276ccc8c callerUid=10085
+11-16 20:03:17.074 14772 15211 I TvPreviewContentProvider: TV preview audio-only open request=29439563 key=276ccc8c bytes=4819065
+11-16 20:03:17.087 14772 15211 I TvPreviewFocusAccessibilityService: TV preview right-neighbor audio prefetch ready title=All Summer Long elapsedMs=64
+11-16 20:04:46.583 14772 14772 D TvPreviewFocusAccessibilityService: TV preview promoted right-neighbor audio prefetch title=All Summer Long
+11-16 20:04:46.926 14772 14772 D TvPreviewFocusAccessibilityService: TV preview right-neighbor audio prefetch scheduled focusedTitle=All Summer Long neighborTitle=Honeymoon Un Deux Trois - Piano Version
+11-16 20:04:46.955 14772 15211 I TvPreviewContentProvider: TV preview open request=2944f4a9 key=1a979cab callerUid=10085
+11-16 20:04:47.326 14772 14825 I TvPreviewContentProvider: TV preview open request=2944f61a key=276ccc8c callerUid=10150
+11-16 20:04:47.402 14772 14825 I TvPreviewContentProvider: TV preview audio-only open request=2944f61a key=276ccc8c bytes=4819065
+11-16 20:04:48.395 14772 15211 I TvPreviewContentProvider: TV preview audio-only open request=2944f4a9 key=1a979cab bytes=1702277
+11-16 20:04:48.406 14772 15211 I TvPreviewFocusAccessibilityService: TV preview right-neighbor audio prefetch ready title=Honeymoon Un Deux Trois - Piano Version elapsedMs=1451
+11-16 20:04:52.096 14772 14772 D TvPreviewFocusAccessibilityService: TV preview right-neighbor audio prefetch scheduled focusedTitle=All Summer Long neighborTitle=Honeymoon Un Deux Trois - Piano Version
+11-16 20:04:52.121 14772 14772 D TvPreviewFocusAccessibilityService: TV preview focus audio prefetch scheduled immediately title=All Summer Long
+11-16 20:04:52.202 14772 15514 I TvPreviewContentProvider: TV preview open request=29450928 key=276ccc8c callerUid=10085
+11-16 20:04:52.337 14772 15514 I TvPreviewContentProvider: TV preview audio-only open request=29450928 key=276ccc8c bytes=4819065
+11-16 20:04:52.393 14772 15514 I TvPreviewFocusAccessibilityService: TV preview focus audio prefetch ready title=All Summer Long elapsedMs=202
+11-16 20:04:52.961 14772 14772 D TvPreviewFocusAccessibilityService: TV preview right-neighbor audio prefetch scheduled focusedTitle=All Summer Long neighborTitle=Honeymoon Un Deux Trois - Piano Version
+11-16 20:04:52.979 14772 15514 I TvPreviewContentProvider: TV preview open request=29450c2c key=1a979cab callerUid=10085
+11-16 20:04:53.055 14772 15514 I TvPreviewContentProvider: TV preview audio-only open request=29450c2c key=1a979cab bytes=1702277
+11-16 20:04:53.077 14772 15514 I TvPreviewFocusAccessibilityService: TV preview right-neighbor audio prefetch ready title=Honeymoon Un Deux Trois - Piano Version elapsedMs=103
+11-16 20:05:25.841 14772 14772 D TvPreviewFocusAccessibilityService: TV preview promoted right-neighbor audio prefetch title=Honeymoon Un Deux Trois - Piano Version
+11-16 20:05:26.234 14772 14772 D TvPreviewFocusAccessibilityService: TV preview right-neighbor audio prefetch scheduled focusedTitle=Honeymoon Un Deux Trois - Piano Version neighborTitle=The House of the Rising Sun
+11-16 20:05:26.251 14772 15514 I TvPreviewContentProvider: TV preview open request=29458e29 key=203a946 callerUid=10085
+11-16 20:05:26.642 14772 14925 I TvPreviewContentProvider: TV preview open request=29458fa5 key=1a979cab callerUid=10150
+11-16 20:05:26.733 14772 14925 I TvPreviewContentProvider: TV preview audio-only open request=29458fa5 key=1a979cab bytes=1702277
+11-16 20:05:28.380 14772 15514 I TvPreviewContentProvider: TV preview audio-only open request=29458e29 key=203a946 bytes=4369795
+11-16 20:05:28.390 14772 15514 I TvPreviewFocusAccessibilityService: TV preview right-neighbor audio prefetch ready title=The House of the Rising Sun elapsedMs=2144
+11-16 20:05:30.988 14772 14772 D TvPreviewFocusAccessibilityService: TV preview focus audio prefetch scheduled immediately title=All Summer Long
+11-16 20:05:31.198 14772 15514 I TvPreviewContentProvider: TV preview open request=2945a176 key=276ccc8c callerUid=10085
+11-16 20:05:31.257 14772 15514 I TvPreviewContentProvider: TV preview audio-only open request=2945a176 key=276ccc8c bytes=4819065
+11-16 20:05:31.266 14772 15514 I TvPreviewFocusAccessibilityService: TV preview focus audio prefetch ready title=All Summer Long elapsedMs=81
+11-16 20:05:31.411 14772 14772 D TvPreviewFocusAccessibilityService: TV preview right-neighbor audio prefetch scheduled focusedTitle=All Summer Long neighborTitle=Honeymoon Un Deux Trois - Piano Version
+11-16 20:05:31.436 14772 15514 I TvPreviewContentProvider: TV preview open request=2945a269 key=1a979cab callerUid=10085
+11-16 20:05:31.468 14772 15514 I TvPreviewContentProvider: TV preview audio-only open request=2945a269 key=1a979cab bytes=1702277
+11-16 20:05:31.474 14772 15514 I TvPreviewFocusAccessibilityService: TV preview right-neighbor audio prefetch ready title=Honeymoon Un Deux Trois - Piano Version elapsedMs=41
+11-16 20:05:31.818 14772 14925 I TvPreviewContentProvider: TV preview open request=2945a3e7 key=276ccc8c callerUid=10150
+11-16 20:05:31.885 14772 14925 I TvPreviewContentProvider: TV preview audio-only open request=2945a3e7 key=276ccc8c bytes=4819065
+11-16 20:09:53.987 14772 14772 D TvPreviewFocusAccessibilityService: TV preview right-neighbor audio prefetch scheduled focusedTitle=All Summer Long neighborTitle=Honeymoon Un Deux Trois - Piano Version
+11-16 20:09:54.014 14772 14772 D TvPreviewFocusAccessibilityService: TV preview focus audio prefetch scheduled immediately title=All Summer Long
+11-16 20:09:54.140 14772 16488 I TvPreviewContentProvider: TV preview open request=2949a48a key=276ccc8c callerUid=10085
+11-16 20:09:54.272 14772 16488 I TvPreviewContentProvider: TV preview audio-only open request=2949a48a key=276ccc8c bytes=4819065
+11-16 20:09:54.304 14772 16488 I TvPreviewFocusAccessibilityService: TV preview focus audio prefetch ready title=All Summer Long elapsedMs=182
+11-16 20:09:54.937 14772 14772 D TvPreviewFocusAccessibilityService: TV preview right-neighbor audio prefetch scheduled focusedTitle=All Summer Long neighborTitle=Honeymoon Un Deux Trois - Piano Version
+11-16 20:09:54.991 14772 16488 I TvPreviewContentProvider: TV preview open request=2949a7e4 key=1a979cab callerUid=10085
+11-16 20:09:55.099 14772 16488 I TvPreviewContentProvider: TV preview audio-only open request=2949a7e4 key=1a979cab bytes=1702277
+11-16 20:09:55.115 14772 16488 I TvPreviewFocusAccessibilityService: TV preview right-neighbor audio prefetch ready title=Honeymoon Un Deux Trois - Piano Version elapsedMs=145
+11-16 20:13:25.555 14772 14772 D TvPreviewFocusAccessibilityService: TV preview focus audio prefetch scheduled immediately title=All Summer Long
+11-16 20:13:25.866 14772 17554 I TvPreviewContentProvider: TV preview open request=294cdf9f key=276ccc8c callerUid=10085
+11-16 20:13:25.954 14772 17554 I TvPreviewContentProvider: TV preview audio-only open request=294cdf9f key=276ccc8c bytes=4819065
+11-16 20:13:25.992 14772 17554 I TvPreviewFocusAccessibilityService: TV preview focus audio prefetch ready title=All Summer Long elapsedMs=149
+11-16 20:13:26.126 14772 14772 D TvPreviewFocusAccessibilityService: TV preview right-neighbor audio prefetch scheduled focusedTitle=All Summer Long neighborTitle=Honeymoon Un Deux Trois - Piano Version
+11-16 20:13:26.155 14772 17554 I TvPreviewContentProvider: TV preview open request=294ce0bf key=1a979cab callerUid=10085
+11-16 20:13:26.198 14772 17554 I TvPreviewContentProvider: TV preview audio-only open request=294ce0bf key=1a979cab bytes=1702277
+11-16 20:13:26.212 14772 17554 I TvPreviewFocusAccessibilityService: TV preview right-neighbor audio prefetch ready title=Honeymoon Un Deux Trois - Piano Version elapsedMs=72
+11-16 20:13:26.459 14772 14807 I TvPreviewContentProvider: TV preview open request=294ce1f7 key=276ccc8c callerUid=10150
+11-16 20:13:26.519 14772 14807 I TvPreviewContentProvider: TV preview audio-only open request=294ce1f7 key=276ccc8c bytes=4819065
+11-16 20:13:29.934 14772 14772 D TvPreviewFocusAccessibilityService: TV preview right-neighbor audio prefetch scheduled focusedTitle=All Summer Long neighborTitle=Honeymoon Un Deux Trois - Piano Version
+11-16 20:13:29.967 14772 14772 D TvPreviewFocusAccessibilityService: TV preview focus audio prefetch scheduled immediately title=All Summer Long
+11-16 20:13:30.080 14772 17597 I TvPreviewContentProvider: TV preview open request=294cf017 key=276ccc8c callerUid=10085
+11-16 20:13:30.162 14772 17597 I TvPreviewContentProvider: TV preview audio-only open request=294cf017 key=276ccc8c bytes=4819065
+11-16 20:13:30.175 14772 17597 I TvPreviewFocusAccessibilityService: TV preview focus audio prefetch ready title=All Summer Long elapsedMs=115
+11-16 20:13:30.854 14772 14772 D TvPreviewFocusAccessibilityService: TV preview right-neighbor audio prefetch scheduled focusedTitle=All Summer Long neighborTitle=Honeymoon Un Deux Trois - Piano Version
+11-16 20:13:30.880 14772 17597 I TvPreviewContentProvider: TV preview open request=294cf336 key=1a979cab callerUid=10085
+11-16 20:13:30.963 14772 17597 I TvPreviewContentProvider: TV preview audio-only open request=294cf336 key=1a979cab bytes=1702277
+11-16 20:13:30.968 14772 17597 I TvPreviewFocusAccessibilityService: TV preview right-neighbor audio prefetch ready title=Honeymoon Un Deux Trois - Piano Version elapsedMs=99

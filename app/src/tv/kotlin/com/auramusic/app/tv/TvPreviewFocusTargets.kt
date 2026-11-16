@@ -19,6 +19,15 @@ internal object TvPreviewFocusTargets {
 
     fun unambiguousArtworkUri(candidates: List<String?>): String? = candidates.distinct().singleOrNull()
 
+    fun immediateRightNeighbor(focusedTitle: String, cardCentersByTitle: Map<String, Int>): String? {
+        val focusedCenter = cardCentersByTitle[focusedTitle] ?: return null
+        return cardCentersByTitle.entries
+            .asSequence()
+            .filter { (title, centerX) -> title != focusedTitle && centerX > focusedCenter }
+            .minByOrNull { (_, centerX) -> centerX }
+            ?.key
+    }
+
     fun isLocalAudioOnlyPreviewUri(
         scheme: String?,
         authority: String?,
