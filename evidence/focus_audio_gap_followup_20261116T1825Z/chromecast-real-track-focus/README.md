@@ -11,3 +11,5 @@ Projectivy Accessibility was enabled and bound after the test. Existing channel/
 See `assertions.json`, screenshots, WAV captures, and `projectivy-focus-log.txt`.
 
 A screen-only scrcpy clip of the focused “Nocturne for the Abyss” card is `card-animation-b.mp4`. At 2 fps, 13/13 ROI samples inside that card contain the pink indicator; all 12 adjacent sample transitions change more than 100 pixels. See `animation-analysis.json`. Real-track audio loopback captures stay local and are intentionally excluded from the public PR commit; `assertions.json` records their measured RMS/peak levels and local paths.
+
+A later synchronized DPAD A/B capture is separately marked **INCONCLUSIVE** in `live-transition-audio-result.json`: UI focus changed and Projectivy logged an active playback state/provider opens, but scrcpy loopback stayed at -91 dBFS for the full 13.824 seconds. Android reported music stream volume index 25. This cannot distinguish an audio capture/route problem from playback failure, so no transition gap is asserted. The quiet sample remains local and is not part of the public PR commit.

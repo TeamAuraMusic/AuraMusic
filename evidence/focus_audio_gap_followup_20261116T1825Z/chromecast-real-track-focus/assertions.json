@@ -89,5 +89,20 @@
       "Does not establish controlled before/after latency or reduction amount."
     ],
     "channel_category_settings_modified": false
+  },
+  "liveTransitionAttempt": {
+    "outcome": "INCONCLUSIVE",
+    "capture": "audio-live-transition-inconclusive.wav (local only)",
+    "durationSeconds": 13.824,
+    "deviceLoopbackDbfs": {
+      "mean": -91.0,
+      "peak": -91.0
+    },
+    "evidence": [
+      "Projectivy accessibility events moved focus between real AuraMusic titles.",
+      "Projectivy reported playback active and the provider logged audio URI opens.",
+      "Android music stream volume index was 25."
+    ],
+    "interpretation": "Loopback remained silent, so this sample cannot distinguish an audio-capture/route issue from playback failure. No transition-gap duration asserted."
   }
 }

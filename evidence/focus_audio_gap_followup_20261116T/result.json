@@ -122,5 +122,17 @@
     "latencyReduction": "INCONCLUSIVE",
     "userChannelCategorySettingsModified": false,
     "evidence": "evidence/focus_audio_gap_followup_20261116T1825Z/chromecast-real-track-focus/README.md"
+  },
+  "synchronizedRealTrackTransitionCapture": {
+    "status": "INCONCLUSIVE",
+    "durationSeconds": 13.824,
+    "capturedOutputDbfs": {
+      "mean": -91.0,
+      "peak": -91.0
+    },
+    "projectivyObservedActive": true,
+    "providerUriOpened": true,
+    "reason": "Loopback remained silent; cannot distinguish capture/route failure from playback failure. No gap duration asserted.",
+    "evidence": "evidence/focus_audio_gap_followup_20261116T1825Z/chromecast-real-track-focus/live-transition-audio-result.json"
   }
 }
