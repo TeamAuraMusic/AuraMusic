@@ -1,5 +1,5 @@
 {
-  "outcome": "PASS",
+  "outcome": "INCONCLUSIVE",
   "device": "Google Chromecast, Android 14/API 34, Projectivy 4.73",
   "fixture": "Projectivy home-screen PreviewProbe, A=440 Hz, B=880 Hz; DPAD focus, no Select",
   "method": {
@@ -32,12 +32,21 @@
     "audioAssertion": "PASS"
   },
   "comparison": {
-    "reductionSeconds": 0.22,
-    "reductionPercent": 17.2,
-    "postChangeTransitions": 1
+    "observedDifferenceSeconds": 0.22,
+    "observedDifferencePercent": 17.2,
+    "causalAttribution": "NOT_ESTABLISHED",
+    "postChangeSamples": 1,
+    "preChangeSamples": 1
   },
   "limitations": [
-    "Single post-change A\u2192B sample; no B\u2192A sample or post-change repeated-transition distribution.",
-    "The 20 ms window detector reports a thresholded interval, not an acoustic latency distribution."
-  ]
+    "Numeric comparison is between separate synthetic PreviewProbe runs, not a controlled test of the code change.",
+    "No post-change real AuraMusic song transition was measured.",
+    "No B\u2192A sample or repeated-transition latency distribution."
+  ],
+  "pathApplicability": {
+    "previewProbePackage": "com.auramusic.previewprobe",
+    "auraMusicServiceFiltersProgramsTo": "AuraMusic-owned TV provider channels",
+    "changedPrefetchCallbackExercised": false,
+    "reason": "PreviewProbe is a separate package and does not appear in AuraMusic publishedPrograms(); its A/B focus events cannot exercise the changed AuraMusic prefetch callback."
+  }
 }

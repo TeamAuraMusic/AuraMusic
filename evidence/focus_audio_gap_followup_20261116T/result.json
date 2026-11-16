@@ -26,20 +26,23 @@
     "signerMatchedInstalledDebugBuild": true
   },
   "liveAudioGap": {
-    "status": "PASS",
+    "status": "INCONCLUSIVE",
     "device": "Chromecast, Android 14/API 34, Projectivy 4.73",
-    "testRow": "PreviewProbe at the bottom of Projectivy home screen; channels/categories preserved as user configured",
-    "beforeMeasuredGapSeconds": 1.28,
-    "afterMeasuredGapSeconds": 1.06,
-    "reductionSeconds": 0.22,
-    "reductionPercent": 17.2,
-    "postChangeTransitions": 1,
-    "measurement": "Same 20 ms/10 ms hop audio-boundary analysis and 0.0001 normalized RMS threshold on before/after scrcpy output captures.",
+    "codePathInvokedByPreviewProbe": false,
+    "reason": "PreviewProbe is a separate publisher/package. AuraMusic focus matching reads only AuraMusic-owned TV provider channels, so the synthetic row does not invoke the changed AuraMusic audio-prefetch callback. This run did not test a real AuraMusic song card; the user channel configuration was left untouched.",
+    "observations": {
+      "preChangePreviewProbeGapSeconds": 1.28,
+      "postChangePreviewProbeGapSeconds": 1.06,
+      "sampleDifferenceSeconds": 0.22,
+      "sampleDifferencePercent": 17.2,
+      "interpretation": "Not attributable to this code change; separate PreviewProbe runs, one sample each."
+    },
+    "codeChange": "Removes up to 120 ms of app-added debounce after an AuraMusic program is identified.",
     "evidence": "evidence/focus_audio_gap_followup_20261116T/chromecast-clean-transition-20261116T/gap-comparison.json",
     "limitations": [
-      "One post-change A\u2192B sample only.",
-      "B\u2192A and repeated-transition latency were not remeasured.",
-      "Not gapless; observed 1.06 s silent boundary remains."
+      "No real AuraMusic-song post-change transition was measured.",
+      "No B\u2192A or repeated-transition post-change samples.",
+      "Projectivy owns playback startup; the observed PreviewProbe gap was still 1.06 s."
     ]
   },
   "chromecastCleanup": {
@@ -93,5 +96,10 @@
       "evidence/focus_audio_gap_followup_20261116T/chromecast-clean-transition-20261116T/visual-A-focus.png",
       "evidence/focus_audio_gap_followup_20261116T/chromecast-clean-transition-20261116T/visual-after-focus-loss.png"
     ]
+  },
+  "previewProbeAudio": {
+    "status": "PASS",
+    "assertion": "Observed 440 Hz A followed by 880 Hz B without mixed-tone overlap.",
+    "evidence": "evidence/focus_audio_gap_followup_20261116T/chromecast-clean-transition-20261116T/corrected-audio-assertions.json"
   }
 }
