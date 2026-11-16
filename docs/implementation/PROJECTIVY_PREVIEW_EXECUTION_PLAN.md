@@ -1,5 +1,13 @@
 # Projectivy Preview Execution Plan
 
+## Follow-up: focus audio startup delay (2026-11-16)
+
+- Removed the 120 ms debounce before the selected card's asynchronous local-URI prefetch. The existing one-worker/one-pending-task bound and cancellation on focus change/loss remain.
+- Best-case app-controlled improvement: up to 120 ms. The Chromecast was attached, but the current Projectivy focus was a user IPTV card; no post-change playback capture or gap measurement was made.
+- Latest historical PreviewProbe capture: 1.28 s A→B, 1.26 s B→A silence. This change cannot be described as removing silence until the same capture method is rerun against the new APK.
+- Projectivy 4.73 owns playback startup; this application cannot guarantee seamless/zero-gap A/B audio through prefetch timing alone.
+- PR #41 is already merged. This change is prepared as a follow-up branch/PR, not an update to the closed PR.
+
 Current pass/partial/fail audit for all 12 required scenarios: [Projectivy preview acceptance matrix](PROJECTIVY_PREVIEW_ACCEPTANCE_MATRIX.md).
 
 ## Horizontal card-motion follow-up (2026-11-10)

@@ -1,0 +1,59 @@
+{
+  "startedAtUtc": "2026-11-16T17:17:56Z",
+  "objective": "Reduce focused-card audio handoff silence",
+  "git": {
+    "baseCommit": "9c2bd1c5cf8ad1e26634aeacc1e108c490e63caf",
+    "workingTreeDirty": true,
+    "branch": "codex/projectivy-audio-gap-followup"
+  },
+  "change": {
+    "status": "PASS",
+    "description": "Removed the 120 ms debounce before asynchronous selected-card audio prefetch.",
+    "maximumAppAddedDelayRemovedMs": 120,
+    "prefetchRemainsAsynchronous": true,
+    "existingCancellationAndQueueBoundsRetained": true
+  },
+  "build": {
+    "status": "PASS",
+    "command": "./gradlew :app:testFossTvArmeabiDebugUnitTest :app:assembleFossTvArmeabiDebug --no-daemon",
+    "tvUnitTestSuites": 16,
+    "tests": 73,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "apk": "app/build/outputs/apk/fossTvArmeabi/debug/app-foss-tv-armeabi-debug.apk",
+    "apkSha256": "5292bd803e3ca40b1d95f17ec6674c1dc3448839e0bb00fbcb30e70fc653c266",
+    "signerMatchedInstalledDebugBuild": true
+  },
+  "liveAudioGap": {
+    "status": "INCONCLUSIVE",
+    "device": "Chromecast, Android 14, Projectivy 4.73",
+    "reason": "Projectivy was foreground, but the current focus was a user IPTV card. The visible accessibility hierarchy contained no PreviewProbe A/B or known AuraMusic song-card target. No test-channel settings were changed and no playback transition was initiated.",
+    "priorMeasuredGapSeconds": {
+      "AtoB": 1.28,
+      "BtoA": 1.26
+    },
+    "priorMeasurement": "evidence/chromecast_latency_prefetch_20261110T/previewprobe-audio-boundaries.json",
+    "newAudioCapture": null,
+    "claim": "No post-change reduction in end-to-end silence has been demonstrated."
+  },
+  "chromecastCleanup": {
+    "status": "PASS",
+    "removedPackages": ["com.auramusic.app.debug.test"],
+    "reason": "Stale instrumentation-only test APK, installed 2026-11-10; it had no running process.",
+    "preservedPackages": [
+      "com.auramusic.app.debug",
+      "com.auramusic.previewprobe",
+      "com.spocky.projengmenu"
+    ],
+    "ownerDataCleared": false,
+    "launcherSettingsChanged": false,
+    "otherPackagesChanged": false
+  },
+  "pullRequest": {
+    "previous": 41,
+    "previousState": "MERGED",
+    "previousMergedAt": "2026-11-10T10:49:40Z",
+    "action": "Prepare a follow-up PR; merged PR #41 cannot receive an update."
+  }
+}

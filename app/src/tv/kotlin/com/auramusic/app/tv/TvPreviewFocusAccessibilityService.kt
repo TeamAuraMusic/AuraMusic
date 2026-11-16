@@ -471,11 +471,13 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
             }
         }
         pendingAudioPrefetch = callback
-        mainHandler.postDelayed(callback, AUDIO_PREFETCH_DELAY_MS)
+        // Begin preparing as soon as focus identifies a published card. The provider
+        // already bounds/cancels this work; an extra debounce only extends the silent
+        // handoff before Projectivy can open the next program URI.
+        mainHandler.post(callback)
         Timber.d(
-            "TV preview focus audio prefetch scheduled title=%s delayMs=%d",
+            "TV preview focus audio prefetch scheduled immediately title=%s",
             title,
-            AUDIO_PREFETCH_DELAY_MS,
         )
     }
 
@@ -654,7 +656,6 @@ class TvPreviewFocusAccessibilityService : AccessibilityService() {
         const val ACTIVE_WINDOW_CHECK_MS = 500L
         const val FOCUS_REFRESH_DELAY_MS = 100L
         const val MAX_VISIBLE_ARTWORK_PREFETCH = 4
-        const val AUDIO_PREFETCH_DELAY_MS = 120L
         const val CARD_BOUNDS_SYNC_MS = 1_200L
         const val CARD_BOUNDS_SETTLE_MS = 450L
         const val CARD_BOUNDS_POLL_MS = 50L

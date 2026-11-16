@@ -1,5 +1,9 @@
 # Projectivy preview acceptance matrix
 
+## Follow-up change (2026-11-16)
+
+The selected-card audio prefetch now starts immediately when the accessibility focus event identifies a published AuraMusic program; the previous 120 ms debounce is removed. Preparation remains asynchronous and uses the existing bounded, cancellable provider path. This removes up to 120 ms of app-added startup delay. It does **not** establish a smaller end-to-end audio gap: the latest captured A/B tone handoff remains 1.28 s / 1.26 s, and no post-change output audio was captured. Treat reduced pause duration as **UNVERIFIED** until the same transition is measured after this change. Projectivy controls its own audio player startup, so zero-gap transitions are not established by this code change.
+
 Latest post-change install: FOSS ARMv7 APK `5bf27ac8f9dd25971e2387822ef20fe1afefbf5ac1a31db16d895a9584ce4d34`, AuraMusic 3.2.0/code 29, Projectivy 4.73/code 98, Chromecast `sabrina` Android 14/API 34. After Projectivy restart, `Proud Mary` focused without Select; Projectivy remained foreground, opened the local media URI, played its AudioTrack, and showed original artwork with a waveform changing in all 15 adjacent pairs of 16 captured frames. Focus cleanup stopped audio after leaving preview rows. Selected-card-only local audio prefetch completed 432 ms before Projectivy's URI open on a warm cache; cold-cache gain remains **INCONCLUSIVE**. Evidence: [`restart and prefetch run`](../../evidence/chromecast_latency_prefetch_20261110T/README.md). The most recent full real-song transition/resource run used the prior exact candidate and remains documented below. Overall mission remains **INCOMPLETE**.
 
 | Mission test | Strongest existing evidence | Current result | Remaining gate |
