@@ -43,7 +43,9 @@
       "No real AuraMusic-song post-change transition was measured.",
       "No B\u2192A or repeated-transition post-change samples.",
       "Projectivy owns playback startup; the observed PreviewProbe gap was still 1.06 s."
-    ]
+    ],
+    "evidenceOfCurrentVisibleRow": "evidence/focus_audio_gap_followup_20261116T/chromecast-clean-transition-20261116T/current-home-previewprobe-view.png",
+    "userSettingsModified": false
   },
   "chromecastCleanup": {
     "status": "PASS",
