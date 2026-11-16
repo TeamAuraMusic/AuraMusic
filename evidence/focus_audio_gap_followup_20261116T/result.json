@@ -26,20 +26,27 @@
     "signerMatchedInstalledDebugBuild": true
   },
   "liveAudioGap": {
-    "status": "INCONCLUSIVE",
-    "device": "Chromecast, Android 14, Projectivy 4.73",
-    "reason": "Projectivy was foreground, but the current focus was a user IPTV card. The visible accessibility hierarchy contained no PreviewProbe A/B or known AuraMusic song-card target. No test-channel settings were changed and no playback transition was initiated.",
-    "priorMeasuredGapSeconds": {
-      "AtoB": 1.28,
-      "BtoA": 1.26
-    },
-    "priorMeasurement": "evidence/chromecast_latency_prefetch_20261110T/previewprobe-audio-boundaries.json",
-    "newAudioCapture": null,
-    "claim": "No post-change reduction in end-to-end silence has been demonstrated."
+    "status": "PASS",
+    "device": "Chromecast, Android 14/API 34, Projectivy 4.73",
+    "testRow": "PreviewProbe at the bottom of Projectivy home screen; channels/categories preserved as user configured",
+    "beforeMeasuredGapSeconds": 1.28,
+    "afterMeasuredGapSeconds": 1.06,
+    "reductionSeconds": 0.22,
+    "reductionPercent": 17.2,
+    "postChangeTransitions": 1,
+    "measurement": "Same 20 ms/10 ms hop audio-boundary analysis and 0.0001 normalized RMS threshold on before/after scrcpy output captures.",
+    "evidence": "evidence/focus_audio_gap_followup_20261116T/chromecast-clean-transition-20261116T/gap-comparison.json",
+    "limitations": [
+      "One post-change A\u2192B sample only.",
+      "B\u2192A and repeated-transition latency were not remeasured.",
+      "Not gapless; observed 1.06 s silent boundary remains."
+    ]
   },
   "chromecastCleanup": {
     "status": "PASS",
-    "removedPackages": ["com.auramusic.app.debug.test"],
+    "removedPackages": [
+      "com.auramusic.app.debug.test"
+    ],
     "reason": "Stale instrumentation-only test APK, installed 2026-11-10; it had no running process.",
     "preservedPackages": [
       "com.auramusic.app.debug",
@@ -54,6 +61,35 @@
     "previous": 41,
     "previousState": "MERGED",
     "previousMergedAt": "2026-11-10T10:49:40Z",
-    "action": "Prepare a follow-up PR; merged PR #41 cannot receive an update."
+    "action": "Update open PR #42 with measured post-change Chromecast audio evidence.",
+    "number": 42,
+    "url": "https://github.com/TeamAuraMusic/AuraMusic/pull/42"
+  },
+  "completedAtUtc": "2026-11-16T17:48:31Z",
+  "focusLoss": {
+    "status": "PASS",
+    "method": "After leaving PreviewProbe focus, captured 5.888 seconds of Chromecast output audio.",
+    "normalizedRms": 0.0,
+    "peak": 0.0,
+    "evidence": "evidence/focus_audio_gap_followup_20261116T/chromecast-clean-transition-20261116T/focus-loss-output.wav"
+  },
+  "projectivyForeground": {
+    "status": "PASS",
+    "activity": "com.spocky.projengmenu/.ui.home.MainActivity"
+  },
+  "projectivyAccessibility": {
+    "status": "PASS",
+    "accessibilityEnabled": 1,
+    "service": "com.spocky.projengmenu/com.spocky.projengmenu.services.ProjectivyAccessibilityService",
+    "state": "enabled and bound; no crashed services",
+    "userChannelsOrCategoriesChanged": false
+  },
+  "visualCardIdentity": {
+    "status": "INCONCLUSIVE",
+    "reason": "Still screenshots do not prove the rendered frame stays with the correct card throughout navigation; this audio-prefetch change does not alter Projectivy rendering.",
+    "evidence": [
+      "evidence/focus_audio_gap_followup_20261116T/chromecast-clean-transition-20261116T/visual-A-focus.png",
+      "evidence/focus_audio_gap_followup_20261116T/chromecast-clean-transition-20261116T/visual-after-focus-loss.png"
+    ]
   }
 }

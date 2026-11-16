@@ -1,0 +1,2 @@
+2ef1c31b08cdd403fa2027609d3f710820bfcde8722c3032e310733f3ba8823d  evidence/focus_audio_gap_followup_20261116T/chromecast-clean-transition-20261116T/corrected-device-output.wav
+39ecd318967ef13bf79432fe2b2af872fb2776127a77543a92d62e7dd7eba5a7  evidence/focus_audio_gap_followup_20261116T/chromecast-clean-transition-20261116T/focus-loss-output.wav

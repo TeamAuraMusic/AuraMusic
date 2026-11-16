@@ -1,0 +1,13 @@
+captured_at_utc=2026-11-16T17:48:31Z
+adb_serial=adb-34271HFDD8MY82-Ez9jEg._adb-tls-connect._tcp
+model=Chromecast
+release=14
+api=34
+projectivy=    versionName=4.73
+auramusic=    versionName=3.2.0
+foreground=com.spocky.projengmenu/.ui.home.MainActivity
+accessibility_enabled=1
+enabled_accessibility_services=com.auramusic.app.debug/com.auramusic.app.tv.TvPreviewFocusAccessibilityService:com.spocky.projengmenu/com.spocky.projengmenu.services.ProjectivyAccessibilityService:flar2.homebutton/a.i
+     Bound services:{Service[label=Projectivy Launcher, feedbackType[FEEDBACK_GENERIC], capabilities=9, eventTypes=[TYPE_VIEW_FOCUSED, TYPE_WINDOW_STATE_CHANGED], notificationTimeout=0, requestA11yBtn=false],
+     Enabled services:{{com.auramusic.app.debug/com.auramusic.app.tv.TvPreviewFocusAccessibilityService}, {com.spocky.projengmenu/com.spocky.projengmenu.services.ProjectivyAccessibilityService}, {flar2.homebutton/a.i}}
+     Crashed services:{}
