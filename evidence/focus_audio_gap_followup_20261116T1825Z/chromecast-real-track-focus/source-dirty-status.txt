@@ -1,0 +1,14 @@
+## codex/projectivy-audio-gap-followup...origin/main [ahead 5]
+?? evidence/focus_audio_gap_followup_20261116T/chromecast-ab-20261116T/
+?? evidence/focus_audio_gap_followup_20261116T/chromecast-clean-transition-20261116T/audio-assertions.json
+?? evidence/focus_audio_gap_followup_20261116T/chromecast-clean-transition-20261116T/device-output.wav
+?? evidence/focus_audio_gap_followup_20261116T/chromecast-clean-transition-20261116T/focus-A.png
+?? evidence/focus_audio_gap_followup_20261116T/chromecast-clean-transition-20261116T/focus-A2.png
+?? evidence/focus_audio_gap_followup_20261116T/chromecast-clean-transition-20261116T/focus-B.png
+?? evidence/focus_audio_gap_followup_20261116T/chromecast-clean-transition-20261116T/focus-B2.png
+?? evidence/focus_audio_gap_followup_20261116T/chromecast-clean-transition-20261116T/focus-after.png
+?? evidence/focus_audio_gap_followup_20261116T/chromecast-clean-transition-20261116T/focus-after2.png
+?? evidence/focus_audio_gap_followup_20261116T/chromecast-clean-transition-20261116T/focus-before.png
+?? evidence/focus_audio_gap_followup_20261116T/chromecast-clean-transition-20261116T/visual-focus-A.png
+?? evidence/focus_audio_gap_followup_20261116T1825Z/
+?? scripts/__pycache__/

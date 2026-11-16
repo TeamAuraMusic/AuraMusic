@@ -70,7 +70,7 @@
     "number": 42,
     "url": "https://github.com/TeamAuraMusic/AuraMusic/pull/42"
   },
-  "completedAtUtc": "2026-11-16T17:48:31Z",
+  "completedAtUtc": "2026-11-16T18:30:00Z",
   "focusLoss": {
     "status": "PASS",
     "method": "After leaving PreviewProbe focus, captured 5.888 seconds of Chromecast output audio.",
@@ -103,5 +103,24 @@
     "status": "PASS",
     "assertion": "Observed 440 Hz A followed by 880 Hz B without mixed-tone overlap.",
     "evidence": "evidence/focus_audio_gap_followup_20261116T/chromecast-clean-transition-20261116T/corrected-audio-assertions.json"
+  },
+  "realAuraMusicFocus": {
+    "status": "PASS",
+    "device": "Chromecast Android 14/API 34; Projectivy 4.73; AuraMusic 3.2.0/code 29; installed APK SHA-256 5292bd803e3ca40b1d95f17ec6674c1dc3448839e0bb00fbcb30e70fc653c266",
+    "interaction": "DPAD only, no Select; Projectivy stayed top-resumed",
+    "focusedPrograms": [
+      "Glimpse of Us X La La Land",
+      "Nocturne for the Abyss"
+    ],
+    "deviceOutput": "Both track-focused captures non-silent; focus-loss capture near-silence at -91 dBFS mean/peak over 5.78s. Raw audio files retained local-only.",
+    "visual": "Nocturne original artwork and pink indicator captured in-screen; 13/13 ROI samples showed indicator and 12/12 adjacent samples changed >100 pixels.",
+    "prefetchReadyElapsedMs": [
+      2266,
+      1275
+    ],
+    "prefetchTimingCaveat": "Prefetch completion is not audio-start latency. No controlled before/after audio-gap estimate.",
+    "latencyReduction": "INCONCLUSIVE",
+    "userChannelCategorySettingsModified": false,
+    "evidence": "evidence/focus_audio_gap_followup_20261116T1825Z/chromecast-real-track-focus/README.md"
   }
 }

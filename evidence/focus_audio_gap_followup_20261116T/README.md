@@ -21,3 +21,9 @@ The change removes up to 120 ms of app-added debounce when an AuraMusic card is 
 Cleanup removed only the stale test instrumentation package `com.auramusic.app.debug.test`. AuraMusic, Projectivy, and PreviewProbe remain installed.
 
 See [`result.json`](result.json) for machine-readable outcomes and the APK hash.
+
+## Later real AuraMusic card capture (2026-11-16)
+
+A subsequent pass found the real AuraMusic program row while preserving the user's filtered channel/category configuration. Projectivy 4.73 stayed foreground. DPAD focused “Glimpse of Us X La La Land” then “Nocturne for the Abyss” without Select. Device loopback WAV captures were non-silent for both. The focus service logged audio prefetch ready at 2266 ms and 1275 ms, respectively; those report preparation completion, not audio-start latency. A screen-only video of the focused Nocturne card shows the original artwork and animated pink bars in-card; analysis at 2 fps found the indicator in 13/13 samples and changes over 100 pixels in 12/12 adjacent samples. Moving focus outside AuraMusic programs hid the overlay and output fell to -91 dBFS mean/peak over 5.78 seconds.
+
+This confirms real-card focus and visual behavior on this Chromecast. It does not measure a controlled before/after audio gap or independently compare captured samples with the source audio. The effect size of the 120 ms debounce removal remains **INCONCLUSIVE**. Raw song audio captures remain local and are excluded from the public commit. [Detailed capture and machine assertions](chromecast-real-track-focus/README.md).
