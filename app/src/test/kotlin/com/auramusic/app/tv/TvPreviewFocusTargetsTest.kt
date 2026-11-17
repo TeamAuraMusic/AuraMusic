@@ -53,6 +53,27 @@ class TvPreviewFocusTargetsTest {
     }
 
     @Test
+    fun selectsNearestVisibleCardToTheRightForAudioPrewarm() {
+        assertEquals(
+            "Nocturne",
+            TvPreviewFocusTargets.immediateRightNeighbor(
+                focusedTitle = "Glimpse",
+                cardCentersByTitle = mapOf("Glimpse" to 200, "Nocturne" to 500, "Other" to 900),
+            ),
+        )
+    }
+
+    @Test
+    fun rightNeighborPrewarmReturnsNullWhenNoCardIsVisibleToTheRight() {
+        assertNull(
+            TvPreviewFocusTargets.immediateRightNeighbor(
+                focusedTitle = "Last visible",
+                cardCentersByTitle = mapOf("Last visible" to 700, "Previous" to 300),
+            ),
+        )
+    }
+
+    @Test
     fun allowsFocusPrefetchOnlyForAuraMusicLocalAudioOnlyUri() {
         assertTrue(
             TvPreviewFocusTargets.isLocalAudioOnlyPreviewUri(

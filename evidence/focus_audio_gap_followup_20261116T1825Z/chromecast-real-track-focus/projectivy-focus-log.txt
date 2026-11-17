@@ -1,0 +1,160 @@
+11-16 19:23:06.721 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=PreviewProbe A/B
+11-16 19:23:06.738 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=null
+11-16 19:23:06.768 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Glimpse of Us X La La Land
+11-16 19:23:06.769 D/TvPreviewFocusAccessibilityService( 6458): TV preview previous artwork masked at focus event old=null new=Glimpse of Us X La La Land
+11-16 19:23:06.818 D/TvPreviewFocusAccessibilityService( 6458): TV preview focus audio prefetch scheduled immediately title=Glimpse of Us X La La Land
+11-16 19:23:06.871 D/TvPreviewFocusAccessibilityService( 6458): TV preview focused artwork cache hit title=Glimpse of Us X La La Land
+11-16 19:23:07.006 D/TvPreviewFocusAccessibilityService( 6458): TV preview focus indicator shown title=Glimpse of Us X La La Land bounds=Rect(16, 432 - 400, 648)
+11-16 19:23:07.016 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Glimpse of Us X La La Land
+11-16 19:23:07.021 D/TvPreviewFocusAccessibilityService( 6458): TV preview focus indicator shown title=Glimpse of Us X La La Land bounds=Rect(16, 432 - 400, 648)
+11-16 19:23:07.032 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=null
+11-16 19:23:07.037 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=false focusedTitle=Glimpse of Us X La La Land
+11-16 19:23:07.040 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=false focusedTitle=Glimpse of Us X La La Land
+11-16 19:23:07.044 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=false focusedTitle=Glimpse of Us X La La Land
+11-16 19:23:07.058 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-16 19:23:07.068 I/TvPreviewContentProvider( 6458): TV preview open request=291ecf6c key=198aad47 callerUid=10085
+11-16 19:23:07.341 D/TvPreviewFocusAccessibilityService( 6458): TV preview focused-node refresh description=Glimpse of Us X La La Land
+11-16 19:23:07.348 D/TvPreviewFocusAccessibilityService( 6458): TV preview focus indicator shown title=Glimpse of Us X La La Land bounds=Rect(16, 432 - 400, 648)
+11-16 19:23:07.680 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-16 19:23:07.684 I/TvPreviewContentProvider( 6458): TV preview open request=291ed1e2 key=198aad47 callerUid=10150
+11-16 19:23:07.718 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Glimpse of Us X La La Land
+11-16 19:23:07.816 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-16 19:23:07.945 D/TvPreviewFocusAccessibilityService( 6458): TV preview focused-node refresh description=Glimpse of Us X La La Land
+11-16 19:23:07.972 D/TvPreviewFocusAccessibilityService( 6458): TV preview focus indicator shown title=Glimpse of Us X La La Land bounds=Rect(16, 432 - 400, 648)
+11-16 19:23:09.296 I/TvPreviewContentProvider( 6458): TV preview audio-only open request=291ecf6c key=198aad47 bytes=3944958
+11-16 19:23:09.314 I/TvPreviewContentProvider( 6458): TV preview audio-only open request=291ed1e2 key=198aad47 bytes=3944958
+11-16 19:23:09.318 I/TvPreviewFocusAccessibilityService( 6458): TV preview focus audio prefetch ready title=Glimpse of Us X La La Land elapsedMs=2266
+11-16 19:23:09.502 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=Glimpse of Us X La La Land
+11-16 19:23:09.503 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=Glimpse of Us X La La Land
+11-16 19:23:09.535 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=Glimpse of Us X La La Land
+11-16 19:23:43.330 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=Glimpse of Us X La La Land
+11-16 19:23:43.417 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=Glimpse of Us X La La Land
+11-16 19:23:53.416 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=Glimpse of Us X La La Land
+11-16 19:24:10.761 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-16 19:24:10.768 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-16 19:24:10.780 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Nocturne for the Abyss
+11-16 19:24:10.783 D/TvPreviewFocusAccessibilityService( 6458): TV preview previous artwork masked at focus event old=Glimpse of Us X La La Land new=Nocturne for the Abyss
+11-16 19:24:10.866 D/TvPreviewFocusAccessibilityService( 6458): TV preview focus audio prefetch scheduled immediately title=Nocturne for the Abyss
+11-16 19:24:10.873 D/TvPreviewFocusAccessibilityService( 6458): TV preview focus overlay window replaced old=Glimpse of Us X La La Land new=Nocturne for the Abyss
+11-16 19:24:10.877 D/TvPreviewFocusAccessibilityService( 6458): TV preview focused artwork cache hit title=Nocturne for the Abyss
+11-16 19:24:10.920 D/TvPreviewFocusAccessibilityService( 6458): TV preview focus indicator shown title=Nocturne for the Abyss bounds=Rect(414, 432 - 798, 648)
+11-16 19:24:10.931 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Nocturne for the Abyss
+11-16 19:24:10.937 D/TvPreviewFocusAccessibilityService( 6458): TV preview focus indicator shown title=Nocturne for the Abyss bounds=Rect(414, 432 - 798, 648)
+11-16 19:24:11.008 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-16 19:24:11.017 I/TvPreviewContentProvider( 6458): TV preview open request=291fc947 key=138920ec callerUid=10085
+11-16 19:24:11.041 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=false focusedTitle=Nocturne for the Abyss
+11-16 19:24:11.045 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=false focusedTitle=Nocturne for the Abyss
+11-16 19:24:11.047 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=false focusedTitle=Nocturne for the Abyss
+11-16 19:24:11.070 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Glimpse of Us X La La Land
+11-16 19:24:11.199 D/TvPreviewFocusAccessibilityService( 6458): TV preview focused-node refresh description=Nocturne for the Abyss
+11-16 19:24:11.206 D/TvPreviewFocusAccessibilityService( 6458): TV preview focus indicator shown title=Nocturne for the Abyss bounds=Rect(414, 432 - 798, 648)
+11-16 19:24:11.544 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-16 19:24:11.708 D/TvPreviewFocusAccessibilityService( 6458): TV preview focused-node refresh description=Nocturne for the Abyss
+11-16 19:24:11.736 D/TvPreviewFocusAccessibilityService( 6458): TV preview focus indicator shown title=Nocturne for the Abyss bounds=Rect(414, 432 - 798, 648)
+11-16 19:24:11.753 I/TvPreviewContentProvider( 6458): TV preview open request=291fcc15 key=138920ec callerUid=10150
+11-16 19:24:11.798 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Nocturne for the Abyss
+11-16 19:24:11.871 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Nocturne for the Abyss
+11-16 19:24:12.014 D/TvPreviewFocusAccessibilityService( 6458): TV preview focused-node refresh description=Nocturne for the Abyss
+11-16 19:24:12.017 D/TvPreviewFocusAccessibilityService( 6458): TV preview focus indicator shown title=Nocturne for the Abyss bounds=Rect(414, 432 - 798, 648)
+11-16 19:24:12.278 I/TvPreviewContentProvider( 6458): TV preview audio-only open request=291fcc15 key=138920ec bytes=2323768
+11-16 19:24:12.282 I/TvPreviewContentProvider( 6458): TV preview audio-only open request=291fc947 key=138920ec bytes=2323768
+11-16 19:24:12.287 I/TvPreviewFocusAccessibilityService( 6458): TV preview focus audio prefetch ready title=Nocturne for the Abyss elapsedMs=1275
+11-16 19:24:12.422 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=Nocturne for the Abyss
+11-16 19:24:12.436 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=Nocturne for the Abyss
+11-16 19:24:12.467 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=Nocturne for the Abyss
+11-16 19:24:28.770 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=Nocturne for the Abyss
+11-16 19:24:28.823 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=Nocturne for the Abyss
+11-16 19:24:38.857 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=Nocturne for the Abyss
+11-16 19:24:46.708 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-16 19:24:46.718 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=null
+11-16 19:24:46.725 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Preview A
+11-16 19:24:46.727 D/TvPreviewFocusAccessibilityService( 6458): TV preview previous artwork masked at focus event old=Nocturne for the Abyss new=Preview A
+11-16 19:24:46.782 D/TvPreviewFocusAccessibilityService( 6458): TV preview focus indicator hidden reason=focus is not a published AuraMusic program
+11-16 19:24:46.789 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Preview A
+11-16 19:24:46.790 D/TvPreviewFocusAccessibilityService( 6458): TV preview previous artwork masked at focus event old=null new=Preview A
+11-16 19:24:46.828 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=null
+11-16 19:24:46.854 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=false focusedTitle=null
+11-16 19:24:46.876 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=false focusedTitle=null
+11-16 19:24:46.878 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=false focusedTitle=null
+11-16 19:24:46.927 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-16 19:24:47.046 D/TvPreviewFocusAccessibilityService( 6458): TV preview focused-node refresh description=Preview A
+11-16 19:24:47.687 I/PreviewProbeMedia( 6889): open uri=content://com.auramusic.previewprobe.previewmedia/a file=fixture_a.mp4 bytes=1934593 callerUid=10150
+11-16 19:24:47.731 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Preview A
+11-16 19:24:47.817 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Preview A
+11-16 19:24:48.023 D/TvPreviewFocusAccessibilityService( 6458): TV preview focused-node refresh description=Preview A
+11-16 19:24:48.025 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=null
+11-16 19:24:48.029 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=null
+11-16 19:24:48.030 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=null
+11-16 19:25:23.245 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=PreviewProbe A/B
+11-16 19:25:23.256 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=null
+11-16 19:25:23.294 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=AuraMusic Tv
+11-16 19:25:23.301 D/TvPreviewFocusAccessibilityService( 6458): TV preview previous artwork masked at focus event old=null new=AuraMusic Tv
+11-16 19:25:23.437 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=AuraMusic Tv
+11-16 19:25:23.438 D/TvPreviewFocusAccessibilityService( 6458): TV preview previous artwork masked at focus event old=null new=AuraMusic Tv
+11-16 19:25:23.446 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=null
+11-16 19:25:23.454 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=null
+11-16 19:25:23.455 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=false focusedTitle=null
+11-16 19:25:23.456 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=false focusedTitle=null
+11-16 19:25:23.456 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=false focusedTitle=null
+11-16 19:25:23.488 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=null
+11-16 19:25:23.682 D/TvPreviewFocusAccessibilityService( 6458): TV preview focused-node refresh description=AuraMusic Tv
+11-16 19:27:56.750 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=TV
+11-16 19:27:56.769 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=null
+11-16 19:27:56.789 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Preview A
+11-16 19:27:56.792 D/TvPreviewFocusAccessibilityService( 6458): TV preview previous artwork masked at focus event old=null new=Preview A
+11-16 19:27:56.847 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Preview A
+11-16 19:27:56.849 D/TvPreviewFocusAccessibilityService( 6458): TV preview previous artwork masked at focus event old=null new=Preview A
+11-16 19:27:56.854 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=null
+11-16 19:27:56.961 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=null
+11-16 19:27:57.088 D/TvPreviewFocusAccessibilityService( 6458): TV preview focused-node refresh description=Preview A
+11-16 19:27:57.719 I/PreviewProbeMedia( 6889): open uri=content://com.auramusic.previewprobe.previewmedia/a file=fixture_a.mp4 bytes=1934593 callerUid=10150
+11-16 19:27:57.740 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Preview A
+11-16 19:27:57.839 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Preview A
+11-16 19:27:57.998 D/TvPreviewFocusAccessibilityService( 6458): TV preview focused-node refresh description=Preview A
+11-16 19:27:58.036 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=null
+11-16 19:27:58.058 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=null
+11-16 19:27:58.130 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=null
+11-16 19:28:09.450 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=null
+11-16 19:28:09.463 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=null
+11-16 19:28:09.483 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=null
+11-16 19:28:09.968 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=null
+11-16 19:28:10.010 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=null
+11-16 19:28:10.011 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=null
+11-16 19:28:10.019 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=null
+11-16 19:28:10.052 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=null
+11-16 19:28:10.557 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=null
+11-16 19:28:10.561 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=null
+11-16 19:28:10.589 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=null
+11-16 19:28:10.591 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=null
+11-16 19:28:10.601 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=null
+11-16 19:28:11.098 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=null
+11-16 19:28:11.099 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=null
+11-16 19:28:39.883 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=PreviewProbe A/B
+11-16 19:28:39.937 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=null
+11-16 19:28:39.955 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Nocturne for the Abyss
+11-16 19:28:39.956 D/TvPreviewFocusAccessibilityService( 6458): TV preview previous artwork masked at focus event old=null new=Nocturne for the Abyss
+11-16 19:28:40.161 D/TvPreviewFocusAccessibilityService( 6458): TV preview focus audio prefetch scheduled immediately title=Nocturne for the Abyss
+11-16 19:28:40.184 D/TvPreviewFocusAccessibilityService( 6458): TV preview focused artwork cache hit title=Nocturne for the Abyss
+11-16 19:28:40.236 D/TvPreviewFocusAccessibilityService( 6458): TV preview focus indicator shown title=Nocturne for the Abyss bounds=Rect(414, 432 - 798, 648)
+11-16 19:28:40.247 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Nocturne for the Abyss
+11-16 19:28:40.252 D/TvPreviewFocusAccessibilityService( 6458): TV preview focus indicator shown title=Nocturne for the Abyss bounds=Rect(414, 432 - 798, 648)
+11-16 19:28:40.259 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=null
+11-16 19:28:40.260 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=false focusedTitle=Nocturne for the Abyss
+11-16 19:28:40.261 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=false focusedTitle=Nocturne for the Abyss
+11-16 19:28:40.262 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=false focusedTitle=Nocturne for the Abyss
+11-16 19:28:40.271 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-16 19:28:40.289 I/TvPreviewContentProvider( 6458): TV preview open request=2923e515 key=138920ec callerUid=10085
+11-16 19:28:40.357 I/TvPreviewContentProvider( 6458): TV preview audio-only open request=2923e515 key=138920ec bytes=2323768
+11-16 19:28:40.371 I/TvPreviewFocusAccessibilityService( 6458): TV preview focus audio prefetch ready title=Nocturne for the Abyss elapsedMs=97
+11-16 19:28:40.407 D/TvPreviewFocusAccessibilityService( 6458): TV preview focused-node refresh description=Nocturne for the Abyss
+11-16 19:28:40.412 D/TvPreviewFocusAccessibilityService( 6458): TV preview focus indicator shown title=Nocturne for the Abyss bounds=Rect(414, 432 - 798, 648)
+11-16 19:28:40.800 I/TvPreviewContentProvider( 6458): TV preview open request=2923e71d key=138920ec callerUid=10150
+11-16 19:28:40.857 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Nocturne for the Abyss
+11-16 19:28:40.884 I/TvPreviewContentProvider( 6458): TV preview audio-only open request=2923e71d key=138920ec bytes=2323768
+11-16 19:28:40.887 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-16 19:28:40.951 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Nocturne for the Abyss
+11-16 19:28:41.049 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=Nocturne for the Abyss
+11-16 19:28:41.062 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=Nocturne for the Abyss
+11-16 19:28:41.094 D/TvPreviewFocusAccessibilityService( 6458): TV preview focused-node refresh description=Nocturne for the Abyss
+11-16 19:28:41.102 D/TvPreviewFocusAccessibilityService( 6458): TV preview focus indicator shown title=Nocturne for the Abyss bounds=Rect(414, 432 - 798, 648)
+11-16 19:28:41.120 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=Nocturne for the Abyss

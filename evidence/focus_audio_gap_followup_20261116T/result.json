@@ -1,0 +1,138 @@
+{
+  "startedAtUtc": "2026-11-16T17:17:56Z",
+  "objective": "Reduce focused-card audio handoff silence",
+  "git": {
+    "baseCommit": "9c2bd1c5cf8ad1e26634aeacc1e108c490e63caf",
+    "workingTreeDirty": true,
+    "branch": "codex/projectivy-audio-gap-followup"
+  },
+  "change": {
+    "status": "PASS",
+    "description": "Removed the 120 ms debounce before asynchronous selected-card audio prefetch.",
+    "maximumAppAddedDelayRemovedMs": 120,
+    "prefetchRemainsAsynchronous": true,
+    "existingCancellationAndQueueBoundsRetained": true
+  },
+  "build": {
+    "status": "PASS",
+    "command": "./gradlew :app:testFossTvArmeabiDebugUnitTest :app:assembleFossTvArmeabiDebug --no-daemon",
+    "tvUnitTestSuites": 16,
+    "tests": 73,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "apk": "app/build/outputs/apk/fossTvArmeabi/debug/app-foss-tv-armeabi-debug.apk",
+    "apkSha256": "5292bd803e3ca40b1d95f17ec6674c1dc3448839e0bb00fbcb30e70fc653c266",
+    "signerMatchedInstalledDebugBuild": true
+  },
+  "liveAudioGap": {
+    "status": "INCONCLUSIVE",
+    "device": "Chromecast, Android 14/API 34, Projectivy 4.73",
+    "codePathInvokedByPreviewProbe": false,
+    "reason": "PreviewProbe is a separate publisher/package. AuraMusic focus matching reads only AuraMusic-owned TV provider channels, so the synthetic row does not invoke the changed AuraMusic audio-prefetch callback. This run did not test a real AuraMusic song card; the user channel configuration was left untouched.",
+    "observations": {
+      "preChangePreviewProbeGapSeconds": 1.28,
+      "postChangePreviewProbeGapSeconds": 1.06,
+      "sampleDifferenceSeconds": 0.22,
+      "sampleDifferencePercent": 17.2,
+      "interpretation": "Not attributable to this code change; separate PreviewProbe runs, one sample each."
+    },
+    "codeChange": "Removes up to 120 ms of app-added debounce after an AuraMusic program is identified.",
+    "evidence": "evidence/focus_audio_gap_followup_20261116T/chromecast-clean-transition-20261116T/gap-comparison.json",
+    "limitations": [
+      "No real AuraMusic-song post-change transition was measured.",
+      "No B\u2192A or repeated-transition post-change samples.",
+      "Projectivy owns playback startup; the observed PreviewProbe gap was still 1.06 s."
+    ],
+    "evidenceOfCurrentVisibleRow": "evidence/focus_audio_gap_followup_20261116T/chromecast-clean-transition-20261116T/current-home-previewprobe-view.png",
+    "userSettingsModified": false
+  },
+  "chromecastCleanup": {
+    "status": "PASS",
+    "removedPackages": [
+      "com.auramusic.app.debug.test"
+    ],
+    "reason": "Stale instrumentation-only test APK, installed 2026-11-10; it had no running process.",
+    "preservedPackages": [
+      "com.auramusic.app.debug",
+      "com.auramusic.previewprobe",
+      "com.spocky.projengmenu"
+    ],
+    "ownerDataCleared": false,
+    "launcherSettingsChanged": false,
+    "otherPackagesChanged": false
+  },
+  "pullRequest": {
+    "previous": 41,
+    "previousState": "MERGED",
+    "previousMergedAt": "2026-11-10T10:49:40Z",
+    "action": "Update open PR #42 with measured post-change Chromecast audio evidence.",
+    "number": 42,
+    "url": "https://github.com/TeamAuraMusic/AuraMusic/pull/42"
+  },
+  "completedAtUtc": "2026-11-16T18:30:00Z",
+  "focusLoss": {
+    "status": "PASS",
+    "method": "After leaving PreviewProbe focus, captured 5.888 seconds of Chromecast output audio.",
+    "normalizedRms": 0.0,
+    "peak": 0.0,
+    "evidence": "evidence/focus_audio_gap_followup_20261116T/chromecast-clean-transition-20261116T/focus-loss-output.wav"
+  },
+  "projectivyForeground": {
+    "status": "PASS",
+    "activity": "com.spocky.projengmenu/.ui.home.MainActivity"
+  },
+  "projectivyAccessibility": {
+    "status": "PASS",
+    "accessibilityEnabled": 1,
+    "service": "com.spocky.projengmenu/com.spocky.projengmenu.services.ProjectivyAccessibilityService",
+    "state": "enabled and bound; no crashed services",
+    "userChannelsOrCategoriesChanged": false,
+    "beforeEvidence": "evidence/focus_audio_gap_followup_20261116T/chromecast-clean-transition-20261116T/accessibility-before.txt",
+    "finalEvidence": "evidence/focus_audio_gap_followup_20261116T/chromecast-clean-transition-20261116T/device-metadata.txt"
+  },
+  "visualCardIdentity": {
+    "status": "INCONCLUSIVE",
+    "reason": "Still screenshots do not prove the rendered frame stays with the correct card throughout navigation; this audio-prefetch change does not alter Projectivy rendering.",
+    "evidence": [
+      "evidence/focus_audio_gap_followup_20261116T/chromecast-clean-transition-20261116T/visual-A-focus.png",
+      "evidence/focus_audio_gap_followup_20261116T/chromecast-clean-transition-20261116T/visual-after-focus-loss.png"
+    ]
+  },
+  "previewProbeAudio": {
+    "status": "PASS",
+    "assertion": "Observed 440 Hz A followed by 880 Hz B without mixed-tone overlap.",
+    "evidence": "evidence/focus_audio_gap_followup_20261116T/chromecast-clean-transition-20261116T/corrected-audio-assertions.json"
+  },
+  "realAuraMusicFocus": {
+    "status": "PASS",
+    "device": "Chromecast Android 14/API 34; Projectivy 4.73; AuraMusic 3.2.0/code 29; installed APK SHA-256 5292bd803e3ca40b1d95f17ec6674c1dc3448839e0bb00fbcb30e70fc653c266",
+    "interaction": "DPAD only, no Select; Projectivy stayed top-resumed",
+    "focusedPrograms": [
+      "Glimpse of Us X La La Land",
+      "Nocturne for the Abyss"
+    ],
+    "deviceOutput": "Both track-focused captures non-silent; focus-loss capture near-silence at -91 dBFS mean/peak over 5.78s. Raw audio files retained local-only.",
+    "visual": "Nocturne original artwork and pink indicator captured in-screen; 13/13 ROI samples showed indicator and 12/12 adjacent samples changed >100 pixels.",
+    "prefetchReadyElapsedMs": [
+      2266,
+      1275
+    ],
+    "prefetchTimingCaveat": "Prefetch completion is not audio-start latency. No controlled before/after audio-gap estimate.",
+    "latencyReduction": "INCONCLUSIVE",
+    "userChannelCategorySettingsModified": false,
+    "evidence": "evidence/focus_audio_gap_followup_20261116T1825Z/chromecast-real-track-focus/README.md"
+  },
+  "synchronizedRealTrackTransitionCapture": {
+    "status": "INCONCLUSIVE",
+    "durationSeconds": 13.824,
+    "capturedOutputDbfs": {
+      "mean": -91.0,
+      "peak": -91.0
+    },
+    "projectivyObservedActive": true,
+    "providerUriOpened": true,
+    "reason": "Loopback remained silent; cannot distinguish capture/route failure from playback failure. No gap duration asserted.",
+    "evidence": "evidence/focus_audio_gap_followup_20261116T1825Z/chromecast-real-track-focus/live-transition-audio-result.json"
+  }
+}

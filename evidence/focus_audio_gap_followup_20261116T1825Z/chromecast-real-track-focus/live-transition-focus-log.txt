@@ -1,0 +1,63 @@
+11-16 19:35:04.985 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=Nocturne for the Abyss
+11-16 19:35:05.079 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=Nocturne for the Abyss
+11-16 19:35:05.092 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=Nocturne for the Abyss
+11-16 19:35:08.467 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=false focusedTitle=Nocturne for the Abyss
+11-16 19:35:08.504 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=false focusedTitle=Nocturne for the Abyss
+11-16 19:35:08.505 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=false focusedTitle=Nocturne for the Abyss
+11-16 19:35:22.955 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-16 19:35:22.967 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-16 19:35:22.973 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Money For Nothing (Remastered 1996)
+11-16 19:35:22.984 D/TvPreviewFocusAccessibilityService( 6458): TV preview previous artwork masked at focus event old=Nocturne for the Abyss new=Money For Nothing (Remastered 1996)
+11-16 19:35:23.036 D/TvPreviewFocusAccessibilityService( 6458): TV preview focus audio prefetch scheduled immediately title=Money For Nothing (Remastered 1996)
+11-16 19:35:23.064 D/TvPreviewFocusAccessibilityService( 6458): TV preview focus overlay window replaced old=Nocturne for the Abyss new=Money For Nothing (Remastered 1996)
+11-16 19:35:23.075 D/TvPreviewFocusAccessibilityService( 6458): TV preview focused artwork cache hit title=Money For Nothing (Remastered 1996)
+11-16 19:35:23.119 D/TvPreviewFocusAccessibilityService( 6458): TV preview focus indicator shown title=Money For Nothing (Remastered 1996) bounds=Rect(779, 432 - 1163, 648)
+11-16 19:35:23.124 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Money For Nothing (Remastered 1996)
+11-16 19:35:23.135 D/TvPreviewFocusAccessibilityService( 6458): TV preview focus indicator shown title=Money For Nothing (Remastered 1996) bounds=Rect(768, 432 - 1152, 648)
+11-16 19:35:23.242 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-16 19:35:23.250 I/TvPreviewContentProvider( 6458): TV preview open request=292a0b24 key=515bff76 callerUid=10085
+11-16 19:35:23.302 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-16 19:35:23.437 D/TvPreviewFocusAccessibilityService( 6458): TV preview focused-node refresh description=Money For Nothing (Remastered 1996)
+11-16 19:35:23.443 D/TvPreviewFocusAccessibilityService( 6458): TV preview focus indicator shown title=Money For Nothing (Remastered 1996) bounds=Rect(768, 432 - 1152, 648)
+11-16 19:35:23.771 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-16 19:35:23.902 D/TvPreviewFocusAccessibilityService( 6458): TV preview focused-node refresh description=Money For Nothing (Remastered 1996)
+11-16 19:35:23.919 D/TvPreviewFocusAccessibilityService( 6458): TV preview focus indicator shown title=Money For Nothing (Remastered 1996) bounds=Rect(768, 432 - 1152, 648)
+11-16 19:35:23.940 I/TvPreviewContentProvider( 6458): TV preview open request=292a0de2 key=515bff76 callerUid=10150
+11-16 19:35:23.970 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Money For Nothing (Remastered 1996)
+11-16 19:35:24.073 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Money For Nothing (Remastered 1996)
+11-16 19:35:24.217 D/TvPreviewFocusAccessibilityService( 6458): TV preview focused-node refresh description=Money For Nothing (Remastered 1996)
+11-16 19:35:24.220 D/TvPreviewFocusAccessibilityService( 6458): TV preview focus indicator shown title=Money For Nothing (Remastered 1996) bounds=Rect(768, 432 - 1152, 648)
+11-16 19:35:26.606 I/TvPreviewContentProvider( 6458): TV preview audio-only open request=292a0b24 key=515bff76 bytes=8180940
+11-16 19:35:26.617 I/TvPreviewFocusAccessibilityService( 6458): TV preview focus audio prefetch ready title=Money For Nothing (Remastered 1996) elapsedMs=3382
+11-16 19:35:26.620 I/TvPreviewContentProvider( 6458): TV preview audio-only open request=292a0de2 key=515bff76 bytes=8180940
+11-16 19:35:26.751 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-16 19:35:26.802 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-16 19:35:26.852 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Nocturne for the Abyss
+11-16 19:35:26.870 D/TvPreviewFocusAccessibilityService( 6458): TV preview previous artwork masked at focus event old=Money For Nothing (Remastered 1996) new=Nocturne for the Abyss
+11-16 19:35:26.923 D/TvPreviewFocusAccessibilityService( 6458): TV preview focus audio prefetch scheduled immediately title=Nocturne for the Abyss
+11-16 19:35:26.933 D/TvPreviewFocusAccessibilityService( 6458): TV preview focus overlay window replaced old=Money For Nothing (Remastered 1996) new=Nocturne for the Abyss
+11-16 19:35:26.935 D/TvPreviewFocusAccessibilityService( 6458): TV preview focused artwork cache hit title=Nocturne for the Abyss
+11-16 19:35:26.952 D/TvPreviewFocusAccessibilityService( 6458): TV preview focus indicator shown title=Nocturne for the Abyss bounds=Rect(412, 432 - 796, 648)
+11-16 19:35:26.966 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Nocturne for the Abyss
+11-16 19:35:26.972 D/TvPreviewFocusAccessibilityService( 6458): TV preview focus indicator shown title=Nocturne for the Abyss bounds=Rect(414, 432 - 798, 648)
+11-16 19:35:27.031 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-16 19:35:27.037 I/TvPreviewContentProvider( 6458): TV preview open request=292a19fb key=138920ec callerUid=10085
+11-16 19:35:27.040 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=false focusedTitle=Nocturne for the Abyss
+11-16 19:35:27.042 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=false focusedTitle=Nocturne for the Abyss
+11-16 19:35:27.057 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.GridView description=AuraMusic
+11-16 19:35:27.102 I/TvPreviewContentProvider( 6458): TV preview audio-only open request=292a19fb key=138920ec bytes=2323768
+11-16 19:35:27.109 I/TvPreviewFocusAccessibilityService( 6458): TV preview focus audio prefetch ready title=Nocturne for the Abyss elapsedMs=75
+11-16 19:35:27.171 D/TvPreviewFocusAccessibilityService( 6458): TV preview focused-node refresh description=Nocturne for the Abyss
+11-16 19:35:27.176 D/TvPreviewFocusAccessibilityService( 6458): TV preview focus indicator shown title=Nocturne for the Abyss bounds=Rect(414, 432 - 798, 648)
+11-16 19:35:27.563 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_STATE_CHANGED package=com.auramusic.app.debug source=null description=null
+11-16 19:35:27.717 I/TvPreviewContentProvider( 6458): TV preview open request=292a1ca3 key=138920ec callerUid=10150
+11-16 19:35:27.734 D/TvPreviewFocusAccessibilityService( 6458): TV preview focused-node refresh description=Nocturne for the Abyss
+11-16 19:35:27.743 D/TvPreviewFocusAccessibilityService( 6458): TV preview focus indicator shown title=Nocturne for the Abyss bounds=Rect(414, 432 - 798, 648)
+11-16 19:35:27.754 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Nocturne for the Abyss
+11-16 19:35:27.768 I/TvPreviewContentProvider( 6458): TV preview audio-only open request=292a1ca3 key=138920ec bytes=2323768
+11-16 19:35:27.845 D/TvPreviewFocusAccessibilityService( 6458): TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Nocturne for the Abyss
+11-16 19:35:27.918 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=Nocturne for the Abyss
+11-16 19:35:27.928 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=Nocturne for the Abyss
+11-16 19:35:27.930 D/TvPreviewFocusAccessibilityService( 6458): TV preview media playback state active=true focusedTitle=Nocturne for the Abyss
+11-16 19:35:27.975 D/TvPreviewFocusAccessibilityService( 6458): TV preview focused-node refresh description=Nocturne for the Abyss
+11-16 19:35:27.984 D/TvPreviewFocusAccessibilityService( 6458): TV preview focus indicator shown title=Nocturne for the Abyss bounds=Rect(414, 432 - 798, 648)

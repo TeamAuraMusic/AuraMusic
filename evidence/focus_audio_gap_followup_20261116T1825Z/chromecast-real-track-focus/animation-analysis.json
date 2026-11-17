@@ -1,0 +1,40 @@
+{
+  "video": "card-animation-b.mp4",
+  "durationSeconds": 7.249911,
+  "sampleFps": 2,
+  "roiPixels": "x=510,y=570,width=210,height=75; inside focused Nocturne card bounds",
+  "samples": 13,
+  "pinkPixelsBySample": [
+    1306,
+    1454,
+    1213,
+    1217,
+    1305,
+    1279,
+    1117,
+    1321,
+    1422,
+    1266,
+    1268,
+    1451,
+    1347
+  ],
+  "adjacentChangedPixelsBySample": [
+    213270,
+    224504,
+    188825,
+    224986,
+    237736,
+    204760,
+    210457,
+    254398,
+    218645,
+    212280,
+    227838,
+    312253
+  ],
+  "samplesWithPink": 13,
+  "changingTransitionsOver100Pixels": 12,
+  "sha256": "1340990dc4278c61f084d3f14877c7a9302f842da96868ae503a5d9cb5589ee2",
+  "assertion": "PASS"
+}

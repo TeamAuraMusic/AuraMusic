@@ -1,0 +1,23 @@
+11-16 20:02:08.982 14772 14924 I TvPreviewFocusAccessibilityService: TV preview right-neighbor audio prefetch ready title=Money For Nothing (Remastered 1996) elapsedMs=212
+11-16 20:03:07.186 14772 14772 D TvPreviewFocusAccessibilityService: TV preview promoted right-neighbor audio prefetch title=Money For Nothing (Remastered 1996)
+11-16 20:03:07.572 14772 14772 D TvPreviewFocusAccessibilityService: TV preview right-neighbor audio prefetch scheduled focusedTitle=Money For Nothing (Remastered 1996) neighborTitle=All Summer Long
+11-16 20:03:10.522 14772 14924 I TvPreviewFocusAccessibilityService: TV preview right-neighbor audio prefetch ready title=All Summer Long elapsedMs=2935
+11-16 20:04:46.583 14772 14772 D TvPreviewFocusAccessibilityService: TV preview promoted right-neighbor audio prefetch title=All Summer Long
+11-16 20:04:46.926 14772 14772 D TvPreviewFocusAccessibilityService: TV preview right-neighbor audio prefetch scheduled focusedTitle=All Summer Long neighborTitle=Honeymoon Un Deux Trois - Piano Version
+11-16 20:05:25.642 14772 14772 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.TextView description=null
+11-16 20:05:25.690 14772 14772 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-16 20:05:25.736 14772 14772 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Honeymoon Un Deux Trois - Piano Version
+11-16 20:05:25.767 14772 14772 D TvPreviewFocusAccessibilityService: TV preview previous artwork masked at focus event old=All Summer Long new=Honeymoon Un Deux Trois - Piano Version
+11-16 20:05:25.841 14772 14772 D TvPreviewFocusAccessibilityService: TV preview promoted right-neighbor audio prefetch title=Honeymoon Un Deux Trois - Piano Version
+11-16 20:05:25.873 14772 14772 D TvPreviewFocusAccessibilityService: TV preview focus overlay window replaced old=All Summer Long new=Honeymoon Un Deux Trois - Piano Version
+11-16 20:05:25.880 14772 14772 D TvPreviewFocusAccessibilityService: TV preview focused artwork cache hit title=Honeymoon Un Deux Trois - Piano Version
+11-16 20:05:25.916 14772 14772 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Honeymoon Un Deux Trois - Piano Version bounds=Rect(790, 432 - 1174, 648)
+11-16 20:05:25.922 14772 14772 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_SELECTED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Honeymoon Un Deux Trois - Piano Version
+11-16 20:05:25.926 14772 14772 D TvPreviewFocusAccessibilityService: TV preview focus indicator shown title=Honeymoon Un Deux Trois - Piano Version bounds=Rect(768, 432 - 1152, 648)
+11-16 20:05:25.931 14772 14772 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_WINDOW_CONTENT_CHANGED package=com.spocky.projengmenu source=android.widget.LinearLayout description=null
+11-16 20:05:25.933 14772 14772 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=Honeymoon Un Deux Trois - Piano Version
+11-16 20:05:31.411 14772 14772 D TvPreviewFocusAccessibilityService: TV preview right-neighbor audio prefetch scheduled focusedTitle=All Summer Long neighborTitle=Honeymoon Un Deux Trois - Piano Version
+11-16 20:05:31.474 14772 15514 I TvPreviewFocusAccessibilityService: TV preview right-neighbor audio prefetch ready title=Honeymoon Un Deux Trois - Piano Version elapsedMs=41
+11-16 20:09:55.115 14772 16488 I TvPreviewFocusAccessibilityService: TV preview right-neighbor audio prefetch ready title=Honeymoon Un Deux Trois - Piano Version elapsedMs=145
+11-16 20:13:26.126 14772 14772 D TvPreviewFocusAccessibilityService: TV preview right-neighbor audio prefetch scheduled focusedTitle=All Summer Long neighborTitle=Honeymoon Un Deux Trois - Piano Version
+11-16 20:13:26.212 14772 17554 I TvPreviewFocusAccessibilityService: TV preview right-neighbor audio prefetch ready title=Honeymoon Un Deux Trois - Piano Version elapsedMs=72

@@ -1,0 +1,2 @@
+     Bound services:{Service[label=AuraMusic focused preview indicator, feedbackType[FEEDBACK_GENERIC], capabilities=1, eventTypes=[TYPE_VIEW_SELECTED, TYPE_VIEW_FOCUSED, TYPE_WINDOW_STATE_CHANGED, TYPE_WINDOW_CONTENT_CHANGED, TYPE_WINDOWS_CHANGED], notificationTimeout=50, requestA11yBtn=false],
+     Enabled services:{{com.auramusic.app.debug/com.auramusic.app.tv.TvPreviewFocusAccessibilityService}, {com.spocky.projengmenu/com.spocky.projengmenu.services.ProjectivyAccessibilityService}, {flar2.homebutton/a.i}}

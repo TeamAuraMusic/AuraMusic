@@ -1,0 +1,22 @@
+11-16 18:44:13.106 30890 30890 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Preview A
+11-16 18:44:13.333 30890 30890 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=null
+11-16 18:44:13.334 30890 30890 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=null
+11-16 18:44:13.334 30890 30890 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=null
+11-16 18:44:14.020 29585 29659 I PreviewProbeMedia: open uri=content://com.auramusic.previewprobe.previewmedia/a file=fixture_a.mp4 bytes=1934593 callerUid=10150
+11-16 18:44:14.341 30890 30890 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-16 18:44:14.347 30890 30890 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-16 18:44:14.351 30890 30890 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-16 18:44:53.238 30890 30890 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=Preview B
+11-16 18:44:53.423 30890 30890 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=null
+11-16 18:44:53.424 30890 30890 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=null
+11-16 18:44:53.428 30890 30890 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=null
+11-16 18:44:54.093 29585 29659 I PreviewProbeMedia: open uri=content://com.auramusic.previewprobe.previewmedia/b file=fixture_b.mp4 bytes=2031733 callerUid=10150
+11-16 18:44:54.385 30890 30890 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-16 18:44:54.386 30890 30890 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-16 18:44:54.409 30890 30890 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-16 18:44:59.560 30890 30890 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-16 18:44:59.681 30890 30890 D TvPreviewFocusAccessibilityService: TV preview media playback state active=true focusedTitle=null
+11-16 18:45:03.770 30890 30890 D TvPreviewFocusAccessibilityService: TV preview accessibility event type=TYPE_VIEW_FOCUSED package=com.spocky.projengmenu source=android.widget.FrameLayout description=PreviewProbe
+11-16 18:45:03.945 30890 30890 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=null
+11-16 18:45:03.946 30890 30890 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=null
+11-16 18:45:03.960 30890 30890 D TvPreviewFocusAccessibilityService: TV preview media playback state active=false focusedTitle=null

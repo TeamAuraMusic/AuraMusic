@@ -1,0 +1,20 @@
+{
+    "programs": [
+
+    ],
+    "streams": [
+        {
+            "codec_name": "h264",
+            "width": 1920,
+            "height": 400
+        },
+        {
+            "codec_name": "aac",
+            "sample_rate": "48000",
+            "channels": 2
+        }
+    ],
+    "format": {
+        "duration": "4.330000"
+    }
+}

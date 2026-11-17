@@ -1,0 +1,108 @@
+{
+  "device": {
+    "model": "Google Chromecast (sabrina)",
+    "android": "14 / API 34",
+    "projectivy": "4.73 (versionCode 98)",
+    "auramusic": "3.2.0 (versionCode 29)",
+    "build_fingerprint": "google/sabrina_prod_stable/sabrina:14/UTTC.250917.004/14193937:user/release-keys",
+    "installed_auramusic_apk_sha256": "5292bd803e3ca40b1d95f17ec6674c1dc3448839e0bb00fbcb30e70fc653c266",
+    "projectivy_accessibility": "enabled and bound after test"
+  },
+  "interaction": "Projectivy HOME; DPAD focus only; no Select/Enter; moved between adjacent AuraMusic cards then to non-program focus; Projectivy remained top-resumed",
+  "cards": [
+    {
+      "title": "Glimpse of Us X La La Land",
+      "artist": "Andy Morris",
+      "artwork_and_in-card_animation_visible": true,
+      "focus_callback_log": "focus audio prefetch ready elapsedMs=2266",
+      "audio": {
+        "file": "audio-a-glimpse-of-us.wav",
+        "seconds": 9.834666666666667,
+        "sample_rate_hz": 48000,
+        "channels": 2,
+        "rms_dbfs": -16.95,
+        "peak_dbfs": -3.6
+      }
+    },
+    {
+      "title": "Nocturne for the Abyss",
+      "artist": "Joshua Kyan Alampour",
+      "artwork_and_in-card_animation_visible": true,
+      "focus_callback_log": "focus audio prefetch ready elapsedMs=1275",
+      "audio": {
+        "file": "audio-b-nocturne.wav",
+        "seconds": 9.813333333333333,
+        "sample_rate_hz": 48000,
+        "channels": 2,
+        "rms_dbfs": -14.4,
+        "peak_dbfs": -0.99
+      }
+    }
+  ],
+  "focus_loss": {
+    "callback": "indicator hidden reason=focus is not a published AuraMusic program",
+    "audio": {
+      "file": "audio-after-focus-loss.wav",
+      "seconds": 5.802666666666667,
+      "sample_rate_hz": 48000,
+      "channels": 2,
+      "rms_dbfs": null,
+      "peak_dbfs": null
+    },
+    "interpretation": "near-silence captured after moving focus outside AuraMusic programs"
+  },
+  "limits": [
+    "Captured audio proves audible non-silent output on each focused real-track card; no source-file waveform identity comparison performed.",
+    "Different track excerpts are not a controlled before/after latency benchmark.",
+    "No Select was sent; deep-link behavior was not tested in this capture.",
+    "User had filtered channels/categories; no channel/category setting was changed."
+  ],
+  "status": "PASS for real card focus, in-card animation, audible output, Projectivy foreground, and near-silent output after focus leaves; INCONCLUSIVE for exact audio identity and gap reduction magnitude",
+  "source_commit": "af90f8cd12b920e4ec498e8d1a14db33cb612fd2",
+  "captured_local_time": "2026-11-16 19:23-19:25 Europe/Oslo",
+  "realAuraMusicFocus": {
+    "status": "PASS",
+    "interaction": "DPAD focus only, no click; Projectivy remained top-resumed",
+    "cards": [
+      {
+        "title": "Glimpse of Us X La La Land",
+        "artwork_and_indicator_inside_focused_card": true,
+        "device_output_audio_non_silent": true,
+        "capture": "audio-a-glimpse-of-us.wav (local only)"
+      },
+      {
+        "title": "Nocturne for the Abyss",
+        "artwork_and_indicator_inside_focused_card": true,
+        "device_output_audio_non_silent": true,
+        "capture": "audio-b-nocturne.wav (local only)",
+        "screen_video": "card-animation-b.mp4",
+        "animation": "13/13 2-fps ROI samples show pink indicator; 12/12 adjacent samples change >100 pixels"
+      }
+    ],
+    "focus_loss": {
+      "indicator_hidden": true,
+      "device_output": "near silence, -91 dBFS mean and peak over 5.78 s",
+      "capture": "audio-after-focus-loss.wav (local only)"
+    },
+    "limits": [
+      "No source-file waveform identity comparison in this capture. User previously confirmed audible track matching on Chromecast.",
+      "Does not establish controlled before/after latency or reduction amount."
+    ],
+    "channel_category_settings_modified": false
+  },
+  "liveTransitionAttempt": {
+    "outcome": "INCONCLUSIVE",
+    "capture": "audio-live-transition-inconclusive.wav (local only)",
+    "durationSeconds": 13.824,
+    "deviceLoopbackDbfs": {
+      "mean": -91.0,
+      "peak": -91.0
+    },
+    "evidence": [
+      "Projectivy accessibility events moved focus between real AuraMusic titles.",
+      "Projectivy reported playback active and the provider logged audio URI opens.",
+      "Android music stream volume index was 25."
+    ],
+    "interpretation": "Loopback remained silent, so this sample cannot distinguish an audio-capture/route issue from playback failure. No transition-gap duration asserted."
+  }
+}

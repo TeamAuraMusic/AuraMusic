@@ -1,0 +1,24 @@
+{
+  "test": "synchronized real-card audio A/B capture",
+  "outcome": "INCONCLUSIVE",
+  "device": "Chromecast Android 14/API 34, Projectivy 4.73",
+  "capture": "audio-live-transition-inconclusive.wav (local only)",
+  "durationSeconds": 13.824,
+  "sampleRateHz": 48000,
+  "channels": 2,
+  "meanDbfs": -91.0,
+  "peakDbfs": -91.0,
+  "observedActions": [
+    "DPAD left",
+    "DPAD right",
+    "DPAD left"
+  ],
+  "focusEvents": [
+    "Money For Nothing (Remastered 1996)",
+    "Nocturne for the Abyss"
+  ],
+  "providerObservedOpen": true,
+  "projectivyPlaybackStateObservedActive": true,
+  "musicStreamVolumeIndex": 25,
+  "interpretation": "Loopback capture stayed at -91 dBFS throughout, including after Projectivy reported active playback and opened the provider URI. Cannot distinguish capture/route failure from a product playback failure from this sample. No gap duration asserted; do not count as pass/fail."
+}
