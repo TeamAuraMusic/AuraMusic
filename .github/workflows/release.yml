@@ -34,7 +34,51 @@ env:
   JAVA_VERSION: '21'
 
 jobs:
+  desktop:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools'
+
+      - name: Align desktop version with the release
+        shell: bash
+        env:
+          VERSION_NAME_INPUT: ${{ inputs.version_name || '' }}
+          VERSION_CODE_INPUT: ${{ inputs.version_code || '' }}
+        run: |
+          set -euo pipefail
+          version_name="${VERSION_NAME_INPUT:-${GITHUB_REF_NAME#v}}"
+          version_name="${version_name#v}"
+          version_code="${VERSION_CODE_INPUT:-$(grep -E '^auramusic.versionCode=' gradle.properties | head -n1 | cut -d= -f2)}"
+          sed -i "s/^auramusic.versionName=.*/auramusic.versionName=${version_name}/" gradle.properties
+          sed -i "s/^auramusic.versionCode=.*/auramusic.versionCode=${version_code}/" gradle.properties
+
+      - name: Build Windows desktop installers
+        run: .\gradlew.bat :desktop:packageMsi :desktop:packageExe --no-daemon --no-configuration-cache
+
+      - name: Upload desktop installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: AuraMusic-Desktop-Windows
+          path: desktop/build/compose/binaries/main-release/
+          if-no-files-found: error
+
   release:
+    needs: desktop
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -45,6 +89,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Download desktop installers
+        uses: actions/download-artifact@v4
+        with:
+          name: AuraMusic-Desktop-Windows
+          path: desktop-artifacts
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -74,7 +124,7 @@ jobs:
           if [ -n "${VERSION_CODE_INPUT}" ]; then
             version_code="${VERSION_CODE_INPUT}"
           else
-            version_code="$(grep -E 'versionCode = [0-9]+' app/build.gradle.kts | head -n1 | grep -Eo '[0-9]+')"
+            version_code="$(grep -E '^auramusic.versionCode=' gradle.properties | head -n1 | cut -d= -f2)"
           fi
 
           tag_name="v${version_name}"
@@ -108,14 +158,14 @@ jobs:
           echo "previous_tag=${previous_tag}" >> "$GITHUB_OUTPUT"
           echo "Using ${previous_tag} as the previous release tag."
 
-      - name: Update Android version
+      - name: Update shared version
         env:
           VERSION_NAME: ${{ steps.metadata.outputs.version_name }}
           VERSION_CODE: ${{ steps.metadata.outputs.version_code }}
         run: |
           set -euo pipefail
-          perl -0pi -e 's/versionCode = \d+/versionCode = $ENV{VERSION_CODE}/' app/build.gradle.kts
-          perl -0pi -e 's/versionName = "[^"]+"/versionName = "$ENV{VERSION_NAME}"/' app/build.gradle.kts
+          perl -0pi -e 's/^auramusic.versionCode=.*/auramusic.versionCode=$ENV{VERSION_CODE}/m' gradle.properties
+          perl -0pi -e 's/^auramusic.versionName=.*/auramusic.versionName=$ENV{VERSION_NAME}/m' gradle.properties
 
       - name: Generate release notes
         env:
@@ -264,13 +314,15 @@ jobs:
           test -n "$tv_apk"
           cp "$tv_apk" release-artifacts/AuraMusic-Tv.apk
 
+          find desktop-artifacts -type f \( -name '*.msi' -o -name '*.exe' \) -exec cp {} release-artifacts/ \;
+
           ls -la release-artifacts
 
-      - name: Upload APK artifacts
+      - name: Upload release assets
         uses: actions/upload-artifact@v4
         with:
-          name: AuraMusic-${{ steps.metadata.outputs.tag_name }}-APKs
-          path: release-artifacts/*.apk
+          name: AuraMusic-${{ steps.metadata.outputs.tag_name }}-assets
+          path: release-artifacts/*
           if-no-files-found: error
 
       - name: Commit release files
@@ -283,7 +335,7 @@ jobs:
           git config user.name "chila254"
           git config user.email "franklinfinyange@gmail.com"
 
-          git add app/build.gradle.kts RELEASE_NOTES.md CHANGELOG.md
+          git add gradle.properties RELEASE_NOTES.md CHANGELOG.md
           if ! git diff --cached --quiet; then
             git commit -m "chore(release): ${TAG_NAME} (build ${VERSION_CODE})"
             if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
@@ -323,9 +375,9 @@ jobs:
               --notes-file release-notes-body.md \
               $([ "${DRAFT}" = "true" ] && echo --draft || true) \
               $([ "${PRERELEASE}" = "true" ] && echo --prerelease || true)
-            gh release upload "${TAG_NAME}" release-artifacts/*.apk --clobber
+            gh release upload "${TAG_NAME}" release-artifacts/* --clobber
           else
-            args=("${TAG_NAME}" release-artifacts/*.apk --title "${RELEASE_TITLE}" --notes-file release-notes-body.md)
+            args=("${TAG_NAME}" release-artifacts/* --title "${RELEASE_TITLE}" --notes-file release-notes-body.md)
             if [ "${DRAFT}" = "true" ]; then
               args+=(--draft)
             fi

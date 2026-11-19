@@ -7,6 +7,10 @@ val localPropertiesFile = rootProject.file("local.properties")
 if (localPropertiesFile.exists()) {
     localProperties.load(localPropertiesFile.inputStream())
 }
+
+// One version for every AuraMusic app (Android mobile/TV and Desktop).
+val sharedVersionName = (findProperty("auramusic.versionName") as? String)?.takeIf { it.isNotBlank() } ?: "3.2.0"
+val sharedVersionCode = (findProperty("auramusic.versionCode") as? String)?.toIntOrNull() ?: 29
 plugins {
     id("com.android.application")
     alias(libs.plugins.hilt)
@@ -25,8 +29,8 @@ android {
         applicationId = "com.auramusic.app"
         minSdk = 23
         targetSdk = 36
-        versionCode = 29
-        versionName = "3.2.0"
+        versionCode = sharedVersionCode
+        versionName = sharedVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true

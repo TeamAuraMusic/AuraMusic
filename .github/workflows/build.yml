@@ -96,3 +96,34 @@ jobs:
           name: ${{ matrix.ui }}-${{ matrix.variant }}-${{ matrix.arch }}-release
           path: release-artifact/${{ matrix.asset }}
           if-no-files-found: error
+
+  desktop:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools'
+
+      - name: Build Windows desktop app
+        run: .\gradlew.bat :desktop:packageExe --no-daemon --no-configuration-cache
+
+      - name: Upload desktop app
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-windows-release
+          path: desktop/build/compose/binaries/main-release/
+          if-no-files-found: error
