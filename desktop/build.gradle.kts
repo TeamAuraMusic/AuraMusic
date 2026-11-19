@@ -1,3 +1,5 @@
+import org.gradle.api.file.DuplicatesStrategy
+import org.gradle.api.tasks.Copy
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 plugins {
@@ -40,6 +42,12 @@ kotlin.sourceSets.main {
 }
 tasks.named("compileKotlin") {
     dependsOn(generateDesktopBuildInfo)
+}
+
+// Platform resource folders are merged into one app-resources directory.
+// The Compose plugin registers this task lazily, so match it by name.
+tasks.matching { it.name == "prepareAppResources" }.configureEach {
+    (this as? Copy)?.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 dependencies {
