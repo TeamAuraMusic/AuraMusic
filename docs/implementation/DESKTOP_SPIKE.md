@@ -40,8 +40,8 @@ of crashing.
 
 ```powershell
 ./gradlew.bat :desktop:run                    # needs a GUI session
-./gradlew.bat :desktop:packageExe             # Windows portable installer
-./gradlew.bat :desktop:packageMsi             # Windows MSI
+./gradlew.bat :desktop:packageReleaseExe      # Windows installer -> binaries/main-release/exe
+./gradlew.bat :desktop:packageReleaseMsi      # Windows MSI -> binaries/main-release/msi
 ```
 
 The Gradle build also works on other hosts for compilation:

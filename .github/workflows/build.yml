@@ -119,7 +119,7 @@ jobs:
           packages: 'platform-tools'
 
       - name: Build Windows desktop app
-        run: .\gradlew.bat :desktop:packageExe --no-daemon --no-configuration-cache
+        run: .\gradlew.bat :desktop:packageReleaseExe --no-daemon --no-configuration-cache
 
       - name: Upload desktop app
         uses: actions/upload-artifact@v4

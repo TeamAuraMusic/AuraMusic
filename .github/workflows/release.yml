@@ -68,7 +68,7 @@ jobs:
           sed -i "s/^auramusic.versionCode=.*/auramusic.versionCode=${version_code}/" gradle.properties
 
       - name: Build Windows desktop installers
-        run: .\gradlew.bat :desktop:packageMsi :desktop:packageExe --no-daemon --no-configuration-cache
+        run: .\gradlew.bat :desktop:packageReleaseMsi :desktop:packageReleaseExe --no-daemon --no-configuration-cache
 
       - name: Upload desktop installers
         uses: actions/upload-artifact@v4
