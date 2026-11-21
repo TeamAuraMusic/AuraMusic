@@ -21,7 +21,6 @@ import android.database.SQLException
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.audiofx.AudioEffect
-import android.media.audiofx.LoudnessEnhancer
 import android.net.ConnectivityManager
 import android.os.Binder
 import android.os.Build
@@ -195,6 +194,7 @@ import com.auramusic.app.models.PersistQueue
 import com.auramusic.app.models.toMediaMetadata
 import com.auramusic.app.playback.audio.SilenceDetectorAudioProcessor
 import com.auramusic.app.playback.audio.DynamicRangeCompressionAudioProcessor
+import com.auramusic.app.playback.audio.NormalizationGainAudioProcessor
 import com.auramusic.app.playback.queues.EmptyQueue
 import com.auramusic.app.playback.queues.Queue
 import com.auramusic.app.playback.queues.YouTubeQueue
@@ -603,12 +603,22 @@ class MusicService :
 
     private val playerSilenceProcessors = HashMap<Player, SilenceDetectorAudioProcessor>()
 
+    /**
+     * One normalization gain stage per ExoPlayer (primary and automix/crossfade players each
+     * have their own, so the outgoing track keeps its gain while the incoming one gets its own).
+     * Weak keys: released players drop out without having to touch every release site.
+     */
+    private val normalizationProcessors: MutableMap<Player, NormalizationGainAudioProcessor> =
+        java.util.Collections.synchronizedMap(java.util.WeakHashMap())
+
+    /** mediaId -> YouTube loudness (dB), filled when a stream is resolved. Avoids a DB round-trip at track changes. */
+    private val loudnessCache = java.util.concurrent.ConcurrentHashMap<String, Double>()
+
 
     private val instantSilenceSkipEnabled = MutableStateFlow(false)
 
     private var isAudioEffectSessionOpened = false
     private var audioEffectSessionId = C.AUDIO_SESSION_ID_UNSET
-    private var loudnessEnhancer: LoudnessEnhancer? = null
 
     @Volatile private var discordRpcEnabled = false
     private var lastPlaybackSpeed = 1.0f
@@ -1059,7 +1069,7 @@ class MusicService :
                 .distinctUntilChanged(),
         ) { format, normalizeAudio ->
             format to normalizeAudio
-        }.collectLatest(scope) { (format, normalizeAudio) -> setupLoudnessEnhancer()}
+        }.collectLatest(scope) { (format, normalizeAudio) -> applyNormalizationGain()}
 
     combine(
             dataStore.data.map { it[AudioOffload] ?: false },
@@ -1399,6 +1409,7 @@ class MusicService :
         }
 
         val silenceProcessor = SilenceDetectorAudioProcessor { handleLongSilenceDetected() }
+        val normalizationProcessor = NormalizationGainAudioProcessor()
         
         // Set initial state
         runBlocking {
@@ -1412,7 +1423,7 @@ class MusicService :
 
         val player = ExoPlayer.Builder(this)
             .setMediaSourceFactory(createMediaSourceFactory())
-            .setRenderersFactory(createRenderersFactory(eqProcessor, vocalSuppressionProcessor, dynamicRangeCompressionProcessor, silenceProcessor))
+            .setRenderersFactory(createRenderersFactory(eqProcessor, vocalSuppressionProcessor, dynamicRangeCompressionProcessor, silenceProcessor, normalizationProcessor))
             .setLoadControl(createAutomixLoadControl())
             .setHandleAudioBecomingNoisy(true)
             .setWakeMode(C.WAKE_MODE_NETWORK)
@@ -1429,6 +1440,7 @@ class MusicService :
             .build()
         
         playerSilenceProcessors[player] = silenceProcessor
+        normalizationProcessors[player] = normalizationProcessor
 
         // Warm the upcoming track well before a blend begins. This is what removes the
         // "cached blends fine, streamed blends late" asymmetry: the next item's extractor and
@@ -2479,91 +2491,52 @@ class MusicService :
         startRadioSeamlessly()
     }
 
-    private fun setupLoudnessEnhancer() {
-        val audioSessionId = player.audioSessionId
-
-        if (audioSessionId == C.AUDIO_SESSION_ID_UNSET || audioSessionId <= 0) {
-            Timber.tag(TAG).w("setupLoudnessEnhancer: invalid audioSessionId ($audioSessionId), cannot create effect yet")
-            return
-        }
-
-        // Create or recreate enhancer if needed
-        if (loudnessEnhancer == null) {
-            try {
-                loudnessEnhancer = LoudnessEnhancer(audioSessionId)
-                Timber.tag(TAG).d("LoudnessEnhancer created for sessionId=$audioSessionId")
-            } catch (e: Exception) {
-                reportException(e)
-                loudnessEnhancer = null
-                return
-            }
-        }
+    /**
+     * Loudness normalization for the current player's [NormalizationGainAudioProcessor].
+     *
+     * - Off: 0 dB.
+     * - YouTube gave the track's loudness: gain = -loudness, clamped to [MIN_GAIN_MB]..[MAX_GAIN_MB].
+     * - No loudness data (YouTube does not send it for many tracks): the processor measures the
+     *   track while it plays and picks the gain itself.
+     *
+     * Safe to call repeatedly (track change, format arrival, setting change).
+     */
+    private fun applyNormalizationGain() {
+        val target = player
+        val processor = normalizationProcessors[target] ?: return
 
         scope.launch {
             try {
-                val currentMediaId = withContext(Dispatchers.Main) {
-                    player.currentMediaItem?.mediaId
-                }
-
-                val normalizeAudio = withContext(Dispatchers.IO) {
+                val mediaId = withContext(Dispatchers.Main) { target.currentMediaItem?.mediaId }
+                val enabled = withContext(Dispatchers.IO) {
                     dataStore.data.map { it[AudioNormalizationKey] ?: true }.first()
                 }
 
-                if (normalizeAudio && currentMediaId != null) {
-                    val format = withContext(Dispatchers.IO) {
-                        database.format(currentMediaId).first()
-                    }
+                if (!enabled || mediaId == null) {
+                    processor.setGainDb(0f, mediaId)
+                    return@launch
+                }
 
-                    Timber.tag(TAG).d("Audio normalization enabled: $normalizeAudio")
-                    Timber.tag(TAG).d("Format loudnessDb: ${format?.loudnessDb}, perceptualLoudnessDb: ${format?.perceptualLoudnessDb}")
+                val loudness = loudnessCache[mediaId] ?: withContext(Dispatchers.IO) {
+                    database.format(mediaId).first()?.let { it.loudnessDb ?: it.perceptualLoudnessDb }
+                }?.also { loudnessCache[mediaId] = it }
 
-                    // Use loudnessDb if available, otherwise fall back to perceptualLoudnessDb
-                    val loudness = format?.loudnessDb ?: format?.perceptualLoudnessDb
+                // The track changed while we were looking it up; the call for the new track wins.
+                if (withContext(Dispatchers.Main) { target.currentMediaItem?.mediaId } != mediaId) return@launch
 
-                    withContext(Dispatchers.Main) {
-                        if (loudness != null) {
-                            val loudnessDb = loudness.toFloat()
-                            val targetGain = (-loudnessDb * 100).toInt()
-                            val clampedGain = targetGain.coerceIn(MIN_GAIN_MB, MAX_GAIN_MB)
-
-                            Timber.tag(TAG).d("Calculated raw normalization gain: $targetGain mB (from loudness: $loudnessDb)")
-                            
-                            try {
-                                loudnessEnhancer?.setTargetGain(clampedGain)
-                                loudnessEnhancer?.enabled = true
-                                Timber.tag(TAG).i("LoudnessEnhancer gain applied: $clampedGain mB")
-                            } catch (e: Exception) {
-                                Timber.tag(TAG).e(e, "Failed to apply loudness enhancement")
-                                reportException(e)
-                                releaseLoudnessEnhancer()
-                            }
-                        } else {
-                            loudnessEnhancer?.enabled = false
-                            Timber.tag(TAG).w("Normalization enabled but no loudness data available - no normalization applied")
-                        }
-                    }
+                val minGainDb = MIN_GAIN_MB / 100f
+                val maxGainDb = MAX_GAIN_MB / 100f
+                if (loudness == null) {
+                    Timber.tag(TAG).d("No YouTube loudness for $mediaId - measuring it from the audio")
+                    processor.useMeasuredLoudness(mediaId, minGainDb, maxGainDb)
                 } else {
-                    withContext(Dispatchers.Main) {
-                        loudnessEnhancer?.enabled = false
-                        Timber.tag(TAG).d("setupLoudnessEnhancer: normalization disabled or mediaId unavailable")
-                    }
+                    val gainDb = (-loudness.toFloat()).coerceIn(minGainDb, maxGainDb)
+                    processor.setGainDb(gainDb, mediaId)
+                    Timber.tag(TAG).d("Normalization gain for $mediaId: $gainDb dB")
                 }
             } catch (e: Exception) {
                 reportException(e)
-                releaseLoudnessEnhancer()
             }
-        }
-    }
-
-    private fun releaseLoudnessEnhancer() {
-        try {
-            loudnessEnhancer?.release()
-            Timber.tag(TAG).d("LoudnessEnhancer released")
-        } catch (e: Exception) {
-            reportException(e)
-            Timber.tag(TAG).e(e, "Error releasing LoudnessEnhancer: ${e.message}")
-        } finally {
-            loudnessEnhancer = null
         }
     }
 
@@ -2573,7 +2546,7 @@ class MusicService :
         if (sessionId == C.AUDIO_SESSION_ID_UNSET || sessionId <= 0) return
         isAudioEffectSessionOpened = true
         audioEffectSessionId = sessionId
-        setupLoudnessEnhancer()
+        applyNormalizationGain()
         sendBroadcast(
             Intent(AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION).apply {
                 putExtra(AudioEffect.EXTRA_AUDIO_SESSION, sessionId)
@@ -2588,7 +2561,6 @@ class MusicService :
         val sessionId = audioEffectSessionId
         isAudioEffectSessionOpened = false
         audioEffectSessionId = C.AUDIO_SESSION_ID_UNSET
-        releaseLoudnessEnhancer()
         sendBroadcast(
             Intent(AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION).apply {
                 putExtra(AudioEffect.EXTRA_AUDIO_SESSION, sessionId)
@@ -2692,7 +2664,7 @@ class MusicService :
 
         lastPlaybackSpeed = -1.0f // force update song
 
-        setupLoudnessEnhancer()
+        applyNormalizationGain()
 
         discordUpdateJob?.cancel()
 
@@ -2881,7 +2853,7 @@ class MusicService :
         }
 
         if (playWhenReady) {
-            setupLoudnessEnhancer()
+            applyNormalizationGain()
         }
     }
 
@@ -3818,6 +3790,7 @@ class MusicService :
                 val format = nonNullPlayback.format
                 val loudnessDb = nonNullPlayback.audioConfig?.loudnessDb
                 val perceptualLoudnessDb = nonNullPlayback.audioConfig?.perceptualLoudnessDb
+                (loudnessDb ?: perceptualLoudnessDb)?.let { loudnessCache[mediaId] = it }
 
                 Timber.tag(TAG).d("Storing format for $mediaId with loudnessDb: $loudnessDb, perceptualLoudnessDb: $perceptualLoudnessDb")
                 if (loudnessDb == null && perceptualLoudnessDb == null) {
@@ -3873,7 +3846,8 @@ class MusicService :
         eqProcessor: CustomEqualizerAudioProcessor,
         vocalSuppressionProcessor: VocalSuppressionAudioProcessor,
         dynamicRangeCompressionProcessor: DynamicRangeCompressionAudioProcessor,
-        silenceProcessor: SilenceDetectorAudioProcessor
+        silenceProcessor: SilenceDetectorAudioProcessor,
+        normalizationProcessor: NormalizationGainAudioProcessor,
     ) =
         object : DefaultRenderersFactory(this) {
             override fun buildAudioSink(
@@ -3887,6 +3861,8 @@ class MusicService :
                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                 .setAudioProcessorChain(
                     DefaultAudioSink.DefaultAudioProcessorChain(
+                        // Normalization first, so EQ / compression see the leveled signal.
+                        normalizationProcessor,
                         // 2. Inject processor into audio pipeline
                         eqProcessor,
                         vocalSuppressionProcessor,
@@ -4113,7 +4089,6 @@ class MusicService :
         DiscordRpcManager.destroy()
         connectivityObserver.unregister()
         abandonAudioFocus()
-        releaseLoudnessEnhancer()
         playerInitialized.value = false
         _playerFlow.value = null
         automixTriggerJob?.cancel()
@@ -4461,6 +4436,11 @@ class MusicService :
     private var currentVideoSourceMediaId: String? = null
     private var originalAudioMediaItem: MediaItem? = null
     private var videoSwitchJob: Job? = null
+    // The item a video switch is in flight for. TvApp and TvPlayer both ask for video mode on
+    // a new song; the second ask used to restart the switch (cancelling the stream lookup
+    // that was already under way and pausing the player again), turning a few seconds of
+    // silence into ten.
+    private var videoSwitchMediaId: String? = null
     private var isInjectingVideoSource = false
     val isInjectingVideoSourcePublic: Boolean get() = isInjectingVideoSource
     // TV builds hold playback until the video's first frame is rendered so the
@@ -4786,24 +4766,31 @@ class MusicService :
         Timber.d("setVideoMode: Current mediaId: $mediaId")
         android.util.Log.d("MusicService", ">>> Current mediaId: $mediaId")
 
+        if (enabled && _isVideoSwitching.value && videoSwitchMediaId == mediaId) {
+            Timber.d("setVideoMode: Switch for $mediaId already in progress, not restarting it")
+            return
+        }
+
         videoSwitchJob?.cancel()
         _isVideoSwitching.value = true
+        videoSwitchMediaId = if (enabled) mediaId else null
 
         videoSwitchJob = scope.launch {
+            // True only once this switch has itself paused the player for the swap, so a
+            // failure resumes what it stopped and never what the listener paused.
+            var pausedBySwitch = false
             try {
                 val index = player.currentMediaItemIndex
                 val position = player.currentPosition
                 val wasPlaying = player.playWhenReady
+                val startItemId =
+                    if (index >= 0 && index < player.mediaItemCount) player.getMediaItemAt(index).mediaId else null
 
                 if (enabled) {
                     // Don't pause audio — let it keep playing while we load video
-                    // This prevents the audio stutter/gap during video mode switch
-                    // (EXCEPT on TV: there we pause immediately so the audio-only item
-                    // never plays while the video is still being fetched.)
-                    if (isTvDevice && wasPlaying) {
-                        player.playWhenReady = false
-                        _isVideoSwitching.value = true
-                    }
+                    // This prevents the audio stutter/gap during video mode switch.
+                    // The position and the play/pause state are read again at the moment
+                    // of the swap (below), so what happened during the fetch is respected.
                     
                     // Save original item before switching.
                     // The player can be empty between stopping and the next item
@@ -4970,7 +4957,7 @@ class MusicService :
                                     Timber.e("setVideoMode: Video URL is blank after parsing")
                                     _videoFetchError.value = "Video URL is empty - This song may not have a video available"
                                     _videoModeMessage.value = "No video available for this song"
-                                    restoreTvPlaybackIfPaused(wasPlaying)
+                                    restoreTvPlaybackIfPaused(pausedBySwitch)
                                     resetVideoMode()
                                     return@launch
                                 }
@@ -4984,10 +4971,11 @@ class MusicService :
                                 // instead of finishing over whatever came next.
                                 if (_guestVideoActive.value ||
                                     index < 0 ||
-                                    index >= player.mediaItemCount
+                                    index >= player.mediaItemCount ||
+                                    player.getMediaItemAt(index).mediaId != startItemId
                                 ) {
                                     Timber.d("setVideoMode: Player moved on while the video was loading, abandoning switch")
-                                    restoreTvPlaybackIfPaused(wasPlaying)
+                                    restoreTvPlaybackIfPaused(pausedBySwitch)
                                     resetVideoMode()
                                     return@launch
                                 }
@@ -5023,6 +5011,12 @@ class MusicService :
                                         .build()
                                 }
 
+                                // What the listener did while the video was loading counts: the audio kept
+                                // playing, so the swap carries on from where it has got to, and a pause
+                                // pressed in the meantime stays a pause.
+                                val resumePlaying = player.playWhenReady
+                                val swapPosition = player.currentPosition
+                                pausedBySwitch = resumePlaying
                                 // Pause before replacing so we don't briefly play from position 0
                                 player.playWhenReady = false
 
@@ -5075,16 +5069,16 @@ class MusicService :
                                 Timber.d("setVideoMode: Called prepare(), player state: ${player.playbackState}")
 
                                 // Seek BEFORE restoring playWhenReady to avoid playing from 0
-                                if (position > 0) {
-                                    player.seekTo(index, position)
-                                    Timber.d("setVideoMode: Seeked to position $position")
+                                if (swapPosition > 0) {
+                                    player.seekTo(index, swapPosition)
+                                    Timber.d("setVideoMode: Seeked to position $swapPosition")
                                 }
-                                if (isTvDevice && wasPlaying) {
+                                if (isTvDevice && resumePlaying) {
                                     // TV: hold playback silent until the first frame is actually
                                     // rendered, so we never hear the audio before the video shows.
-                                    waitForFirstVideoFrameThenResume(wasPlaying)
+                                    waitForFirstVideoFrameThenResume(resumePlaying)
                                 } else {
-                                    player.playWhenReady = wasPlaying
+                                    player.playWhenReady = resumePlaying
                                 }
                                 isVideoMode = true
                                 _videoModeEnabled.value = true
@@ -5099,13 +5093,13 @@ class MusicService :
                                 Timber.e("setVideoMode: Failed to get stream URL from search result")
                                 _videoFetchError.value = "Failed to load video stream"
                                 _videoModeMessage.value = "Could not load video"
-                                restoreTvPlaybackIfPaused(wasPlaying)
+                                restoreTvPlaybackIfPaused(pausedBySwitch)
                                 resetVideoMode()
                             }
                         } else {
                             _videoFetchError.value = "No video found for this song"
                             _videoModeMessage.value = "No video available for this song"
-                            restoreTvPlaybackIfPaused(wasPlaying)
+                            restoreTvPlaybackIfPaused(pausedBySwitch)
                             resetVideoMode()
                         }
                     } else {
@@ -5113,7 +5107,7 @@ class MusicService :
                         Timber.e("setVideoMode: Fallback search failed: $errorMsg")
                         _videoFetchError.value = "No video available: $errorMsg"
                         _videoModeMessage.value = "No video found for this song"
-                        restoreTvPlaybackIfPaused(wasPlaying)
+                        restoreTvPlaybackIfPaused(pausedBySwitch)
                         resetVideoMode()
                     }
                 } else {
@@ -5139,11 +5133,12 @@ class MusicService :
                 // on, a subtitle list with nothing to apply it to, or a saved audio
                 // item that a later playback error would try to put back.
                 resetVideoMode()
-                if (isTvDevice && !player.playWhenReady) {
+                if (isTvDevice && pausedBySwitch && !player.playWhenReady) {
                     player.playWhenReady = true
                 }
             } finally {
                 _isVideoSwitching.value = false
+                if (videoSwitchMediaId == mediaId) videoSwitchMediaId = null
             }
         }
     }

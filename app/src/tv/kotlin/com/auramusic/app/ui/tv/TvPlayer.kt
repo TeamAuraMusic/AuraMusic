@@ -245,7 +245,6 @@ import kotlinx.coroutines.withContext
                  }
              }
              .let { if (focusRequester != null) it.focusRequester(focusRequester) else it }
-             .focusable()
              .clickable(onClick = onClick)
              .background(backgroundColor)
              .padding(12.dp),
@@ -338,7 +337,6 @@ import kotlinx.coroutines.withContext
                   }
               }
               .let { if (focusRequester != null) it.focusRequester(focusRequester) else it }
-              .focusable()
               .clickable(onClick = onClick)
               .background(backgroundColor)
               .padding(12.dp),
@@ -457,7 +455,6 @@ private fun TvSubtitleOption(
                 }
             }
             .let { if (focusRequester != null) it.focusRequester(focusRequester) else it }
-            .focusable()
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 14.dp),
     ) {
@@ -534,7 +531,6 @@ private fun TvQualityOption(
                 }
             }
             .let { if (focusRequester != null) it.focusRequester(focusRequester) else it }
-            .focusable()
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 14.dp),
     ) {
@@ -1323,6 +1319,9 @@ fun TvPlayerScreen(
                 val controlSpacing = if (veryCompact) 4.dp else if (compactHeight) 8.dp else 16.dp
                 val secondaryTopPadding = if (veryCompact) 2.dp else if (compactHeight) 8.dp else 16.dp
                 val sideControlSize = if (veryCompact) 44.dp else if (compactHeight) 56.dp else 72.dp
+                // The secondary row now holds seven buttons (radio was added), so it is drawn a
+                // little smaller than the transport row to keep the row inside the left column.
+                val secondaryControlSize = sideControlSize * 0.8f
                 val playControlSize = if (veryCompact) 52.dp else if (compactHeight) 68.dp else 80.dp
 
             Row(
@@ -1635,7 +1634,7 @@ fun TvPlayerScreen(
                             } else {
                                 Color.White.copy(alpha = 0.7f)
                             },
-                            size = sideControlSize,
+                            size = secondaryControlSize,
                         )
 
                         TvPlayerControlButton(
@@ -1657,7 +1656,32 @@ fun TvPlayerScreen(
                             contentDescription = "Repeat",
                             tint = if (pc?.repeatMode?.value != androidx.media3.common.Player.REPEAT_MODE_OFF)
                                 MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f),
-                            size = sideControlSize,
+                            size = secondaryControlSize,
+                        )
+
+                        // Start radio: replaces the queue with an endless mix seeded from what is
+                        // playing (same action as "Start radio" in the phone player menu). A video
+                        // played from a shelf is not an item of the music queue, so for it the
+                        // radio is made of videos and queued behind it: the video keeps playing
+                        // instead of being reloaded as a song.
+                        TvPlayerControlButton(
+                            onClick = {
+                                android.widget.Toast.makeText(
+                                    context,
+                                    context.getString(R.string.starting_radio),
+                                    android.widget.Toast.LENGTH_SHORT,
+                                ).show()
+                                val videoId = currentVideoId
+                                if (guestVideoActive && videoId != null) {
+                                    com.auramusic.app.video.VideoPlaybackManager.startRadio(videoId)
+                                } else {
+                                    pc?.startRadioSeamlessly()
+                                }
+                            },
+                            painter = painterResource(R.drawable.radio),
+                            contentDescription = context.getString(R.string.start_radio),
+                            tint = Color.White.copy(alpha = 0.7f),
+                            size = secondaryControlSize,
                         )
 
                         TvPlayerControlButton(
@@ -1686,7 +1710,7 @@ fun TvPlayerScreen(
                             painter = painterResource(R.drawable.bedtime),
                             contentDescription = if (sleepTimerActive) "Cancel sleep timer" else "Set sleep timer",
                             tint = if (sleepTimerActive) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f),
-                            size = sideControlSize,
+                            size = secondaryControlSize,
                         )
 
                         TvPlayerControlButton(
@@ -1696,7 +1720,7 @@ fun TvPlayerScreen(
                             icon = Icons.Filled.Lyrics,
                             contentDescription = if (showLyrics) "Show album artwork" else "Show expanded lyrics",
                             tint = if (showLyrics) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f),
-                            size = sideControlSize,
+                            size = secondaryControlSize,
                         )
 
                         // The same resolution choice as fullscreen, in the split view too: a soft
@@ -1707,7 +1731,7 @@ fun TvPlayerScreen(
                             icon = Icons.Filled.HighQuality,
                             contentDescription = "Video quality",
                             tint = MaterialTheme.colorScheme.primary,
-                            size = sideControlSize,
+                            size = secondaryControlSize,
                         )
 
                         val isLiked = currentSong?.song?.liked == true
@@ -1716,7 +1740,7 @@ fun TvPlayerScreen(
                             painter = painterResource(if (isLiked) R.drawable.favorite else R.drawable.favorite_border),
                             contentDescription = if (isLiked) "Remove from liked songs" else "Add to liked songs",
                             tint = if (isLiked) MaterialTheme.colorScheme.error else Color.White.copy(alpha = 0.7f),
-                            size = sideControlSize,
+                            size = secondaryControlSize,
                         )
                     }
                 }

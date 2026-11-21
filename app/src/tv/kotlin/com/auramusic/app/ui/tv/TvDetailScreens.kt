@@ -866,7 +866,7 @@ private fun TvDetailLayout(
         itemsIndexed(displaySongs, key = { index, displaySong -> "${index}_${displaySong.id}" }) { index, displaySong ->
             SongRowItem(
                 displaySong = displaySong,
-                onClick = { playerConnection?.playDisplaySong(displaySong, songContext, songNavigator) },
+                onClick = { playerConnection?.playDisplaySong(displaySong, songContext, songNavigator, displaySongs) },
             )
         }
 
@@ -899,7 +899,6 @@ private fun SongRowItem(displaySong: DisplaySong, onClick: () -> Unit, modifier:
             .clip(RoundedCornerShape(8.dp))
             .border(2.dp, borderColor, RoundedCornerShape(8.dp))
             .onFocusChanged { isFocusedState.value = it.isFocused }
-            .focusable()
             .clickable(onClick = onClick)
             .padding(12.dp),
     ) {
@@ -969,8 +968,53 @@ private fun PlayerConnection?.playDisplaySong(
     displaySong: DisplaySong,
     context: Context,
     navigator: TvNavigator?,
+    collection: List<DisplaySong> = emptyList(),
 ) {
     if (this == null) return
+    // A song picked from a playlist or album plays that playlist or album from this song
+    // on, instead of a queue of its own. Videos in the list are played as videos.
+    if (collection.size > 1 && isVideoRow(displaySong)) {
+        // Playlist songs usually arrive without an album, which is what makes them videos
+        // here. They are still the playlist: it becomes the video queue, in its own order
+        // and with this song where it stands, instead of a page of recommendations.
+        TvPlayback.playVideo(
+            context = context,
+            navigator = navigator,
+            videoId = displaySong.id,
+            title = displaySong.title,
+            channelName = displaySong.artists,
+            queue = collection.map {
+                com.auramusic.app.video.VideoPlaybackManager.RecommendationItem(
+                    videoId = it.id,
+                    title = it.title,
+                    channelName = it.artists,
+                    thumbnail = it.thumbnailUrl,
+                    durationText = it.duration,
+                )
+            },
+        )
+        return
+    }
+    if (collection.size > 1 && !isVideoRow(displaySong)) {
+        val playable = collection.filterNot { isVideoRow(it) }
+        val start = playable.indexOfFirst { it === displaySong }.takeIf { it >= 0 }
+            ?: playable.indexOfFirst { it.id == displaySong.id }
+        if (start >= 0) {
+            playQueue(
+                ListQueue(
+                    title = null,
+                    items = playable.map {
+                        when (it) {
+                            is DisplaySong.LocalSong -> it.song.toMediaItem()
+                            is DisplaySong.YouTubeSong -> it.songItem.toMediaItem()
+                        }
+                    },
+                    startIndex = start,
+                ),
+            )
+            return
+        }
+    }
     when (displaySong) {
         is DisplaySong.LocalSong -> {
             // A video song in the library is the same video as any other, and it is
@@ -1015,6 +1059,11 @@ private fun PlayerConnection?.playDisplaySong(
             }
         }
     }
+}
+
+private fun isVideoRow(displaySong: DisplaySong): Boolean = when (displaySong) {
+    is DisplaySong.LocalSong -> displaySong.song.song.isVideo
+    is DisplaySong.YouTubeSong -> TvPlayback.isVideo(displaySong.songItem)
 }
 
 private fun PlayerConnection?.playAll(displaySongs: List<DisplaySong>, title: String?) {
