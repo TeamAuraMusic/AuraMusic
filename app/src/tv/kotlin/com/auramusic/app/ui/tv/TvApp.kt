@@ -3081,7 +3081,7 @@ fun handleYTSearchItemClick(
             // the music queue, so a video found by searching arrived as sound first
             // and a picture afterwards, if at all - while the same video found on an
             // artist shelf opened as a video.
-            TvPlayback.playVideoOrSong(context, playerConnection, navigator, item)
+            TvPlayback.playVideoOrSong(context, playerConnection, navigator, item, withRadio = true)
         }
                                 is AlbumItem -> {
                                     val browseId = item.browseId

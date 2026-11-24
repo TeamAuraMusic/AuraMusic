@@ -10,6 +10,7 @@ import com.auramusic.app.db.entities.Song
 import com.auramusic.app.models.toMediaMetadata
 import com.auramusic.app.playback.PlayerConnection
 import com.auramusic.app.playback.queues.YouTubeQueue
+import com.auramusic.app.video.VideoPlaybackManager.RecommendationItem
 import com.auramusic.app.video.VideoPlaybackManager
 import com.auramusic.innertube.models.EpisodeItem
 import com.auramusic.innertube.models.SongItem
@@ -65,6 +66,7 @@ object TvPlayback {
         playerConnection: PlayerConnection?,
         navigator: TvNavigator?,
         item: SongItem,
+        withRadio: Boolean = false,
     ) {
         if (isVideo(item)) {
             playVideo(
@@ -74,6 +76,9 @@ object TvPlayback {
                 title = item.title,
                 channelName = item.artists.joinToString(", ") { it.name },
             )
+            // Only for a song picked on its own (search): the list beside the player is that
+            // song's radio. A song picked from a playlist or album keeps that list.
+            if (withRadio) VideoPlaybackManager.startRadio(item.id)
         } else {
             playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id)))
         }
@@ -120,12 +125,14 @@ object TvPlayback {
         videoId: String,
         title: String,
         channelName: String,
+        queue: List<RecommendationItem>? = null,
     ) {
         VideoPlaybackManager.playWithDetails(
             context = context,
             videoId = videoId,
             title = title,
             channelName = channelName,
+            queueOnStart = queue,
         )
         // A video started from a shelf has to be shown, not merely begun: without
         // this it plays on behind whatever the listener is looking at, with no way

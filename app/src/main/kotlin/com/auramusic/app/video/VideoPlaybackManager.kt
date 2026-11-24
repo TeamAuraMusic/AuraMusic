@@ -1199,6 +1199,64 @@ object VideoPlaybackManager {
     }
 
     /**
+     * Makes the video's radio what follows it, as videos.
+     *
+     * The list that comes next is replaced, not added to, and the video on screen is not
+     * touched: it keeps playing, with nothing reloaded and nothing paused. Turning it into
+     * a music item to get a radio is what made it stop, fetch the same stream again and
+     * start over.
+     *
+     * [videoId] defaults to the video that is playing. It can name one that has only just
+     * been started, in which case this waits briefly for the session to exist.
+     */
+    fun startRadio(videoId: String? = _uiState.value.session?.videoId) {
+        val seed = videoId ?: return
+        scope.launch {
+            val songs = withContext(Dispatchers.IO) {
+                YouTube.next(
+                    WatchEndpoint(
+                        videoId = seed,
+                        playlistId = "RDAMVM$seed",
+                        params = "wAEB",
+                    ),
+                ).getOrNull()?.items.orEmpty()
+            }
+            var waitedMs = 0L
+            while (_uiState.value.session?.videoId != seed && waitedMs < 6_000L) {
+                delay(200L)
+                waitedMs += 200L
+            }
+            if (_uiState.value.session?.videoId != seed) return@launch
+            val items = songs
+                .filter { it.id != seed }
+                .distinctBy { it.id }
+                .map { song ->
+                    RecommendationItem(
+                        videoId = song.id,
+                        title = song.title,
+                        channelName = song.artists.joinToString { it.name },
+                        thumbnail = song.thumbnail,
+                        durationText = song.duration?.let { dur ->
+                            val minutes = dur / 60
+                            val seconds = dur % 60
+                            "$minutes:${seconds.toString().padStart(2, '0')}"
+                        },
+                    )
+                }
+            if (items.isEmpty()) return@launch
+            _uiState.update {
+                it.copy(
+                    recommendations = items,
+                    queue = rebuildQueue(items),
+                    queueOrder = null,
+                )
+            }
+            queuedAheadVideoId = null
+            queueUpcomingVideo()
+        }
+    }
+
+    /**
      * Whether the queue is currently in a shuffled order.
      *
      * Read by the player so the button says what turning it will do, which is the
@@ -2175,11 +2233,10 @@ object VideoPlaybackManager {
             // No active video to demote; nothing to clean up.
             return
         }
-        try {
-            if (player?.isPlaying == true) player?.pause()
-        } catch (e: Exception) {
-            Timber.tag("VideoPlaybackManager").w(e, "giveWayToMusic: pause failed")
-        }
+        // [player] is the one shared ExoPlayer, and this runs because music has just
+        // been told to play on it. Pausing it here paused the music itself: with a
+        // video session still kept alive, every press of play was undone ~20 ms
+        // later (playWhenReady true -> false) once the player reached READY.
         _uiState.update { it.copy(isPlaying = false, minimized = true, hiddenByMusic = true) }
         // Music owns the shared player now, so the guest session is over: no queue restore,
         // the incoming queue is the music the user just asked for. The session metadata is
