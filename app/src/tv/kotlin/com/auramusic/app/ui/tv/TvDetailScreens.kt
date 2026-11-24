@@ -107,6 +107,7 @@ import com.auramusic.innertube.models.PodcastItem
 import com.auramusic.innertube.models.SongItem
 import com.auramusic.innertube.models.YTItem
 import com.auramusic.innertube.pages.ArtistPage
+import com.auramusic.innertube.utils.completed
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import com.auramusic.app.utils.makeTimeString
@@ -563,25 +564,38 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
     val playlists by playlistsViewModel.allPlaylists.collectAsStateWithLifecycle()
     val localPlaylist = playlists.find { it.playlist.id == playlistId }
 
-    val isLikedMusic = playlistId == "LM"
+    // A library playlist row is keyed by its local Room id (LP...), while YouTube
+    // needs the browseId (PL...). Asking for "VLLP..." returns a valid but empty
+    // page, which is why every saved playlist showed "0 songs" on TV.
+    val remoteId = localPlaylist?.playlist?.browseId?.takeIf { it.isNotBlank() } ?: playlistId
+    val isLikedMusic = remoteId == "LM"
 
     val localPlaylistSongs by database.playlistSongs(playlistId).collectAsState(emptyList())
     val localLikedSongs by database.likedSongs(SongSortType.CREATE_DATE, false).collectAsState(emptyList())
 
     val localSongs = if (isLikedMusic) localLikedSongs else localPlaylistSongs.map { it.song }
 
-    // YouTube data
-    val ytSongs = remember { mutableStateOf<List<SongItem>?>(null) }
-    val ytPlaylist = remember { mutableStateOf<com.auramusic.innertube.models.PlaylistItem?>(null) }
+    // YouTube data — keyed by the playlist so opening a second playlist cannot
+    // reuse an empty result left behind by the first one.
+    val ytSongs = remember(remoteId) { mutableStateOf<List<SongItem>?>(null) }
+    val ytPlaylist = remember(remoteId) { mutableStateOf<PlaylistItem?>(null) }
+    var ytError by remember(remoteId) { mutableStateOf<String?>(null) }
+    val reloadKey = remember(remoteId) { mutableStateOf(0) }
 
-    LaunchedEffect(playlistId) {
-        if (!isLikedMusic && localSongs.isEmpty() && ytSongs.value == null) {
-            // Try to fetch from YouTube
-            YouTube.playlist(playlistId).onSuccess { playlistPage ->
+    LaunchedEffect(remoteId, reloadKey.value) {
+        if (isLikedMusic || localSongs.isNotEmpty() || ytSongs.value != null ||
+            localPlaylist?.playlist?.isLocal == true) return@LaunchedEffect
+        // Fetch with the YouTube id and follow continuations, as the phone does.
+        // A failed fetch used to be indistinguishable from an empty playlist.
+        YouTube.playlist(remoteId).completed()
+            .onSuccess { playlistPage ->
+                ytError = null
                 ytPlaylist.value = playlistPage.playlist
                 ytSongs.value = playlistPage.songs
             }
-        }
+            .onFailure { error ->
+                ytError = error.localizedMessage ?: "Could not load this playlist"
+            }
     }
 
     val displaySongs = if (localSongs.isNotEmpty()) {
@@ -604,24 +618,24 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
 
     // Like button (only for remote YouTube playlists, not the local "Liked Music" view)
     val isYtPlaylist = !isLikedMusic && (localPlaylist?.playlist?.isLocal != true)
-    val dbPlaylist by database.playlistByBrowseId(playlistId).collectAsState(initial = null)
+    val dbPlaylist by database.playlistByBrowseId(remoteId).collectAsState(initial = null)
     val isLiked = dbPlaylist?.playlist?.bookmarkedAt != null
     val onLikeClick: () -> Unit = {
         scope.launch(Dispatchers.IO) {
-            val existing = database.playlistByBrowseId(playlistId).first()
+            val existing = database.playlistByBrowseId(remoteId).first()
             if (existing == null) {
                 val entity = PlaylistEntity(
                     name = ytPlaylist.value?.title ?: displayTitle,
-                    browseId = playlistId,
+                    browseId = remoteId,
                     thumbnailUrl = displayThumbnail,
                     isEditable = false,
                 ).localToggleLike()
                 database.insert(entity)
-                YouTube.likePlaylist(playlistId, true)
+                YouTube.likePlaylist(remoteId, true)
             } else {
                 val updated = existing.playlist.localToggleLike()
                 database.update(updated)
-                YouTube.likePlaylist(playlistId, updated.bookmarkedAt != null)
+                YouTube.likePlaylist(remoteId, updated.bookmarkedAt != null)
             }
         }
     }
@@ -640,6 +654,10 @@ fun TvArtistDetailScreen(artistId: String, playerConnection: PlayerConnection?, 
         showLikeButton = isYtPlaylist,
         isLiked = isLiked,
         onLikeClick = onLikeClick,
+        errorMessage = ytError,
+        onRetry = if (ytError != null) {
+            { ytSongs.value = null; reloadKey.value++ }
+        } else null,
     )
 }
 
@@ -728,6 +746,9 @@ private fun TvDetailLayout(
     /** Who the page belongs to, for the canvas backdrop. Null when there is nobody. */
     backdropArtist: String? = null,
     backdropAlbum: String? = null,
+    /** Set when the online source failed to load, so it is not shown as an empty collection. */
+    errorMessage: String? = null,
+    onRetry: (() -> Unit)? = null,
 ) {
     val backButtonFocus = focusRequester ?: remember { FocusRequester() }
     // A video from one of these rows is handed to the video pipeline, which takes a
@@ -872,11 +893,24 @@ private fun TvDetailLayout(
 
         if (displaySongs.isEmpty()) {
             item {
-                Text(
-                    text = "No songs in this collection.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                if (errorMessage != null) {
+                    Text(
+                        text = errorMessage ?: "Could not load this collection.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    if (onRetry != null) {
+                        androidx.compose.material3.Button(onClick = onRetry) {
+                            Text(text = "Retry")
+                        }
+                    }
+                } else {
+                    Text(
+                        text = "No songs in this collection.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
     }

@@ -44,7 +44,11 @@ data class PlaylistPage(
                     it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
                 } != null,
                 endpoint = watchEndpoint,
-                setVideoId = PageHelper.playlistSetVideoId(renderer) ?: return null,
+                // A playlist row is still a playable song without its playlist-item
+                // id. Newer responses often omit playlistSetVideoId; treating it as
+                // mandatory dropped every row and made the whole playlist look empty.
+                // Callers that need it (remove/reorder) already check for null.
+                setVideoId = PageHelper.playlistSetVideoId(renderer),
                 libraryAddToken = libraryTokens.addToken,
                 libraryRemoveToken = libraryTokens.removeToken
             )

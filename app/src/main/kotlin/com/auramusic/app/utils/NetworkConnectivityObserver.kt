@@ -32,12 +32,20 @@ class NetworkConnectivityObserver(context: Context) {
         override fun onLost(network: Network) {
             _networkStatus.trySend(false)
         }
+
+        override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
+            // A VPN can come up after Wi‑Fi and changes the capabilities of the active
+            // network without firing onAvailable again. Republish the state so a player
+            // that parked itself waiting for a connection can retry.
+            _networkStatus.trySend(isConnected(capabilities))
+        }
     }
 
     init {
         val request = NetworkRequest.Builder()
             .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-            .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED)
+            // Do not require NOT_RESTRICTED: VPN networks are not always granted it,
+            // and a working VPN route is still a usable connection for playback.
             .build()
         
         try {
@@ -61,19 +69,18 @@ class NetworkConnectivityObserver(context: Context) {
      */
     fun isCurrentlyConnected(): Boolean {
         return try {
-            val activeNetwork = connectivityManager.activeNetwork
-            val networkCapabilities = connectivityManager.getNetworkCapabilities(activeNetwork)
-            
-            // Check if we have internet capability
-            val hasInternet = networkCapabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
-            
-            // For API 23+, also check if connection is validated
-            val isValidated =
-                networkCapabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true
-
-            hasInternet && isValidated
+            isConnected(connectivityManager.getNetworkCapabilities(connectivityManager.activeNetwork))
         } catch (e: Exception) {
             false
         }
     }
+
+    /**
+     * INTERNET is enough. A VPN network is often never marked VALIDATED because
+     * Android's captive-portal probe is blocked or rewritten by the tunnel, yet
+     * HTTPS through it works. Requiring VALIDATED made the player treat such a
+     * network as offline and wait forever instead of retrying the stream.
+     */
+    private fun isConnected(capabilities: NetworkCapabilities?): Boolean =
+        capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
 }

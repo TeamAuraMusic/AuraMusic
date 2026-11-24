@@ -102,7 +102,10 @@ object YTPlayerUtils {
         poTokenProvider: PoTokenProvider?,
     ): Result<PlaybackData> = runCatching {
         Timber.tag(logTag).d("Fetching player response for videoId: $videoId, playlistId: $playlistId")
-        val isLoggedIn = YouTube.cookie != null
+        // Device Google-account sign-in (added in 3.2.0) stores an OAuth token instead
+        // of a cookie. Counting only cookies treated those users as guests here, which
+        // skipped the authenticated clients and left them with no playable stream.
+        val isLoggedIn = YouTube.isLoggedIn()
         Timber.tag(logTag).d("Session authentication status: ${if (isLoggedIn) "Logged in" else "Not logged in"}")
 
         Timber.tag(logTag).d("Attempting to get player response using MAIN_CLIENT: ${MAIN_CLIENT.clientName}")
@@ -250,7 +253,7 @@ object YTPlayerUtils {
         // own headers is cheap and lets us fall through to the next client
         // instead.
         if (!isStreamUrlUsable(streamUrl, client, format.contentLength)) {
-            Timber.tag(logTag).w("Stream URL from $clientName failed probe (POT-gated/expired), trying next client")
+            Timber.tag(logTag).w("Stream URL from $clientName was rejected by the probe (POT-gated/expired), trying next client")
             return null
         }
 
@@ -433,10 +436,26 @@ return format
         }
         val length = contentLength ?: url.toUri().getQueryParameter("clen")?.toLongOrNull()
         val deepOffset = length?.let { (it / 2).coerceAtLeast(0L) }?.takeIf { it > PROBE_FREE_PREFIX_BYTES }
-        return probeRange(url, client, 0L) && (deepOffset == null || probeRange(url, client, deepOffset))
+
+        // Only a clear "this URL is gated" answer rejects a candidate. An
+        // inconclusive probe (network error, timeout, server ignoring Range)
+        // must not throw the URL away — behind a VPN the probe request can fail
+        // even though ExoPlayer's own data source can play the stream just fine.
+        if (probeRange(url, client, 0L) == ProbeResult.BLOCKED) return false
+        if (deepOffset != null && probeRange(url, client, deepOffset) == ProbeResult.BLOCKED) return false
+        return true
     }
 
-    private fun probeRange(url: String, client: YouTubeClient, offset: Long): Boolean = try {
+    private enum class ProbeResult {
+        /** 2xx: the URL serves audio. */
+        OK,
+        /** 401/403/404/410: the URL is gated or expired. */
+        BLOCKED,
+        /** Could not tell either way (network error, proxy/VPN, 5xx, redirect). */
+        INCONCLUSIVE,
+    }
+
+    private fun probeRange(url: String, client: YouTubeClient, offset: Long): ProbeResult = try {
         val requestBuilder = okhttp3.Request.Builder()
             .url(url)
             .header("Range", "bytes=$offset-$offset")
@@ -444,14 +463,21 @@ return format
             requestBuilder.header(name, value)
         }
         httpClient.newCall(requestBuilder.build()).execute().use { response ->
-            if (!response.isSuccessful) {
-                Timber.tag(logTag).d("Stream probe at $offset got HTTP ${response.code}")
+            when (response.code) {
+                401, 403, 404, 410 -> {
+                    Timber.tag(logTag).d("Stream probe at $offset blocked with HTTP ${response.code}")
+                    ProbeResult.BLOCKED
+                }
+                in 200..299 -> ProbeResult.OK
+                else -> {
+                    Timber.tag(logTag).d("Stream probe at $offset inconclusive (HTTP ${response.code})")
+                    ProbeResult.INCONCLUSIVE
+                }
             }
-            response.isSuccessful
         }
     } catch (e: Exception) {
-        Timber.tag(logTag).e(e, "Stream probe at $offset failed with exception")
-        false
+        Timber.tag(logTag).w(e, "Stream probe at $offset inconclusive: ${e.message}")
+        ProbeResult.INCONCLUSIVE
     }
 
     /** googlevideo serves this much of a gated URL before it starts answering 403. */
